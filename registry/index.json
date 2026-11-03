@@ -124,9 +124,10 @@
             "files/router.tsx": "sha256-8f27867d153c38b0401dba9aefb5fc5c8e298e2a115d13bbbc138b5bb97b1a44",
             "files/tsconfig.json": "sha256-3af94e731aaad2740ee1bca5c2f91417ec878ea12f3a22fbbd3653fd47027b00",
             "files/vite.config.ts": "sha256-87859ede600d5b0bbc06ad9b4ca462e6cc6b479dfc420f7e643790e030923045",
-            "migrations/routes-to-router.after.js": "sha256-21686764f847f8d1635c362c02697b0a9a72ba66123d43082057e6e868b12659"
+            "migrations/routes-to-router.after.js": "sha256-21686764f847f8d1635c362c02697b0a9a72ba66123d43082057e6e868b12659",
+            "renames.json": "sha256-7d44a3900ddedea62e22ada0961f54908379c0e3cf195cf1f092412aa9cde67f"
           },
-          "integrity": "sha256-993d7252a3b6959420d5759875227985dbcbfe68bd5371a15d8b60af81e92eb9",
+          "integrity": "sha256-b2974c2d3e3a980983774ec31f890c92c863fab3953f23bc4f347ecc907a7202",
           "manifest": "modules/vite-react/1.1.0/module.json",
           "provides": ["web", "web:spa"],
           "schemaVersion": 1
