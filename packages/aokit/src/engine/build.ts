@@ -243,6 +243,14 @@ export async function buildPlan(options: BuildPlanOptions): Promise<Plan> {
           answers,
           vfs: opVfs,
           extensionPoints,
+          modulesOf: (path) => [
+            ...new Set(
+              log
+                .get(normalizeProjectPath(path))
+                .filter((entry) => entry.entry.kind === "op")
+                .map((entry) => entry.module),
+            ),
+          ],
           resolvePath,
         },
         op,

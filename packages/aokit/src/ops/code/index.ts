@@ -1,5 +1,5 @@
 import type { OpHandler, OpHandlers } from "../../engine/ops.ts";
-import { appendEntry, hasEntryKey, hasEntryText } from "./entries.ts";
+import { appendEntry, findEntryByKey, hasEntryText, sameEntry } from "./entries.ts";
 import { CodeOpError } from "./errors.ts";
 import { addImportEdits } from "./imports.ts";
 import { commitEdits, locateSite } from "./resolve.ts";
@@ -38,11 +38,23 @@ const registerAt: OpHandler = (context, op) => {
         context.module,
       );
     }
-    if (hasEntryKey(site, op.key)) {
-      return;
+    const entry = `${op.key}: ${op.expression}`;
+    const existing = findEntryByKey(site, op.key);
+    if (existing !== undefined) {
+      if (sameEntry(existing, entry)) {
+        return;
+      }
+      const registered = context.modulesOf(site.path).filter((name) => name !== context.module);
+      const others = registered.length > 0 ? registered : [site.point.module];
+      const owners = [...others, context.module].map((name) => `"${name}"`).join(" and ");
+      throw new CodeOpError(
+        "ops.key-conflict",
+        `Modules ${owners} both register key "${op.key}" in ${site.path} for extension point "${site.point.name}" with different values.\n  fix: keep one registration or use distinct keys.`,
+        context.module,
+      );
     }
     commitEdits(context, site, (batch) =>
-      appendEntry(batch, site, context.module, "object", `${op.key}: ${op.expression}`),
+      appendEntry(batch, site, context.module, "object", entry),
     );
     return;
   }

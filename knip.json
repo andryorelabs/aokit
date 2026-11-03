@@ -7,22 +7,10 @@
     },
     "packages/aokit": {
       "entry": ["test/**/*.test.ts"],
-      "ignoreDependencies": [
-        "@aokit/module",
-        "@oxc-parser/binding-wasm32-wasip1",
-        "jsonc-parser",
-        "magic-string",
-        "magicast",
-        "oxc-parser",
-        "postcss",
-        "trpc-cli",
-        "yaml",
-        "zod"
-      ]
+      "ignoreDependencies": ["@oxc-parser/binding-wasm32-wasip1"]
     },
     "packages/module": {
-      "entry": ["test/**/*.test.ts"],
-      "ignoreDependencies": ["zod"]
+      "entry": ["test/**/*.test.ts"]
     }
   }
 }

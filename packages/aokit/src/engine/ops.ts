@@ -44,6 +44,8 @@ interface OpContext {
   readonly answers: Readonly<Record<string, AnswerValue>>;
   readonly vfs: OpVfs;
   readonly extensionPoints: ReadonlyMap<string, DeclaredExtensionPoint>;
+  /** Names of the Modules whose Ops have written `path` so far in this run. */
+  modulesOf(path: string): readonly string[];
   /** Joins a Target's Layout directory with a path relative to it. */
   resolvePath(target: string, relativePath: string): string;
 }

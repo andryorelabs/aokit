@@ -11,6 +11,8 @@ type OpContext = Parameters<OpHandler>[0];
 export type CodeOp = Extract<Op, { extensionPoint: string }>;
 
 const sourceExtensions = /\.(?:ts|tsx|mts|cts)$/;
+const declarationFile = /\.d\.(?:ts|mts|cts)$/;
+const generatedDirectories = new Set(["node_modules", "dist", "build", "out", ".next", "coverage"]);
 
 /** The declaring file of an Extension point, located and parsed. */
 export interface AnchorSite {
@@ -62,6 +64,14 @@ function underDirectory(path: string, directory: string): boolean {
   return directory === "" || directory === "." || path.startsWith(`${directory}/`);
 }
 
+function isHandWrittenSource(path: string): boolean {
+  return (
+    sourceExtensions.test(path) &&
+    !declarationFile.test(path) &&
+    !path.split("/").some((segment) => generatedDirectories.has(segment))
+  );
+}
+
 /** Resolves the Extension point of `op` and locates its anchor in the declaring Target. */
 export function locateSite(
   context: OpContext,
@@ -80,7 +90,7 @@ export function locateSite(
   const matches: AnchorSite[] = [];
   for (const path of context.vfs.paths()) {
     const source = context.vfs.read(path);
-    if (!underDirectory(path, directory) || !sourceExtensions.test(path)) {
+    if (!underDirectory(path, directory) || !isHandWrittenSource(path)) {
       continue;
     }
     if (typeof source !== "string") {
