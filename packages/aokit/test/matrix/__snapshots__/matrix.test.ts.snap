@@ -2,19 +2,19 @@
 
 exports[`capability-derived matrix builds every combination twice with equal Plan hashes on both Layouts 1`] = `
 {
-  "monorepo coolify,docker,hono,knip,oxc": "plan=5b8bf293358eecf1084d9bb1f0796ea3a3ede2ebcde4cd18e23cb5dc4528f669 lockfile=36750491b661c4d32c7c7b477ffed8108cd6f80ba137dca8bca04799a295b46b",
-  "monorepo coolify,docker,tailwind4,vite-react": "plan=f62550edc62e546eadc61e82bac8b2d8255262ac7c55ecdbebb13f09586a5aa7 lockfile=c9dea14df49930e4ab73d88abd341e8b2db98f8d5509217bcef24077c0c08972",
-  "monorepo docker": "plan=b272987713bbb41f13a792ce03fb199ef8f26c46d5f0fca6728c5db301d764e5 lockfile=38a1cfe811286bedb9638f3f618c33bb86f151b9e8156b09a4777561673431cc",
-  "monorepo hono": "plan=33359d52dacc2e9e0e63a010f8350d350c5824fa2016ba4836813bf97828b627 lockfile=1fd2a5ac66a658d7afc9381c54657972bbcd070554561d25dbf6849a121ba2e8",
-  "monorepo hono,knip,oxc,tailwind4,vite-react": "plan=b34d3801fc545e9c57674082ce2ea627e7cab78387bef99fd2f0ae1557c45438 lockfile=10b3ef8541cc8ec42f1153c63c09c498da4e60205ea06aad50fb247232d5c51a",
-  "monorepo knip,oxc": "plan=e4738eaee7895e5b673907897fed7acbb0fe6f6bde1bd9fca629783e76ca5f33 lockfile=7296ff6e59f42289975967e62d181c206edb8ead42a37853102604b6f0738f75",
-  "monorepo oxc,vite-react": "plan=260ba0d9c83c57d65878a49f5815d6981a6e1a833d8674b720b3a3354b7ae5ce lockfile=b6c00cd4d177c08e550b0bacd8a2a9b7995bdaf7b6990c4e4dba56c28dfea143",
-  "single coolify,docker,hono,knip,oxc": "plan=7a367826ef5b2dbaa9b507bc3180751b55320dc53bf4f74271943149ccbcf824 lockfile=6633285ee364a01d9b24a8280954873f2161b2e83f533157273681db2d4f5c05",
-  "single coolify,docker,tailwind4,vite-react": "plan=800e55a041247f66d05fe1e587822583c864010bc0b2f5c2bce0117b2d4f55bf lockfile=e9746f6d24f783b1d59aae8b743337d65aa6c5f4a08ed89244616d46d2d53b4a",
-  "single docker": "plan=b272987713bbb41f13a792ce03fb199ef8f26c46d5f0fca6728c5db301d764e5 lockfile=d9d9798f3e85a8c2abfcc7a33cdbc6279c3b71bc1b73d533fbe1c936ae358a38",
-  "single hono": "plan=80c1948625ae7836e9d3c426d1ba12d45c139192e49ecc2f95ae58fd81f1e16c lockfile=f99a474a9cfa3bb9b71c06ac05dc95c627f7639bc9fdb0797bb190ac22acc140",
-  "single hono,knip,oxc,tailwind4,vite-react": "plan=1d7492c1a141d971602c9c4e266b151f92238b427323b14d89aef934ef8fb06c lockfile=b7bc131e7422457daf3ffeaa723e888e7d38c1fb91546e0ba9f754a9872f6d00",
-  "single knip,oxc": "plan=72aa085c28fb51209a044e6e98be04635bc20b19dce01d9668fb71f0dfe1bbc6 lockfile=00d917c1ce7103f525ccf5b85d4df5aca221a1a3bdbbf3cc9a1d62fba8616237",
-  "single oxc,vite-react": "plan=f014a3bf1c77ed1998a24b3713a244cea0be2fd3b794ce9f941ac1f72f61f126 lockfile=3dac6714ed830bcfed8c587b80e429e6ad00e8cb8a4cf1ec17a5e1047212dcb8",
+  "monorepo coolify,docker,hono,knip,oxc": "plan=5b8bf293358eecf1084d9bb1f0796ea3a3ede2ebcde4cd18e23cb5dc4528f669 lockfile=4938990e6aeaf4f717e7038313272935f965a1d6013e8f8d4e6c4abb8c46691e",
+  "monorepo coolify,docker,tailwind4,vite-react": "plan=f62550edc62e546eadc61e82bac8b2d8255262ac7c55ecdbebb13f09586a5aa7 lockfile=57a5dcfbe6d3bf038f85eb715e11fa77fb1457713165558a69653af47441ea18",
+  "monorepo docker": "plan=b272987713bbb41f13a792ce03fb199ef8f26c46d5f0fca6728c5db301d764e5 lockfile=5f3c605cc8530f3245f4b027f3301159867e5ff1e26b4861e54eb955812b6579",
+  "monorepo hono": "plan=33359d52dacc2e9e0e63a010f8350d350c5824fa2016ba4836813bf97828b627 lockfile=9ce0cdf0b490731ab00251cf3a5108e75a59cdf23520d88a40d72eddd404fc09",
+  "monorepo hono,knip,oxc,tailwind4,vite-react": "plan=b34d3801fc545e9c57674082ce2ea627e7cab78387bef99fd2f0ae1557c45438 lockfile=bccb138c66774127fc3f51a6ae579f65b9c79c83f2eac06b7625f73d34e53068",
+  "monorepo knip,oxc": "plan=e4738eaee7895e5b673907897fed7acbb0fe6f6bde1bd9fca629783e76ca5f33 lockfile=e9846fb007a672f6514cba1cff442862e463feb42435416620a5ee9e409ec607",
+  "monorepo oxc,vite-react": "plan=260ba0d9c83c57d65878a49f5815d6981a6e1a833d8674b720b3a3354b7ae5ce lockfile=3d603960be2e294d09b5e21cded77f90a65589a0c862b3d1c98060743defcd59",
+  "single coolify,docker,hono,knip,oxc": "plan=7a367826ef5b2dbaa9b507bc3180751b55320dc53bf4f74271943149ccbcf824 lockfile=bd9cff61cd396d6adeb6401c8739f2c957f1021a65e4eb303d0dc3d7d7caa8c6",
+  "single coolify,docker,tailwind4,vite-react": "plan=800e55a041247f66d05fe1e587822583c864010bc0b2f5c2bce0117b2d4f55bf lockfile=95ba8e9ded27aa29aee08c44417d04d750342eef54fee583143b34c00c56dd8a",
+  "single docker": "plan=b272987713bbb41f13a792ce03fb199ef8f26c46d5f0fca6728c5db301d764e5 lockfile=c0cc7b578eae7388987ae97f465184b9be8d7c24ffb400d7e6170dd682a4f898",
+  "single hono": "plan=80c1948625ae7836e9d3c426d1ba12d45c139192e49ecc2f95ae58fd81f1e16c lockfile=233a95cafdb2f1a276491b76be700e3e8024504914df7e9a281541bdb9b996f2",
+  "single hono,knip,oxc,tailwind4,vite-react": "plan=1d7492c1a141d971602c9c4e266b151f92238b427323b14d89aef934ef8fb06c lockfile=493f2aeec1e604dbdc1d0fad9048c0466f6c507d5ca57b999ccf3fc8862f6bea",
+  "single knip,oxc": "plan=72aa085c28fb51209a044e6e98be04635bc20b19dce01d9668fb71f0dfe1bbc6 lockfile=682d155be0fb9dd9e8e352690a591410b639e9a155e38110f934fb45912fddd7",
+  "single oxc,vite-react": "plan=f014a3bf1c77ed1998a24b3713a244cea0be2fd3b794ce9f941ac1f72f61f126 lockfile=6c3a2a9d681e1494fc07729ce928177f1ce8f4489adb16fd9976448689adcc21",
 }
 `;

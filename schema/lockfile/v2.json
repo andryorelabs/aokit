@@ -1,0 +1,224 @@
+{
+  "$defs": {
+    "__schema0": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "number"
+        },
+        {
+          "type": "boolean"
+        },
+        {
+          "type": "null"
+        },
+        {
+          "items": {
+            "$ref": "#/$defs/__schema0"
+          },
+          "type": "array"
+        },
+        {
+          "additionalProperties": {
+            "$ref": "#/$defs/__schema0"
+          },
+          "propertyNames": {
+            "type": "string"
+          },
+          "type": "object"
+        }
+      ]
+    }
+  },
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "additionalProperties": false,
+  "properties": {
+    "$schema": {
+      "minLength": 1,
+      "type": "string"
+    },
+    "cliVersion": {
+      "pattern": "^\\d+\\.\\d+\\.\\d+(?:-[0-9A-Za-z.-]+)?(?:\\+[0-9A-Za-z.-]+)?$",
+      "type": "string"
+    },
+    "deps": {
+      "additionalProperties": {
+        "additionalProperties": false,
+        "properties": {
+          "owners": {
+            "items": {
+              "minLength": 1,
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "pinned": {
+            "type": "boolean"
+          },
+          "source": {
+            "enum": [
+              "catalog",
+              "module",
+              "user"
+            ],
+            "type": "string"
+          },
+          "version": {
+            "minLength": 1,
+            "type": "string"
+          }
+        },
+        "required": [
+          "version",
+          "owners",
+          "pinned",
+          "source"
+        ],
+        "type": "object"
+      },
+      "propertyNames": {
+        "type": "string"
+      },
+      "type": "object"
+    },
+    "files": {
+      "additionalProperties": {
+        "additionalProperties": false,
+        "properties": {
+          "hash": {
+            "pattern": "^sha256-[0-9a-f]{64}$",
+            "type": "string"
+          },
+          "mode": {
+            "enum": [
+              "managed",
+              "seed",
+              "ejected"
+            ],
+            "type": "string"
+          },
+          "owners": {
+            "items": {
+              "minLength": 1,
+              "type": "string"
+            },
+            "minItems": 1,
+            "type": "array"
+          }
+        },
+        "required": [
+          "owners",
+          "mode",
+          "hash"
+        ],
+        "type": "object"
+      },
+      "propertyNames": {
+        "type": "string"
+      },
+      "type": "object"
+    },
+    "layout": {
+      "enum": [
+        "single",
+        "monorepo"
+      ],
+      "type": "string"
+    },
+    "lockfileVersion": {
+      "const": 2,
+      "type": "number"
+    },
+    "modules": {
+      "additionalProperties": {
+        "additionalProperties": false,
+        "properties": {
+          "answers": {
+            "additionalProperties": {
+              "$ref": "#/$defs/__schema0"
+            },
+            "propertyNames": {
+              "type": "string"
+            },
+            "type": "object"
+          },
+          "integrity": {
+            "pattern": "^sha256-[0-9a-f]{64}$",
+            "type": "string"
+          },
+          "registry": {
+            "minLength": 1,
+            "type": "string"
+          },
+          "selected": {
+            "type": "boolean"
+          },
+          "version": {
+            "pattern": "^\\d+\\.\\d+\\.\\d+(?:-[0-9A-Za-z.-]+)?(?:\\+[0-9A-Za-z.-]+)?$",
+            "type": "string"
+          }
+        },
+        "required": [
+          "version",
+          "registry",
+          "selected",
+          "integrity",
+          "answers"
+        ],
+        "type": "object"
+      },
+      "propertyNames": {
+        "type": "string"
+      },
+      "type": "object"
+    },
+    "protocolVersion": {
+      "exclusiveMinimum": 0,
+      "maximum": 9007199254740991,
+      "type": "integer"
+    },
+    "registries": {
+      "additionalProperties": {
+        "additionalProperties": false,
+        "properties": {
+          "minCliVersion": {
+            "pattern": "^\\d+\\.\\d+\\.\\d+(?:-[0-9A-Za-z.-]+)?(?:\\+[0-9A-Za-z.-]+)?$",
+            "type": "string"
+          },
+          "release": {
+            "minLength": 1,
+            "type": "string"
+          },
+          "source": {
+            "minLength": 1,
+            "type": "string"
+          }
+        },
+        "required": [
+          "source",
+          "release",
+          "minCliVersion"
+        ],
+        "type": "object"
+      },
+      "propertyNames": {
+        "type": "string"
+      },
+      "type": "object"
+    }
+  },
+  "required": [
+    "$schema",
+    "lockfileVersion",
+    "cliVersion",
+    "protocolVersion",
+    "layout",
+    "registries",
+    "modules",
+    "files",
+    "deps"
+  ],
+  "type": "object"
+}

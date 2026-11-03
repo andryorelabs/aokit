@@ -4,11 +4,10 @@ import { z } from "zod";
 import { apply } from "../apply/index.ts";
 import { AokitError } from "../cli/envelope.ts";
 import { registerShutdownHook } from "../cli/shutdown.ts";
-import { Vfs, type EngineModule } from "../engine/index.ts";
 import type { LayoutName } from "../engine/layout.ts";
 import type { PlanChange } from "../engine/plan.ts";
 import { formatterForSelection } from "../format/index.ts";
-import { buildProject } from "../pipeline/index.ts";
+import { buildProject, type PipelineModule } from "../pipeline/index.ts";
 import { readLocalRegistry, type LocalRegistry } from "../registry/index.ts";
 import { resolve } from "../resolver/resolve.ts";
 import { completeAnswers, parseAnswers } from "./answers.ts";
@@ -76,7 +75,7 @@ function toPlanChange(change: PlanChange): CreatePlanChange {
   };
 }
 
-function toEngineModule(name: string, registry: LocalRegistry): EngineModule {
+function toEngineModule(name: string, registry: LocalRegistry): PipelineModule {
   const entry = registry.modules.get(name);
   if (entry === undefined) {
     throw new AokitError(
@@ -87,6 +86,7 @@ function toEngineModule(name: string, registry: LocalRegistry): EngineModule {
   }
   return {
     manifest: entry.manifest,
+    integrity: entry.integrity,
     readFile(from) {
       const content = entry.files.get(from);
       if (content === undefined) {
@@ -183,7 +183,6 @@ async function plan(request: CreateRequest) {
       release: registry.release,
       minCliVersion: await readMinCliVersion(registryPath),
     },
-    base: Vfs.empty(),
     ...(formatter === undefined ? {} : { formatter }),
   });
   if (!built.ok) {

@@ -3,11 +3,13 @@ import {
   type BuiltProject,
   type PipelineFailure,
   type PipelineInput,
+  type PipelineModule,
   buildProject,
 } from "./build.ts";
 
-export { buildProject, type PipelineInput };
+export { buildProject, type PipelineInput, type PipelineModule };
 export { type RegistryInfo } from "./assemble.ts";
+export { renderFromLockfile } from "./render.ts";
 
 /** Result of {@link runPipeline}. */
 export type PipelineResult = (BuiltProject & { readonly directory: string }) | PipelineFailure;
