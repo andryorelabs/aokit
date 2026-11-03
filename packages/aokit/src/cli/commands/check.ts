@@ -1,5 +1,6 @@
-import { isAbsolute, join, resolve as resolvePath } from "node:path";
+import { join, resolve as resolvePath } from "node:path";
 import { z } from "zod";
+import { resolveRegistrySource } from "../../project/registry.ts";
 import { LockfileError, readLockfile } from "../../lockfile/index.ts";
 import type { Lockfile } from "../../lockfile/schema.ts";
 import { type LocalRegistry, readLocalRegistry, RegistryError } from "../../registry/index.ts";
@@ -37,20 +38,6 @@ interface ReleaseState {
   readonly available: string;
 }
 
-function registryPath(source: string, projectDir: string): string {
-  if (source === "bundled") {
-    return bundledRegistryPath;
-  }
-  if (/^[A-Za-z][A-Za-z0-9+.-]*:\/\//.test(source)) {
-    throw new AokitError(
-      "INVALID_INPUT",
-      `Registry source "${source}" is a URL, and remote Registries are not supported yet.`,
-      "Use a local Registry path or the bundled Registry.",
-    );
-  }
-  return isAbsolute(source) ? source : resolvePath(projectDir, source);
-}
-
 async function loadLockfile(projectDir: string): Promise<Lockfile> {
   try {
     const parsed = await readLockfile(join(projectDir, lockfileFileName));
@@ -77,7 +64,10 @@ async function readRegistry(
   cliVersion: string,
 ): Promise<LocalRegistry> {
   try {
-    return await readLocalRegistry(registryPath(source, projectDir), { cliVersion });
+    return await readLocalRegistry(
+      resolveRegistrySource(source, { projectDir, bundledRegistryPath }),
+      { cliVersion },
+    );
   } catch (thrown) {
     if (thrown instanceof RegistryError) {
       if (thrown.code === "REGISTRY_CLI_TOO_OLD") {
@@ -128,7 +118,8 @@ function coversMigration(
   return (
     target?.manifest.migrations.some(
       (migration) =>
-        Bun.semver.order(migration.from, current) >= 0 &&
+        Bun.semver.satisfies(current, migration.from) &&
+        Bun.semver.order(current, migration.to) < 0 &&
         Bun.semver.order(migration.to, available) <= 0,
     ) ?? false
   );

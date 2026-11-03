@@ -3,9 +3,10 @@ import { cp, mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { catalogSchema } from "@aokit/module";
+import { computeIntegrity } from "../../packages/aokit/src/registry/index.ts";
 import { buildRegistry, listFiles } from "./build.ts";
 import { diffDirectories } from "./diff.ts";
-import { writeRegistrySourceFixture } from "./fixture.ts";
+import { addMigrationToFixtureSource, writeRegistrySourceFixture } from "./fixture.ts";
 
 const repoRoot = join(import.meta.dir, "..", "..");
 const temporaryDirectories: string[] = [];
@@ -168,6 +169,49 @@ test("the drift check names the path an unbuilt source edit changes", async () =
     "index.json",
     "modules/oxc/1.0.0/files/.oxlintrc.json",
   ]);
+});
+
+test("a Module shipping a Migration and renames.json lists both in files and integrity", async () => {
+  const source = await fixtureSource();
+  await addMigrationToFixtureSource(source);
+  const out = await temporaryDirectory();
+  await buildRegistry(source, out);
+
+  const index = JSON.parse(await readFile(join(out, "index.json"), "utf8"));
+  const version = index.modules.oxc.versions["2.0.0"];
+  expect(Object.keys(version.files).toSorted()).toEqual([
+    "files/.oxlintrc.json",
+    "files/nested/notes.md",
+    "migrations/1-to-2.before.js",
+    "renames.json",
+  ]);
+  const script = await readFile(join(out, "modules/oxc/2.0.0/migrations/1-to-2.before.js"), "utf8");
+  expect(script).not.toContain("@aokit/module");
+  expect(version.files["migrations/1-to-2.before.js"]).toBe(computeIntegrity(script));
+  expect(await listFiles(join(out, "modules/oxc/2.0.0"))).toContain("renames.json");
+});
+
+test("building a Migration is deterministic across source locations", async () => {
+  const firstSource = await fixtureSource();
+  const secondSource = await fixtureSource();
+  await addMigrationToFixtureSource(firstSource);
+  await addMigrationToFixtureSource(secondSource);
+  const first = await temporaryDirectory();
+  const second = await temporaryDirectory();
+  await buildRegistry(firstSource, first);
+  await buildRegistry(secondSource, second);
+  expect(await diffDirectories(first, second)).toEqual([]);
+});
+
+test("a manifest migration without a compiled script fails the build", async () => {
+  const source = await fixtureSource();
+  await addMigrationToFixtureSource(source);
+  await rm(join(source, "oxc/migrations/1-to-2.before.ts"));
+  const failure = await buildRegistry(source, await temporaryDirectory()).then(
+    () => undefined,
+    (error: unknown) => error,
+  );
+  expect(String(failure)).toContain("migrations/1-to-2.before.js");
 });
 
 test("registry/ matches a fresh build of registry-src/ (run `bun run registry:build`)", async () => {

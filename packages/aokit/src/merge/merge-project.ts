@@ -34,6 +34,8 @@ export interface MergeProjectInput {
   readonly lockfile: Lockfile;
   readonly merger: Merger;
   readonly driftOf: DriftOf;
+  /** Old path to new path, Project-relative and already Target-resolved. */
+  readonly renames?: ReadonlyMap<string, string>;
 }
 
 /** Result of {@link mergeProject}. */
@@ -58,6 +60,8 @@ type Decision =
 interface PathContext {
   readonly input: MergeProjectInput;
   readonly path: string;
+  /** Where the user's file, the Lockfile entry and the base Render live; differs from `path` on a rename. */
+  readonly sourcePath: string;
   readonly entry: LockfileFileEntry | undefined;
   readonly user: FileContent | undefined;
   readonly drift: DriftState;
@@ -74,21 +78,26 @@ interface Accumulator {
 const bunLockfile = "bun.lock";
 const neverMerged = new Set([bunLockfile, "aokit.lock.json"]);
 
-function pathUniverse(input: MergeProjectInput): string[] {
+function pathUniverse(
+  input: MergeProjectInput,
+  renamedFrom: ReadonlyMap<string, string>,
+): string[] {
+  const sources = new Set(renamedFrom.values());
   const paths = new Set([
     ...Object.keys(input.lockfile.files),
     ...input.base.paths(),
     ...input.next.plan.vfs.paths(),
   ]);
+  for (const source of sources) paths.delete(source);
   return [...paths].filter((path) => !neverMerged.has(path)).toSorted();
 }
 
 async function mergeContents(
-  { input, path }: PathContext,
+  { input, path, sourcePath }: PathContext,
   user: FileContent,
   next: FileContent,
 ): Promise<Decision> {
-  const base = input.base.read(path) ?? "";
+  const base = input.base.read(sourcePath) ?? "";
   const outcome = await input.merger.merge({ base, user, next, path });
   if (outcome.conflict) {
     const merged =
@@ -137,7 +146,7 @@ async function decideManaged(context: PathContext, next: FileContent): Promise<D
     };
   }
   if (user === undefined) {
-    const base = input.base.read(path);
+    const base = input.base.read(context.sourcePath);
     const changed = base !== undefined && !sameContent(base, next);
     return {
       action: "keep",
@@ -200,6 +209,7 @@ function recordWrite(
   provenanceOf: (path: string) => readonly Provenance[],
 ): void {
   const { input, path, user } = context;
+  const renamed = isRename(context) && user !== undefined;
   const nextFile = input.next.plan.vfs.get(path);
   const ownership = nextFile?.ownership ?? "managed";
   state.vfs.write(path, content, {
@@ -208,8 +218,9 @@ function recordWrite(
     ...(nextFile?.mode === undefined ? {} : { mode: nextFile.mode }),
   });
   state.changes.push({
-    type: user === undefined ? "create" : "update",
+    type: renamed ? "rename" : user === undefined ? "create" : "update",
     path,
+    ...(renamed ? { renamedFrom: context.sourcePath } : {}),
     content,
     ...(user === undefined ? {} : { previousContent: user }),
     ownership,
@@ -217,6 +228,30 @@ function recordWrite(
     provenance: provenanceOf(path),
   });
   keepEntry(context, "next", state);
+}
+
+function isRename({ path, sourcePath }: PathContext): boolean {
+  return path !== sourcePath;
+}
+
+function recordKeptRename(context: PathContext, user: FileContent, state: Accumulator): void {
+  const { input, path } = context;
+  const nextFile = input.next.plan.vfs.get(path);
+  state.vfs.write(path, user, {
+    ownership: nextFile?.ownership ?? "managed",
+    volatile: nextFile?.volatile ?? false,
+    ...(nextFile?.mode === undefined ? {} : { mode: nextFile.mode }),
+  });
+  state.changes.push({
+    type: "rename",
+    path,
+    renamedFrom: context.sourcePath,
+    content: user,
+    previousContent: user,
+    ownership: nextFile?.ownership ?? "managed",
+    mode: nextFile?.mode,
+    provenance: provenanceLookup(input)(path),
+  });
 }
 
 function recordDelete({ path, entry, user }: PathContext, state: Accumulator): void {
@@ -230,10 +265,14 @@ function recordDelete({ path, entry, user }: PathContext, state: Accumulator): v
   });
 }
 
-function keepEntry({ input, path }: PathContext, choice: EntryChoice, state: Accumulator): void {
+function keepEntry(
+  { input, path, sourcePath }: PathContext,
+  choice: EntryChoice,
+  state: Accumulator,
+): void {
   const chosen =
     choice === "previous"
-      ? input.lockfile.files[path]
+      ? input.lockfile.files[sourcePath]
       : choice === "next"
         ? input.next.lockfile.files[path]
         : undefined;
@@ -245,7 +284,19 @@ function recordConflict(context: PathContext, write: ConflictWrite, state: Accum
   state.conflicts.push(write);
   state.vfs.write(path, write.merged ?? user ?? write.next);
   const next = input.next.lockfile.files[path];
-  const previous = input.lockfile.files[path];
+  const previous = input.lockfile.files[context.sourcePath];
+  if (isRename(context) && user !== undefined && write.merged === undefined) {
+    recordKeptRename(context, user, state);
+  } else if (isRename(context) && user !== undefined) {
+    state.changes.push({
+      type: "delete",
+      path: context.sourcePath,
+      previousContent: user,
+      ownership: previous?.mode ?? "managed",
+      mode: undefined,
+      provenance: (previous?.owners ?? []).map((module) => ({ module, entry: { kind: "remove" } })),
+    });
+  }
   if (previous === undefined) return;
   state.files[path] = next === undefined ? previous : { ...next, hash: previous.hash };
 }
@@ -263,10 +314,49 @@ function recordDecision(
   } else if (decision.action === "conflict") {
     recordConflict(context, decision.write, state);
   } else {
-    if (context.user !== undefined) state.vfs.write(context.path, context.user);
+    if (context.user !== undefined && isRename(context)) {
+      recordKeptRename(context, context.user, state);
+    } else if (context.user !== undefined) {
+      state.vfs.write(context.path, context.user);
+    }
     keepEntry(context, decision.entry, state);
     if (decision.warning !== undefined) state.warnings.push(decision.warning);
   }
+}
+
+async function isApplicableRename(
+  input: MergeProjectInput,
+  from: string,
+  to: string,
+): Promise<boolean> {
+  const entry = input.lockfile.files[from];
+  const nextFile = input.next.plan.vfs.get(to);
+  if (from === to || entry === undefined || entry.mode !== "managed") return false;
+  if (nextFile === undefined || nextFile.ownership !== "managed" || nextFile.volatile) return false;
+  if (input.next.plan.vfs.has(from) || input.lockfile.files[to] !== undefined) return false;
+  return (await input.readUser(to)) === undefined;
+}
+
+/**
+ * The renames that can move a file: the old path is a managed Lockfile entry the next Render no
+ * longer produces, and the new path is free in the Lockfile and on disk. Any other rename stays
+ * delete plus create, so an `unknown` file at the new path raises a Conflict. Keyed by new path.
+ */
+async function effectiveRenames(input: MergeProjectInput): Promise<Map<string, string>> {
+  const candidates = [...(input.renames ?? [])].filter(
+    ([from, to]) => !neverMerged.has(from) && !neverMerged.has(to),
+  );
+  const verdicts = await Promise.all(
+    candidates.map(([from, to]) => isApplicableRename(input, from, to)),
+  );
+  const applicable = new Map<string, string>();
+  const sources = new Set<string>();
+  candidates.forEach(([from, to], index) => {
+    if (!verdicts[index] || applicable.has(to) || sources.has(from)) return;
+    sources.add(from);
+    applicable.set(to, from);
+  });
+  return applicable;
 }
 
 /**
@@ -283,12 +373,14 @@ export async function mergeProject(input: MergeProjectInput): Promise<MergeProje
     files: {},
   };
   const provenanceOf = provenanceLookup(input);
+  const renamedFrom = await effectiveRenames(input);
   const decided = await Promise.all(
-    pathUniverse(input).map(async (path) => {
-      const user = normalizeUserContent(await input.readUser(path));
-      const entry = input.lockfile.files[path];
-      const drift = input.driftOf({ path, entry, user });
-      const context: PathContext = { input, path, entry, user, drift };
+    pathUniverse(input, renamedFrom).map(async (path) => {
+      const sourcePath = renamedFrom.get(path) ?? path;
+      const user = normalizeUserContent(await input.readUser(sourcePath));
+      const entry = input.lockfile.files[sourcePath];
+      const drift = input.driftOf({ path: sourcePath, entry, user });
+      const context: PathContext = { input, path, sourcePath, entry, user, drift };
       return { context, decision: await decide(context) };
     }),
   );

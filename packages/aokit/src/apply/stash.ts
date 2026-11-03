@@ -63,6 +63,12 @@ async function pruneStashRoot(
   await removeEmptyDirectory(dirname(dirname(root)));
 }
 
+/** A kept stash: where the originals are and which paths an abort has to delete again. */
+export interface StashHandle extends Stash {
+  /** Project-relative paths the apply created; they did not exist before it. */
+  readonly created: readonly string[];
+}
+
 /** Copies the existing regular file at each of `paths` into a fresh timestamped stash directory. */
 export async function createStash(
   projectDirectory: string,
@@ -140,10 +146,16 @@ export async function findLeftoverStash(projectDirectory: string): Promise<strin
   return listStashes(projectDirectory, (await openGit(projectDirectory)) ?? undefined);
 }
 
-/** Deletes every leftover stash of the Project and returns the paths it removed. */
-export async function removeLeftoverStash(projectDirectory: string): Promise<string[]> {
+/**
+ * Deletes every leftover stash of the Project except those in `keep`, and returns the paths it
+ * removed.
+ */
+export async function removeLeftoverStash(
+  projectDirectory: string,
+  keep: readonly string[] = [],
+): Promise<string[]> {
   const git = (await openGit(projectDirectory)) ?? undefined;
-  const stashes = await listStashes(projectDirectory, git);
+  const stashes = (await listStashes(projectDirectory, git)).filter((path) => !keep.includes(path));
   await inSequence(stashes, (stash) => rm(stash, { recursive: true, force: true }));
   await pruneStashRoot(await stashRoot(projectDirectory, git), projectDirectory, git);
   return stashes;

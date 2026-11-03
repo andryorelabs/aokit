@@ -35,6 +35,9 @@ export const errorCodeExitCodes = {
   NOT_SELECTED: exitCodes.usage,
   IO_ERROR: exitCodes.failure,
   INTERNAL: exitCodes.failure,
+  MIGRATION_FAILED: exitCodes.failure,
+  PLAN_STALE: exitCodes.precondition,
+  PLAN_MISSING: exitCodes.precondition,
 } as const satisfies Record<string, ExitCode>;
 
 export type ErrorCode = keyof typeof errorCodeExitCodes;
