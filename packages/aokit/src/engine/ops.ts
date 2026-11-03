@@ -25,7 +25,7 @@ export interface DeclaredExtensionPoint {
   readonly target: Target;
   readonly kind: string;
   readonly anchor: string;
-  readonly file?: string;
+  readonly file?: string | undefined;
 }
 
 /** The slice of the VFS an Op handler may use; every write is recorded in the Plan's Provenance. */
