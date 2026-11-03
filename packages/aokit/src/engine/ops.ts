@@ -30,6 +30,8 @@ export interface DeclaredExtensionPoint {
 /** The slice of the VFS an Op handler may use; every write is recorded in the Plan's Provenance. */
 export interface OpVfs {
   has(path: string): boolean;
+  /** Every path currently in the VFS, sorted by Unicode codepoint. */
+  paths(): string[];
   read(path: string): FileContent | undefined;
   write(path: string, content: FileContent, options?: WriteOptions): void;
 }
