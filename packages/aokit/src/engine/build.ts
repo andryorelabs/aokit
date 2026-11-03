@@ -23,7 +23,7 @@ import {
 import { type Ownership, Vfs, compareByCodepoint, normalizeProjectPath } from "./vfs.ts";
 
 /** A path the caller wants removed from the working tree, e.g. a file of a Module being removed. */
-export interface Removal {
+interface Removal {
   readonly path: string;
   readonly module: string;
 }

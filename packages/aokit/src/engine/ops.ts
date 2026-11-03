@@ -35,7 +35,7 @@ export interface OpVfs {
 }
 
 /** Everything an Op handler receives. */
-export interface OpContext {
+interface OpContext {
   readonly module: string;
   readonly layout: LayoutName;
   readonly context: EngineContext;
