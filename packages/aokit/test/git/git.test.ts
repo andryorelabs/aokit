@@ -151,14 +151,16 @@ test("the real adapter yields the same markers as node-diff3 through the Merger"
 
 test("binary Uint8Array content keeps its bytes in the aokitNew payload", async () => {
   const next = new Uint8Array([0, 255, 254, 1]);
+  const user = new Uint8Array([0, 2, 253]);
   const result = await createMerger().merge({
     base: new Uint8Array([0, 1]),
-    user: new Uint8Array([0, 2]),
+    user,
     next,
     path: "logo.png",
   });
   expect(result.conflict).toBe(true);
   expect(result.aokitNew).toEqual(next);
+  expect(result.content).toEqual(user);
 });
 
 test("outside git a CRLF re-save of a pristine text file is not dirty", async () => {

@@ -13,7 +13,7 @@ const BINARY_SNIFF_BYTES = 8192;
 
 /** The result of merging a single file. */
 interface MergeOutcome {
-  readonly content: string | null;
+  readonly content: string | Uint8Array | null;
   readonly conflict: boolean;
   readonly aokitNew?: string | Uint8Array;
 }
@@ -51,9 +51,9 @@ function sameContent(left: FileContent, right: FileContent): boolean {
 
 function mergeBinary({ base, user, next }: MergeInput): MergeOutcome {
   if (sameContent(next, user) || sameContent(next, base)) {
-    return { content: toText(user), conflict: false };
+    return { content: user, conflict: false };
   }
-  return { content: toText(user), conflict: true, aokitNew: next };
+  return { content: user, conflict: true, aokitNew: next };
 }
 
 function toText(content: FileContent): string {

@@ -5,6 +5,11 @@ import { join } from "node:path";
 
 import { createMerger, isBinary, type MergeFileFn } from "../../src/merger/index.ts";
 
+function textOf(content: string | Uint8Array | null): string {
+  if (typeof content !== "string") throw new Error("expected text content");
+  return content;
+}
+
 let workDir = "";
 
 beforeAll(async () => {
@@ -147,7 +152,8 @@ describe("json merge", () => {
     expect(result.content).toContain("// compiler settings");
     expect(result.content).toContain('"a": 1');
     expect(result.content).toContain('"b": 2');
-    expect(result.content?.indexOf('"a"')).toBeLessThan(result.content?.indexOf('"b"') ?? 0);
+    const merged = textOf(result.content);
+    expect(merged.indexOf('"a"')).toBeLessThan(merged.indexOf('"b"'));
   });
 
   test("arrays merge by value", async () => {
@@ -161,7 +167,7 @@ describe("json merge", () => {
       path: "package.json",
     });
     expect(result.conflict).toBe(false);
-    expect(JSON.parse(result.content ?? "")).toEqual({ files: ["a", "u", "n"] });
+    expect(JSON.parse(textOf(result.content))).toEqual({ files: ["a", "u", "n"] });
   });
 
   test("a scalar changed on both sides falls back to a text merge with markers", async () => {
@@ -188,6 +194,6 @@ describe("json merge", () => {
       next: '{\n  "a": 1\n}\n',
       path: "x.json",
     });
-    expect(JSON.parse(result.content ?? "")).toEqual({ a: 1, c: 3 });
+    expect(JSON.parse(textOf(result.content))).toEqual({ a: 1, c: 3 });
   });
 });
