@@ -8,9 +8,11 @@ import {
   type DriftEntry,
   type ProjectProblem,
 } from "../../drift/index.ts";
+import type { Git } from "../../git/git.ts";
 import { openGit } from "../../git/index.ts";
 import { LockfileError, readLockfile } from "../../lockfile/index.ts";
 import type { Lockfile } from "../../lockfile/schema.ts";
+import { readUpdateMarker } from "../../update/state.ts";
 import { defineCommand } from "../command.ts";
 import { AokitError } from "../envelope.ts";
 import { aokitMeta } from "../meta.ts";
@@ -42,7 +44,7 @@ const doctorOutput = z.object({
   }),
   problems: z.array(
     z.object({
-      kind: z.enum(["cli", "registry", "integrity", "resolver", "deps", "stash"]),
+      kind: z.enum(["cli", "registry", "integrity", "resolver", "deps", "update", "stash"]),
       message: z.string(),
       fix: z.string(),
     }),
@@ -88,9 +90,12 @@ async function readProjectLockfile(dir: string) {
   );
 }
 
-async function removeStashes(dir: string): Promise<string[]> {
-  if ((await findLeftoverStash(dir)).length === 0) return [];
-  return (await removeLeftoverStash(dir)).map((path) => relative(dir, path));
+async function removeStashes(dir: string, git: Git | undefined): Promise<string[]> {
+  const marker = await readUpdateMarker(dir, git);
+  const keep = marker === null ? [] : [marker.stashDirectory];
+  const leftovers = (await findLeftoverStash(dir)).filter((path) => !keep.includes(path));
+  if (leftovers.length === 0) return [];
+  return (await removeLeftoverStash(dir, keep)).map((path) => relative(dir, path));
 }
 
 function byState(files: DoctorReport["files"], state: DriftEntry["state"]): string[] {
@@ -141,9 +146,9 @@ export const doctorCommand = defineCommand({
     const git = (await openGit(dir)) ?? undefined;
     const [drift, projectProblems] = await Promise.all([
       classifyDrift(dir, lockfile, { git }),
-      checkProject(dir, lockfile, { cliVersion: context.version, bundledRegistryPath }),
+      checkProject(dir, lockfile, { cliVersion: context.version, bundledRegistryPath, git }),
     ]);
-    const removedStashes = await removeStashes(dir);
+    const removedStashes = await removeStashes(dir, git);
     const report = buildReport(
       lockfile,
       upgradedFrom,

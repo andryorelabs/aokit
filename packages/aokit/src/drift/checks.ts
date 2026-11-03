@@ -1,13 +1,15 @@
 import { readFile } from "node:fs/promises";
 import { isAbsolute, join, resolve as resolvePath } from "node:path";
 import type { ModuleManifest } from "@aokit/module";
+import type { Git } from "../git/git.ts";
 import type { Lockfile } from "../lockfile/schema.ts";
 import { RegistryError, readLocalRegistry, type LocalRegistry } from "../registry/index.ts";
 import { resolve } from "../resolver/resolve.ts";
+import { readUpdateMarker } from "../update/state.ts";
 
 /** One thing wrong with a Project besides file drift, with the command that fixes it. */
 export interface ProjectProblem {
-  readonly kind: "cli" | "registry" | "integrity" | "resolver" | "deps";
+  readonly kind: "cli" | "registry" | "integrity" | "resolver" | "deps" | "update";
   readonly message: string;
   readonly fix: string;
 }
@@ -17,6 +19,8 @@ export interface CheckProjectOptions {
   readonly cliVersion: string;
   /** The Registry that ships with the running CLI, used for the `"bundled"` source. */
   readonly bundledRegistryPath: string;
+  /** The git adapter of the Project; locates the marker of an update in progress. */
+  readonly git?: Git | undefined;
 }
 
 const dependencyFields = [
@@ -210,8 +214,24 @@ async function checkDeps(dir: string, lockfile: Lockfile): Promise<ProjectProble
   return problems;
 }
 
+async function checkUpdateInProgress(
+  dir: string,
+  options: CheckProjectOptions,
+): Promise<ProjectProblem[]> {
+  const marker = await readUpdateMarker(dir, options.git);
+  if (marker === null) return [];
+  const paths = [...marker.conflictedPaths, ...marker.newSiblingPaths];
+  return [
+    {
+      kind: "update",
+      message: `An update stopped on Conflicts and is still in progress (${paths.join(", ")}); its stash at ${marker.stashDirectory} is kept.`,
+      fix: "aokit update --abort",
+    },
+  ];
+}
+
 /**
- * Checks everything about a Project except file drift: the Lockfile's `minCliVersion`, each
+ * Checks everything about a Project except file drift: an update in progress, the Lockfile's `minCliVersion`, each
  * Module's integrity against its Registry, the Resolver over the locked Modules, and the
  * `package.json` dependencies against the Lockfile `deps`. Reads only.
  */
@@ -220,11 +240,13 @@ export async function checkProject(
   lockfile: Lockfile,
   options: CheckProjectOptions,
 ): Promise<ProjectProblem[]> {
+  const updateProblems = await checkUpdateInProgress(dir, options);
   const cliProblems = checkMinCliVersion(lockfile, options.cliVersion);
-  if (cliProblems.length > 0) return cliProblems;
+  if (cliProblems.length > 0) return [...updateProblems, ...cliProblems];
   const { registries, problems: registryProblems } = await readRegistries(dir, lockfile, options);
   const { manifests, problems: moduleProblems } = checkModules(lockfile, registries);
   return [
+    ...updateProblems,
     ...registryProblems,
     ...moduleProblems,
     ...checkResolver(lockfile, manifests),
