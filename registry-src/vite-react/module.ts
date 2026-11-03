@@ -35,9 +35,9 @@ export default defineModule({
       file: "package.json",
       value: {
         scripts: {
-          dev: "vite {{target:web}}",
-          build: "vite build {{target:web}}",
-          preview: "vite preview {{target:web}}",
+          dev: "bun run --cwd {{target:web}} vite",
+          build: "bun run --cwd {{target:web}} vite build",
+          preview: "bun run --cwd {{target:web}} vite preview",
         },
       },
     },

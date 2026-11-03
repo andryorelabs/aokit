@@ -5,6 +5,14 @@ import { readText, writeIfChanged } from "./files.ts";
 
 const NON_PACKAGE_TARGETS: ReadonlySet<string> = new Set(["root", "config"]);
 
+function compareCodepoint(left: string, right: string): number {
+  return left < right ? -1 : left > right ? 1 : 0;
+}
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === "object" && value !== null && !Array.isArray(value);
+}
+
 function baseName(directory: string): string {
   return directory.slice(directory.lastIndexOf("/") + 1);
 }
@@ -23,7 +31,7 @@ export function wireWorkspaces(vfs: OpVfs, layout: "single" | "monorepo"): void 
     .filter(([target, directory]) => !NON_PACKAGE_TARGETS.has(target) && directory !== "")
     .map(([, directory]) => directory)
     .filter((directory) => vfs.has(`${directory}/package.json`))
-    .toSorted((left, right) => (left < right ? -1 : left > right ? 1 : 0));
+    .toSorted(compareCodepoint);
   if (directories.length === 0) {
     return;
   }
@@ -35,9 +43,12 @@ export function wireWorkspaces(vfs: OpVfs, layout: "single" | "monorepo"): void 
       mergePackageJson(readText(vfs, path), { name: baseName(directory), private: true }),
     );
   }
-  writeIfChanged(
-    vfs,
-    "package.json",
-    mergePackageJson(readText(vfs, "package.json"), { workspaces: directories }),
-  );
+  const rootText = readText(vfs, "package.json");
+  const parsed: unknown = rootText.trim() === "" ? {} : JSON.parse(rootText);
+  const root: Record<string, unknown> = isRecord(parsed) ? parsed : {};
+  const existing = Array.isArray(root["workspaces"])
+    ? root["workspaces"].filter((entry): entry is string => typeof entry === "string")
+    : [];
+  root["workspaces"] = [...new Set([...existing, ...directories])].toSorted(compareCodepoint);
+  writeIfChanged(vfs, "package.json", `${JSON.stringify(root, null, 2)}\n`);
 }

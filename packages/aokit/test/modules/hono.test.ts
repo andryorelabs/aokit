@@ -60,3 +60,9 @@ test("hono records server and api:http in the Lockfile", async () => {
   expect(Object.keys(lockfile.modules)).toEqual(["hono"]);
   expect(Object.keys(lockfile.files)).toEqual(["package.json", "src/app.ts"]);
 });
+
+test("hono monorepo Dockerfile installs with every workspace manifest on disk", async () => {
+  const { plan } = expectBuilt(await buildSelection(["hono", "docker"], { layout: "monorepo" }));
+  const dockerfile = String(plan.vfs.read("Dockerfile"));
+  expect(dockerfile.indexOf("COPY . .")).toBeLessThan(dockerfile.indexOf("bun install"));
+});

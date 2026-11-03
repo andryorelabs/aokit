@@ -49,7 +49,11 @@ describe("vite-react", () => {
       "vite.config.ts",
     ]);
     expect(JSON.parse(String(built.plan.vfs.read("package.json")))).toMatchObject({
-      scripts: { build: "vite build .", dev: "vite .", preview: "vite preview ." },
+      scripts: {
+        build: "bun run --cwd . vite build",
+        dev: "bun run --cwd . vite",
+        preview: "bun run --cwd . vite preview",
+      },
       dependencies: { react: "^19.3.1", "react-dom": "^19.3.1" },
       devDependencies: {
         "@types/react": "^19.3.0",
@@ -75,7 +79,7 @@ describe("vite-react", () => {
       "package.json",
     ]);
     expect(JSON.parse(String(built.plan.vfs.read("package.json")))).toMatchObject({
-      scripts: { dev: "vite apps/web" },
+      scripts: { dev: "bun run --cwd apps/web vite" },
       workspaces: ["apps/web"],
     });
   });

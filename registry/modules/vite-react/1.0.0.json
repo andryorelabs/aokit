@@ -102,9 +102,9 @@
       "target": "root",
       "value": {
         "scripts": {
-          "build": "vite build {{target:web}}",
-          "dev": "vite {{target:web}}",
-          "preview": "vite preview {{target:web}}"
+          "build": "bun run --cwd {{target:web}} vite build",
+          "dev": "bun run --cwd {{target:web}} vite",
+          "preview": "bun run --cwd {{target:web}} vite preview"
         }
       }
     }

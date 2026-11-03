@@ -25,7 +25,7 @@
       "versions": {
         "1.0.0": {
           "files": {
-            "files/Dockerfile": "sha256:a7fdf96603f509a06fc783e0f3daab3952e4c9aa978b7f223f68cc9cb95d4cd0",
+            "files/Dockerfile": "sha256:1583e87fe6068db8ee47a91b182b361e57e0dad19a311d62b9cca7145f8318b8",
             "files/dockerignore": "sha256:03197980f549e8ba951fa6065b7071f2f1c89c0ceb8db6cc07608471a28690e9"
           },
           "integrity": "sha256:9fbfa21b9c8250df45f22b6b0c65c53205c21ba8701bec4ab6498f4a98e5b323",
@@ -105,7 +105,7 @@
             "files/tsconfig.json": "sha256:3af94e731aaad2740ee1bca5c2f91417ec878ea12f3a22fbbd3653fd47027b00",
             "files/vite.config.ts": "sha256:87859ede600d5b0bbc06ad9b4ca462e6cc6b479dfc420f7e643790e030923045"
           },
-          "integrity": "sha256:3169fe5dc5de334a7de9362123974a5e921689b618952a6db8cae25bbd9cd2eb",
+          "integrity": "sha256:6d4de684024dc09d8ccbff99a14786415f771e57532d8bdc96f7cbd0377f5c69",
           "manifest": "modules/vite-react/1.0.0.json",
           "provides": ["web", "web:spa"],
           "schemaVersion": 1
