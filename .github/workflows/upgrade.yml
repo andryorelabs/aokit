@@ -1,0 +1,40 @@
+name: Upgrade
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    paths:
+      - "registry/**"
+      - "registry-src/**"
+      - "packages/aokit/src/merge/**"
+      - "packages/aokit/src/merger/**"
+      - "packages/aokit/src/lifecycle/**"
+      - "packages/aokit/src/update/**"
+      - "tools/upgrade-job/**"
+      - ".github/workflows/upgrade.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: upgrade-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  upgrade:
+    name: Upgrade every curated selection on both Layouts
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version-file: package.json
+
+      - name: Install
+        run: bun install --frozen-lockfile
+
+      - name: Upgrade each Release pair
+        run: bun tools/upgrade-job/main.ts
