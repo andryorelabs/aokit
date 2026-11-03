@@ -194,3 +194,18 @@ test("a v2 Lockfile without selected or owners is rejected", async () => {
   raw.modules = { ...modules, oxc: rest };
   expect(captureError(() => parseLockfile(JSON.stringify(raw))).code).toBe("LOCKFILE_INVALID");
 });
+
+const v1FilesShape = z
+  .object({ files: z.record(z.string(), z.object({ owners: z.array(z.string()) }).loose()) })
+  .loose();
+
+test("the v1 migration drops the aokit pseudo-owner from file owners", async () => {
+  const v1 = v1FilesShape.parse(JSON.parse(await docBlock("Example")));
+  for (const entry of Object.values(v1.files)) {
+    entry.owners = ["aokit", ...entry.owners];
+  }
+  const { lockfile } = parseLockfile(JSON.stringify(v1));
+  for (const file of Object.values(lockfile.files)) {
+    expect(file.owners).not.toContain("aokit");
+  }
+});

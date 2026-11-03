@@ -1,4 +1,4 @@
-import { resolve as resolvePath } from "node:path";
+import { relative, resolve as resolvePath } from "node:path";
 import type { ModuleManifest } from "@aokit/module";
 import { apply } from "../apply/index.ts";
 import { AokitError } from "../cli/envelope.ts";
@@ -83,10 +83,12 @@ async function plan(request: CreateRequest) {
       "pass `--modules a,b,c`, for example `--modules oxc,vite-react`",
     );
   }
-  const { registry, available, source, minCliVersion } = await loadRegistry(
-    request.registry,
-    request.version,
-  );
+  const loaded = await loadRegistry(request.registry, request.version);
+  const { registry, available, minCliVersion } = loaded;
+  const source =
+    request.registry === undefined
+      ? loaded.source
+      : relative(resolvePath(request.directory), resolvePath(request.registry));
   const resolved = resolve(
     { modules: request.modules },
     available.map((module) => module.manifest),

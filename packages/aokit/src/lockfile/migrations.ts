@@ -34,7 +34,7 @@ const lockfileV2SchemaUrl = "https://aokit.dev/schema/lockfile/v2.json";
  * `v1 -> v2`: every Module becomes `selected: true` (v1 did not distinguish) and every dependency
  * gets `owners`. A Lockfile carries no manifests, so a v1 dependency is attributed to every
  * Module it records; the next write rebuilds `deps` from a Render and replaces this superset
- * with the exact owners. The `"aokit"` pseudo-owner is never produced.
+ * with the exact owners. The `"aokit"` pseudo-owner is dropped from file owners.
  */
 const migrateV1ToV2: LockfileMigration = {
   from: 1,
@@ -48,6 +48,12 @@ const migrateV1ToV2: LockfileMigration = {
       ...previous,
       $schema: lockfileV2SchemaUrl,
       lockfileVersion: 2,
+      files: mapEntries(previous.files, (entry) => ({
+        ...entry,
+        owners: Array.isArray(entry.owners)
+          ? entry.owners.filter((owner) => owner !== "aokit")
+          : entry.owners,
+      })),
       modules: mapEntries(previous.modules, (entry) => ({ ...entry, selected: true })),
       deps: mapEntries(previous.deps, (entry) => ({ ...entry, owners: moduleNames })),
     };
