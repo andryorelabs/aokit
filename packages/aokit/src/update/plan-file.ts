@@ -2,7 +2,7 @@ import { createHash } from "node:crypto";
 import { readFile, rm } from "node:fs/promises";
 import { isAbsolute, join } from "node:path";
 import { z } from "zod";
-import type { ConflictWrite } from "../apply/conflicts.ts";
+import { conflictFile, type ConflictWrite } from "../apply/conflicts.ts";
 import { AokitError } from "../cli/envelope.ts";
 import { Vfs, type FileContent } from "../engine/vfs.ts";
 import type { Plan, PlanChange } from "../engine/plan.ts";
@@ -195,11 +195,22 @@ export async function writePlanFile(
   git: Git | undefined,
   plan: UpdatePlanFile,
 ): Promise<void> {
+  const touched = [
+    ...plan.plan.changes.flatMap((change) => [
+      change.path,
+      ...(change.renamedFrom === undefined ? [] : [change.renamedFrom]),
+    ]),
+    ...plan.conflicts.map(conflictFile),
+  ].filter((path) => !(path in plan.userFileHashes));
+  const userFileHashes = {
+    ...plan.userFileHashes,
+    ...(await fingerprintFiles(projectDirectory, [...new Set(touched)])),
+  };
   const encoded = planFileSchema.parse({
     cliVersion: plan.cliVersion,
     targetRelease: plan.targetRelease,
     lockfileHash: plan.lockfileHash,
-    userFileHashes: plan.userFileHashes,
+    userFileHashes,
     planHash: plan.plan.hash,
     changes: plan.plan.changes.map(encodeChange),
     conflicts: plan.conflicts.map(encodeConflict),

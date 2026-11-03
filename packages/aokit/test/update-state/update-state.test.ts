@@ -325,6 +325,25 @@ describe("assertPlanFresh", () => {
     expect(messageOf(error)).toContain("gone.txt");
   });
 
+  test("a file created at a Plan path after planning is stale", async () => {
+    const plan = await plannedProject();
+    const withCreate: UpdatePlanFile = {
+      ...plan,
+      plan: {
+        ...plan.plan,
+        changes: [
+          ...plan.plan.changes,
+          { ...plan.plan.changes[0]!, type: "create", path: "new.txt" },
+        ],
+      },
+    };
+    await writePlanFile(project, undefined, withCreate);
+    await writeFile(join(project, "new.txt"), "user file\n");
+    const saved = await readPlanFile(project, undefined);
+    const error = await failure(assertPlanFresh(project, saved!));
+    expect(messageOf(error)).toContain("new.txt");
+  });
+
   test("a changed Lockfile is stale and named", async () => {
     const plan = await plannedProject();
     await writeFile(join(project, lockfileName), "other\n");

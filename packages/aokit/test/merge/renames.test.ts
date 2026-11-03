@@ -154,3 +154,21 @@ describe("composeRenames", () => {
     expect(composeRenames([]).size).toBe(0);
   });
 });
+
+describe("mergeProject binary renames", () => {
+  test("a binary changed on both sides keeps the user's bytes at the new path", async () => {
+    const original = new Uint8Array([0, 1, 2, 3]);
+    const edited = new Uint8Array([0, 9, 9, 9]);
+    const incoming = new Uint8Array([0, 5, 5, 5]);
+    const result = await run({
+      base: { "assets/logo.png": original },
+      next: { "assets/brand.png": incoming },
+      user: { "assets/logo.png": edited },
+      renames: { "assets/logo.png": "assets/brand.png" },
+    });
+    expect(result.conflicts).toHaveLength(1);
+    const change = result.plan.changes.find((candidate) => candidate.path === "assets/brand.png");
+    expect(change).toMatchObject({ type: "rename", renamedFrom: "assets/logo.png" });
+    expect(change?.content).toEqual(edited);
+  });
+});

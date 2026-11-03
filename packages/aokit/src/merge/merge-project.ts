@@ -285,7 +285,9 @@ function recordConflict(context: PathContext, write: ConflictWrite, state: Accum
   state.vfs.write(path, write.merged ?? user ?? write.next);
   const next = input.next.lockfile.files[path];
   const previous = input.lockfile.files[context.sourcePath];
-  if (isRename(context) && user !== undefined) {
+  if (isRename(context) && user !== undefined && write.merged === undefined) {
+    recordKeptRename(context, user, state);
+  } else if (isRename(context) && user !== undefined) {
     state.changes.push({
       type: "delete",
       path: context.sourcePath,

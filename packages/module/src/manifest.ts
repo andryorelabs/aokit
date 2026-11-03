@@ -117,6 +117,21 @@ const overrideEntry = z.union([
   z.strictObject({ op: z.string().min(1), reason: z.string().min(1) }),
 ]);
 
+const rangeComparator =
+  /^(?:[<>]=?|=|~|\^)?v?(?:\d+|[xX*])(?:\.(?:\d+|[xX*])){0,2}(?:-[0-9A-Za-z.-]+)?(?:\+[0-9A-Za-z.-]+)?$/;
+
+function isSemverRange(range: string): boolean {
+  return range.split("||").every((part) => {
+    const tokens = part.trim().split(/\s+/);
+    if (tokens.length === 3 && tokens[1] === "-") {
+      return rangeComparator.test(tokens[0] ?? "") && rangeComparator.test(tokens[2] ?? "");
+    }
+    return tokens.every((token) => rangeComparator.test(token));
+  });
+}
+
+const semverRange = z.string().refine(isSemverRange, { message: "must be a semver range" });
+
 const migrationScriptPath = z
   .string()
   .min(1)
@@ -129,7 +144,7 @@ const migrationScriptPath = z
   );
 
 const migration = z.strictObject({
-  from: z.string().min(1, { message: "must be a semver range" }),
+  from: semverRange,
   to: semver,
   stage: z.enum(["before", "after"]),
   script: migrationScriptPath,

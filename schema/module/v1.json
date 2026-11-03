@@ -355,7 +355,6 @@
         "additionalProperties": false,
         "properties": {
           "from": {
-            "minLength": 1,
             "type": "string"
           },
           "script": {
