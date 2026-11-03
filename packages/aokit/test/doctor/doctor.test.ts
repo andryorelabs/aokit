@@ -8,6 +8,8 @@ import { doctorCommand } from "../../src/cli/commands/doctor.ts";
 import { exposedCommands } from "../../src/cli/commands/registry.ts";
 import { exitCodeForEnvelope } from "../../src/cli/envelope.ts";
 import { cliVersion } from "../../src/cli/version.ts";
+import { stashRoot as stashRootOf } from "../../src/apply/stash.ts";
+import { openGit } from "../../src/git/index.ts";
 import { runGitChecked } from "../../src/git/run.ts";
 
 const context: CommandContext = { version: cliVersion, env: {}, commands: exposedCommands };
@@ -17,13 +19,13 @@ afterAll(() => {
   for (const path of workspaces) rmSync(path, { recursive: true, force: true });
 });
 
-async function createProject(useGit: boolean): Promise<string> {
+async function createProject(useGit: boolean, modules = "oxc"): Promise<string> {
   const root = mkdtempSync(join(tmpdir(), "aokit-doctor-"));
   workspaces.push(root);
   const directory = join(root, "app");
   const created = await runCommand(createCommand, context, {
     directory,
-    modules: "oxc",
+    modules,
     yes: true,
     install: false,
   });
@@ -153,9 +155,10 @@ for (const useGit of [true, false]) {
     });
 
     test("a leftover stash is reported and removed", async () => {
-      const stashRoot = useGit
-        ? join(directory, ".git", "aokit", "stash", "old")
-        : join(directory, ".aokit", "stash", "old");
+      const stashRoot = join(
+        await stashRootOf(directory, (await openGit(directory)) ?? undefined),
+        "old",
+      );
       mkdirSync(stashRoot, { recursive: true });
       writeFileSync(join(stashRoot, "leftover.txt"), "x");
       const first = await doctor(directory);
@@ -206,3 +209,76 @@ describe("doctor Lockfile errors", () => {
 function doctorOutputParses(data: unknown): boolean {
   return doctorCommand.output.safeParse(data).success;
 }
+
+function rewriteLockfile(directory: string, change: (lockfile: any) => void): void {
+  const path = join(directory, "aokit.lock.json");
+  const lockfile = JSON.parse(readFileSync(path, "utf8"));
+  change(lockfile);
+  writeFileSync(path, JSON.stringify(lockfile));
+}
+
+async function problemKinds(directory: string): Promise<string[]> {
+  const { envelope } = await doctor(directory);
+  return doctorCommand.output.parse(envelope.data).problems.map((problem) => problem.kind);
+}
+
+describe("doctor Project checks", () => {
+  test("a Module integrity that differs from the Registry is reported", async () => {
+    const directory = await createProject(false);
+    rewriteLockfile(directory, (lockfile) => {
+      const name = Object.keys(lockfile.modules)[0] ?? "";
+      lockfile.modules[name].integrity = `sha256-${"0".repeat(64)}`;
+    });
+    expect(await problemKinds(directory)).toContain("integrity");
+  });
+
+  test("a Registry that needs a newer CLI is reported", async () => {
+    const directory = await createProject(false);
+    rewriteLockfile(directory, (lockfile) => {
+      const name = Object.keys(lockfile.registries)[0] ?? "";
+      lockfile.registries[name].minCliVersion = "999.0.0";
+    });
+    expect(await problemKinds(directory)).toContain("cli");
+  });
+
+  test("a locked Module whose requirement is missing fails the Resolver check", async () => {
+    const directory = await createProject(false, "vite-react,tailwind4");
+    rewriteLockfile(directory, (lockfile) => {
+      delete lockfile.modules["vite-react"];
+    });
+    expect(await problemKinds(directory)).toContain("resolver");
+  });
+});
+
+describe("doctor paths and worktrees", () => {
+  test.each([true, false])(
+    "a new file with spaces and unicode in its path is reported unknown (git: %p)",
+    async (useGit) => {
+      const directory = await createProject(useGit);
+      const path = "src/my file é.ts";
+      mkdirSync(join(directory, "src"), { recursive: true });
+      writeFileSync(join(directory, path), "export {};\n");
+      const { envelope } = await doctor(directory);
+      expect(stateMap(envelope.data)[path]).toBe("unknown");
+    },
+  );
+
+  test("a Project in a linked git worktree is clean", async () => {
+    const directory = await createProject(true);
+    await runGitChecked(directory, ["add", "-A"]);
+    await runGitChecked(directory, [
+      "-c",
+      "user.name=t",
+      "-c",
+      "user.email=t@t",
+      "commit",
+      "-q",
+      "-m",
+      "init",
+    ]);
+    const linked = join(directory, "..", "linked");
+    await runGitChecked(directory, ["worktree", "add", "-q", linked, "-b", "linked"]);
+    const { exitCode } = await doctor(linked);
+    expect(exitCode).toBe(0);
+  });
+});

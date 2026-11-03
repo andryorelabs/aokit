@@ -246,8 +246,8 @@ function recordConflict(context: PathContext, write: ConflictWrite, state: Accum
   state.vfs.write(path, write.merged ?? user ?? write.next);
   const next = input.next.lockfile.files[path];
   const previous = input.lockfile.files[path];
-  const entry = next === undefined ? previous : { ...next, hash: previous?.hash ?? next.hash };
-  if (entry !== undefined) state.files[path] = entry;
+  if (previous === undefined) return;
+  state.files[path] = next === undefined ? previous : { ...next, hash: previous.hash };
 }
 
 function recordDecision(

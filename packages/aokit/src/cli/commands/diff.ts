@@ -73,7 +73,7 @@ async function loadLockfile(projectDir: string): Promise<Lockfile> {
     const parsed = await readLockfile(join(projectDir, lockfileFileName));
     if (parsed === null) {
       throw new AokitError(
-        "LOCKFILE_MISSING",
+        "INVALID_INPUT",
         `No ${lockfileFileName} in ${projectDir}.`,
         "Run the command from an aokit Project, or pass its directory.",
       );

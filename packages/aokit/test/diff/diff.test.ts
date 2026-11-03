@@ -63,9 +63,9 @@ describe("aokit diff", () => {
     });
   });
 
-  test("a directory without a Lockfile fails with LOCKFILE_MISSING", async () => {
+  test("a directory without a Lockfile is invalid input", async () => {
     const envelope = await runDiff(await temporaryDirectory());
-    expect(envelope).toMatchObject({ ok: false, error: { code: "LOCKFILE_MISSING" } });
+    expect(envelope).toMatchObject({ ok: false, error: { code: "INVALID_INPUT" } });
   });
 
   test("a URL Registry source is invalid input", async () => {

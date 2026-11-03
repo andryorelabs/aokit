@@ -13,6 +13,7 @@ import {
 } from "../../src/apply/index.ts";
 import { Vfs } from "../../src/engine/index.ts";
 import { diffVfs, hashVfs, type Plan } from "../../src/engine/plan.ts";
+import { stashRoot } from "../../src/apply/stash.ts";
 import { openGit } from "../../src/git/index.ts";
 import { runGitChecked } from "../../src/git/run.ts";
 import { parseLockfile, serializeLockfile } from "../../src/lockfile/index.ts";
@@ -127,12 +128,32 @@ test("a leftover stash is found and removed, outside and inside git", async () =
 
   await runGit(project, "init", "-q");
   const adapter = await openGit(project);
-  const gitDirectory = (await adapter?.gitDir()) ?? "";
-  const inside = join(gitDirectory, "aokit", "stash", "2026-01-01T00-00-00.000Z-abc");
+  const inside = join(
+    await stashRoot(project, adapter ?? undefined),
+    "2026-01-01T00-00-00.000Z-abc",
+  );
   await mkdir(inside, { recursive: true });
   expect(await findLeftoverStash(project)).toEqual([inside]);
   await removeLeftoverStash(project);
   expect(await findLeftoverStash(project)).toEqual([]);
+});
+
+test("stashes of Projects sharing one git dir are never found or removed by each other", async () => {
+  await runGit(project, "init", "-q");
+  const first = join(project, "a");
+  const second = join(project, "b");
+  await mkdir(first);
+  await mkdir(second);
+  const adapter = (await openGit(first)) ?? undefined;
+  const otherAdapter = (await openGit(second)) ?? undefined;
+  const mine = join(await stashRoot(first, adapter), "2026-01-01T00-00-00.000Z-abc");
+  const theirs = join(await stashRoot(second, otherAdapter), "2026-01-01T00-00-00.000Z-abc");
+  await mkdir(mine, { recursive: true });
+  await mkdir(theirs, { recursive: true });
+
+  expect(await findLeftoverStash(first)).toEqual([mine]);
+  expect(await removeLeftoverStash(first)).toEqual([mine]);
+  expect(await findLeftoverStash(second)).toEqual([theirs]);
 });
 
 test("a conflict in a repo records stages 1, 2 and 3 and stages nothing", async () => {

@@ -121,7 +121,7 @@ describe("mergeProject", () => {
     expect(result.conflicts).toHaveLength(1);
     expect(result.conflicts[0]?.path).toBe("new.txt");
     expect(result.conflicts[0]?.base).toBe("");
-    expect(result.lockfile.files["new.txt"]?.hash).toBe(hashOf("next\n"));
+    expect(result.lockfile.files["new.txt"]).toBeUndefined();
   });
 
   test("a JSON file next creates over an unknown user JSON file is a Conflict, not a merge", async () => {

@@ -4,6 +4,7 @@ import { mkdir, mkdtemp, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { AokitError } from "../../src/cli/envelope.ts";
+import { volatileHash } from "../../src/drift/hash.ts";
 import { assertCleanTree, openGit } from "../../src/git/index.ts";
 import { createMerger } from "../../src/merger/index.ts";
 import { runGitChecked } from "../../src/git/run.ts";
@@ -186,6 +187,29 @@ test("outside git a CRLF re-save of a pristine text file is not dirty", async ()
     registries: {},
     modules: {},
     files: { "a.txt": { owners: ["m"], mode: "managed", hash } },
+    deps: {},
+  } as Lockfile;
+  const result = await assertCleanTree(project, { allowDirty: false, lockfile });
+  expect(result.warning).toBeDefined();
+});
+
+test("outside git an edited ejected file and a volatile file do not make the tree dirty", async () => {
+  const project = join(root, "ejected");
+  await mkdir(project);
+  await writeFile(join(project, "ejected.txt"), "edited by the user");
+  await writeFile(join(project, "volatile.txt"), "anything");
+  const lockfile = {
+    $schema: "https://example.test/lock.json",
+    lockfileVersion: 2,
+    cliVersion: "0.0.0",
+    protocolVersion: 1,
+    layout: "single",
+    registries: {},
+    modules: {},
+    files: {
+      "ejected.txt": { owners: ["m"], mode: "ejected", hash: "sha256-old" },
+      "volatile.txt": { owners: ["m"], mode: "managed", hash: volatileHash },
+    },
     deps: {},
   } as Lockfile;
   const result = await assertCleanTree(project, { allowDirty: false, lockfile });

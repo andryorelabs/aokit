@@ -157,8 +157,8 @@ async function readManifest(dir: string, path: string): Promise<unknown> {
 async function readDeclaredDependencies(
   dir: string,
   lockfile: Lockfile,
-): Promise<Map<string, string>> {
-  const declared = new Map<string, string>();
+): Promise<Map<string, Set<string>>> {
+  const declared = new Map<string, Set<string>>();
   const manifests = Object.keys(lockfile.files).filter(
     (path) => path === "package.json" || path.endsWith("/package.json"),
   );
@@ -169,7 +169,10 @@ async function readDeclaredDependencies(
       const section = parsed[field];
       if (!isRecord(section)) continue;
       for (const [name, version] of Object.entries(section)) {
-        if (typeof version === "string") declared.set(name, version);
+        if (typeof version !== "string") continue;
+        const versions = declared.get(name) ?? new Set<string>();
+        versions.add(version);
+        declared.set(name, versions);
       }
     }
   }
@@ -183,20 +186,23 @@ async function checkDeps(dir: string, lockfile: Lockfile): Promise<ProjectProble
     a < b ? -1 : a > b ? 1 : 0,
   )) {
     const owners = dep.owners.length === 0 ? "the Lockfile" : dep.owners.join(", ");
-    const actual = declared.get(name);
-    if (actual === undefined) {
+    const versions = declared.get(name);
+    if (versions === undefined) {
       problems.push({
         kind: "deps",
         message: `Dependency ${name}@${dep.version} (${owners}) is missing from package.json.`,
         fix: `aokit restore package.json, or aokit remove ${dep.owners[0] ?? "<module>"}`,
       });
     } else if (
-      actual !== dep.version &&
-      !lockedVersionPrefixes.some((prefix) => actual.startsWith(prefix))
+      ![...versions].some(
+        (actual) =>
+          actual === dep.version ||
+          lockedVersionPrefixes.some((prefix) => actual.startsWith(prefix)),
+      )
     ) {
       problems.push({
         kind: "deps",
-        message: `Dependency ${name} is ${actual} in package.json but ${dep.version} in the Lockfile.`,
+        message: `Dependency ${name} is ${[...versions].join(", ")} in package.json but ${dep.version} in the Lockfile.`,
         fix: "aokit restore package.json",
       });
     }
