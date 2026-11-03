@@ -14,7 +14,15 @@ export {
   manifestSchemaUrl,
   parseManifest,
   supportedManifestSchemaVersion,
+  type Migration,
   type ModuleManifest,
   type ModuleManifestInput,
 } from "./manifest";
+export {
+  defineMigration,
+  type MigrationContext,
+  type MigrationFn,
+  type MigrationInput,
+  type MigrationVfs,
+} from "./migration";
 export { opSchema, targetSchema, type Op } from "./ops";

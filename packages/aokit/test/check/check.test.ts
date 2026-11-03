@@ -1,6 +1,6 @@
 import { afterEach, describe, expect, test } from "bun:test";
 import { join } from "node:path";
-import { readFile, writeFile } from "node:fs/promises";
+import { mkdir, readFile, writeFile } from "node:fs/promises";
 import { exitCodeForEnvelope } from "../../src/cli/envelope.ts";
 import { runCommand } from "../../src/cli/command.ts";
 import { checkCommand } from "../../src/cli/commands/check.ts";
@@ -51,9 +51,18 @@ describe("aokit check", () => {
 
   test("a target manifest that declares a migration over the range sets migration", async () => {
     const project = await createProject(await builtRegistry());
-    const newer = await builtRegistry((source) =>
-      bumpOxc(source, '\n  migrations: [{ from: "1.0.0", to: "1.1.0", stage: "pre" }],'),
-    );
+    const newer = await builtRegistry(async (source) => {
+      await bumpOxc(
+        source,
+        '\n  migrations: [{ from: "1.0.0", to: "1.1.0", stage: "before", script: "migrations/a.js" }],',
+      );
+      await mkdir(join(source, "oxc", "migrations"), { recursive: true });
+      await writeFile(
+        join(source, "oxc", "migrations", "a.ts"),
+        "export default () => {};\n",
+        "utf8",
+      );
+    });
     await editLockfile(project, (lockfile) => {
       lockfile["registries"]["official"].source = newer;
     });

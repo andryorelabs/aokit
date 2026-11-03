@@ -355,11 +355,18 @@
         "additionalProperties": false,
         "properties": {
           "from": {
-            "pattern": "^\\d+\\.\\d+\\.\\d+(-[0-9A-Za-z.-]+)?(\\+[0-9A-Za-z.-]+)?$",
+            "minLength": 1,
+            "type": "string"
+          },
+          "script": {
+            "minLength": 1,
             "type": "string"
           },
           "stage": {
-            "minLength": 1,
+            "enum": [
+              "before",
+              "after"
+            ],
             "type": "string"
           },
           "to": {
@@ -370,7 +377,8 @@
         "required": [
           "from",
           "to",
-          "stage"
+          "stage",
+          "script"
         ],
         "type": "object"
       },
