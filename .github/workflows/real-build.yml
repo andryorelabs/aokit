@@ -1,0 +1,38 @@
+name: Real build
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: real-build-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build:
+    name: ${{ matrix.layout }} ${{ matrix.modules }}
+    strategy:
+      fail-fast: false
+      matrix:
+        layout: [single, monorepo]
+        modules:
+          - oxc,knip,vite-react,tailwind4
+          - oxc,hono,docker,coolify
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version-file: package.json
+
+      - name: Install
+        run: bun install --frozen-lockfile
+
+      - name: Create, install, build and typecheck
+        run: bun tools/real-build/main.ts --layout "${{ matrix.layout }}" --modules "${{ matrix.modules }}"
