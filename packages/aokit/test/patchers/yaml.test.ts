@@ -44,3 +44,9 @@ test("mergeYaml does not duplicate a value already present through an alias", ()
   const aliased = "x: &x foo\nlist: [*x]\n";
   expect(mergeYaml(aliased, { list: ["foo"] })).toBe(mergeYaml(aliased, {}));
 });
+
+test("mergeYaml lets a scalar patch replace an aliased value", () => {
+  const result = mergeYaml("x: &x foo\ny: *x\n", { y: "bar" });
+  expect(result).toContain("x: &x foo");
+  expect(result).toContain("y: bar");
+});

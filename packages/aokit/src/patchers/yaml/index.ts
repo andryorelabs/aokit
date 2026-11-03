@@ -37,6 +37,9 @@ function mergeMap(document: Document, map: YAMLMap, incoming: { [key: string]: Y
         mergeMap(document, merged, value);
       } else if (isSeq(merged) && Array.isArray(value)) {
         mergeSequence(document, merged, value);
+      } else if (fingerprint(resolvedValue) !== fingerprint(value)) {
+        map.set(key, document.createNode(value));
+        continue;
       }
       if (fingerprint(merged.toJS(document)) !== fingerprint(resolvedValue)) {
         map.set(key, merged);
