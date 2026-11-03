@@ -4,7 +4,7 @@ import { defineCommand, runCommand } from "../../src/cli/command.ts";
 import { AokitError, exitCodeForEnvelope, stringifySorted } from "../../src/cli/envelope.ts";
 import { exitCodeForErrorCode } from "../../src/cli/exit-codes.ts";
 import { renderFailureReport } from "../../src/cli/human.ts";
-import { fromResolveError } from "../../src/create/errors.ts";
+import { fromResolveError } from "../../src/project/errors.ts";
 
 describe("lifecycle outcome errors", () => {
   test("lifecycle codes map to exactly one exit code", () => {

@@ -10,6 +10,7 @@ import {
   resolveTarget,
 } from "../engine/index.ts";
 import type { AnswerValue } from "../engine/interpolate.ts";
+import { effectiveAnswers } from "../project/answers.ts";
 import type { LayoutName } from "../engine/layout.ts";
 import type { OpVfs } from "../engine/ops.ts";
 import {
@@ -63,20 +64,6 @@ export interface PipelineFailure {
   readonly ok: false;
   readonly error: ResolveError;
   readonly warnings: readonly ResolveWarning[];
-}
-
-function effectiveAnswers(
-  manifest: ModuleManifest,
-  given: Readonly<Record<string, AnswerValue>>,
-): Record<string, AnswerValue> {
-  const merged: Record<string, AnswerValue> = {};
-  for (const [name, answer] of Object.entries(manifest.answers ?? {})) {
-    const value = given[name] ?? answer.default;
-    if (value !== undefined) {
-      merged[name] = value;
-    }
-  }
-  return merged;
 }
 
 function depsTarget(manifest: ModuleManifest, layout: LayoutName): string {
