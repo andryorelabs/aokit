@@ -3,12 +3,16 @@ import { join, resolve as resolvePath } from "node:path";
 import { structuredPatch } from "diff";
 import { z } from "zod";
 import type { PlanChange } from "../../engine/plan.ts";
-import type { FileContent, Vfs } from "../../engine/vfs.ts";
+import { type FileContent, Vfs, compareByCodepoint } from "../../engine/vfs.ts";
 import { LockfileError, readLockfile } from "../../lockfile/index.ts";
 import type { Lockfile } from "../../lockfile/schema.ts";
+import { runMigrations } from "../../migrations/index.ts";
 import { renderFromLockfile } from "../../pipeline/index.ts";
 import { unifiedDiff } from "../../project/diff.ts";
 import { toAokitError } from "../../project/errors.ts";
+import { resolveRegistrySource } from "../../project/registry.ts";
+import { readLocalRegistry } from "../../registry/index.ts";
+import { resolveUpdateTarget } from "../../update/target.ts";
 import { defineCommand } from "../command.ts";
 import { AokitError } from "../envelope.ts";
 import { aokitMeta } from "../meta.ts";
@@ -23,6 +27,12 @@ const diffInput = z.object({
     .default(".")
     .describe("Project directory that holds aokit.lock.json")
     .register(aokitMeta, { positional: 0, examples: ["./my-app"] }),
+  to: z
+    .string()
+    .min(1)
+    .optional()
+    .describe("Release to render and compare the working tree against; writes nothing")
+    .register(aokitMeta, { flag: "to", examples: ["--to 2026.11.1"] }),
 });
 
 const hunkOutput = z.object({
@@ -37,7 +47,7 @@ const diffOutput = z.object({
   files: z.array(
     z.object({
       path: z.string(),
-      status: z.enum(["modified", "missing"]),
+      status: z.enum(["modified", "missing", "removed"]),
       binary: z.boolean(),
       hunks: z.array(hunkOutput),
     }),
@@ -92,7 +102,7 @@ function contentEquals(left: FileContent, right: FileContent): boolean {
 }
 
 function hunksOf(change: PlanChange): z.output<typeof hunkOutput>[] {
-  const before = change.previousContent;
+  const before = change.previousContent ?? "";
   if (
     typeof before !== "string" ||
     (change.content !== undefined && typeof change.content !== "string")
@@ -147,12 +157,125 @@ async function managedChanges(
   return changes;
 }
 
+function isManaged(lockfile: Lockfile, vfs: Vfs, path: string): boolean {
+  const ownership = lockfile.files[path]?.mode ?? vfs.get(path)?.ownership;
+  return ownership === "managed" && path !== lockfileFileName;
+}
+
+async function targetChanges(
+  projectDir: string,
+  lockfile: Lockfile,
+  targetVfs: Vfs,
+): Promise<PlanChange[]> {
+  const targetPaths = targetVfs.paths().filter((path) => isManaged(lockfile, targetVfs, path));
+  const removedPaths = Object.keys(lockfile.files).filter(
+    (path) => !targetVfs.has(path) && isManaged(lockfile, targetVfs, path),
+  );
+  const paths = [...targetPaths, ...removedPaths].toSorted(compareByCodepoint);
+  const working = await Promise.all(paths.map((path) => readWorkingFile(projectDir, path)));
+  const changes: PlanChange[] = [];
+  for (const [position, path] of paths.entries()) {
+    const actual = working[position];
+    const expected = targetVfs.read(path);
+    if (expected === undefined && actual === undefined) {
+      continue;
+    }
+    if (expected !== undefined && actual !== undefined && contentEquals(expected, actual)) {
+      continue;
+    }
+    changes.push({
+      type: actual === undefined ? "create" : expected === undefined ? "delete" : "update",
+      path,
+      ...(actual === undefined ? {} : { previousContent: actual }),
+      ...(expected === undefined ? {} : { content: expected }),
+      ownership: "managed",
+      mode: undefined,
+      provenance: [],
+    });
+  }
+  return changes;
+}
+
+function targetStatus(change: PlanChange): "modified" | "missing" | "removed" {
+  if (change.type === "create") {
+    return "missing";
+  }
+  return change.type === "delete" ? "removed" : "modified";
+}
+
+async function renderTarget(
+  projectDir: string,
+  lockfile: Lockfile,
+  to: string,
+  cliVersion: string,
+): Promise<Vfs> {
+  const options = { projectDir, bundledRegistryPath, cliVersion };
+  const registryEntry = Object.values(lockfile.registries)[0];
+  if (registryEntry === undefined) {
+    throw new AokitError(
+      "INVALID_INPUT",
+      `${lockfileFileName} lists no Registry.`,
+      "Restore aokit.lock.json from version control.",
+    );
+  }
+  const registry = await readLocalRegistry(resolveRegistrySource(registryEntry.source, options), {
+    cliVersion,
+  });
+  const target = resolveUpdateTarget(lockfile, registry, to);
+  const base = await renderFromLockfile(lockfile, options);
+  const userVfs = await Vfs.fromDirectory(projectDir);
+  const migrated = await runMigrations({
+    stage: "before",
+    modules: Object.keys(base.lockfile.modules).map((name) => ({
+      name,
+      installed: lockfile.modules[name]?.version ?? "",
+      target: target.versions[name] ?? "",
+    })),
+    vfs: userVfs,
+    answers: Object.fromEntries(
+      Object.entries(lockfile.modules).map(([name, entry]) => [name, entry.answers]),
+    ),
+    context: { now: new Date(0), random: () => 0 },
+    registry,
+  });
+  const rendered = await renderFromLockfile(lockfile, {
+    ...options,
+    release: target.release,
+    versionOverride: target.versions,
+    answersOverride: migrated.answers,
+  });
+  return rendered.plan.vfs;
+}
+
+async function runDiffToRelease(
+  projectDir: string,
+  lockfile: Lockfile,
+  to: string,
+  cliVersion: string,
+): Promise<z.output<typeof diffOutput>> {
+  const targetVfs = await renderTarget(projectDir, lockfile, to, cliVersion);
+  const changes = await targetChanges(projectDir, lockfile, targetVfs);
+  return {
+    files: changes.map((change) => ({
+      path: change.path,
+      status: targetStatus(change),
+      binary: typeof (change.content ?? change.previousContent) !== "string",
+      hunks: hunksOf(change),
+    })),
+    diff: unifiedDiff({ changes }),
+  };
+}
+
 async function runDiff(
   directory: string,
+  to: string | undefined,
   cliVersion: string,
 ): Promise<z.output<typeof diffOutput>> {
   const projectDir = resolvePath(directory);
   const lockfile = await loadLockfile(projectDir);
+  if (to !== undefined) {
+    return runDiffToRelease(projectDir, lockfile, to, cliVersion);
+  }
   const rendered = await renderFromLockfile(lockfile, {
     projectDir,
     bundledRegistryPath,
@@ -172,12 +295,12 @@ async function runDiff(
 
 export const diffCommand = defineCommand({
   name: "diff",
-  description: "Show how managed files differ from their Render",
+  description: "Show how managed files differ from their Render, or from a target Release",
   input: diffInput,
   output: diffOutput,
   async run(context, input) {
     try {
-      return await runDiff(input.directory, context.version);
+      return await runDiff(input.directory, input.to, context.version);
     } catch (thrown) {
       throw toAokitError(thrown);
     }
