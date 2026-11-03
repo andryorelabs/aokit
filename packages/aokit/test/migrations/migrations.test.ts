@@ -224,6 +224,25 @@ export default defineMigration(({ vfs, context }) => {
     expect(error).toMatchObject({ code: "MIGRATION_FAILED" });
   });
 
+  test("an async Migration raises MIGRATION_FAILED instead of wiping answers", async () => {
+    const registry = await fixtureRegistry(
+      '{ from: ">=1 <3", to: "3.0.0", stage: "before", script: "migrations/async.js" }',
+      { "async.ts": "export default async () => ({ router: 1 });\n" },
+    );
+    const error = await rejection(
+      runMigrations({
+        stage: "before",
+        modules,
+        vfs: Vfs.empty(),
+        answers: { oxc: { appRouter: 1 } },
+        context,
+        registry,
+      }),
+    );
+    expect(error).toMatchObject({ code: "MIGRATION_FAILED" });
+    expect(error?.message).toContain("synchronous");
+  });
+
   test("a target version the Registry lacks raises MODULE_VERSION_UNAVAILABLE", async () => {
     const registry = await fixtureRegistry(defaultMigrations, defaultScripts);
     const error = await rejection(

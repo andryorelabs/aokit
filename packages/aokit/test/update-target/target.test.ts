@@ -147,3 +147,17 @@ test("renderFromLockfile rejects a Release the Registry never published", async 
   );
   expect(error.code).toBe("MODULE_VERSION_UNAVAILABLE");
 });
+
+test("renderFromLockfile reads answersOverride instead of the locked answers", async () => {
+  const { directory, registryPath, lockfile } = await twoReleaseProject();
+  const error = await failure(() =>
+    renderFromLockfile(lockfile, {
+      projectDir: directory,
+      bundledRegistryPath: registryPath,
+      cliVersion,
+      answersOverride: { oxc: { router: { nested: true } } },
+    }),
+  );
+  expect(error.code).toBe("INVALID_INPUT");
+  expect(error.message).toContain("oxc.router");
+});

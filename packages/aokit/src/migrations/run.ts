@@ -99,6 +99,15 @@ function isMigrationFn(value: unknown): value is MigrationFn {
   return typeof value === "function";
 }
 
+function isThenable(value: unknown): value is PromiseLike<unknown> {
+  return (
+    typeof value === "object" &&
+    value !== null &&
+    "then" in value &&
+    typeof value.then === "function"
+  );
+}
+
 function isAnswers(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null && !Array.isArray(value);
 }
@@ -138,7 +147,7 @@ export async function runMigrations(options: RunMigrationsOptions): Promise<RunM
       };
       // oxlint-disable-next-line eslint/no-await-in-loop -- Migrations run serially by design
       const script = await loadScript(version.migrationScript(migration.script), entry);
-      let returned: Record<string, unknown> | void;
+      let returned: unknown;
       try {
         returned = script({
           vfs,
@@ -147,6 +156,10 @@ export async function runMigrations(options: RunMigrationsOptions): Promise<RunM
         });
       } catch (thrown) {
         throw failure(entry, describeThrown(thrown));
+      }
+      if (isThenable(returned)) {
+        returned.then(undefined, () => undefined);
+        throw failure(entry, "Migrations must be synchronous; the script returned a Promise.");
       }
       if (options.stage === "before" && isAnswers(returned)) {
         answers[module.name] = { ...returned };
