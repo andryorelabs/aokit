@@ -19,6 +19,7 @@ Decisions that are hard to reverse, surprising without context, and the result o
 | 0011 | [File ownership modes and per-file hashes](0011-file-ownership-modes-and-per-file-hashes.md) | Accepted | S7 |
 | 0012 | [Deterministic generation and atomic writes](0012-deterministic-generation-and-atomic-writes.md) | Accepted | S3 |
 | 0013 | [No telemetry in v1](0013-no-telemetry-in-v1.md) | Accepted | S11 |
+| 0014 | [Extension point anchors are identifier names](0014-extension-point-anchors-are-identifier-names.md) | Accepted | S12 (core spec) |
 
 ## Format
 
