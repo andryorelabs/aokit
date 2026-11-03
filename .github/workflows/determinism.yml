@@ -35,13 +35,22 @@ jobs:
           AOKIT_DIGEST_FILE: ${{ runner.temp }}/digest.txt
         run: bun test packages/aokit/test/pipeline/digest.test.ts
 
-      - name: Print digest
-        run: cat "${{ runner.temp }}/digest.txt"
+      - name: Compute matrix digest
+        env:
+          AOKIT_MATRIX_DIGEST_FILE: ${{ runner.temp }}/matrix.txt
+        run: bun test packages/aokit/test/matrix/matrix.test.ts
+
+      - name: Print digests
+        run: |
+          cat "${{ runner.temp }}/digest.txt"
+          cat "${{ runner.temp }}/matrix.txt"
 
       - uses: actions/upload-artifact@v7
         with:
           name: digest-${{ matrix.os }}
-          path: ${{ runner.temp }}/digest.txt
+          path: |
+            ${{ runner.temp }}/digest.txt
+            ${{ runner.temp }}/matrix.txt
 
   compare:
     name: compare digests
@@ -59,3 +68,11 @@ jobs:
           echo "macos:"
           cat digests/digest-macos-latest/digest.txt
           diff digests/digest-ubuntu-latest/digest.txt digests/digest-macos-latest/digest.txt
+
+      - name: Compare matrix Linux and macOS
+        run: |
+          echo "linux:"
+          cat digests/digest-ubuntu-latest/matrix.txt
+          echo "macos:"
+          cat digests/digest-macos-latest/matrix.txt
+          diff digests/digest-ubuntu-latest/matrix.txt digests/digest-macos-latest/matrix.txt
