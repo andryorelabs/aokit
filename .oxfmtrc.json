@@ -10,6 +10,7 @@
     "schema/**",
     "docs/**",
     "CONTEXT.md",
+    "registry/modules/**/migrations/**",
     "LICENSE"
   ]
 }

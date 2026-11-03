@@ -135,7 +135,7 @@
     }
   },
   "name": "official",
-  "release": "2026.11.0",
+  "release": "2026.11.1",
   "releases": {
     "2026.11.0": {
       "integrity": "sha256-2968f80b287097945747c596d7639c44e5df5075aff4e3f2f098dc90b92e3073",
