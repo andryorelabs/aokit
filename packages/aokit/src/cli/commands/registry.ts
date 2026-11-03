@@ -9,6 +9,7 @@ import { recopyCommand } from "./recopy.ts";
 import { removeCommand } from "./remove.ts";
 import { restoreCommand } from "./restore.ts";
 import { schemaCommand } from "./schema.ts";
+import { updateCommand } from "./update.ts";
 
 /** Every command the CLI exposes in `--help` and `aokit schema`. */
 export const exposedCommands: readonly AnyCommand[] = [
@@ -20,6 +21,7 @@ export const exposedCommands: readonly AnyCommand[] = [
   ejectCommand,
   removeCommand,
   recopyCommand,
+  updateCommand,
   restoreCommand,
   schemaCommand,
 ];

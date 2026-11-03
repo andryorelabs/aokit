@@ -1,1 +1,1 @@
-export { runLifecycle, type LifecycleInput } from "./run.ts";
+export { runLifecycle, type LifecycleInput, type LifecycleResult } from "./run.ts";
