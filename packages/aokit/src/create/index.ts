@@ -3,7 +3,8 @@ import type { ModuleManifest } from "@aokit/module";
 import { apply } from "../apply/index.ts";
 import { AokitError } from "../cli/envelope.ts";
 import type { LayoutName } from "../engine/layout.ts";
-import type { PlanChange } from "../engine/plan.ts";
+import type { Plan, PlanChange } from "../engine/plan.ts";
+import type { Lockfile } from "../lockfile/schema.ts";
 import { formatterForSelection } from "../format/index.ts";
 import { buildProject } from "../pipeline/index.ts";
 import { resolve } from "../resolver/resolve.ts";
@@ -13,6 +14,7 @@ import { fromResolveError, toAokitError } from "../project/errors.ts";
 import { runInstall } from "../project/install.ts";
 import { loadRegistry } from "../project/registry.ts";
 import { reproduceCommand } from "../project/reproduce.ts";
+import { renderFromSource } from "./from.ts";
 import { checkTarget } from "./target.ts";
 
 /** Everything `create` needs besides the process. */
@@ -25,12 +27,14 @@ export interface CreateRequest {
   readonly dryRun: boolean;
   readonly diff: boolean;
   readonly install: boolean;
+  /** Local Lockfile to create from; Modules, Layout and Registries come from it. */
+  readonly from?: string | undefined;
   readonly version: string;
   readonly env: Readonly<Record<string, string | undefined>>;
 }
 
 /** One change of the Plan with the Modules behind it. */
-interface CreatePlanChange {
+export interface CreatePlanChange {
   readonly type: PlanChange["type"];
   readonly path: string;
   readonly mode: string | null;
@@ -58,7 +62,7 @@ function describeEntry(entry: PlanChange["provenance"][number]["entry"]): string
   return entry.kind === "op" ? `op ${entry.op}` : entry.kind;
 }
 
-function toPlanChange(change: PlanChange): CreatePlanChange {
+export function toPlanChange(change: PlanChange): CreatePlanChange {
   return {
     type: change.type,
     path: change.path,
@@ -75,7 +79,7 @@ function warningTexts(warnings: readonly { readonly message: string }[]): string
   return warnings.map((warning) => warning.message);
 }
 
-async function plan(request: CreateRequest) {
+async function plan(request: CreateRequest): Promise<PlannedProject> {
   if (request.modules.length === 0) {
     throw new AokitError(
       "MISSING_VALUE",
@@ -117,7 +121,64 @@ async function plan(request: CreateRequest) {
   if (!built.ok) {
     throw fromResolveError(built.error);
   }
-  return { built, answers, moduleNames: manifests.map((manifest) => manifest.name) };
+  return {
+    plan: built.plan,
+    lockfile: built.lockfile,
+    warnings: warningTexts(built.warnings),
+    layout: request.layout,
+    moduleNames: manifests.map((manifest) => manifest.name),
+    reproduce: reproduceCommand({
+      directory: request.directory,
+      layout: request.layout,
+      modules: request.modules,
+      answers,
+      registry: request.registry,
+      install: request.install,
+    }),
+  };
+}
+
+/** A Project ready to apply, however it was selected. */
+interface PlannedProject {
+  readonly plan: Plan;
+  readonly lockfile: Lockfile;
+  readonly warnings: string[];
+  readonly layout: LayoutName;
+  readonly moduleNames: string[];
+  readonly reproduce: string;
+}
+
+function reproduceFrom(request: CreateRequest): string {
+  const answerFlags = request.answers.map((answer) => `--answer ${shellWord(answer)}`);
+  return [
+    "aokit create",
+    shellWord(request.directory),
+    `--from ${shellWord(request.from ?? "")}`,
+    ...answerFlags,
+    ...(request.install ? [] : ["--no-install"]),
+    "--yes",
+  ].join(" ");
+}
+
+function shellWord(value: string): string {
+  return /^[A-Za-z0-9_@%+=:,./-]+$/.test(value) ? value : `'${value.replaceAll("'", "'\\''")}'`;
+}
+
+async function planFrom(request: CreateRequest, directory: string): Promise<PlannedProject> {
+  const rendered = await renderFromSource({
+    from: request.from ?? "",
+    directory,
+    answers: request.answers,
+    cliVersion: request.version,
+  });
+  return {
+    plan: rendered.built.plan,
+    lockfile: rendered.lockfile,
+    warnings: warningTexts(rendered.built.warnings),
+    layout: rendered.lockfile.layout,
+    moduleNames: Object.keys(rendered.lockfile.modules).toSorted(),
+    reproduce: reproduceFrom(request),
+  };
 }
 
 /**
@@ -129,33 +190,26 @@ export async function runCreate(request: CreateRequest): Promise<CreateResult> {
   const directory = resolvePath(request.directory);
   await checkTarget(directory);
   try {
-    const { built, answers, moduleNames } = await plan(request);
-    const reproduce = reproduceCommand({
-      directory: request.directory,
-      layout: request.layout,
-      modules: request.modules,
-      answers,
-      registry: request.registry,
-      install: request.install,
-    });
-    const changes = built.plan.changes.map(toPlanChange);
+    const planned =
+      request.from === undefined ? await plan(request) : await planFrom(request, directory);
+    const changes = planned.plan.changes.map(toPlanChange);
     const base = {
       directory,
-      layout: request.layout,
-      modules: moduleNames,
-      plan: { hash: built.plan.hash, changes },
-      warnings: warningTexts(built.warnings),
-      reproduce,
+      layout: planned.layout,
+      modules: planned.moduleNames,
+      plan: { hash: planned.plan.hash, changes },
+      warnings: planned.warnings,
+      reproduce: planned.reproduce,
     };
     if (request.dryRun || request.diff) {
       return {
         ...base,
         applied: false,
         installed: false,
-        ...(request.diff ? { diff: unifiedDiff(built.plan) } : {}),
+        ...(request.diff ? { diff: unifiedDiff(planned.plan) } : {}),
       };
     }
-    await apply(built.plan, built.lockfile, directory);
+    await apply(planned.plan, planned.lockfile, directory);
     if (request.install) {
       await runInstall(directory, request.env);
     }
