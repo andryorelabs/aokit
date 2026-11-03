@@ -1,4 +1,7 @@
 import { describe, expect, test } from "bun:test";
+import { mkdtempSync, rmSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
 import { runCli, type CliIo } from "../../src/cli/adapter.ts";
 import { runCommand, type CommandContext } from "../../src/cli/command.ts";
 import { exposedCommands, hiddenCommands } from "../../src/cli/commands/registry.ts";
@@ -149,7 +152,13 @@ describe("lifecycle commands", () => {
   test("recopy is dispatched and listed in aokit schema", async () => {
     const schema = await runAokit(["schema", "--json"]);
     expect(schema.stdout).toContain("recopy");
-    const result = await runAokit(["recopy", "--json"]);
-    expect(result.stdout).not.toContain("UNKNOWN_COMMAND");
+    const empty = mkdtempSync(join(tmpdir(), "aokit-run-"));
+    try {
+      const result = await runAokit(["recopy", "--json", "--directory", empty]);
+      expect(result.stdout).not.toContain("UNKNOWN_COMMAND");
+      expect(result.stdout).toContain("LOCKFILE_MISSING");
+    } finally {
+      rmSync(empty, { recursive: true, force: true });
+    }
   });
 });

@@ -197,10 +197,33 @@ test("a user-edited seed file is kept with a warning and no Conflict", async () 
     ([, entry]) =>
       entry.mode === "seed" && entry.owners.length === 1 && entry.owners[0] === "vite-react",
   );
-  if (seed === undefined) return;
-  const path = seed[0];
+  expect(seed).toBeDefined();
+  const path = seed?.[0] ?? "";
   await writeFile(join(directory, path), "my seed\n");
   const envelope = await remove(directory, "vite-react", { cascade: true });
   expect(envelope.ok).toBe(true);
   expect(await readFile(join(directory, path), "utf8")).toBe("my seed\n");
+  if (envelope.ok) {
+    expect(
+      removeCommand.output.parse(envelope.data).warnings.some((warning) => warning.includes(path)),
+    ).toBe(true);
+  }
+});
+
+test("a Conflict after removal exits 6 and keeps the conflicted Lockfile hash", async () => {
+  const directory = await create(["oxc", "knip"], "single");
+  const manifestPath = join(directory, "package.json");
+  const manifest = JSON.parse(await readFile(manifestPath, "utf8"));
+  manifest.scripts.knip = "my own knip";
+  await writeFile(manifestPath, `${JSON.stringify(manifest, null, 2)}\n`);
+  await commitAll(directory);
+  const before = await lockOf(directory);
+  const envelope = await remove(directory, "knip", { allowDirty: false });
+  expect(envelope.ok).toBe(false);
+  if (envelope.ok) return;
+  expect(envelope.error.code).toBe("MERGE_CONFLICTS");
+  expect(exitCodeForEnvelope(envelope)).toBe(6);
+  expect((await lockOf(directory)).files["package.json"]?.hash).toBe(
+    before.files["package.json"]?.hash,
+  );
 });
