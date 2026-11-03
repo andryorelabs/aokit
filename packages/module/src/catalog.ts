@@ -3,9 +3,11 @@ import { z } from "zod";
 /**
  * The Catalog a Registry release ships: dependency name to version, plus Toolchain pin groups.
  * A pin group lists the dependency names that move together and are pinned exactly.
+ * `release` names the Registry Release the Catalog belongs to.
  */
 export const catalogSchema = z
   .strictObject({
+    release: z.string().min(1).optional(),
     dependencies: z.record(z.string().min(1), z.string().min(1)),
     pinGroups: z.record(z.string().min(1), z.array(z.string().min(1))).default({}),
   })

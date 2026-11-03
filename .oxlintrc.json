@@ -10,5 +10,12 @@
   "rules": {
     "local/no-non-doc-comments": "error"
   },
-  "ignorePatterns": [".claude/**", ".forge/**", "**/node_modules/**", "coverage/**", "dist/**"]
+  "ignorePatterns": [
+    ".claude/**",
+    ".forge/**",
+    "registry/**",
+    "**/node_modules/**",
+    "coverage/**",
+    "dist/**"
+  ]
 }
