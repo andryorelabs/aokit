@@ -59,4 +59,4 @@ Known tooling gotchas reported by snug (L62): `@oxlint/migrate` produces broken 
 
 ## Module candidates observed
 
-Derived from usage above (raw-notes.md L87, L95): next, vite-react, astro, hono (+ tsdown), prisma + pg, better-auth, t3-env, dotenvx, trigger.dev, posthog, next-intl, resend + react-email, base-ui + shadcn, tailwind4, docker + coolify, oxc, eslint-astro, commitlint + husky + lint-staged, knip, playwright + axe, vitest | bun-test, turborepo + catalog, renovate, adr-docs. This is a usage observation, not a roadmap; selections map to the architecture docs once they exist.
+Derived from usage above (raw-notes.md L87, L95): next, vite-react, astro, hono (+ tsdown), prisma + pg, better-auth, t3-env, dotenvx, trigger.dev, posthog, next-intl, resend + react-email, base-ui + shadcn, tailwind4, docker + coolify, oxc, eslint-astro, commitlint + husky + lint-staged, knip, playwright + axe, vitest | bun-test, turborepo + catalog, renovate, adr-docs. This is a usage observation, not a roadmap; selections map to the [module catalog](../architecture/module-catalog.md).

@@ -1,6 +1,7 @@
 # 0004. Own registry protocol with a shadcn adapter and integrity hashes
 
 Status: Accepted (2026-11-03)
+Revised: 2026-11-03 — one `sha256-<hex>` integrity per Module version, shared by Registry and Lockfile
 Spec: S12, S7 (AO-2673)
 Architecture: [Registry](../architecture/registry.md), [Lockfile: old versions stay fetchable](../architecture/lockfile.md#old-module-versions-stay-fetchable)
 
@@ -10,7 +11,7 @@ A Registry must serve Module manifests, a Catalog per release, and every old Mod
 
 ## Decision
 
-aokit speaks its own manifest index: JSON, versioned, inspired by shadcn, with immutable `modules/<name>/<version>` entries, `sha256:<hex>` integrity per manifest and file, and a Catalog per release. A shadcn adapter reads shadcn registry items (declarative only) and presents them as synthetic Module manifests, adding a synthetic version, integrity, per-file hashes and ownership. Remote sources given as mutable refs are pinned to a commit SHA. Registries other than `official` and `local` are untrusted until the user allows them; arbitrary transforms and remote scripts are blocked without consent, and `--yes` never grants trust.
+aokit speaks its own manifest index: JSON, versioned, inspired by shadcn, with immutable `modules/<name>/<version>/` entries, one `sha256-<hex>` integrity per Module version over its manifest and files, and a Catalog per release. A shadcn adapter reads shadcn registry items (declarative only) and presents them as synthetic Module manifests, adding a synthetic version, integrity, per-file hashes and ownership. Remote sources given as mutable refs are pinned to a commit SHA. Registries other than `official` and `local` are untrusted until the user allows them; arbitrary transforms and remote scripts are blocked without consent, and `--yes` never grants trust.
 
 ## Consequences
 

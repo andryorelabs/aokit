@@ -1,6 +1,6 @@
 # Lifecycle and version findings
 
-Findings only. Decisions are in `docs/architecture/` (not yet written; links will be added once it exists). `raw-notes.md` = [raw-notes.md](raw-notes.md); line numbers refer to it.
+Findings only. Decisions are in [`docs/architecture/`](../architecture/overview.md). `raw-notes.md` = [raw-notes.md](raw-notes.md); line numbers refer to it.
 
 ## Update algorithms
 

@@ -1,6 +1,7 @@
 # 0003. `remove` re-renders without the module and 3-way merges
 
 Status: Accepted (2026-11-03)
+Revised: 2026-11-03 — a modified file the render removes is kept with a warning, not a conflict
 Spec: S6, S7 (AO-2673)
 Architecture: [Lifecycle: remove](../architecture/lifecycle.md#remove-module), [Lifecycle: merge procedure](../architecture/lifecycle.md#the-merge-procedure), [Lockfile: merge policy](../architecture/lockfile.md#merge-policy)
 
@@ -10,7 +11,7 @@ Generated Projects must stay maintainable, which includes taking a Module out af
 
 ## Decision
 
-`remove <module>` builds the **base** (the Lockfile render of all Modules at recorded versions and answers), the **new** state (the same selection without the Module) and the **user** state (the working tree), then runs the same merge procedure as `update`, `add` and `recopy`. Files owned only by the removed Module are deleted if `pristine` and become a delete-vs-modify conflict (kept, with a warning) if `modified`. Files with several owners are re-rendered without that Module's contribution and 3-way merged. Dependents are checked first; dependencies are removed only if unused, and `source: "user"` dependencies never. A clean working tree is required.
+`remove <module>` builds the **base** (the Lockfile render of all Modules at recorded versions and answers), the **new** state (the same selection without the Module) and the **user** state (the working tree), then runs the same merge procedure as `update`, `add` and `recopy`. Files owned only by the removed Module are deleted if `pristine` and are kept with a warning if `modified` (delete-vs-modify is not a Conflict and does not exit `6`), and the Module is dropped from the file's `owners`. Files with several owners are re-rendered without that Module's contribution and 3-way merged. Dependents are checked first; dependencies are removed only if unused, and `source: "user"` dependencies never. A clean working tree is required.
 
 ## Consequences
 

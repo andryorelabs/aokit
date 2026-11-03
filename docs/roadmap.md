@@ -8,10 +8,11 @@ Implementation phases for the next `/forge` runs, with the testing strategy for 
 flowchart LR
   P1[1 Core, schema, VFS] --> P2[2 Engine ops]
   P2 --> P3[3 First modules]
-  P3 --> P4[4 Lifecycle]
+  P3 --> P4A[4a Lifecycle foundations]
+  P4A --> P4B[4b Updates and migrations]
   P3 --> P5[5 Registry + shadcn adapter]
-  P4 --> P5
-  P4 --> P6[6 MCP and agent files]
+  P4A --> P5
+  P4B --> P6[6 MCP and agent files]
   P5 --> P6
   P6 --> P7[7 Distribution]
   P5 --> P7
@@ -22,9 +23,10 @@ flowchart LR
 | 1. Core + schema + VFS | none | Manifest schema, Resolver, VFS and Plan, command layer, Lockfile read/write. |
 | 2. Engine ops | 1 | Edit engine and Ops catalog. |
 | 3. First modules | 1, 2 | A curated set of Modules and an end-to-end `create`. |
-| 4. Lifecycle | 3 | `add`, `remove`, `update`, `doctor` and friends. |
-| 5. Registry + shadcn adapter | 3, 4 | Registry client, integrity, trust model, adapter. |
-| 6. MCP and agent files | 4, 5 | MCP server, `aokit schema`, agent files in generated Projects. |
+| 4a. Lifecycle foundations | 3 | Merger, merge procedure, `add`, `remove`, `recopy`, `doctor`, `diff`, `check`, `eject`, `restore`, `create --from`. |
+| 4b. Updates and migrations | 4a | `update`, migrations, renames, upgrade job. |
+| 5. Registry + shadcn adapter | 3, 4a | Registry client, integrity, trust model, adapter. |
+| 6. MCP and agent files | 4b, 5 | MCP server, `aokit schema`, agent files in generated Projects. |
 | 7. Distribution | 5, 6 | Binary, publishing, releases. |
 
 ### 1. Core + schema + VFS
@@ -63,15 +65,32 @@ Exit criteria:
 
 ### 4. Lifecycle
 
-Scope: `add`, `remove`, `update` (`--plan`, `--apply`, `--abort`), `check`, `doctor`, `eject`, `restore`, `diff`, `recopy`, `create --from`; the clean-tree precondition; the `Merger` interface with `git merge-file` and `node-diff3`; per-file hashes and ownership modes; Module migrations and the renames manifest ([Lifecycle](architecture/lifecycle.md)).
+Phase 4 is split into two specs that ship in order. Both build on the same parts: the [Merger](architecture/lockfile.md#merge-policy), the [merge procedure](architecture/lifecycle.md#the-merge-procedure) and the [Lockfile](architecture/lockfile.md).
+
+#### 4a. Lifecycle foundations
+
+Scope: a versioned, immutable local Registry with one unified `sha256-<hex>` integrity ([Registry](architecture/registry.md)); Lockfile v2 (`selected`, dependency `owners`) with the v1 to v2 migration; the Render from a Lockfile; lifecycle outcomes as error codes with data ([ADR 0015](adr/0015-lifecycle-outcomes-are-error-codes-with-data.md)); the git adapter and the clean-tree precondition; the `Merger` interface with `git merge-file`, `node-diff3`, binary `.aokit-new` and structural JSON; the VFS-to-VFS merge procedure; transactional apply with a stash of originals; `doctor` (read-only), `diff`, `check`, `eject`, `restore`, `add`, `remove`, `recopy` and `create --from <path>`; the Docker image built and run in CI ([Lifecycle](architecture/lifecycle.md)).
 
 Exit criteria:
 
-- `remove` of every first Module leaves a Project equal to a fresh render without it, when no user edits exist.
-- Conflict cases (delete versus modify, binary, JSON, lockfile) behave as the [merge policy](architecture/lockfile.md#merge-policy) states.
+- `remove` of every curated Module, in each curated selection and both Layouts, leaves a Project equal to a fresh render without it (and without any cascaded Modules), when no user edits exist.
+- Every merge-policy case (text, binary, JSON, delete versus modify, an unknown file at a new path, `bun.lock`) behaves as the [merge policy](architecture/lockfile.md#merge-policy) states.
+- `doctor` reports `pristine`, `modified`, `deleted`, `unknown` and `volatile` correctly and exits `1` with the `DRIFT` outcome on drift.
+- Exit codes 1, 2, 3, 4, 5 and 6 behave as the [exit code table](architecture/cli-ux.md#exit-codes) says, each asserted end to end.
+- A v1 Lockfile reads as v2 without being rewritten until the next apply.
+- `create` followed by `add`, `doctor`, an edit, `diff`, `restore` and `remove` works in a temporary directory.
+
+#### 4b. Updates and migrations
+
+Scope: `update` with `--plan`, `--apply` and `--abort`; Module migrations; the renames manifest; `diff --to <release>`; the N-1 to N upgrade job ([Lifecycle](architecture/lifecycle.md#update)).
+
+Exit criteria:
+
 - The upgrade job (release N-1 to N, representative edits, zero conflicts) is green for the curated set.
-- `doctor` reports `pristine`, `modified`, `deleted` and `unknown` correctly and exits non-zero on drift.
-- Exit codes 2, 5 and 6 behave as the [exit code table](architecture/cli-ux.md#exit-codes) says.
+- `update --plan` followed by `--apply` writes exactly the reviewed Plan, and `--abort` restores the pre-update state.
+- A Module migration can rename an answer and a renames manifest carries a user's edit across a moved file.
+
+`layout migrate` stays deferred until `update` works, since it reuses the merge procedure ([Deliberately deferred](#deliberately-deferred)).
 
 ### 5. Registry + shadcn adapter
 
@@ -120,7 +139,7 @@ Exit criteria:
 ## Deliberately deferred
 
 - A web UI. The schema is the only contract it would need ([Interfaces](architecture/interfaces.md#surfaces)).
-- `layout migrate`. It is specified, but it follows the lifecycle phase once `update` works, since it reuses the merge procedure.
+- `layout migrate`. It is specified, but it follows phase 4b once `update` works, since it reuses the merge procedure.
 - Telemetry ([ADR 0013](adr/0013-no-telemetry-in-v1.md)).
 - A supported Node install path. Bun APIs sit behind an adapter, but generated Projects require Bun ([ADR 0006](adr/0006-bun-only.md)).
 - Modules outside the first curated set. The catalog is illustrative, not a commitment.

@@ -60,6 +60,26 @@ _Avoid_: preview, dry run output
 The in-memory tree where a plan is built; it is written to disk atomically only on apply.
 _Avoid_: staging area, temp tree
 
+**Render**:
+The virtual file system a selection of Modules produces at given versions and answers, built from an empty tree.
+_Avoid_: build output, generated copy, snapshot
+
+**Drift state**:
+How one file in a Project compares with what aokit last wrote: `pristine`, `modified`, `deleted`, `unknown` or `volatile`.
+_Avoid_: status, dirty flag, diff state
+
+**Merger**:
+The three-way merge of base, user and new for one file.
+_Avoid_: patcher, conflict resolver
+
+**Selected Module**:
+A Module the user chose, as opposed to one pulled in only because another Module requires its Capability.
+_Avoid_: explicit module, top-level module, direct dependency
+
+**Conflict**:
+A merge result that needs a human, shown as conflict markers in the file or a `.aokit-new` copy beside it.
+_Avoid_: error, failure
+
 **Release**:
 A versioned, immutable snapshot of a Registry: its Modules and the one Catalog tested with them (`2026.11.0`).
 _Avoid_: version (of a Registry), drop, channel
@@ -82,7 +102,9 @@ _Avoid_: app, workspace
 - A base **Module** declares **Extension points**; other Modules contribute to them with **Ops**.
 - A Module writes to **Targets**; the **Layout** resolves each Target to a path.
 - A **Plan** is built in the **VFS** and applied atomically; applying records the result in the **Lockfile**.
-- The Lockfile assigns every generated file an **Ownership mode**.
+- The Lockfile assigns every generated file an **Ownership mode** and records which Modules are **Selected Modules**.
+- A **Render** is built from a selection, or from the Lockfile, and compared with the working tree to give each file a **Drift state**.
+- The **Merger** combines the base Render, the user's file and the new Render; what it cannot reconcile is a **Conflict**.
 - A **Registry** publishes **Releases**; each Release has one **Catalog**; the **Toolchain pin group** is the part of the Catalog pinned exactly.
 
 ## Flagged ambiguities
