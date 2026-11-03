@@ -17,7 +17,7 @@
   "extensionPoints": [
     {
       "anchor": "middleware",
-      "file": "app.ts",
+      "file": "src/app.ts",
       "kind": "array",
       "name": "server.middleware",
       "target": "server",
@@ -25,7 +25,7 @@
     },
     {
       "anchor": "routes",
-      "file": "app.ts",
+      "file": "src/app.ts",
       "kind": "object",
       "name": "server.routes",
       "target": "server",
@@ -37,12 +37,23 @@
       "from": "files/app.ts",
       "ownership": "managed",
       "target": "server",
-      "to": "app.ts"
+      "to": "src/app.ts"
     }
   ],
   "migrations": [],
   "name": "hono",
-  "ops": [],
+  "ops": [
+    {
+      "file": "package.json",
+      "op": "mergeJson",
+      "target": "root",
+      "value": {
+        "scripts": {
+          "start": "bun run {{target:server}}/src/app.ts"
+        }
+      }
+    }
+  ],
   "override": [],
   "provides": [
     {

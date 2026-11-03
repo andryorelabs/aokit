@@ -23,7 +23,7 @@ export default defineModule({
       op: "mergeJson",
       target: "root",
       file: "package.json",
-      value: { scripts: { lint: "oxlint", format: "oxfmt" } },
+      value: { scripts: { lint: "oxlint -c {{target:config}}/.oxlintrc.json", format: "oxfmt" } },
     },
   ],
   extensionPoints: [

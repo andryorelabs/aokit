@@ -22,7 +22,7 @@ import {
 import { compareByCodepoint, normalizeProjectPath } from "../engine/vfs.ts";
 import type { Lockfile } from "../lockfile/schema.ts";
 import { serializeLockfile } from "../lockfile/serialize.ts";
-import { applyDeps, applyEnv } from "../ops/data/index.ts";
+import { applyDeps, applyEnv, wireWorkspaces } from "../ops/data/index.ts";
 import { resolve } from "../resolver/resolve.ts";
 import type { ResolveError, ResolveWarning } from "../resolver/types.ts";
 import { type AssembledModule, type RegistryInfo, assembleLockfile } from "./assemble.ts";
@@ -154,6 +154,19 @@ export async function buildProject(input: PipelineInput): Promise<BuiltProject |
       answers: effectiveAnswers(manifest, input.answers[manifest.name] ?? {}),
     });
   }
+
+  wireWorkspaces(
+    {
+      has: (path) => work.has(path),
+      paths: () => work.paths(),
+      read: (path) => work.read(path),
+      write: (path, content, options) => {
+        work.write(path, content, options);
+        note(normalizeProjectPath(path), "aokit", { kind: "op", op: "workspaces" });
+      },
+    },
+    input.layout,
+  );
 
   let finalVfs = work;
   if (input.formatter !== undefined) {

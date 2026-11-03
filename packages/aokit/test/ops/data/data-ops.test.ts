@@ -103,8 +103,8 @@ test("addEnv defaults to .env, never overwrites and is idempotent", async () => 
   const ops: ModuleManifestInput["ops"] = [
     { op: "addEnv", target: "server", entries: { DATABASE_URL: "x", PORT: "3000" } },
   ];
-  const result = await expectIdempotent(ops, { "src/server/.env": "PORT=8080\n" });
-  expect(result.read("src/server/.env")).toBe("PORT=8080\nDATABASE_URL=x\n");
+  const result = await expectIdempotent(ops, { ".env": "PORT=8080\n" });
+  expect(result.read(".env")).toBe("PORT=8080\nDATABASE_URL=x\n");
 });
 
 test("addCssAtRule adds header rules and @theme declarations idempotently", async () => {
@@ -125,8 +125,8 @@ test("addCssAtRule adds header rules and @theme declarations idempotently", asyn
       body: "--color-brand: #fff; --font-sans: Inter",
     },
   ];
-  const result = await expectIdempotent(ops, { "src/app.css": '@import "tailwindcss";\n' });
-  const text = String(result.read("src/app.css"));
+  const result = await expectIdempotent(ops, { "app.css": '@import "tailwindcss";\n' });
+  const text = String(result.read("app.css"));
   expect(text).toContain('@plugin "@tw/typography"');
   expect(text).toContain("--color-brand: #fff");
   expect(text).toContain("--font-sans: Inter");
@@ -211,17 +211,18 @@ test("applyDeps fails when the Catalog lacks a dependency", () => {
 
 test("applyEnv adds example values to the scope .env and never overwrites", () => {
   const vfs = Vfs.empty();
-  vfs.write("src/server/.env", "SECRET=mine\n");
+  vfs.write(".env", "SECRET=mine\n");
   const options = {
     vfs,
     env: [
       { key: "SECRET", scope: "server", example: "changed" },
       { key: "API_URL", scope: "server", example: "http://x" },
     ],
-    resolvePath: (name: string, relative: string) => `${resolveTarget("single", name)}/${relative}`,
+    resolvePath: (name: string, relative: string) =>
+      [resolveTarget("single", name), relative].filter(Boolean).join("/"),
   };
   applyEnv(options);
-  expect(vfs.read("src/server/.env")).toBe("SECRET=mine\nAPI_URL=http://x\n");
+  expect(vfs.read(".env")).toBe("SECRET=mine\nAPI_URL=http://x\n");
   applyEnv(options);
-  expect(vfs.read("src/server/.env")).toBe("SECRET=mine\nAPI_URL=http://x\n");
+  expect(vfs.read(".env")).toBe("SECRET=mine\nAPI_URL=http://x\n");
 });

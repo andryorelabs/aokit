@@ -49,7 +49,7 @@ describe("vite-react", () => {
       "vite.config.ts",
     ]);
     expect(JSON.parse(String(built.plan.vfs.read("package.json")))).toMatchObject({
-      scripts: { build: "vite build", dev: "vite", preview: "vite preview" },
+      scripts: { build: "vite build .", dev: "vite .", preview: "vite preview ." },
       dependencies: { react: "^19.3.1", "react-dom": "^19.3.1" },
       devDependencies: {
         "@types/react": "^19.3.0",
@@ -65,16 +65,34 @@ describe("vite-react", () => {
     const built = await buildProject(input("monorepo"));
     if (!built.ok) throw new Error(built.error.message);
     expect(built.plan.vfs.paths()).toEqual([
-      "apps/web/main.tsx",
+      "apps/web/index.html",
       "apps/web/package.json",
-      "apps/web/providers.tsx",
-      "apps/web/routes.tsx",
-      "index.html",
+      "apps/web/src/main.tsx",
+      "apps/web/src/providers.tsx",
+      "apps/web/src/routes.tsx",
+      "apps/web/tsconfig.json",
+      "apps/web/vite.config.ts",
       "package.json",
-      "tsconfig.json",
-      "vite.config.ts",
     ]);
+    expect(JSON.parse(String(built.plan.vfs.read("package.json")))).toMatchObject({
+      scripts: { dev: "vite apps/web" },
+      workspaces: ["apps/web"],
+    });
   });
+
+  test.each(["single", "monorepo"] as const)(
+    "index.html entry resolves to a file next to vite.config.ts (%s)",
+    async (layout) => {
+      const built = await buildProject(input(layout));
+      if (!built.ok) throw new Error(built.error.message);
+      const directory = layout === "single" ? "" : "apps/web/";
+      const html = String(built.plan.vfs.read(`${directory}index.html`));
+      const entry = /<script[^>]*src="([^"]+)"/.exec(html)?.[1];
+      expect(entry).toBeDefined();
+      expect(built.plan.vfs.has(`${directory}${String(entry).replace(/^\//, "")}`)).toBe(true);
+      expect(built.plan.vfs.has(`${directory}vite.config.ts`)).toBe(true);
+    },
+  );
 
   test("provides web and web:spa and declares both array points", () => {
     expect(curated.manifest.provides.map((entry) => entry.capability)).toEqual(["web", "web:spa"]);

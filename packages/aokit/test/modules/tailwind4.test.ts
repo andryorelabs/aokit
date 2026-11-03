@@ -26,14 +26,14 @@ const webBase: EngineModule = {
     version: "1.0.0",
     provides: ["web"],
     files: [
-      { from: "providers.tsx", to: "providers.tsx", target: "web" },
-      { from: "vite.config.ts", to: "vite.config.ts", target: "root" },
+      { from: "providers.tsx", to: "src/providers.tsx", target: "web" },
+      { from: "vite.config.ts", to: "vite.config.ts", target: "web" },
     ],
     extensionPoints: [
       {
         name: "vite.plugins",
         version: "1.0.0",
-        target: "root",
+        target: "web",
         kind: "array",
         anchor: "plugins",
         file: "vite.config.ts",
@@ -44,6 +44,7 @@ const webBase: EngineModule = {
         target: "web",
         kind: "array",
         anchor: "providers",
+        file: "src/providers.tsx",
       },
     ],
   }),
@@ -107,13 +108,13 @@ describe("tailwind4", () => {
         ),
       );
       if (!built.ok) throw new Error(built.error.message);
-      const directory = layout === "single" ? "src" : "apps/web";
-      const providers = String(built.plan.vfs.read(`${directory}/providers.tsx`));
-      const styles = String(built.plan.vfs.read(`${directory}/styles.css`));
+      const directory = layout === "single" ? "" : "apps/web/";
+      const providers = String(built.plan.vfs.read(`${directory}src/providers.tsx`));
+      const styles = String(built.plan.vfs.read(`${directory}src/styles.css`));
       expect(occurrences(providers, 'from "./tailwind-provider"')).toBe(1);
       expect(occurrences(providers, "TailwindProvider")).toBe(2);
       expect(occurrences(styles, '@import "tailwindcss";')).toBe(1);
-      const viteConfig = String(built.plan.vfs.read("vite.config.ts"));
+      const viteConfig = String(built.plan.vfs.read(`${directory}vite.config.ts`));
       expect(occurrences(viteConfig, 'from "@tailwindcss/vite"')).toBe(1);
       expect(occurrences(viteConfig, "tailwindcss()")).toBe(1);
     },
@@ -129,7 +130,7 @@ describe("tailwind4", () => {
         target: "web",
         kind: "region",
         anchor: "theme",
-        file: "styles.css",
+        file: "src/styles.css",
       },
     ]);
   });

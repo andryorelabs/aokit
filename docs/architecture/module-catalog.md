@@ -17,7 +17,7 @@ Only current best practice is listed:
 - **Cardinality** is declared where the Capability is provided. `1` means at most one provider per Project; `many` means any number.
 - `requires` lists Capabilities and Extension points (`ext:<name>@<range>`). No row requires a Layout.
 - **Contributes to** lists the Extension points the Module uses through [Ops](engine.md#ops-catalog); **declares** lists the ones it owns as a base Module. Extension point names are illustrative.
-- The first Modules to ship fix their Anchors ([ADR 0014](../adr/0014-extension-point-anchors-are-identifier-names.md)): `vite-react` declares `web.providers` (`providers` in `src/providers.tsx`) and `web.routes` (`routes` in `src/routes.tsx`); `hono` declares `server.middleware` (`middleware`) and `server.routes` (`routes`) in `src/app.ts`; `oxc` declares `lint.ignores` as a `json` Extension point in `.oxlintrc.json` with the pointer `/ignorePatterns`.
+- The first Modules to ship fix their Anchors ([ADR 0014](../adr/0014-extension-point-anchors-are-identifier-names.md)): `vite-react` declares `web.providers` (`providers` in `src/providers.tsx`) and `web.routes` (`routes` in `src/routes.tsx`); `hono` declares `server.middleware` (`middleware`) and `server.routes` (`routes`) in `src/app.ts` of the `server` package; `oxc` declares `lint.ignores` as a `json` Extension point in `.oxlintrc.json` with the pointer `/ignorePatterns`.
 
 ## Application bases
 

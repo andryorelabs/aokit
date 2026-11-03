@@ -8,12 +8,12 @@ export default defineModule({
     { capability: "web:spa", cardinality: { max: 1 } },
   ],
   files: [
-    { from: "files/index.html", to: "index.html", target: "root", ownership: "managed" },
-    { from: "files/vite.config.ts", to: "vite.config.ts", target: "root", ownership: "managed" },
-    { from: "files/tsconfig.json", to: "tsconfig.json", target: "root", ownership: "seed" },
-    { from: "files/main.tsx", to: "main.tsx", target: "web", ownership: "managed" },
-    { from: "files/providers.tsx", to: "providers.tsx", target: "web", ownership: "managed" },
-    { from: "files/routes.tsx", to: "routes.tsx", target: "web", ownership: "managed" },
+    { from: "files/index.html", to: "index.html", target: "web", ownership: "managed" },
+    { from: "files/vite.config.ts", to: "vite.config.ts", target: "web", ownership: "managed" },
+    { from: "files/tsconfig.json", to: "tsconfig.json", target: "web", ownership: "seed" },
+    { from: "files/main.tsx", to: "src/main.tsx", target: "web", ownership: "managed" },
+    { from: "files/providers.tsx", to: "src/providers.tsx", target: "web", ownership: "managed" },
+    { from: "files/routes.tsx", to: "src/routes.tsx", target: "web", ownership: "managed" },
   ],
   deps: {
     dependencies: {
@@ -33,14 +33,20 @@ export default defineModule({
       op: "mergeJson",
       target: "root",
       file: "package.json",
-      value: { scripts: { dev: "vite", build: "vite build", preview: "vite preview" } },
+      value: {
+        scripts: {
+          dev: "vite {{target:web}}",
+          build: "vite build {{target:web}}",
+          preview: "vite preview {{target:web}}",
+        },
+      },
     },
   ],
   extensionPoints: [
     {
       name: "vite.plugins",
       version: "1.0.0",
-      target: "root",
+      target: "web",
       kind: "array",
       anchor: "plugins",
       file: "vite.config.ts",
@@ -51,6 +57,7 @@ export default defineModule({
       target: "web",
       kind: "array",
       anchor: "providers",
+      file: "src/providers.tsx",
     },
     {
       name: "web.routes",
@@ -58,6 +65,7 @@ export default defineModule({
       target: "web",
       kind: "array",
       anchor: "routes",
+      file: "src/routes.tsx",
     },
   ],
 });

@@ -18,6 +18,7 @@ The user chooses the Layout at `create`: `single` or `monorepo`. No Module may f
 - The CI matrix crosses valid selections with both Layouts.
 - A Target a Layout cannot resolve is a Resolver error naming the Modules that provide it.
 - Adding a Layout later means adding a resolution table, not changing Modules.
+- The app Targets `web` and `server` are package roots (`./` in `single`, `apps/<name>` in `monorepo`); Modules write `src/…` themselves, and `{{target:<name>}}` lets a Module name a Target without knowing the Layout (revised 2026-11-03, phase 3 wave 2).
 
 ## Alternatives considered
 

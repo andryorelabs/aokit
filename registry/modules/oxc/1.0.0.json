@@ -48,7 +48,7 @@
       "value": {
         "scripts": {
           "format": "oxfmt",
-          "lint": "oxlint"
+          "lint": "oxlint -c {{target:config}}/.oxlintrc.json"
         }
       }
     }

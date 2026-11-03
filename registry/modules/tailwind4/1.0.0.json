@@ -17,7 +17,7 @@
   "extensionPoints": [
     {
       "anchor": "theme",
-      "file": "styles.css",
+      "file": "src/styles.css",
       "kind": "region",
       "name": "styles.theme",
       "target": "web",
@@ -29,20 +29,20 @@
       "from": "files/styles.css",
       "ownership": "seed",
       "target": "web",
-      "to": "styles.css"
+      "to": "src/styles.css"
     },
     {
       "from": "files/tailwind-provider.tsx",
       "ownership": "managed",
       "target": "web",
-      "to": "tailwind-provider.tsx"
+      "to": "src/tailwind-provider.tsx"
     }
   ],
   "migrations": [],
   "name": "tailwind4",
   "ops": [
     {
-      "file": "styles.css",
+      "file": "src/styles.css",
       "op": "addCssAtRule",
       "params": "\"tailwindcss\"",
       "rule": "import",
@@ -69,14 +69,14 @@
       "from": "@tailwindcss/vite",
       "op": "addImport",
       "range": "^1",
-      "target": "root"
+      "target": "web"
     },
     {
       "element": "tailwindcss()",
       "extensionPoint": "vite.plugins",
       "op": "addToArray",
       "range": "^1",
-      "target": "root"
+      "target": "web"
     }
   ],
   "override": [],

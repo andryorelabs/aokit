@@ -88,10 +88,16 @@ export function locateSite(
     );
   }
   const directory = posix.dirname(context.resolvePath(point.target, "anchor.ts"));
+  const declaredPath =
+    point.file === undefined ? undefined : context.resolvePath(point.target, point.file);
   const matches: AnchorSite[] = [];
   for (const path of context.vfs.paths()) {
     const source = context.vfs.read(path);
-    if (!underDirectory(path, directory) || !isHandWrittenSource(path)) {
+    if (declaredPath === undefined) {
+      if (!underDirectory(path, directory) || !isHandWrittenSource(path)) {
+        continue;
+      }
+    } else if (path !== declaredPath) {
       continue;
     }
     if (typeof source !== "string") {

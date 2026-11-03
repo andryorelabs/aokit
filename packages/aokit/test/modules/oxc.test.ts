@@ -45,7 +45,7 @@ describe("oxc", () => {
     if (!built.ok) throw new Error(built.error.message);
     expect(built.plan.vfs.paths()).toEqual([".oxfmtrc.json", ".oxlintrc.json", "package.json"]);
     expect(parsed(built.plan.vfs, "package.json")).toMatchObject({
-      scripts: { format: "oxfmt", lint: "oxlint" },
+      scripts: { format: "oxfmt", lint: "oxlint -c ./.oxlintrc.json" },
       devDependencies: { oxfmt: "0.75.0", oxlint: "1.90.0" },
     });
     expect(built.lockfile.deps["oxlint"]).toMatchObject({ pinned: true });

@@ -32,12 +32,14 @@ A base Module may declare more Targets; they must also be resolvable by both Lay
 | --- | --- |
 | `root` | `./` |
 | `config` | `./` |
-| `web` | `./src/` (for a framework with its own source dir, `./`) |
-| `server` | `./src/server/` |
+| `web` | `./` |
+| `server` | `./` |
 | `db` | `./src/db/` |
 | `shared-ui` | `./src/components/` |
 
-`monorepo`: each Target that holds code becomes a workspace package, with Bun workspaces and a Catalog at the root.
+The app Targets `web` and `server` are package roots, not source folders: a Module that ships a `src/` directory writes `src/…` itself, so the same files are valid in both Layouts. `db` and `shared-ui` stay source folders in `single`.
+
+`monorepo`: each Target that holds code becomes a workspace package, with Bun workspaces and a Catalog at the root. The Engine writes `name` and `private: true` into each package's `package.json` and lists the packages in the root `workspaces`, sorted; `single` gets no `workspaces`.
 
 | Target | Path |
 | --- | --- |
@@ -49,6 +51,8 @@ A base Module may declare more Targets; they must also be resolvable by both Lay
 | `shared-ui` | `./packages/ui/` |
 
 The Layout also decides cross-Target wiring that a Module should not care about: in `monorepo`, a dependency on another Target becomes a workspace dependency; in `single`, it becomes a relative import path. Modules express the intent (`target: "db"`) and the Layout produces the form.
+
+A Module that must name a Target's location (for example a root script that starts the `server` package) writes `{{target:<name>}}` in file content or in the string values of a data Op. The Engine replaces it with the directory the Layout resolves, or `.` for the Project root, so the Module never contains a Layout-specific path.
 
 If a Module writes to a Target that the selected Layout cannot resolve, the Resolver fails with an error that names the Target and lists the Modules that provide it; this does not change the Layout.
 

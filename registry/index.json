@@ -42,7 +42,7 @@
           "files": {
             "files/app.ts": "sha256:a576a83c1453eb9bb95005ffb9fef6f7d396639381a59f86031f0fc1ef8f4541"
           },
-          "integrity": "sha256:8c86e2fdd8dbe516ccad0a30f4b1e9c92ec7cd652f79ade45c9a6decf7b29584",
+          "integrity": "sha256:9e83b7dd13564251fbcd7adb8d3f77496e89f7681a44d200234b00a5cdef2c4a",
           "manifest": "modules/hono/1.0.0.json",
           "provides": ["server", "api:http"],
           "schemaVersion": 1
@@ -71,7 +71,7 @@
             "files/oxfmtrc.json": "sha256:7ca658c7bc0bc9c6349df4a082d763b08274f17e1a0f541c3adb65fc6ea93227",
             "files/oxlintrc.json": "sha256:41f0f5f70b133ff26d4dce08b73e817dd0c2306b41857371921e879b61ee221b"
           },
-          "integrity": "sha256:4bef338bdca05411bc5ecd6fd537c9afceee327e9a6520e17032a8c6866f2f61",
+          "integrity": "sha256:05bc72519ddc62227f2e7d49609a755b8e80f39ecf09f29c281dafe962c3f2f2",
           "manifest": "modules/oxc/1.0.0.json",
           "provides": ["lint", "format"],
           "schemaVersion": 1
@@ -86,7 +86,7 @@
             "files/styles.css": "sha256:4650ea7cbc07104a2fc7e53d850b98eab8310ce4e0bae5a5f7d5da99b1dc8145",
             "files/tailwind-provider.tsx": "sha256:a9b3a5ec86c72a410c7e92cea8c5cf86f2e28b8da78333f4cfa9c9a3109ad6e6"
           },
-          "integrity": "sha256:f313db2e95f6fa986059e2f4b1916d5e6342012cd9961eb56d70784dafac32e9",
+          "integrity": "sha256:9c55bb57496dcbae800c771dfb47a627f1edbb7b65a8367a6aea077cd105c2ed",
           "manifest": "modules/tailwind4/1.0.0.json",
           "provides": ["styling"],
           "schemaVersion": 1
@@ -105,7 +105,7 @@
             "files/tsconfig.json": "sha256:3af94e731aaad2740ee1bca5c2f91417ec878ea12f3a22fbbd3653fd47027b00",
             "files/vite.config.ts": "sha256:87859ede600d5b0bbc06ad9b4ca462e6cc6b479dfc420f7e643790e030923045"
           },
-          "integrity": "sha256:d46eb83ac3dfbc5ec6959380d81af5fc2c68ae3072fbf8939a03e25249749f4d",
+          "integrity": "sha256:3169fe5dc5de334a7de9362123974a5e921689b618952a6db8cae25bbd9cd2eb",
           "manifest": "modules/vite-react/1.0.0.json",
           "provides": ["web", "web:spa"],
           "schemaVersion": 1

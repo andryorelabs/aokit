@@ -35,11 +35,12 @@
       "file": "vite.config.ts",
       "kind": "array",
       "name": "vite.plugins",
-      "target": "root",
+      "target": "web",
       "version": "1.0.0"
     },
     {
       "anchor": "providers",
+      "file": "src/providers.tsx",
       "kind": "array",
       "name": "web.providers",
       "target": "web",
@@ -47,6 +48,7 @@
     },
     {
       "anchor": "routes",
+      "file": "src/routes.tsx",
       "kind": "array",
       "name": "web.routes",
       "target": "web",
@@ -57,38 +59,38 @@
     {
       "from": "files/index.html",
       "ownership": "managed",
-      "target": "root",
+      "target": "web",
       "to": "index.html"
     },
     {
       "from": "files/vite.config.ts",
       "ownership": "managed",
-      "target": "root",
+      "target": "web",
       "to": "vite.config.ts"
     },
     {
       "from": "files/tsconfig.json",
       "ownership": "seed",
-      "target": "root",
+      "target": "web",
       "to": "tsconfig.json"
     },
     {
       "from": "files/main.tsx",
       "ownership": "managed",
       "target": "web",
-      "to": "main.tsx"
+      "to": "src/main.tsx"
     },
     {
       "from": "files/providers.tsx",
       "ownership": "managed",
       "target": "web",
-      "to": "providers.tsx"
+      "to": "src/providers.tsx"
     },
     {
       "from": "files/routes.tsx",
       "ownership": "managed",
       "target": "web",
-      "to": "routes.tsx"
+      "to": "src/routes.tsx"
     }
   ],
   "migrations": [],
@@ -100,9 +102,9 @@
       "target": "root",
       "value": {
         "scripts": {
-          "build": "vite build",
-          "dev": "vite",
-          "preview": "vite preview"
+          "build": "vite build {{target:web}}",
+          "dev": "vite {{target:web}}",
+          "preview": "vite preview {{target:web}}"
         }
       }
     }

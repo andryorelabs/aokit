@@ -6,10 +6,10 @@ export default defineModule({
   provides: [{ capability: "styling", cardinality: { max: 1 } }],
   requires: ["web", "ext:web.providers@^1", "ext:vite.plugins@^1"],
   files: [
-    { from: "files/styles.css", to: "styles.css", target: "web", ownership: "seed" },
+    { from: "files/styles.css", to: "src/styles.css", target: "web", ownership: "seed" },
     {
       from: "files/tailwind-provider.tsx",
-      to: "tailwind-provider.tsx",
+      to: "src/tailwind-provider.tsx",
       target: "web",
       ownership: "managed",
     },
@@ -26,7 +26,7 @@ export default defineModule({
     {
       op: "addCssAtRule",
       target: "web",
-      file: "styles.css",
+      file: "src/styles.css",
       rule: "import",
       params: '"tailwindcss"',
     },
@@ -47,7 +47,7 @@ export default defineModule({
     },
     {
       op: "addImport",
-      target: "root",
+      target: "web",
       extensionPoint: "vite.plugins",
       range: "^1",
       from: "@tailwindcss/vite",
@@ -55,7 +55,7 @@ export default defineModule({
     },
     {
       op: "addToArray",
-      target: "root",
+      target: "web",
       extensionPoint: "vite.plugins",
       range: "^1",
       element: "tailwindcss()",
@@ -68,7 +68,7 @@ export default defineModule({
       target: "web",
       kind: "region",
       anchor: "theme",
-      file: "styles.css",
+      file: "src/styles.css",
     },
   ],
 });

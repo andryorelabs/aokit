@@ -7,11 +7,19 @@ export default defineModule({
     { capability: "server", cardinality: { max: 1 } },
     { capability: "api:http", cardinality: { max: 1 } },
   ],
-  files: [{ from: "files/app.ts", to: "app.ts", target: "server", ownership: "managed" }],
+  files: [{ from: "files/app.ts", to: "src/app.ts", target: "server", ownership: "managed" }],
   deps: {
     dependencies: { hono: { range: "catalog" } },
     devDependencies: { "@types/bun": { range: "catalog" } },
   },
+  ops: [
+    {
+      op: "mergeJson",
+      target: "root",
+      file: "package.json",
+      value: { scripts: { start: "bun run {{target:server}}/src/app.ts" } },
+    },
+  ],
   extensionPoints: [
     {
       name: "server.middleware",
@@ -19,7 +27,7 @@ export default defineModule({
       target: "server",
       kind: "array",
       anchor: "middleware",
-      file: "app.ts",
+      file: "src/app.ts",
     },
     {
       name: "server.routes",
@@ -27,7 +35,7 @@ export default defineModule({
       target: "server",
       kind: "object",
       anchor: "routes",
-      file: "app.ts",
+      file: "src/app.ts",
     },
   ],
 });

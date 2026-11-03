@@ -15,6 +15,8 @@ import {
   interpolateContent,
   interpolatePath,
   layoutTables,
+  interpolateTargets,
+  interpolateTargetsDeep,
   resolveTarget,
 } from "../../src/engine/index.ts";
 
@@ -302,7 +304,7 @@ test("Op handlers receive injected context and record Provenance", async () => {
   });
   const plan = await build([module], { opHandlers: createOpRegistry({ addEnv: handler }) });
   expect(received).toBe(context);
-  expect(plan.changes[0]?.path).toBe("src/server/marker.txt");
+  expect(plan.changes[0]?.path).toBe("marker.txt");
   expect(plan.changes[0]?.provenance).toEqual([
     { module: "hono", entry: { kind: "op", op: "addEnv" } },
   ]);
@@ -360,4 +362,19 @@ test("each Module only sees its own declared answers", async () => {
   const content = Object.fromEntries(plan.changes.map((change) => [change.path, change.content]));
   expect(content["first.txt"]).toBe("x\n");
   expect(content["second.txt"]).toBe("two {{undeclared}}\n");
+});
+
+const singleDirectoryOf = (target: string): string => resolveTarget("single", target);
+
+test("{{target:name}} resolves to the Layout directory, or . for the Project root", () => {
+  expect(interpolateTargets("vite {{target:web}} {{target:db}}", singleDirectoryOf)).toBe(
+    "vite . src/db",
+  );
+  expect(interpolateTargets("{{target:web}}/x", (t) => resolveTarget("monorepo", t))).toBe(
+    "apps/web/x",
+  );
+  expect(interpolateTargetsDeep({ a: ["{{target:web}}"], b: 1 }, singleDirectoryOf)).toEqual({
+    a: ["."],
+    b: 1,
+  });
 });
