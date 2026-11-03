@@ -29,17 +29,28 @@ with the reason the coordinator generated for it (`forge lock-reason`) —
 that's built into `/forge` itself, identical in every repo, and nothing
 below needs to restate it.
 
-While this repo is documentation-only (no `package.json` yet) a fresh worktree
-needs nothing beyond the lock: no dependency install, no env files to copy from
-the main checkout. When the CLI implementation starts, add the Bun install to
-`worktree.bootstrap` in `forge.config.json`.
+After the lock, a fresh worktree runs `worktree.bootstrap` from
+`forge.config.json`: `bun install --frozen-lockfile`. It installs the Bun
+workspace (`packages/aokit`, `packages/module`) and runs the `prepare` script,
+which installs the husky hooks. There are no env files to copy from the main
+checkout. A worker never edits `package.json` or `bun.lock` unless its ticket
+lists them as edit surfaces; every runtime dependency of the current spec is
+already installed.
 
 ## Self-check
 
-This repo has no code yet, so `commands.selfCheck` is empty and workers judge
-for themselves: re-read the edited docs against `CONTEXT.md` vocabulary and
-confirm internal links resolve. Add `bun run check`/`bun run test` to
-`commands.selfCheck` once the CLI exists.
+`commands.selfCheck` is `bun run check` then `bun run test`, both from the
+repo root, and both must pass before a worker reports done:
+
+- `bun run check` runs the TypeScript 7 type check
+  (`node_modules/typescript7/bin/tsc`, never bare `tsc`), `oxlint --type-aware`
+  including the TSDoc-only rule `local/no-non-doc-comments`, `oxfmt --check`
+  and `knip`.
+- `bun run test` runs `bun test` across the workspace and `tools/`.
+
+Run `bun run format` to fix formatting instead of hand-editing whitespace.
+Docs edits are still re-read against the `CONTEXT.md` vocabulary, with
+internal links checked by hand.
 
 ## Concurrency
 
