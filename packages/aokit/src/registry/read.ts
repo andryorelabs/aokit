@@ -1,5 +1,6 @@
 import { readFile } from "node:fs/promises";
-import { join } from "node:path";
+import { join, resolve } from "node:path";
+import { z } from "zod";
 import {
   type Catalog,
   catalogSchema,
@@ -28,6 +29,16 @@ interface RegistryModule {
   manifest: ModuleManifest;
   files: Map<string, string>;
   integrity: Integrity;
+  /**
+   * The absolute path to import a Migration script from, for a `script` the manifest's
+   * `migrations` lists. Throws a `RegistryError` for a path the version does not ship.
+   */
+  migrationScript(script: string): string;
+  /**
+   * The Renames manifest of this version (old path to new path, Target-relative, previous version
+   * to this one); empty when the version ships no `renames.json`.
+   */
+  renames: Readonly<Record<string, string>>;
 }
 
 /**
@@ -77,6 +88,10 @@ async function allInOrder<T>(promises: readonly Promise<T>[]): Promise<T[]> {
   }
   return values;
 }
+
+const renamesFile = "renames.json";
+
+const renamesSchema = z.record(z.string().min(1), z.string().min(1));
 
 const verifyFix =
   "The Registry artifact was changed after it was built. Rebuild it (`bun run registry:build`) or restore it from version control.";
@@ -242,6 +257,35 @@ function checkManifestMatchesEntry(
   }
 }
 
+function parseRenames(
+  files: ReadonlyMap<string, string>,
+  subject: string,
+): Readonly<Record<string, string>> {
+  const text = files.get(renamesFile);
+  if (text === undefined) {
+    return {};
+  }
+  const parsed = renamesSchema.safeParse(
+    parseJson(
+      text,
+      (reason) =>
+        new RegistryError(
+          "REGISTRY_MANIFEST_INVALID",
+          `${subject} ${renamesFile} is not valid JSON: ${reason}`,
+          "Fix the Module source and rebuild the Registry.",
+        ),
+    ),
+  );
+  if (!parsed.success) {
+    throw new RegistryError(
+      "REGISTRY_MANIFEST_INVALID",
+      `${subject} ${renamesFile} is invalid: ${parsed.error.issues.map((issue) => issue.message).join("; ")}`,
+      "Make renames.json an object of old path to new path and rebuild the Registry.",
+    );
+  }
+  return parsed.data;
+}
+
 async function readModuleVersion(
   root: string,
   registryName: string,
@@ -309,7 +353,31 @@ async function readModuleVersion(
       );
     }
   }
-  return { manifest, files, integrity: entry.integrity };
+  for (const migration of manifest.migrations) {
+    if (!files.has(migration.script)) {
+      throw new RegistryError(
+        "REGISTRY_FILE_MISSING",
+        `${subject} manifest lists migration script ${migration.script}, which the index does not record.`,
+        "Add the script under the Module's migrations/ directory and rebuild the Registry.",
+      );
+    }
+  }
+  return {
+    manifest,
+    files,
+    integrity: entry.integrity,
+    migrationScript: (script) => {
+      if (!files.has(script)) {
+        throw new RegistryError(
+          "REGISTRY_FILE_MISSING",
+          `${subject} does not ship ${script}.`,
+          "Rebuild the Registry with `bun run registry:build`.",
+        );
+      }
+      return resolve(fileRoot, script);
+    },
+    renames: parseRenames(files, subject),
+  };
 }
 
 /**

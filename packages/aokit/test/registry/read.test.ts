@@ -1,9 +1,12 @@
 import { afterEach, expect, test } from "bun:test";
 import { mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
-import { join } from "node:path";
+import { isAbsolute, join } from "node:path";
 import { buildRegistry } from "../../../../tools/registry-build/build.ts";
-import { writeRegistrySourceFixture } from "../../../../tools/registry-build/fixture.ts";
+import {
+  addMigrationToFixtureSource,
+  writeRegistrySourceFixture,
+} from "../../../../tools/registry-build/fixture.ts";
 import { z } from "zod";
 import {
   computeIntegrity,
@@ -186,6 +189,53 @@ test("a directory without index.json is not a Registry", async () => {
   temporaryDirectories.push(root);
   const error = await captureError(() => readLocalRegistry(root, options));
   expect(error.code).toBe("REGISTRY_NOT_FOUND");
+});
+
+async function migrationRegistry(): Promise<string> {
+  const source = await writeRegistrySourceFixture();
+  const root = await mkdtemp(join(tmpdir(), "aokit-registry-"));
+  temporaryDirectories.push(source, root);
+  await addMigrationToFixtureSource(source);
+  await buildRegistry(source, root);
+  return root;
+}
+
+test("the reader exposes a version's migration scripts and renames", async () => {
+  const root = await migrationRegistry();
+  const registry = await readLocalRegistry(root, options);
+  const oxc = registry.version("oxc", "2.0.0");
+  expect(oxc?.manifest.migrations).toEqual([
+    { from: ">=1 <2", to: "2.0.0", stage: "before", script: "migrations/1-to-2.before.js" },
+  ]);
+  expect(oxc?.renames).toEqual({ "src/routes.tsx": "src/router.tsx" });
+  const scriptPath = oxc?.migrationScript("migrations/1-to-2.before.js") ?? "";
+  expect(isAbsolute(scriptPath)).toBe(true);
+  expect(scriptPath).toBe(join(root, "modules/oxc/2.0.0/migrations/1-to-2.before.js"));
+  const loaded: { default: (input: unknown) => unknown } = await import(scriptPath);
+  expect(loaded.default({ answers: { appRouter: "tanstack" } })).toEqual({ router: "tanstack" });
+  expect(() => oxc?.migrationScript("migrations/missing.js")).toThrow(RegistryError);
+  expect(registry.version("knip", "2.1.0")?.renames).toEqual({});
+});
+
+test("one changed byte of a built migration script fails integrity", async () => {
+  const root = await migrationRegistry();
+  const scriptPath = join(root, "modules/oxc/2.0.0/migrations/1-to-2.before.js");
+  await writeFile(scriptPath, `${await readFile(scriptPath, "utf8")}// x\n`, "utf8");
+  const error = await captureError(() => readLocalRegistry(root, options));
+  expect(error.code).toBe("REGISTRY_INTEGRITY_MISMATCH");
+  expect(error.message).toContain("migrations/1-to-2.before.js");
+});
+
+test("an invalid renames.json fails naming the file", async () => {
+  const source = await writeRegistrySourceFixture();
+  const root = await mkdtemp(join(tmpdir(), "aokit-registry-"));
+  temporaryDirectories.push(source, root);
+  await addMigrationToFixtureSource(source);
+  await writeFile(join(source, "oxc/renames.json"), '{ "a": 1 }\n', "utf8");
+  await buildRegistry(source, root);
+  const error = await captureError(() => readLocalRegistry(root, options));
+  expect(error.code).toBe("REGISTRY_MANIFEST_INVALID");
+  expect(error.message).toContain("renames.json");
 });
 
 test("the committed first-party Registry reads cleanly", async () => {

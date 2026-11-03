@@ -31,6 +31,15 @@ const catalogDirectory = "catalog";
 const moduleSourceFile = "module.ts";
 const moduleFilesDirectory = "files";
 const moduleManifestFile = "module.json";
+const moduleMigrationsDirectory = "migrations";
+const moduleRenamesFile = "renames.json";
+const migrationRuntimeNamespace = "aokit-migration-runtime";
+
+/**
+ * The `// <path>` banner Bun writes above each bundled module; it embeds the machine-specific
+ * source path, so it is dropped to keep a build reproducible.
+ */
+const bundlerPathComment = /^\/\/ (?:aokit-migration-runtime:.*|.*\.[cm]?[jt]s)\n/gm;
 
 type ModuleEntry = RegistryIndex["modules"][string];
 type VersionEntry = ModuleEntry["versions"][string];
@@ -148,6 +157,70 @@ async function buildReleases(
   return releases;
 }
 
+/**
+ * Compiles one `migrations/*.ts` source to a self-contained ES module. `@aokit/module` resolves to
+ * a one-line `defineMigration` identity so the published script imports nothing at runtime.
+ */
+async function compileMigration(sourcePath: string): Promise<string> {
+  const result = await Bun.build({
+    entrypoints: [sourcePath],
+    target: "node",
+    format: "esm",
+    minify: false,
+    sourcemap: "none",
+    plugins: [
+      {
+        name: "aokit-migration-runtime",
+        setup(build) {
+          build.onResolve({ filter: /^@aokit\/module$/ }, () => ({
+            path: "@aokit/module",
+            namespace: migrationRuntimeNamespace,
+          }));
+          build.onLoad({ filter: /.*/, namespace: migrationRuntimeNamespace }, () => ({
+            contents: "export const defineMigration = (fn) => fn;",
+            loader: "js",
+          }));
+        },
+      },
+    ],
+  });
+  const output = result.outputs[0];
+  if (!result.success || output === undefined) {
+    throw new Error(
+      `registry:build could not compile ${sourcePath}: ${result.logs.map((log) => log.message).join("; ")}`,
+    );
+  }
+  return normalizeLineEndings(await output.text()).replaceAll(bundlerPathComment, "");
+}
+
+async function readMigrationTexts(moduleDir: string): Promise<Map<string, string>> {
+  const sources = (await listFiles(join(moduleDir, moduleMigrationsDirectory))).filter(
+    (path) => path.endsWith(".ts") && !path.endsWith(".d.ts"),
+  );
+  return new Map(
+    await Promise.all(
+      sources.map(
+        async (source) =>
+          [
+            `${moduleMigrationsDirectory}/${source.slice(0, -".ts".length)}.js`,
+            await compileMigration(join(moduleDir, moduleMigrationsDirectory, source)),
+          ] as const,
+      ),
+    ),
+  );
+}
+
+async function readRenamesText(moduleDir: string): Promise<string | undefined> {
+  try {
+    return normalizeLineEndings(await readFile(join(moduleDir, moduleRenamesFile), "utf8"));
+  } catch (error) {
+    if (error instanceof Error && "code" in error && error.code === "ENOENT") {
+      return undefined;
+    }
+    throw error;
+  }
+}
+
 async function buildModuleVersion(
   sourceDir: string,
   outDir: string,
@@ -176,6 +249,20 @@ async function buildModuleVersion(
     if (!texts.has(file.from)) {
       throw new Error(
         `registry:build: Module ${manifest.name} lists ${file.from}, which is not under ${moduleDir}/${moduleFilesDirectory}`,
+      );
+    }
+  }
+  for (const [path, text] of await readMigrationTexts(moduleDir)) {
+    texts.set(path, text);
+  }
+  const renamesText = await readRenamesText(moduleDir);
+  if (renamesText !== undefined) {
+    texts.set(moduleRenamesFile, renamesText);
+  }
+  for (const migration of manifest.migrations) {
+    if (!texts.has(migration.script)) {
+      throw new Error(
+        `registry:build: Module ${manifest.name} migration ${migration.from} -> ${migration.to} lists ${migration.script}, which is not compiled from ${moduleDir}/${moduleMigrationsDirectory}`,
       );
     }
   }
@@ -217,7 +304,7 @@ function latestOf(versions: readonly string[]): string {
 }
 
 /**
- * Compiles `sourceDir` (`<name>/module.ts`, `<name>/files/**`, `catalog/<release>.json`) into the
+ * Compiles `sourceDir` (`<name>/module.ts`, `<name>/files/**`, `<name>/migrations/*.ts`, `<name>/renames.json`, `catalog/<release>.json`) into the
  * Registry directory `outDir`, only adding: each new Module version gets
  * `modules/<name>/<version>/`, each Release one `catalog/<release>.json`, and `index.json` lists
  * everything published. Already published versions and Releases are left untouched; building

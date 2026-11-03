@@ -117,10 +117,22 @@ const overrideEntry = z.union([
   z.strictObject({ op: z.string().min(1), reason: z.string().min(1) }),
 ]);
 
+const migrationScriptPath = z
+  .string()
+  .min(1)
+  .refine(
+    (path) =>
+      !path.startsWith("/") &&
+      !path.includes("\\") &&
+      !path.split("/").some((part) => part === ".." || part === ""),
+    { message: "must be a relative path inside the Module version" },
+  );
+
 const migration = z.strictObject({
-  from: semver,
+  from: z.string().min(1, { message: "must be a semver range" }),
   to: semver,
-  stage: z.string().min(1),
+  stage: z.enum(["before", "after"]),
+  script: migrationScriptPath,
 });
 
 /**
@@ -148,6 +160,12 @@ export const manifestSchema = z.strictObject({
  * A validated, normalized manifest.
  */
 export type ModuleManifest = z.output<typeof manifestSchema>;
+
+/**
+ * One manifest `migrations` entry: a Migration script run when an installed version matching
+ * `from` moves to `to` or beyond.
+ */
+export type Migration = ModuleManifest["migrations"][number];
 
 /**
  * What a Module author writes; defaults and bare-string `provides` are still allowed.

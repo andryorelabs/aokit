@@ -34,6 +34,38 @@ const fixtureFiles: Record<string, string> = {
 `,
 };
 
+const migrationModuleSource = `export default {
+  name: "oxc",
+  version: "2.0.0",
+  provides: ["lint", "format"],
+  files: [{ from: "files/.oxlintrc.json", to: ".oxlintrc.json", target: "config" }],
+  migrations: [
+    { from: ">=1 <2", to: "2.0.0", stage: "before", script: "migrations/1-to-2.before.js" },
+  ],
+};
+`;
+
+const migrationScriptSource = `import { defineMigration } from "@aokit/module";
+
+export default defineMigration(({ answers }) => {
+  const { appRouter, ...rest } = answers;
+  return { ...rest, router: appRouter };
+});
+`;
+
+/**
+ * Turns the \`oxc\` Module of a fixture source tree into version 2.0.0 shipping a \`before\`
+ * Migration (\`migrations/1-to-2.before.ts\`) and a Renames manifest (\`renames.json\`).
+ */
+export async function addMigrationToFixtureSource(root: string): Promise<void> {
+  await mkdir(join(root, "oxc/migrations"), { recursive: true });
+  await Promise.all([
+    writeFile(join(root, "oxc/module.ts"), migrationModuleSource, "utf8"),
+    writeFile(join(root, "oxc/migrations/1-to-2.before.ts"), migrationScriptSource, "utf8"),
+    writeFile(join(root, "oxc/renames.json"), `{ "src/routes.tsx": "src/router.tsx" }\n`, "utf8"),
+  ]);
+}
+
 /**
  * Writes a small Registry source tree (Catalog plus the `oxc` and `knip` Modules) to a fresh
  * temporary directory and returns its path.
