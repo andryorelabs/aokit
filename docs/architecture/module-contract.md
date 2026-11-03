@@ -40,7 +40,7 @@ export default defineModule({
 | `ops` | [Op](engine.md#ops-catalog)[] | Declarative edits at Extension points or files. |
 | `extensionPoints` | `{ name, version, target, kind, anchor, file? }[]` | Extension points this (base) Module declares. See [Capabilities](capabilities.md#extension-points). |
 | `override` | `{ file \| op, reason }[]` | Explicit permission to replace something another Module produced, see [Override](#override). |
-| `migrations` | `{ from, to, stage }[]` | Module migrations between versions; specified in the update docs. |
+| `migrations` | `{ from, to, stage, script }[]` | Migrations between versions: `from` a semver range, `to` a semver, `stage` `"before"` or `"after"`, `script` a path relative to the version directory. Authored in TypeScript with `defineMigration`; see [Lifecycle: migrations](lifecycle.md#migrations). |
 
 ### `files`
 

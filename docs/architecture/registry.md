@@ -34,10 +34,12 @@ The own protocol is plain JSON over HTTPS, a directory, or a git source. It is i
 index.json                              # the registry index
 modules/<name>/<version>/module.json    # one compiled manifest per module version
 modules/<name>/<version>/files/...      # the files the manifest lists in `files[].from`
+modules/<name>/<version>/migrations/... # compiled Migration scripts, when the manifest lists any
+modules/<name>/<version>/renames.json   # optional Renames manifest, previous version to this one
 catalog/<release>.json                  # the Catalog for one Release
 ```
 
-Every Module version has its own immutable directory, and every [Release](../../CONTEXT.md) has its own Catalog file. Building the Registry (`bun run registry:build`) only **adds** versions and Releases: it never deletes an existing one, and it fails naming `<module>@<version>` if the content of an already published version would change. The reader offers the `latest` view, lookup by `name@version`, and the Catalog of a given Release.
+The migration scripts and `renames.json` are listed in the version's `files` hashes and covered by its `integrity` like any other file. Every Module version has its own immutable directory, and every [Release](../../CONTEXT.md) has its own Catalog file. Building the Registry (`bun run registry:build`) only **adds** versions and Releases: it never deletes an existing one, and it fails naming `<module>@<version>` if the content of an already published version would change. The reader offers the `latest` view, lookup by `name@version`, and the Catalog of a given Release.
 
 ### Index shape
 

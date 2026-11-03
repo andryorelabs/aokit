@@ -66,16 +66,18 @@ Because the Module reaches others only through Capabilities and Extension points
 
 `update` is Copier-style: it renders what aokit would have produced, compares that with what the user has, and merges.
 
-1. **Clean tree**, then read the Lockfile and fetch the **target** Module versions from the Registry (the latest release, or `--to <release>`). Check `minCliVersion`.
+1. **Clean tree**, then read the Lockfile and resolve the **target** Release: the latest Release in the Registry index, or `--to <release>`. The target Release fixes every Module version ([ADR 0016](../adr/0016-update-moves-a-project-between-releases.md)). A target older than the Lockfile's Release is a usage error (exit `3`), and a Module absent from the target Release fails with `MODULE_VERSION_UNAVAILABLE`. Check `minCliVersion`. A Project already at the target exits `0` with "nothing to update" and writes nothing.
 2. **Render the old state** in a VFS: the Modules at the versions and answers recorded in the Lockfile, same Layout, same pinned format phase. This is the *base*. Old versions are fetchable by design ([Lockfile](lockfile.md#old-module-versions-stay-fetchable)).
 3. **Diff old to user.** For each file, compare the base with the working tree. The recorded `hash` makes this cheap: a `pristine` file equals its base without rendering it, so the render is only needed for `modified` files ([hashes](lockfile.md#per-file-hashes)).
 4. **Run `before` migrations** for each Module whose version crosses a migration range ([Migrations](#migrations)). They run on the *user's* VFS and can rewrite answers, so the new render uses the migrated answers.
 5. **Render the new state** in a VFS: target versions, migrated answers. This is *theirs*.
-6. **Merge** base, user and new through the [merge procedure](#the-merge-procedure).
+6. **Merge** base, user and new through the [merge procedure](#the-merge-procedure), with the [Renames manifest](#renames-manifest) of every version crossed. Dependencies with `pinned: true` or `source: "user"` are never changed; the Plan lists them as kept.
 7. **Run `after` migrations** on the merged VFS.
 8. **Plan.** `--dry-run`, `--diff` or `--plan` stop here.
 9. **Apply.** Atomic write; the Lockfile is rewritten with new versions, `integrity`, hashes and `deps`.
 10. **Install.** `bun install` if `package.json` changed; the Bun lockfile is regenerated, never merged.
+
+Like `add`, `update` shows the Plan and asks for confirmation; without a TTY it needs `--yes` and otherwise fails with `MISSING_VALUE` (exit `3`). `--plan` and `--abort` never prompt.
 
 **Respect deliberate deletions.** A file that is in the Lockfile but absent on disk (state `deleted`) was removed by the user. If the new render still contains it, `update` does not recreate it. If the new render modified it, that is the delete-vs-modify case: the file stays deleted, and a warning is printed, with no conflict and no exit `6` ([merge policy](lockfile.md#merge-policy)). `restore <path>` brings it back.
 
@@ -88,14 +90,15 @@ When the `Merger` cannot reconcile a file, `update` leaves the conflict **in the
 - Binary conflicts leave the user's file and write `<name>.aokit-new` beside it.
 - The Lockfile is written for the non-conflicted state; conflicted files keep their previous `hash`, so `doctor` reports them as `modified` until resolved, and `update` can be re-run.
 - The exit code is `6` and the output lists the conflicted paths with their provenance (which Module and version). Exit `6` applies to every writing command that leaves a Conflict (`add`, `remove`, `recopy`, `update`), not only `update`.
+- For `update`, the [stash of originals](#transactional-apply) is **kept** and a marker `<git-dir>/aokit/update.json` (`.aokit/update.json` outside git) records the stash directory, the conflicted paths, the `.aokit-new` files written and the previous Lockfile. `doctor` reports the marker with the fix `aokit update --abort` and never deletes a marked stash.
 
 ### `update --plan`, `--apply`, `--abort`
 
 Two-phase update for CI and review.
 
-- `update --plan` runs steps 1 to 8 and writes the Plan, including the merged content and the conflict list, to `.git/aokit/plan.json` (outside the working tree). It changes nothing in the Project. The Plan records the hashes of every file it read.
-- `update --apply` applies that Plan. If any recorded hash or the Lockfile has changed since the plan, it refuses and asks for a new `--plan`: what the user reviewed is what is written ([Engine](engine.md#vfs-and-plan-before-apply)).
-- `update --abort` discards a saved Plan, and after a conflicted `update` or `--apply` restores the working tree and index to the pre-update state from the [stash of originals](#transactional-apply) kept under `<git-dir>/aokit/stash/`.
+- `update --plan` runs steps 1 to 8 and writes the Plan to `<git-dir>/aokit/plan.json` (`.aokit/plan.json` outside git), outside the working tree. The file holds the CLI version, the target Release, the hash of the Lockfile, the hash of every user file read, the Plan changes with their content (binary as base64), the Conflicts and the target Lockfile. It changes nothing in the Project.
+- `update --apply` applies exactly that Plan. If any recorded hash or the Lockfile has changed since the plan, it fails with `PLAN_STALE` (exit `5`) naming the file and asks for a new `--plan`; with no saved plan it fails with `PLAN_MISSING` (exit `5`). What the user reviewed is what is written ([Engine](engine.md#vfs-and-plan-before-apply)). A successful apply deletes the plan.
+- `update --abort` deletes a saved Plan, and after a conflicted `update` or `--apply` restores the originals from the kept stash and the previous Lockfile, clears the index stages of the conflicted paths, deletes the `.aokit-new` files that were written and removes the marker. With nothing to abort it exits `0`.
 
 ### `check`
 
@@ -149,7 +152,7 @@ A Module's declarative Ops are applied by the Engine only while building a rende
 
 ## Migrations
 
-Phase 4b. A Module that changes in a way a plain re-render cannot carry (a renamed answer, a moved Extension point, a changed file layout) ships migrations in its manifest ([`migrations`](module-contract.md#field-table)):
+Phase 4b. A Module that changes in a way a plain re-render cannot carry (a renamed answer, a moved Extension point, a changed file layout) ships Migrations in its manifest ([`migrations`](module-contract.md#field-table)):
 
 ```json
 "migrations": [
@@ -158,15 +161,15 @@ Phase 4b. A Module that changes in a way a plain re-render cannot carry (a renam
 ]
 ```
 
-- `from` is a semver range of the installed version, `to` the version being installed. A migration runs when the update crosses it, in order of `to`, chained across several versions.
+- `from` is a semver range of the installed version, `to` the version being installed, and `script` a path relative to the Module version's directory. A migration is selected when the installed version satisfies `from` and `installed < to <= target`. Modules run in canonical Resolver order and, within a Module, in order of `to`, chained across several versions.
 - `stage: "before"` runs on the user's VFS before the new render; `"after"` runs on the merged VFS.
-- A migration is a **VFS codemod**: it receives the VFS, the Module's answers and the injected context, and edits them. It may **migrate answers** (rename or add a key, derive a value), which the new render then uses; the migrated answers are written to the Lockfile.
-- Migrations are code and only run from a [trusted Registry](module-contract.md#trusted-registries-and-arbitrary-code). They run serially, are deterministic, and appear in the Plan with the Module as provenance.
+- A migration is a **VFS codemod** written in TypeScript with `defineMigration` from `@aokit/module`, compiled by `registry:build` into the version's `migrations/` directory and covered by its integrity. It receives the VFS, the Module's answers and the injected context, and edits them. It may **migrate answers** (rename or add a key, derive a value), which the new render then uses; the migrated answers are written to the Lockfile.
+- Migrations are code and only run from a [trusted Registry](module-contract.md#trusted-registries-and-arbitrary-code). In phase 4b only `local` and `bundled` Registries exist and both are trusted without a prompt. They run serially, are deterministic, and appear in the Plan with the Module as provenance. A migration that throws stops the update before anything is written, with `MIGRATION_FAILED` (exit `1`) naming the Module, the script and the `from` to `to` jump.
 - When an Extension point has a major bump, the base Module ships the migration ([Capabilities](capabilities.md#extension-points)).
 
 ### Renames manifest
 
-Phase 4b. A Module version may include `renames.json`, a map from old path to new path (Target-relative, so it works in any Layout). The merge procedure uses it to carry the user's edits across a move instead of treating it as a delete plus a create.
+Phase 4b. A Module version may include `renames.json`, a map from the previous version's path to this version's path (Target-relative, so it works in any Layout), stored beside `module.json` and covered by the version's integrity. The merge procedure uses it to carry the user's edits across a move instead of treating it as a delete plus a create. When an update crosses several versions the manifests compose in version order (`a` to `b`, then `b` to `c`, gives `a` to `c`). An `ejected` file is skipped and stays at its old path.
 
 ## `doctor`
 
@@ -177,7 +180,7 @@ Read-only health report.
 3. Re-run Resolver checks against the recorded selection: Capabilities satisfied, Cardinality, `conflicts`. A Resolver error carries its raw Resolver code in the report data.
 4. Classify every file in `files` as `pristine`, `modified`, `deleted`, `unknown` or `volatile` ([Drift state](lockfile.md#per-file-hashes)). `unknown` covers files under the Targets that are not in the Lockfile and any `<name>.aokit-new` file. `ejected` files report no drift.
 5. Check that `deps` in `package.json` match the recorded `version` and `pinned` state.
-6. Report a leftover [stash](#transactional-apply) from an interrupted apply and remove it.
+6. Report a leftover [stash](#transactional-apply) from an interrupted apply and remove it, unless an `update.json` marker names it: that stash is reported with the fix `aokit update --abort` and kept.
 
 `doctor` is **read-only**: it has no `--fix`, and it removes only a leftover stash. The output is grouped and actionable: for each problem, the command that fixes it (`aokit restore <path>`, `aokit eject <path>`, `aokit add` / `aokit remove`, and `aokit update` once it exists). It exits `0` when clean, `1` with the `DRIFT` [outcome](cli-ux.md#lifecycle-outcomes) and the full report as data when anything is wrong, and `5` when the Lockfile is missing or unreadable.
 
@@ -188,7 +191,7 @@ Read-only health report.
 
 ## `diff`
 
-Renders the Lockfile state in a VFS and prints a unified diff between it and the working tree, per file, for `managed` files only, with real line hunks. It answers "what have I changed from what aokit generated". It exits `0` whether or not there are differences (`3` on invalid input); `--json` returns the hunks per file. `diff --to <release>` (phase 4b) instead diffs the working tree against the render at a target release, which previews what `update` would merge.
+Renders the Lockfile state in a VFS and prints a unified diff between it and the working tree, per file, for `managed` files only, with real line hunks. It answers "what have I changed from what aokit generated". It exits `0` whether or not there are differences (`3` on invalid input); `--json` returns the hunks per file. `diff --to <release>` (phase 4b) instead diffs the working tree against the render at a target Release, with answers migrated by the `before` Migrations and without merging, which previews what `update` would merge. It exits `0`, or `3` for an invalid or older Release.
 
 ## `recopy`
 
@@ -211,6 +214,6 @@ Applying a Plan to an existing Project is transactional:
 
 1. Every file the Plan will overwrite or delete is first copied to `<git-dir>/aokit/stash/<timestamp>/` (resolved with `git rev-parse --git-dir`, so a linked worktree works), or to `.aokit/stash/` outside git.
 2. The Plan is committed. On an I/O error part-way, the originals are restored and the command exits `1`; the Lockfile is unchanged.
-3. On success the stash is removed. `doctor` reports and removes a stash left by a killed process.
+3. On success the stash is removed. A conflicted `update` keeps it for `update --abort` (marked by `update.json`). `doctor` reports and removes an unmarked stash left by a killed process.
 4. A **conflict writer** then writes merged content with markers, writes `<name>.aokit-new` siblings for binaries, and in a git repository records index stages 1, 2 and 3 for each conflicted path. It never runs `git add` or `git commit`.
 5. The Lockfile is written last. Conflicted files keep their previous `hash`, so `doctor` reports them `modified`.
