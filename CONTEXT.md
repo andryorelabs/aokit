@@ -60,8 +60,12 @@ _Avoid_: preview, dry run output
 The in-memory tree where a plan is built; it is written to disk atomically only on apply.
 _Avoid_: staging area, temp tree
 
+**Release**:
+A versioned, immutable snapshot of a Registry: its Modules and the one Catalog tested with them (`2026.11.0`).
+_Avoid_: version (of a Registry), drop, channel
+
 **Catalog**:
-The set of dependency versions a registry release ships, tested together.
+The set of dependency versions a Release ships, tested together.
 _Avoid_: version map, bill of materials
 
 **Toolchain pin group**:
@@ -79,7 +83,7 @@ _Avoid_: app, workspace
 - A Module writes to **Targets**; the **Layout** resolves each Target to a path.
 - A **Plan** is built in the **VFS** and applied atomically; applying records the result in the **Lockfile**.
 - The Lockfile assigns every generated file an **Ownership mode**.
-- A **Registry** ships Modules and a **Catalog**; the **Toolchain pin group** is the part of the Catalog pinned exactly.
+- A **Registry** publishes **Releases**; each Release has one **Catalog**; the **Toolchain pin group** is the part of the Catalog pinned exactly.
 
 ## Flagged ambiguities
 

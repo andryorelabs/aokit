@@ -54,13 +54,16 @@ For the first-party Registry, each release has a file `catalog/<release>.json`:
 {
   "release": "2026.11.0",
   "dependencies": {
-    "next": { "range": "^16.0.0" },
-    "oxlint": { "range": "1.90.0", "pinGroup": "oxc" }
+    "next": "^16.0.0",
+    "oxlint": "1.90.0"
+  },
+  "pinGroups": {
+    "oxc": ["oxlint"]
   }
 }
 ```
 
-Entries with a `pinGroup` hold exact versions; the others hold ranges. The Resolver reads the Catalog of the release recorded in the Lockfile, so a Project's resolved dependency versions come from the release it was generated against and change only through `update`.
+Dependencies listed in a `pinGroups` entry hold exact versions; the others hold ranges. The Resolver reads the Catalog of the release recorded in the Lockfile, so a Project's resolved dependency versions come from the release it was generated against and change only through `update`.
 
 ### Bun catalogs for the monorepo
 

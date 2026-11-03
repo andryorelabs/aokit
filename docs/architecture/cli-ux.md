@@ -24,6 +24,10 @@ Rules for how the `aokit` CLI behaves in a terminal, in CI and under a coding ag
 | `--help`, `-h` | Help with examples. |
 | `--version`, `-V` | Print the CLI version only. |
 
+### `create` flags
+
+`create` adds `--layout <single|monorepo>`, `--modules a,b,c`, `--answer <module.key=value>` (repeatable), `--registry <path>` (a local Registry directory; the bundled first-party Registry is the default) and `--no-install`. A target directory that exists and is not empty fails with exit code `3` and a `fix` that suggests another directory; an empty existing directory is used. The target check runs before `--dry-run` and `--diff`.
+
 ## Non-interactive mode
 
 `--yes` makes the run non-interactive: unanswered fields take their schema defaults, and fields with no default fail with exit code `3` and the name of the missing flag.

@@ -108,7 +108,7 @@ The same inputs must produce the same bytes, so Plans can be hashed, compared an
 - **Injected environment.** `now`, `random` and `env` come from a context object passed to every Module, never from globals. Tests inject fixed values.
 - **Volatile values.** Generated secrets and similar values are marked volatile and excluded from hashes.
 - **LF.** All text is normalized to LF.
-- **Pinned format phase.** After all Modules ran, the Project's formatter Module (at its Catalog version) formats the VFS. If the Project has no formatter Module, the phase is skipped.
+- **Pinned format phase.** After all Modules ran, the Project's formatter Module (at its Catalog version) formats the VFS. If the Project has no formatter Module, the phase is skipped. The CLI runs Oxfmt in process through its JS `format()` API and requires the installed version to equal the Catalog's `oxc` pin group version, so the phase needs no install. Files Oxfmt does not support are left untouched.
 - **No install.** Dependency installation happens after apply, outside the deterministic phase. The VFS never depends on `node_modules`.
 
 CI generates every curated Project twice and compares hashes.
