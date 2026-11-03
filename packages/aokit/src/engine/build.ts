@@ -1,6 +1,7 @@
 import { posix } from "node:path";
+import type { Catalog, ModuleManifest } from "@aokit/module";
 import { codeOpHandlers } from "../ops/code/index.ts";
-import { dataOpHandlers } from "../ops/data/index.ts";
+import { applyDeps, applyEnv, dataOpHandlers, wireWorkspaces } from "../ops/data/index.ts";
 import { EngineError } from "./errors.ts";
 import {
   type AnswerValue,
@@ -26,7 +27,13 @@ import {
   diffVfs,
   hashVfs,
 } from "./plan.ts";
-import { type Ownership, Vfs, compareByCodepoint, normalizeProjectPath } from "./vfs.ts";
+import {
+  type FileContent,
+  type Ownership,
+  Vfs,
+  compareByCodepoint,
+  normalizeProjectPath,
+} from "./vfs.ts";
 
 /** A path the caller wants removed from the working tree, e.g. a file of a Module being removed. */
 interface Removal {
@@ -42,12 +49,29 @@ export interface BuildPlanOptions {
   /** Answers keyed by Module name; a Module only sees the variables it declares. */
   readonly answers: Readonly<Record<string, Readonly<Record<string, AnswerValue>>>>;
   readonly context: EngineContext;
-  /** The Project as loaded from disk; defaults to an empty tree. */
+  /** The Release Catalog that resolves `catalog` dependency ranges; defaults to an empty one. */
+  readonly catalog?: Catalog;
+  /** The tree the Plan is diffed against; defaults to an empty tree. */
   readonly base?: Vfs;
+  /** Runs on the files this build wrote only; files that come from `base` untouched are never formatted. */
   readonly formatter?: Formatter;
   readonly removals?: readonly Removal[];
   /** Op handlers by name; defaults to the built-in code and data registries. */
   readonly opHandlers?: ReadonlyMap<string, OpHandler>;
+}
+
+/** A dependency a Plan adds to a `package.json`, with the Modules that declare it. */
+interface PlanDependency {
+  readonly version: string;
+  readonly pinned: boolean;
+  readonly source: "catalog" | "module";
+  /** Names of the Modules whose manifests list the dependency, sorted. */
+  readonly owners: string[];
+}
+
+/** A {@link Plan} together with the dependencies its Modules declared. */
+export interface BuiltPlan extends Plan {
+  readonly deps: Readonly<Record<string, PlanDependency>>;
 }
 
 interface Producer {
@@ -95,6 +119,29 @@ function assertOpsKnown(
       }
     }
   }
+}
+
+const emptyCatalog: Catalog = { dependencies: {}, pinGroups: {} };
+
+function depsTarget(manifest: ModuleManifest, layout: LayoutName): string {
+  if (layout === "single") {
+    return "root";
+  }
+  const targets = [
+    ...manifest.files.map((file) => file.target),
+    ...manifest.ops.flatMap((op) => ("target" in op ? [op.target] : [])),
+  ].filter((target) => target !== "root" && target !== "config");
+  return targets.toSorted(compareByCodepoint)[0] ?? "root";
+}
+
+function sameContent(left: FileContent | undefined, right: FileContent | undefined): boolean {
+  if (left === undefined || right === undefined) {
+    return left === right;
+  }
+  if (typeof left === "string" || typeof right === "string") {
+    return left === right;
+  }
+  return left.length === right.length && left.every((byte, index) => byte === right[index]);
 }
 
 function joinTargetPath(directory: string, relativePath: string): string {
@@ -153,9 +200,10 @@ function collide(path: string, existing: Producer, incoming: Producer): never {
 
 /**
  * Builds the Plan: runs Modules serially in the given order against a VFS, emitting `files` into
- * Layout-resolved Targets and running Ops, then formats and diffs against `base`.
+ * Layout-resolved Targets and running Ops, applies each manifest's `deps` and `env` and the
+ * workspace wiring, then formats what this build wrote and diffs against `base`.
  */
-export async function buildPlan(options: BuildPlanOptions): Promise<Plan> {
+export async function buildPlan(options: BuildPlanOptions): Promise<BuiltPlan> {
   const { modules, layout, context } = options;
   const handlers = options.opHandlers ?? defaultOpHandlers;
   const base = options.base ?? Vfs.empty();
@@ -272,11 +320,55 @@ export async function buildPlan(options: BuildPlanOptions): Promise<Plan> {
     }
   }
 
+  const deps: Record<string, { entry: Omit<PlanDependency, "owners">; owners: Set<string> }> = {};
+  const dataVfs = (module: string, op: string): OpVfs => ({
+    has: (path) => work.has(path),
+    paths: () => work.paths(),
+    read: (path) => work.read(path),
+    write: (path, content, writeOptions) => {
+      work.write(path, content, writeOptions);
+      log.add(normalizeProjectPath(path), module, { kind: "op", op });
+    },
+  });
+  for (const { manifest } of modules) {
+    const recorded = applyDeps({
+      vfs: dataVfs(manifest.name, "deps"),
+      layout,
+      module: manifest.name,
+      target: depsTarget(manifest, layout),
+      deps: manifest.deps,
+      catalog: options.catalog ?? emptyCatalog,
+      resolvePath,
+    });
+    for (const [name, entry] of Object.entries(recorded)) {
+      const known = (deps[name] ??= { entry, owners: new Set<string>() });
+      known.owners.add(manifest.name);
+    }
+    applyEnv({ vfs: dataVfs(manifest.name, "env"), env: manifest.env, resolvePath });
+  }
+  wireWorkspaces(
+    {
+      has: (path) => work.has(path),
+      paths: () => work.paths(),
+      read: (path) => work.read(path),
+      write: (path, content, writeOptions) => {
+        work.write(path, content, writeOptions);
+      },
+    },
+    layout,
+  );
+
   let finalVfs = work;
   if (options.formatter !== undefined) {
     const formatted = await options.formatter.format(work.clone());
     for (const path of formatted.paths()) {
-      if (work.read(path) !== formatted.read(path)) {
+      const written = work.get(path);
+      if (written === undefined) {
+        continue;
+      }
+      if (sameContent(base.read(path), written.content)) {
+        formatted.write(path, written.content);
+      } else if (!sameContent(written.content, formatted.read(path))) {
         log.add(path, options.formatter.name, { kind: "formatter" });
       }
     }
@@ -287,5 +379,11 @@ export async function buildPlan(options: BuildPlanOptions): Promise<Plan> {
     changes: diffVfs(base, finalVfs, (path) => log.get(path)),
     hash: hashVfs(finalVfs),
     vfs: finalVfs,
+    deps: Object.fromEntries(
+      Object.entries(deps).map(([name, { entry, owners }]) => [
+        name,
+        { ...entry, owners: [...owners].toSorted(compareByCodepoint) },
+      ]),
+    ),
   };
 }

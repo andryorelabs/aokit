@@ -31,7 +31,6 @@ function input(layout: "single" | "monorepo"): PipelineInput {
       release: "2026.11.0",
       minCliVersion: "0.0.0",
     },
-    base: Vfs.empty(),
   };
 }
 

@@ -10,7 +10,7 @@ function generateLockfileJsonSchema(): unknown {
 }
 
 /**
- * The text committed as `schema/lockfile/v1.json`.
+ * The text committed as `schema/lockfile/v2.json`.
  */
 export function lockfileJsonSchemaText(): string {
   return stableStringify(generateLockfileJsonSchema());

@@ -1,5 +1,5 @@
 import { createHash } from "node:crypto";
-import { type ModuleManifest, stableStringify } from "@aokit/module";
+import type { ModuleManifest } from "@aokit/module";
 import { cliVersion } from "../cli/version.ts";
 import type { AnswerValue } from "../engine/interpolate.ts";
 import type { LayoutName } from "../engine/layout.ts";
@@ -7,7 +7,7 @@ import type { Plan } from "../engine/plan.ts";
 import type { FileContent } from "../engine/vfs.ts";
 import { type Lockfile, currentLockfileVersion } from "../lockfile/schema.ts";
 
-const lockfileSchemaUrl = "https://aokit.dev/schema/lockfile/v1.json";
+const lockfileSchemaUrl = "https://aokit.dev/schema/lockfile/v2.json";
 const protocolVersion = 1;
 const volatileMarker = "volatile";
 
@@ -23,6 +23,10 @@ export interface RegistryInfo {
 export interface AssembledModule {
   readonly manifest: ModuleManifest;
   readonly answers: Readonly<Record<string, AnswerValue>>;
+  /** The Registry's integrity for this Module version, recorded verbatim. */
+  readonly integrity: string;
+  /** `true` for a Module the user named, `false` for one pulled in by `requires`. */
+  readonly selected: boolean;
 }
 
 /** Inputs of {@link assembleLockfile}. */
@@ -71,11 +75,12 @@ function fileEntries(plan: Plan, previous: Lockfile["files"]): Lockfile["files"]
 /** Builds the Lockfile for a Plan: Modules, files with owners/mode/hash, and recorded deps. */
 export function assembleLockfile(options: AssembleOptions): Lockfile {
   const modules: Lockfile["modules"] = {};
-  for (const { manifest, answers } of options.modules) {
+  for (const { manifest, answers, integrity, selected } of options.modules) {
     modules[manifest.name] = {
       version: manifest.version,
       registry: options.registry.name,
-      integrity: sha256(stableStringify(manifest)),
+      selected,
+      integrity,
       answers: { ...answers },
     };
   }

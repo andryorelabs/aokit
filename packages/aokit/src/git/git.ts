@@ -35,6 +35,8 @@ export interface Git {
   mergeFile(base: string, user: string, next: string, labels: MergeLabels): Promise<MergeResult>;
   /** Records `path` as conflicted in the index (stages 1, 2, 3) without staging or committing. */
   writeConflictStages(path: string, stages: ConflictStages): Promise<void>;
+  /** Drops the conflict stages of `path` and restores its stage-0 entry from HEAD when it has one. */
+  clearConflictStages(path: string): Promise<void>;
 }
 
 const zeroObjectId = "0".repeat(40);
@@ -139,6 +141,17 @@ function createGit(dir: string): Git {
         `100644 ${next} 3\t${path}\0`,
       ];
       await runGitChecked(dir, ["update-index", "-z", "--index-info"], lines.join(""));
+    },
+    async clearConflictStages(path) {
+      if (path.includes("\n") || path.includes("\0")) {
+        throw new Error(`cannot clear a conflict for a path with a newline or NUL: ${path}`);
+      }
+      await runGitChecked(
+        dir,
+        ["update-index", "-z", "--index-info"],
+        `0 ${zeroObjectId}\t${path}\0`,
+      );
+      await runGit(dir, ["reset", "-q", "--", path]);
     },
   };
 }

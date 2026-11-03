@@ -1,5 +1,4 @@
-import { posix } from "node:path";
-import type { Catalog, ModuleManifest } from "@aokit/module";
+import { type Catalog, stableStringify } from "@aokit/module";
 import {
   type EngineContext,
   type EngineModule,
@@ -7,46 +6,61 @@ import {
   type OpHandler,
   Vfs,
   buildPlan,
-  resolveTarget,
 } from "../engine/index.ts";
 import type { AnswerValue } from "../engine/interpolate.ts";
+import { effectiveAnswers } from "../project/answers.ts";
 import type { LayoutName } from "../engine/layout.ts";
-import type { OpVfs } from "../engine/ops.ts";
-import {
-  type Plan,
-  type Provenance,
-  type ProvenanceEntry,
-  diffVfs,
-  hashVfs,
-} from "../engine/plan.ts";
-import { compareByCodepoint, normalizeProjectPath } from "../engine/vfs.ts";
+import type { Plan } from "../engine/plan.ts";
 import type { Lockfile } from "../lockfile/schema.ts";
 import { serializeLockfile } from "../lockfile/serialize.ts";
-import { applyDeps, applyEnv, wireWorkspaces } from "../ops/data/index.ts";
+import { computeIntegrity } from "../registry/integrity.ts";
 import { resolve } from "../resolver/resolve.ts";
 import type { ResolveError, ResolveWarning } from "../resolver/types.ts";
 import { type AssembledModule, type RegistryInfo, assembleLockfile } from "./assemble.ts";
 
-/** Inputs of {@link buildProject}. */
-export interface PipelineInput {
+/**
+ * A Module the Registry offers. `integrity` is the value its index published for this version;
+ * when absent (in-memory fixtures) it falls back to a digest of the canonical manifest.
+ */
+export interface PipelineModule extends EngineModule {
+  readonly integrity?: string;
+}
+
+interface PipelineInputBase {
   /** Names of the Modules the user picked. */
   readonly selection: readonly string[];
   /** Modules already recorded in a Lockfile. */
   readonly locked?: readonly string[];
   /** Every Module the Registry offers. */
-  readonly available: readonly EngineModule[];
+  readonly available: readonly PipelineModule[];
   readonly answers: Readonly<Record<string, Readonly<Record<string, AnswerValue>>>>;
   readonly layout: LayoutName;
   readonly catalog: Catalog;
   readonly context: EngineContext;
   readonly registry: RegistryInfo;
+  /** Runs on the files this build renders only, never on files that came from `base`. */
   readonly formatter?: Formatter;
   readonly acceptSuggestions?: boolean;
-  readonly base?: Vfs;
-  /** The Lockfile already on disk; its file owners carry over for unchanged files. */
-  readonly previous?: Lockfile;
   readonly opHandlers?: ReadonlyMap<string, OpHandler>;
 }
+
+/**
+ * Inputs of {@link buildProject}. A build over a `base` always names the Lockfile it starts from;
+ * without a `base` the build is a fresh Render from an empty tree.
+ */
+export type PipelineInput = PipelineInputBase &
+  (
+    | {
+        /** The tree the Plan is diffed against. */
+        readonly base: Vfs;
+        /** The Lockfile already on disk; its file owners carry over for unchanged files. */
+        readonly previous: Lockfile;
+      }
+    | {
+        readonly base?: undefined;
+        readonly previous?: Lockfile;
+      }
+  );
 
 /** A built Project, ready to apply. */
 export interface BuiltProject {
@@ -65,36 +79,18 @@ export interface PipelineFailure {
   readonly warnings: readonly ResolveWarning[];
 }
 
-function effectiveAnswers(
-  manifest: ModuleManifest,
-  given: Readonly<Record<string, AnswerValue>>,
-): Record<string, AnswerValue> {
-  const merged: Record<string, AnswerValue> = {};
-  for (const [name, answer] of Object.entries(manifest.answers ?? {})) {
-    const value = given[name] ?? answer.default;
-    if (value !== undefined) {
-      merged[name] = value;
-    }
-  }
-  return merged;
-}
-
-function depsTarget(manifest: ModuleManifest, layout: LayoutName): string {
-  if (layout === "single") {
-    return "root";
-  }
-  const targets = [
-    ...manifest.files.map((file) => file.target),
-    ...manifest.ops.flatMap((op) => ("target" in op ? [op.target] : [])),
-  ].filter((target) => target !== "root" && target !== "config");
-  return targets.toSorted(compareByCodepoint)[0] ?? "root";
-}
-
 /**
- * Resolver, Engine (files, Ops, deps, env), Formatter, Plan and Lockfile assembly. Resolution
- * errors return before any VFS work. Nothing is written to disk.
+ * Resolver, Engine (files, Ops, deps, env, Formatter, Plan) and Lockfile assembly. Resolution
+ * errors return before any VFS work. A non-empty `base` without `previous` throws. Nothing is
+ * written to disk.
  */
 export async function buildProject(input: PipelineInput): Promise<BuiltProject | PipelineFailure> {
+  const base = input.base ?? Vfs.empty();
+  if (base.paths().length > 0 && input.previous === undefined) {
+    throw new TypeError(
+      "buildProject received a non-empty `base` without the `previous` Lockfile it was read with.",
+    );
+  }
   const resolved = resolve(
     { modules: input.selection, ...(input.locked === undefined ? {} : { locked: input.locked }) },
     input.available.map((module) => module.manifest),
@@ -105,94 +101,32 @@ export async function buildProject(input: PipelineInput): Promise<BuiltProject |
   }
   const byName = new Map(input.available.map((module) => [module.manifest.name, module]));
   const modules = resolved.modules.flatMap((entry) => byName.get(entry.name) ?? []);
-  const base = input.base ?? Vfs.empty();
 
   const built = await buildPlan({
     modules,
     layout: input.layout,
     answers: input.answers,
     context: input.context,
+    catalog: input.catalog,
     base,
+    ...(input.formatter === undefined ? {} : { formatter: input.formatter }),
     ...(input.opHandlers === undefined ? {} : { opHandlers: input.opHandlers }),
   });
 
-  const work = built.vfs.clone();
-  const extra = new Map<string, Provenance[]>();
-  const note = (path: string, module: string, entry: ProvenanceEntry): void => {
-    extra.set(path, [...(extra.get(path) ?? []), { module, entry }]);
-  };
-  const deps: Lockfile["deps"] = {};
-  const assembled: AssembledModule[] = [];
-  const resolvePath = (target: string, relativePath: string): string =>
-    normalizeProjectPath(posix.join(resolveTarget(input.layout, target), relativePath));
-
-  for (const { manifest } of modules) {
-    const opVfsFor = (op: string): OpVfs => ({
-      has: (path) => work.has(path),
-      paths: () => work.paths(),
-      read: (path) => work.read(path),
-      write: (path, content, options) => {
-        work.write(path, content, options);
-        note(normalizeProjectPath(path), manifest.name, { kind: "op", op });
-      },
-    });
-    const recorded = applyDeps({
-      vfs: opVfsFor("deps"),
-      layout: input.layout,
-      module: manifest.name,
-      target: depsTarget(manifest, input.layout),
-      deps: manifest.deps,
-      catalog: input.catalog,
-      resolvePath,
-    });
-    for (const [name, entry] of Object.entries(recorded)) {
-      deps[name] ??= entry;
-    }
-    applyEnv({ vfs: opVfsFor("env"), env: manifest.env, resolvePath });
-    assembled.push({
-      manifest,
-      answers: effectiveAnswers(manifest, input.answers[manifest.name] ?? {}),
-    });
-  }
-
-  wireWorkspaces(
-    {
-      has: (path) => work.has(path),
-      paths: () => work.paths(),
-      read: (path) => work.read(path),
-      write: (path, content, options) => {
-        work.write(path, content, options);
-        note(normalizeProjectPath(path), "aokit", { kind: "op", op: "workspaces" });
-      },
-    },
-    input.layout,
-  );
-
-  let finalVfs = work;
-  if (input.formatter !== undefined) {
-    finalVfs = await input.formatter.format(work.clone());
-    for (const path of finalVfs.paths()) {
-      if (work.read(path) !== finalVfs.read(path)) {
-        note(path, input.formatter.name, { kind: "formatter" });
-      }
-    }
-  }
-
-  const original = new Map(built.changes.map((change) => [change.path, change.provenance]));
-  const plan: Plan = {
-    changes: diffVfs(base, finalVfs, (path) => [
-      ...(original.get(path) ?? []),
-      ...(extra.get(path) ?? []),
-    ]),
-    hash: hashVfs(finalVfs),
-    vfs: finalVfs,
-  };
+  const selected = new Set(input.selection);
+  const assembled: AssembledModule[] = modules.map(({ manifest, integrity }) => ({
+    manifest,
+    answers: effectiveAnswers(manifest, input.answers[manifest.name] ?? {}),
+    integrity: integrity ?? computeIntegrity(stableStringify(manifest)),
+    selected: selected.has(manifest.name),
+  }));
+  const plan: Plan = { changes: built.changes, hash: built.hash, vfs: built.vfs };
   const lockfile = assembleLockfile({
     plan,
     modules: assembled,
     layout: input.layout,
     registry: input.registry,
-    deps,
+    deps: built.deps,
     ...(input.previous === undefined ? {} : { previousFiles: input.previous.files }),
   });
   return {

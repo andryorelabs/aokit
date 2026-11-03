@@ -1,6 +1,6 @@
 import { z } from "zod";
 
-export const currentLockfileVersion = 1;
+export const currentLockfileVersion = 2;
 
 const semver = z.string().regex(/^\d+\.\d+\.\d+(?:-[0-9A-Za-z.-]+)?(?:\+[0-9A-Za-z.-]+)?$/);
 const integrity = z.string().regex(/^sha256-[0-9a-f]{64}$/);
@@ -14,6 +14,7 @@ const registrySchema = z.strictObject({
 const moduleEntrySchema = z.strictObject({
   version: semver,
   registry: z.string().min(1),
+  selected: z.boolean(),
   integrity,
   answers: z.record(z.string(), z.json()),
 });
@@ -26,12 +27,13 @@ const fileEntrySchema = z.strictObject({
 
 const depEntrySchema = z.strictObject({
   version: z.string().min(1),
+  owners: z.array(z.string().min(1)),
   pinned: z.boolean(),
   source: z.enum(["catalog", "module", "user"]),
 });
 
 /**
- * Zod schema for lockfile format v1 (`aokit.lock.json`).
+ * Zod schema for lockfile format v2 (`aokit.lock.json`).
  */
 export const lockfileSchema = z.strictObject({
   $schema: z.string().min(1),

@@ -15,13 +15,17 @@ import {
 const repoRoot = join(import.meta.dir, "..", "..", "..", "..");
 const fixturePath = join(import.meta.dir, "fixtures", "example.canonical.lock");
 
-async function docExample(): Promise<string> {
+async function docBlock(heading: string): Promise<string> {
   const doc = await readFile(join(repoRoot, "docs", "architecture", "lockfile.md"), "utf8");
-  const match = /## Example\n\n```json\n([\s\S]*?)```/.exec(doc);
+  const match = new RegExp(`## ${heading}\\n\\n\`\`\`json\\n([\\s\\S]*?)\`\`\``).exec(doc);
   if (match?.[1] === undefined) {
-    throw new Error("example block not found in lockfile.md");
+    throw new Error(`${heading} block not found in lockfile.md`);
   }
   return match[1];
+}
+
+async function docExample(): Promise<string> {
+  return docBlock("Example \\(v2\\)");
 }
 
 const looseObject = z.record(z.string(), z.unknown());
@@ -77,7 +81,7 @@ test("unknown fields are rejected", async () => {
 
 test("a newer lockfileVersion fails telling the user to update the CLI", async () => {
   const raw = await docExampleObject();
-  raw.lockfileVersion = 2;
+  raw.lockfileVersion = 3;
   const error = captureError(() => parseLockfile(JSON.stringify(raw)));
   expect(error.code).toBe("LOCKFILE_TOO_NEW");
   expect(error.fix).toBe("Update the CLI.");
@@ -88,7 +92,7 @@ test("invalid JSON and a missing version are reported", () => {
   expect(captureError(() => parseLockfile("{}")).code).toBe("LOCKFILE_INVALID_VERSION");
 });
 
-test("a fixture v0 to v1 migration runs through the chain", async () => {
+test("a fixture v0 migration runs through the chain up to v2", async () => {
   const current = await docExampleObject();
   const { deps, ...rest } = current;
   const legacy = { ...rest, lockfileVersion: 0, dependencies: deps };
@@ -100,7 +104,12 @@ test("a fixture v0 to v1 migration runs through the chain", async () => {
       return { ...others, lockfileVersion: 1, deps: dependencies };
     },
   };
-  const result = parseLockfile(JSON.stringify(legacy), { migrations: [migration] });
+  const toCurrent: LockfileMigration = {
+    from: 1,
+    to: 2,
+    migrate: (previous) => ({ ...looseObject.parse(previous), lockfileVersion: 2 }),
+  };
+  const result = parseLockfile(JSON.stringify(legacy), { migrations: [migration, toCurrent] });
   expect(result.upgradedFrom).toBe(0);
   expect(serializeLockfile(result.lockfile)).toBe(await readFile(fixturePath, "utf8"));
 });
@@ -151,7 +160,52 @@ test("reading never writes", async () => {
   }
 });
 
-test("schema/lockfile/v1.json matches the generated schema", async () => {
-  const committed = await readFile(join(repoRoot, "schema", "lockfile", "v1.json"), "utf8");
+test("schema/lockfile/v2.json matches the generated schema", async () => {
+  const committed = await readFile(join(repoRoot, "schema", "lockfile", "v2.json"), "utf8");
   expect(committed).toBe(lockfileJsonSchemaText());
+});
+
+test("a v1 Lockfile parses as v2 with upgradedFrom 1 and reading leaves the file untouched", async () => {
+  const v1Text = await docBlock("Example");
+  const { lockfile, upgradedFrom } = parseLockfile(v1Text);
+  expect(upgradedFrom).toBe(1);
+  expect(lockfile.lockfileVersion).toBe(2);
+  expect(Object.values(lockfile.modules).every((entry) => entry.selected)).toBe(true);
+  expect(lockfile.deps.oxlint?.owners).toEqual(["next", "oxc"]);
+  expect(serializeLockfile(lockfile)).toContain('"aokit.dev/schema/lockfile/v2.json"'.slice(1, -1));
+  expect(serializeLockfile(lockfile).includes('"aokit"]')).toBe(false);
+
+  const directory = await mkdtemp(join(tmpdir(), "aokit-lockfile-"));
+  try {
+    const path = join(directory, "aokit.lock.json");
+    await writeFile(path, v1Text, "utf8");
+    const result = await readLockfile(path);
+    expect(result?.upgradedFrom).toBe(1);
+    expect(await readFile(path, "utf8")).toBe(v1Text);
+  } finally {
+    await rm(directory, { recursive: true, force: true });
+  }
+});
+
+test("a v2 Lockfile without selected or owners is rejected", async () => {
+  const raw = await docExampleObject();
+  const modules = looseObject.parse(raw.modules);
+  const { selected: _selected, ...rest } = looseObject.parse(modules.oxc);
+  raw.modules = { ...modules, oxc: rest };
+  expect(captureError(() => parseLockfile(JSON.stringify(raw))).code).toBe("LOCKFILE_INVALID");
+});
+
+const v1FilesShape = z
+  .object({ files: z.record(z.string(), z.object({ owners: z.array(z.string()) }).loose()) })
+  .loose();
+
+test("the v1 migration drops the aokit pseudo-owner from file owners", async () => {
+  const v1 = v1FilesShape.parse(JSON.parse(await docBlock("Example")));
+  for (const entry of Object.values(v1.files)) {
+    entry.owners = ["aokit", ...entry.owners];
+  }
+  const { lockfile } = parseLockfile(JSON.stringify(v1));
+  for (const file of Object.values(lockfile.files)) {
+    expect(file.owners).not.toContain("aokit");
+  }
 });

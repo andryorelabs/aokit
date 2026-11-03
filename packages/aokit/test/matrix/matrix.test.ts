@@ -3,7 +3,7 @@ import { writeFile } from "node:fs/promises";
 import { join } from "node:path";
 import { describe, expect, test } from "bun:test";
 import { cliVersion } from "../../src/cli/version.ts";
-import { type EngineModule, Vfs } from "../../src/engine/index.ts";
+import { type EngineModule } from "../../src/engine/index.ts";
 import type { LayoutName } from "../../src/engine/layout.ts";
 import { formatterForSelection } from "../../src/format/index.ts";
 import { buildProject } from "../../src/pipeline/index.ts";
@@ -49,7 +49,6 @@ async function buildDigest(
       release: registry.release,
       minCliVersion: "0.1.0",
     },
-    base: Vfs.empty(),
     ...(formatter === undefined ? {} : { formatter }),
   });
   if (!built.ok) {

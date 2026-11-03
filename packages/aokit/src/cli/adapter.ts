@@ -22,6 +22,7 @@ export interface CliIo {
 export interface RunCliOptions {
   argv: readonly string[];
   commands: readonly AnyCommand[];
+  hiddenCommands?: readonly AnyCommand[];
   env: Readonly<Record<string, string | undefined>>;
   version: string;
   io: CliIo;
@@ -241,7 +242,9 @@ export async function runCli(options: RunCliOptions): Promise<ExitCode> {
     }
   } else {
     const parserArgv = flags.rest.length === 0 ? ["--help"] : flags.rest;
-    envelope = await dispatchThroughParser(options, context, parserArgv);
+    const hidden = (options.hiddenCommands ?? []).find((command) => command.name === parserArgv[0]);
+    const parserOptions = hidden === undefined ? options : { ...options, commands: [hidden] };
+    envelope = await dispatchThroughParser(parserOptions, context, parserArgv);
   }
 
   renderEnvelope(envelope, flags.json, color, options.io);

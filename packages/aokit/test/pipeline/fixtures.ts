@@ -1,5 +1,6 @@
 import { catalogSchema, parseManifest } from "@aokit/module";
-import type { EngineContext, EngineModule } from "../../src/engine/index.ts";
+import type { EngineContext, EngineModule, Vfs } from "../../src/engine/index.ts";
+import type { Lockfile } from "../../src/lockfile/schema.ts";
 import type { PipelineInput, RegistryInfo } from "../../src/pipeline/index.ts";
 
 const context: EngineContext = { now: new Date(0), random: () => 0.5, env: {} };
@@ -101,9 +102,15 @@ export function fixtureModules(): EngineModule[] {
   ];
 }
 
+type InputOverrides = Partial<Omit<PipelineInput, "base" | "previous">> & {
+  readonly base?: Vfs;
+  readonly previous?: Lockfile;
+};
+
 /** A pipeline input for the fixture Modules; override any field. */
-export function input(overrides: Partial<PipelineInput> = {}): PipelineInput {
-  return {
+export function input(overrides: InputOverrides = {}): PipelineInput {
+  const { base, previous, ...rest } = overrides;
+  const common = {
     selection: ["auth"],
     available: fixtureModules(),
     answers: {},
@@ -112,6 +119,10 @@ export function input(overrides: Partial<PipelineInput> = {}): PipelineInput {
     context,
     registry,
     acceptSuggestions: true,
-    ...overrides,
-  };
+    ...rest,
+  } as const;
+  if (base !== undefined && previous !== undefined) {
+    return { ...common, base, previous };
+  }
+  return previous === undefined ? common : { ...common, previous };
 }

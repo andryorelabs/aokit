@@ -3,7 +3,6 @@ import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { catalogSchema, parseManifest } from "@aokit/module";
 import type { EngineModule } from "../../src/engine/index.ts";
-import { Vfs } from "../../src/engine/index.ts";
 import { type PipelineInput, buildProject } from "../../src/pipeline/index.ts";
 import tailwind4 from "../../../../registry-src/tailwind4/module.ts";
 import viteReact from "../../../../registry-src/vite-react/module.ts";
@@ -70,7 +69,6 @@ function input(
       release: "2026.11.0",
       minCliVersion: "0.0.0",
     },
-    base: Vfs.empty(),
   };
 }
 

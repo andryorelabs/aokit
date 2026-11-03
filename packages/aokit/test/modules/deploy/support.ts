@@ -28,7 +28,7 @@ async function loadModule(name: string): Promise<EngineModule> {
 /** Builds a selection of curated Modules on an empty base. */
 export async function buildSelection(
   selection: readonly string[],
-  overrides: Partial<PipelineInput> = {},
+  overrides: Partial<Omit<PipelineInput, "base" | "previous">> = {},
 ): Promise<BuildResult> {
   const available = await Promise.all(
     ["hono", "docker", "coolify"].map((name) => loadModule(name)),
