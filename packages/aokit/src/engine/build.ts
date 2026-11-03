@@ -33,7 +33,8 @@ export interface BuildPlanOptions {
   /** Selected Modules in canonical order. */
   readonly modules: readonly EngineModule[];
   readonly layout: LayoutName;
-  readonly answers: Readonly<Record<string, AnswerValue>>;
+  /** Answers keyed by Module name; a Module only sees the variables it declares. */
+  readonly answers: Readonly<Record<string, Readonly<Record<string, AnswerValue>>>>;
   readonly context: EngineContext;
   /** The Project as loaded from disk; defaults to an empty tree. */
   readonly base?: Vfs;
@@ -98,11 +99,12 @@ function defaultAnswers(
 ): Record<string, AnswerValue> {
   const merged: Record<string, AnswerValue> = {};
   for (const [name, answer] of Object.entries(manifest.answers ?? {})) {
-    if (answer.default !== undefined) {
-      merged[name] = answer.default;
+    const value = given[name] ?? answer.default;
+    if (value !== undefined) {
+      merged[name] = value;
     }
   }
-  return { ...merged, ...given };
+  return merged;
 }
 
 class ProvenanceLog {
@@ -178,7 +180,7 @@ export async function buildPlan(options: BuildPlanOptions): Promise<Plan> {
 
   for (const module of modules) {
     const { manifest } = module;
-    const answers = defaultAnswers(manifest, options.answers);
+    const answers = defaultAnswers(manifest, options.answers[manifest.name] ?? {});
     const overriddenKeys = new Set(
       manifest.override.flatMap((entry) => ("file" in entry ? [entry.file] : [])),
     );

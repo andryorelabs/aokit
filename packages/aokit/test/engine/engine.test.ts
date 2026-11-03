@@ -318,3 +318,46 @@ test("an unknown Op name fails naming the Op and the Module", async () => {
   expect(error.message).toContain("addEnv");
   expect(error.message).toContain("hono");
 });
+
+test("Vfs.fromDirectory loads the same paths for a trailing slash and the current directory", async () => {
+  const directory = await mkdtemp(join(tmpdir(), "aokit-engine-"));
+  const previous = process.cwd();
+  try {
+    await mkdir(join(directory, "sub"));
+    await writeFile(join(directory, "top.txt"), "t\n");
+    await writeFile(join(directory, "sub", "f.txt"), "f\n");
+    const expected = ["sub/f.txt", "top.txt"];
+    expect((await Vfs.fromDirectory(directory)).paths()).toEqual(expected);
+    expect((await Vfs.fromDirectory(`${directory}/`)).paths()).toEqual(expected);
+    process.chdir(directory);
+    expect((await Vfs.fromDirectory(".")).paths()).toEqual(expected);
+  } finally {
+    process.chdir(previous);
+    await rm(directory, { recursive: true, force: true });
+  }
+});
+
+test("each Module only sees its own declared answers", async () => {
+  const first = moduleOf(
+    {
+      name: "first",
+      answers: { title: { type: "string", default: "one" } },
+      files: [{ from: "f", to: "first.txt", target: "root" }],
+    },
+    { f: "{{title}}\n" },
+  );
+  const second = moduleOf(
+    {
+      name: "second",
+      answers: { title: { type: "string", default: "two" } },
+      files: [{ from: "f", to: "second.txt", target: "root" }],
+    },
+    { f: "{{title}} {{undeclared}}\n" },
+  );
+  const plan = await build([first, second], {
+    answers: { first: { title: "x" }, other: { undeclared: "leak" } },
+  });
+  const content = Object.fromEntries(plan.changes.map((change) => [change.path, change.content]));
+  expect(content["first.txt"]).toBe("x\n");
+  expect(content["second.txt"]).toBe("two {{undeclared}}\n");
+});

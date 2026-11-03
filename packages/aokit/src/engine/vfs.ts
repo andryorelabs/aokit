@@ -1,5 +1,5 @@
 import { readFile, readdir } from "node:fs/promises";
-import { posix, sep } from "node:path";
+import { posix, relative as relativeFrom, resolve, sep } from "node:path";
 import { EngineError } from "./errors.ts";
 
 /** File content: text (always LF) or raw bytes. */
@@ -76,11 +76,8 @@ export class Vfs {
     const files = listing
       .filter((entry) => entry.isFile())
       .map((entry) => {
-        const absolute = `${entry.parentPath}${sep}${entry.name}`;
-        const relative = absolute
-          .slice(directory.length + 1)
-          .split(sep)
-          .join("/");
+        const absolute = resolve(entry.parentPath, entry.name);
+        const relative = relativeFrom(resolve(directory), absolute).split(sep).join("/");
         return { absolute, relative };
       })
       .filter(({ relative }) => !relative.split("/").some((s) => ignoredDirectories.has(s)));
