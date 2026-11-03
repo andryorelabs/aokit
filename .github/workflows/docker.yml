@@ -1,0 +1,40 @@
+name: Docker
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    paths:
+      - "registry-src/docker/**"
+      - "registry-src/hono/**"
+      - ".github/workflows/docker.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: docker-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  smoke:
+    name: ${{ matrix.layout }} oxc,hono,docker
+    strategy:
+      fail-fast: false
+      matrix:
+        layout: [single, monorepo]
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version-file: package.json
+
+      - name: Install
+        run: bun install --frozen-lockfile
+
+      - name: Create, docker build, run and request over HTTP
+        run: bun tools/docker-smoke/main.ts --layout "${{ matrix.layout }}"
