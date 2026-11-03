@@ -89,7 +89,7 @@ test("outside git the check compares Lockfile hashes and warns", async () => {
   const hash = `sha256-${createHash("sha256").update("hello").digest("hex")}`;
   const lockfile: Lockfile = {
     $schema: "https://example.test/lock.json",
-    lockfileVersion: 1,
+    lockfileVersion: 2,
     cliVersion: "0.0.0",
     protocolVersion: 1,
     layout: "single",
@@ -170,7 +170,7 @@ test("outside git a CRLF re-save of a pristine text file is not dirty", async ()
   const hash = `sha256-${createHash("sha256").update("one\ntwo\n").digest("hex")}`;
   const lockfile = {
     $schema: "https://example.test/lock.json",
-    lockfileVersion: 1,
+    lockfileVersion: 2,
     cliVersion: "0.0.0",
     protocolVersion: 1,
     layout: "single",

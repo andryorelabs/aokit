@@ -40,11 +40,13 @@ test.each(["single", "monorepo"] as const)(
       expect(lockfile.files[webPath(".env")]?.owners).toEqual(["auth", "base"]);
       expect(lockfile.deps["oxlint"]).toEqual({
         version: "1.90.0",
+        owners: ["base"],
         pinned: true,
         source: "catalog",
       });
       expect(lockfile.deps["next"]).toEqual({
         version: "^16.0.0",
+        owners: ["base"],
         pinned: false,
         source: "catalog",
       });

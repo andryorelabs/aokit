@@ -1,13 +1,19 @@
 {
-  "$schema": "https://aokit.dev/schema/lockfile/v1.json",
+  "$schema": "https://aokit.dev/schema/lockfile/v2.json",
   "cliVersion": "0.1.0",
   "deps": {
     "next": {
+      "owners": [
+        "next"
+      ],
       "pinned": false,
       "source": "catalog",
       "version": "^16.0.0"
     },
     "oxlint": {
+      "owners": [
+        "oxc"
+      ],
       "pinned": true,
       "source": "catalog",
       "version": "1.90.0"
@@ -38,7 +44,7 @@
     }
   },
   "layout": "monorepo",
-  "lockfileVersion": 1,
+  "lockfileVersion": 2,
   "modules": {
     "next": {
       "answers": {
@@ -46,12 +52,14 @@
       },
       "integrity": "sha256-3f1c0b8e6a9d4f2b7c5e1a0d9b8c7f6e5d4c3b2a1f0e9d8c7b6a5f4e3d2c1b0a",
       "registry": "aokit",
+      "selected": true,
       "version": "1.2.0"
     },
     "oxc": {
       "answers": {},
       "integrity": "sha256-a1b2c3d4e5f60718293a4b5c6d7e8f90a1b2c3d4e5f60718293a4b5c6d7e8f90",
       "registry": "aokit",
+      "selected": true,
       "version": "1.0.0"
     }
   },
@@ -60,7 +68,7 @@
     "aokit": {
       "minCliVersion": "0.1.0",
       "release": "2026.11.0",
-      "source": "https://registry.aokit.dev"
+      "source": "bundled"
     }
   }
 }
