@@ -42,7 +42,7 @@ describe("vite-react", () => {
       "package.json",
       "src/main.tsx",
       "src/providers.tsx",
-      "src/routes.tsx",
+      "src/router.tsx",
       "tsconfig.json",
       "vite.config.ts",
     ]);
@@ -71,7 +71,7 @@ describe("vite-react", () => {
       "apps/web/package.json",
       "apps/web/src/main.tsx",
       "apps/web/src/providers.tsx",
-      "apps/web/src/routes.tsx",
+      "apps/web/src/router.tsx",
       "apps/web/tsconfig.json",
       "apps/web/vite.config.ts",
       "package.json",
