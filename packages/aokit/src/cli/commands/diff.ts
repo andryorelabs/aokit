@@ -4,6 +4,8 @@ import { structuredPatch } from "diff";
 import { z } from "zod";
 import type { PlanChange } from "../../engine/plan.ts";
 import { type FileContent, Vfs, compareByCodepoint } from "../../engine/vfs.ts";
+import { loadUserTree } from "../../lifecycle/migration-stage.ts";
+import { modulesInOrder } from "../../update/run.ts";
 import { LockfileError, readLockfile } from "../../lockfile/index.ts";
 import type { Lockfile } from "../../lockfile/schema.ts";
 import { runMigrations } from "../../migrations/index.ts";
@@ -222,15 +224,10 @@ async function renderTarget(
     cliVersion,
   });
   const target = resolveUpdateTarget(lockfile, registry, to);
-  const base = await renderFromLockfile(lockfile, options);
-  const userVfs = await Vfs.fromDirectory(projectDir);
+  const userVfs = await loadUserTree(projectDir);
   const migrated = await runMigrations({
     stage: "before",
-    modules: Object.keys(base.lockfile.modules).map((name) => ({
-      name,
-      installed: lockfile.modules[name]?.version ?? "",
-      target: target.versions[name] ?? "",
-    })),
+    modules: modulesInOrder(lockfile, registry, target),
     vfs: userVfs,
     answers: Object.fromEntries(
       Object.entries(lockfile.modules).map(([name, entry]) => [name, entry.answers]),

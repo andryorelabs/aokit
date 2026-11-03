@@ -133,7 +133,7 @@ async function openRegistry(
 }
 
 /** Locked Modules in canonical Resolver order, with the version they move from and to. */
-function modulesInOrder(
+export function modulesInOrder(
   lockfile: Lockfile,
   registry: LocalRegistry,
   target: UpdateTarget,
