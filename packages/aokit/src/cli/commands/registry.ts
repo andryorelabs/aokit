@@ -11,16 +11,15 @@ import { restoreCommand } from "./restore.ts";
 import { schemaCommand } from "./schema.ts";
 
 /** Every command the CLI exposes in `--help` and `aokit schema`. */
-export const exposedCommands: readonly AnyCommand[] = [createCommand, schemaCommand];
-
-/** Lifecycle stubs: registered for their tickets, kept out of `--help` and `aokit schema`. */
-export const hiddenCommands: readonly AnyCommand[] = [
+export const exposedCommands: readonly AnyCommand[] = [
+  createCommand,
   doctorCommand,
   diffCommand,
   checkCommand,
   ejectCommand,
   restoreCommand,
-  addCommand,
-  removeCommand,
-  recopyCommand,
+  schemaCommand,
 ];
+
+/** Lifecycle stubs: registered for their tickets, kept out of `--help` and `aokit schema`. */
+export const hiddenCommands: readonly AnyCommand[] = [addCommand, removeCommand, recopyCommand];

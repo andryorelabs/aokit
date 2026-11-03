@@ -79,15 +79,6 @@ describe("hidden lifecycle stubs", () => {
     for (const stub of hiddenCommands) {
       expect(names).not.toContain(`"name":"${stub.name}"`);
     }
-    expect(hiddenCommands.map((stub) => stub.name)).toEqual([
-      "doctor",
-      "diff",
-      "check",
-      "eject",
-      "restore",
-      "add",
-      "remove",
-      "recopy",
-    ]);
+    expect(hiddenCommands.map((stub) => stub.name)).toEqual(["add", "remove", "recopy"]);
   });
 });
