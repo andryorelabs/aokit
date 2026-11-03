@@ -1,0 +1,176 @@
+import { z } from "zod";
+import { opSchema, targetSchema } from "./ops";
+
+/**
+ * The newest manifest `schemaVersion` this release of `@aokit/module` reads.
+ */
+export const supportedManifestSchemaVersion = 1;
+
+/**
+ * Public URL of the versioned JSON Schema of the manifest.
+ */
+export const manifestSchemaUrl = "https://aokit.dev/schema/module/v1.json";
+
+const kebabName = z.string().regex(/^[a-z][a-z0-9]*(-[a-z0-9]+)*$/, {
+  message: "must be lowercase kebab-case",
+});
+
+const capabilityName = z.string().regex(/^[a-z][a-z0-9]*(-[a-z0-9]+)*(:[a-z0-9]+(-[a-z0-9]+)*)*$/, {
+  message: "must be a lowercase kebab-case capability, optionally namespaced with ':'",
+});
+
+const requirement = z.union([
+  capabilityName,
+  z.string().regex(/^ext:[a-z][a-z0-9-]*(\.[a-z][a-z0-9-]*)+@\S+$/, {
+    message: "must be a capability or an extension point as ext:<name>@<range>",
+  }),
+]);
+
+const semver = z.string().regex(/^\d+\.\d+\.\d+(-[0-9A-Za-z.-]+)?(\+[0-9A-Za-z.-]+)?$/, {
+  message: "must be a semver version",
+});
+
+const cardinality = z.union([
+  z.strictObject({ max: z.number().int().positive() }),
+  z.literal("many"),
+]);
+
+const provideEntry = z
+  .union([
+    capabilityName,
+    z.strictObject({ capability: capabilityName, cardinality: cardinality.optional() }),
+  ])
+  .transform((entry) =>
+    typeof entry === "string"
+      ? { capability: entry, cardinality: { max: 1 } as z.output<typeof cardinality> }
+      : { capability: entry.capability, cardinality: entry.cardinality ?? { max: 1 } },
+  );
+
+const fileEntry = z.strictObject({
+  from: z.string().min(1),
+  to: z.string().min(1),
+  target: targetSchema,
+  mode: z
+    .string()
+    .regex(/^[0-7]{3,4}$/)
+    .optional(),
+  ownership: z.enum(["managed", "seed", "ejected"]).optional(),
+});
+
+const dependencyMap = z.record(
+  z.string().min(1),
+  z.strictObject({
+    range: z.string().min(1),
+    pinGroup: z.string().min(1).optional(),
+  }),
+);
+
+const deps = z.strictObject({
+  dependencies: dependencyMap.optional(),
+  devDependencies: dependencyMap.optional(),
+  peerDependencies: dependencyMap.optional(),
+  optionalDependencies: dependencyMap.optional(),
+});
+
+const envEntry = z.strictObject({
+  key: z.string().regex(/^[A-Z][A-Z0-9_]*$/, { message: "must be an UPPER_SNAKE_CASE env key" }),
+  scope: z.string().min(1),
+  example: z.string().optional(),
+  schema: z.string().optional(),
+});
+
+const answer = z.strictObject({
+  type: z.enum(["string", "boolean", "number", "select"]),
+  message: z.string().optional(),
+  default: z.union([z.string(), z.boolean(), z.number()]).optional(),
+  choices: z.array(z.string()).optional(),
+});
+
+const extensionPoint = z.strictObject({
+  name: z.string().regex(/^[a-z][a-z0-9-]*(\.[a-z][a-z0-9-]*)+$/),
+  version: semver,
+  target: targetSchema,
+  kind: z.enum(["array", "object", "import-list", "json", "region"]),
+  anchor: z.string().min(1),
+});
+
+const overrideEntry = z.union([
+  z.strictObject({ file: z.string().min(1), reason: z.string().min(1) }),
+  z.strictObject({ op: z.string().min(1), reason: z.string().min(1) }),
+]);
+
+const migration = z.strictObject({
+  from: semver,
+  to: semver,
+  stage: z.string().min(1),
+});
+
+/**
+ * The single Zod source of truth for the Module manifest.
+ */
+export const manifestSchema = z.strictObject({
+  $schema: z.string().default(manifestSchemaUrl),
+  schemaVersion: z.literal(supportedManifestSchemaVersion).default(supportedManifestSchemaVersion),
+  name: kebabName,
+  version: semver,
+  provides: z.array(provideEntry).default([]),
+  requires: z.array(requirement).default([]),
+  conflicts: z.array(capabilityName).default([]),
+  answers: z.record(z.string().min(1), answer).optional(),
+  files: z.array(fileEntry).default([]),
+  deps: deps.optional(),
+  env: z.array(envEntry).default([]),
+  ops: z.array(opSchema).default([]),
+  extensionPoints: z.array(extensionPoint).default([]),
+  override: z.array(overrideEntry).default([]),
+  migrations: z.array(migration).default([]),
+});
+
+/**
+ * A validated, normalized manifest.
+ */
+export type ModuleManifest = z.output<typeof manifestSchema>;
+
+/**
+ * What a Module author writes; defaults and bare-string `provides` are still allowed.
+ */
+export type ModuleManifestInput = z.input<typeof manifestSchema>;
+
+/**
+ * Raised when a manifest is invalid or newer than this CLI understands.
+ */
+export class ManifestError extends Error {
+  readonly code: "manifest_invalid" | "manifest_schema_too_new";
+
+  constructor(code: ManifestError["code"], message: string) {
+    super(message);
+    this.name = "ManifestError";
+    this.code = code;
+  }
+}
+
+/**
+ * Validates raw manifest data. A newer `schemaVersion` fails telling the user to update the CLI;
+ * unknown fields fail naming the field.
+ */
+export function parseManifest(raw: unknown): ModuleManifest {
+  if (typeof raw === "object" && raw !== null && "schemaVersion" in raw) {
+    const version: unknown = raw.schemaVersion;
+    if (typeof version === "number" && version > supportedManifestSchemaVersion) {
+      throw new ManifestError(
+        "manifest_schema_too_new",
+        `manifest schemaVersion ${version} is newer than the supported ${supportedManifestSchemaVersion}. Update the CLI.`,
+      );
+    }
+  }
+  const result = manifestSchema.safeParse(raw);
+  if (!result.success) {
+    const details = result.error.issues
+      .map(
+        (issue) => `${issue.path.length > 0 ? issue.path.join(".") : "(root)"}: ${issue.message}`,
+      )
+      .join("; ");
+    throw new ManifestError("manifest_invalid", `invalid module manifest: ${details}`);
+  }
+  return result.data;
+}

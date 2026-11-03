@@ -1,0 +1,7 @@
+import { defineConfig } from "vite";
+
+// project config
+export default defineConfig({
+  plugins: [],
+  server: { port: 3000 },
+});

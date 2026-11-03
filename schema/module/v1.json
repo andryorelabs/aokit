@@ -1,0 +1,820 @@
+{
+  "$defs": {
+    "__schema0": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "number"
+        },
+        {
+          "type": "boolean"
+        },
+        {
+          "type": "null"
+        },
+        {
+          "items": {
+            "$ref": "#/$defs/__schema0"
+          },
+          "type": "array"
+        },
+        {
+          "additionalProperties": {
+            "$ref": "#/$defs/__schema0"
+          },
+          "propertyNames": {
+            "type": "string"
+          },
+          "type": "object"
+        }
+      ]
+    }
+  },
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "additionalProperties": false,
+  "properties": {
+    "$schema": {
+      "default": "https://aokit.dev/schema/module/v1.json",
+      "type": "string"
+    },
+    "answers": {
+      "additionalProperties": {
+        "additionalProperties": false,
+        "properties": {
+          "choices": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "default": {
+            "type": [
+              "string",
+              "boolean",
+              "number"
+            ]
+          },
+          "message": {
+            "type": "string"
+          },
+          "type": {
+            "enum": [
+              "string",
+              "boolean",
+              "number",
+              "select"
+            ],
+            "type": "string"
+          }
+        },
+        "required": [
+          "type"
+        ],
+        "type": "object"
+      },
+      "propertyNames": {
+        "minLength": 1,
+        "type": "string"
+      },
+      "type": "object"
+    },
+    "conflicts": {
+      "default": [],
+      "items": {
+        "pattern": "^[a-z][a-z0-9]*(-[a-z0-9]+)*(:[a-z0-9]+(-[a-z0-9]+)*)*$",
+        "type": "string"
+      },
+      "type": "array"
+    },
+    "deps": {
+      "additionalProperties": false,
+      "properties": {
+        "dependencies": {
+          "additionalProperties": {
+            "additionalProperties": false,
+            "properties": {
+              "pinGroup": {
+                "minLength": 1,
+                "type": "string"
+              },
+              "range": {
+                "minLength": 1,
+                "type": "string"
+              }
+            },
+            "required": [
+              "range"
+            ],
+            "type": "object"
+          },
+          "propertyNames": {
+            "minLength": 1,
+            "type": "string"
+          },
+          "type": "object"
+        },
+        "devDependencies": {
+          "additionalProperties": {
+            "additionalProperties": false,
+            "properties": {
+              "pinGroup": {
+                "minLength": 1,
+                "type": "string"
+              },
+              "range": {
+                "minLength": 1,
+                "type": "string"
+              }
+            },
+            "required": [
+              "range"
+            ],
+            "type": "object"
+          },
+          "propertyNames": {
+            "minLength": 1,
+            "type": "string"
+          },
+          "type": "object"
+        },
+        "optionalDependencies": {
+          "additionalProperties": {
+            "additionalProperties": false,
+            "properties": {
+              "pinGroup": {
+                "minLength": 1,
+                "type": "string"
+              },
+              "range": {
+                "minLength": 1,
+                "type": "string"
+              }
+            },
+            "required": [
+              "range"
+            ],
+            "type": "object"
+          },
+          "propertyNames": {
+            "minLength": 1,
+            "type": "string"
+          },
+          "type": "object"
+        },
+        "peerDependencies": {
+          "additionalProperties": {
+            "additionalProperties": false,
+            "properties": {
+              "pinGroup": {
+                "minLength": 1,
+                "type": "string"
+              },
+              "range": {
+                "minLength": 1,
+                "type": "string"
+              }
+            },
+            "required": [
+              "range"
+            ],
+            "type": "object"
+          },
+          "propertyNames": {
+            "minLength": 1,
+            "type": "string"
+          },
+          "type": "object"
+        }
+      },
+      "type": "object"
+    },
+    "env": {
+      "default": [],
+      "items": {
+        "additionalProperties": false,
+        "properties": {
+          "example": {
+            "type": "string"
+          },
+          "key": {
+            "pattern": "^[A-Z][A-Z0-9_]*$",
+            "type": "string"
+          },
+          "schema": {
+            "type": "string"
+          },
+          "scope": {
+            "minLength": 1,
+            "type": "string"
+          }
+        },
+        "required": [
+          "key",
+          "scope"
+        ],
+        "type": "object"
+      },
+      "type": "array"
+    },
+    "extensionPoints": {
+      "default": [],
+      "items": {
+        "additionalProperties": false,
+        "properties": {
+          "anchor": {
+            "minLength": 1,
+            "type": "string"
+          },
+          "kind": {
+            "enum": [
+              "array",
+              "object",
+              "import-list",
+              "json",
+              "region"
+            ],
+            "type": "string"
+          },
+          "name": {
+            "pattern": "^[a-z][a-z0-9-]*(\\.[a-z][a-z0-9-]*)+$",
+            "type": "string"
+          },
+          "target": {
+            "enum": [
+              "root",
+              "config",
+              "web",
+              "server",
+              "db",
+              "shared-ui"
+            ],
+            "type": "string"
+          },
+          "version": {
+            "pattern": "^\\d+\\.\\d+\\.\\d+(-[0-9A-Za-z.-]+)?(\\+[0-9A-Za-z.-]+)?$",
+            "type": "string"
+          }
+        },
+        "required": [
+          "name",
+          "version",
+          "target",
+          "kind",
+          "anchor"
+        ],
+        "type": "object"
+      },
+      "type": "array"
+    },
+    "files": {
+      "default": [],
+      "items": {
+        "additionalProperties": false,
+        "properties": {
+          "from": {
+            "minLength": 1,
+            "type": "string"
+          },
+          "mode": {
+            "pattern": "^[0-7]{3,4}$",
+            "type": "string"
+          },
+          "ownership": {
+            "enum": [
+              "managed",
+              "seed",
+              "ejected"
+            ],
+            "type": "string"
+          },
+          "target": {
+            "enum": [
+              "root",
+              "config",
+              "web",
+              "server",
+              "db",
+              "shared-ui"
+            ],
+            "type": "string"
+          },
+          "to": {
+            "minLength": 1,
+            "type": "string"
+          }
+        },
+        "required": [
+          "from",
+          "to",
+          "target"
+        ],
+        "type": "object"
+      },
+      "type": "array"
+    },
+    "migrations": {
+      "default": [],
+      "items": {
+        "additionalProperties": false,
+        "properties": {
+          "from": {
+            "pattern": "^\\d+\\.\\d+\\.\\d+(-[0-9A-Za-z.-]+)?(\\+[0-9A-Za-z.-]+)?$",
+            "type": "string"
+          },
+          "stage": {
+            "minLength": 1,
+            "type": "string"
+          },
+          "to": {
+            "pattern": "^\\d+\\.\\d+\\.\\d+(-[0-9A-Za-z.-]+)?(\\+[0-9A-Za-z.-]+)?$",
+            "type": "string"
+          }
+        },
+        "required": [
+          "from",
+          "to",
+          "stage"
+        ],
+        "type": "object"
+      },
+      "type": "array"
+    },
+    "name": {
+      "pattern": "^[a-z][a-z0-9]*(-[a-z0-9]+)*$",
+      "type": "string"
+    },
+    "ops": {
+      "default": [],
+      "items": {
+        "oneOf": [
+          {
+            "additionalProperties": false,
+            "properties": {
+              "default": {
+                "minLength": 1,
+                "type": "string"
+              },
+              "extensionPoint": {
+                "pattern": "^[a-z][a-z0-9-]*(\\.[a-z][a-z0-9-]*)+$",
+                "type": "string"
+              },
+              "from": {
+                "minLength": 1,
+                "type": "string"
+              },
+              "named": {
+                "items": {
+                  "minLength": 1,
+                  "type": "string"
+                },
+                "type": "array"
+              },
+              "namespace": {
+                "minLength": 1,
+                "type": "string"
+              },
+              "op": {
+                "const": "addImport",
+                "type": "string"
+              },
+              "range": {
+                "minLength": 1,
+                "type": "string"
+              },
+              "target": {
+                "enum": [
+                  "root",
+                  "config",
+                  "web",
+                  "server",
+                  "db",
+                  "shared-ui"
+                ],
+                "type": "string"
+              }
+            },
+            "required": [
+              "op",
+              "target",
+              "extensionPoint",
+              "range",
+              "from"
+            ],
+            "type": "object"
+          },
+          {
+            "additionalProperties": false,
+            "properties": {
+              "element": {
+                "minLength": 1,
+                "type": "string"
+              },
+              "extensionPoint": {
+                "pattern": "^[a-z][a-z0-9-]*(\\.[a-z][a-z0-9-]*)+$",
+                "type": "string"
+              },
+              "op": {
+                "const": "addToArray",
+                "type": "string"
+              },
+              "range": {
+                "minLength": 1,
+                "type": "string"
+              },
+              "target": {
+                "enum": [
+                  "root",
+                  "config",
+                  "web",
+                  "server",
+                  "db",
+                  "shared-ui"
+                ],
+                "type": "string"
+              }
+            },
+            "required": [
+              "op",
+              "target",
+              "extensionPoint",
+              "range",
+              "element"
+            ],
+            "type": "object"
+          },
+          {
+            "additionalProperties": false,
+            "properties": {
+              "expression": {
+                "minLength": 1,
+                "type": "string"
+              },
+              "extensionPoint": {
+                "pattern": "^[a-z][a-z0-9-]*(\\.[a-z][a-z0-9-]*)+$",
+                "type": "string"
+              },
+              "key": {
+                "minLength": 1,
+                "type": "string"
+              },
+              "op": {
+                "const": "registerAt",
+                "type": "string"
+              },
+              "range": {
+                "minLength": 1,
+                "type": "string"
+              },
+              "target": {
+                "enum": [
+                  "root",
+                  "config",
+                  "web",
+                  "server",
+                  "db",
+                  "shared-ui"
+                ],
+                "type": "string"
+              }
+            },
+            "required": [
+              "op",
+              "target",
+              "extensionPoint",
+              "range",
+              "expression"
+            ],
+            "type": "object"
+          },
+          {
+            "additionalProperties": false,
+            "properties": {
+              "file": {
+                "minLength": 1,
+                "type": "string"
+              },
+              "op": {
+                "const": "mergeJson",
+                "type": "string"
+              },
+              "target": {
+                "enum": [
+                  "root",
+                  "config",
+                  "web",
+                  "server",
+                  "db",
+                  "shared-ui"
+                ],
+                "type": "string"
+              },
+              "value": {
+                "additionalProperties": {
+                  "$ref": "#/$defs/__schema0"
+                },
+                "propertyNames": {
+                  "type": "string"
+                },
+                "type": "object"
+              }
+            },
+            "required": [
+              "op",
+              "target",
+              "file",
+              "value"
+            ],
+            "type": "object"
+          },
+          {
+            "additionalProperties": false,
+            "properties": {
+              "file": {
+                "minLength": 1,
+                "type": "string"
+              },
+              "op": {
+                "const": "mergeYaml",
+                "type": "string"
+              },
+              "target": {
+                "enum": [
+                  "root",
+                  "config",
+                  "web",
+                  "server",
+                  "db",
+                  "shared-ui"
+                ],
+                "type": "string"
+              },
+              "value": {
+                "additionalProperties": {
+                  "$ref": "#/$defs/__schema0"
+                },
+                "propertyNames": {
+                  "type": "string"
+                },
+                "type": "object"
+              }
+            },
+            "required": [
+              "op",
+              "target",
+              "file",
+              "value"
+            ],
+            "type": "object"
+          },
+          {
+            "additionalProperties": false,
+            "properties": {
+              "entries": {
+                "additionalProperties": {
+                  "type": "string"
+                },
+                "propertyNames": {
+                  "type": "string"
+                },
+                "type": "object"
+              },
+              "file": {
+                "minLength": 1,
+                "type": "string"
+              },
+              "op": {
+                "const": "addEnv",
+                "type": "string"
+              },
+              "target": {
+                "enum": [
+                  "root",
+                  "config",
+                  "web",
+                  "server",
+                  "db",
+                  "shared-ui"
+                ],
+                "type": "string"
+              }
+            },
+            "required": [
+              "op",
+              "target",
+              "entries"
+            ],
+            "type": "object"
+          },
+          {
+            "additionalProperties": false,
+            "properties": {
+              "body": {
+                "type": "string"
+              },
+              "file": {
+                "minLength": 1,
+                "type": "string"
+              },
+              "op": {
+                "const": "addCssAtRule",
+                "type": "string"
+              },
+              "params": {
+                "type": "string"
+              },
+              "rule": {
+                "enum": [
+                  "import",
+                  "plugin",
+                  "theme"
+                ],
+                "type": "string"
+              },
+              "target": {
+                "enum": [
+                  "root",
+                  "config",
+                  "web",
+                  "server",
+                  "db",
+                  "shared-ui"
+                ],
+                "type": "string"
+              }
+            },
+            "required": [
+              "op",
+              "target",
+              "file",
+              "rule",
+              "params"
+            ],
+            "type": "object"
+          },
+          {
+            "additionalProperties": false,
+            "properties": {
+              "content": {
+                "type": "string"
+              },
+              "file": {
+                "minLength": 1,
+                "type": "string"
+              },
+              "op": {
+                "const": "appendRegion",
+                "type": "string"
+              },
+              "region": {
+                "minLength": 1,
+                "type": "string"
+              },
+              "target": {
+                "enum": [
+                  "root",
+                  "config",
+                  "web",
+                  "server",
+                  "db",
+                  "shared-ui"
+                ],
+                "type": "string"
+              }
+            },
+            "required": [
+              "op",
+              "target",
+              "file",
+              "region",
+              "content"
+            ],
+            "type": "object"
+          }
+        ]
+      },
+      "type": "array"
+    },
+    "override": {
+      "default": [],
+      "items": {
+        "anyOf": [
+          {
+            "additionalProperties": false,
+            "properties": {
+              "file": {
+                "minLength": 1,
+                "type": "string"
+              },
+              "reason": {
+                "minLength": 1,
+                "type": "string"
+              }
+            },
+            "required": [
+              "file",
+              "reason"
+            ],
+            "type": "object"
+          },
+          {
+            "additionalProperties": false,
+            "properties": {
+              "op": {
+                "minLength": 1,
+                "type": "string"
+              },
+              "reason": {
+                "minLength": 1,
+                "type": "string"
+              }
+            },
+            "required": [
+              "op",
+              "reason"
+            ],
+            "type": "object"
+          }
+        ]
+      },
+      "type": "array"
+    },
+    "provides": {
+      "items": {
+        "anyOf": [
+          {
+            "pattern": "^[a-z][a-z0-9]*(-[a-z0-9]+)*(:[a-z0-9]+(-[a-z0-9]+)*)*$",
+            "type": "string"
+          },
+          {
+            "additionalProperties": false,
+            "properties": {
+              "capability": {
+                "pattern": "^[a-z][a-z0-9]*(-[a-z0-9]+)*(:[a-z0-9]+(-[a-z0-9]+)*)*$",
+                "type": "string"
+              },
+              "cardinality": {
+                "anyOf": [
+                  {
+                    "additionalProperties": false,
+                    "properties": {
+                      "max": {
+                        "exclusiveMinimum": 0,
+                        "maximum": 9007199254740991,
+                        "type": "integer"
+                      }
+                    },
+                    "required": [
+                      "max"
+                    ],
+                    "type": "object"
+                  },
+                  {
+                    "const": "many",
+                    "type": "string"
+                  }
+                ]
+              }
+            },
+            "required": [
+              "capability"
+            ],
+            "type": "object"
+          }
+        ]
+      },
+      "type": "array"
+    },
+    "requires": {
+      "default": [],
+      "items": {
+        "anyOf": [
+          {
+            "pattern": "^[a-z][a-z0-9]*(-[a-z0-9]+)*(:[a-z0-9]+(-[a-z0-9]+)*)*$",
+            "type": "string"
+          },
+          {
+            "pattern": "^ext:[a-z][a-z0-9-]*(\\.[a-z][a-z0-9-]*)+@\\S+$",
+            "type": "string"
+          }
+        ]
+      },
+      "type": "array"
+    },
+    "schemaVersion": {
+      "const": 1,
+      "default": 1,
+      "type": "number"
+    },
+    "version": {
+      "pattern": "^\\d+\\.\\d+\\.\\d+(-[0-9A-Za-z.-]+)?(\\+[0-9A-Za-z.-]+)?$",
+      "type": "string"
+    }
+  },
+  "required": [
+    "name",
+    "version"
+  ],
+  "type": "object"
+}

@@ -1,11 +1,20 @@
 #!/usr/bin/env bun
 
-/**
- * Runs the aokit CLI and returns its process exit code. The command layer
- * replaces this placeholder once commands exist.
- */
-function runAokitCli(): number {
-  return 0;
-}
+import { runCli } from "./adapter.ts";
+import { exposedCommands } from "./commands/registry.ts";
+import { installSignalHandlers } from "./shutdown.ts";
+import { cliVersion } from "./version.ts";
 
-process.exitCode = runAokitCli();
+installSignalHandlers();
+
+process.exitCode = await runCli({
+  argv: process.argv.slice(2),
+  commands: exposedCommands,
+  env: process.env,
+  version: cliVersion,
+  io: {
+    stdout: (text) => process.stdout.write(text),
+    stderr: (text) => process.stderr.write(text),
+    isTTY: process.stdout.isTTY,
+  },
+});
