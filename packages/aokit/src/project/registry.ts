@@ -1,11 +1,38 @@
-import { join, resolve as resolvePath } from "node:path";
+import { isAbsolute, join, resolve as resolvePath } from "node:path";
 import { z } from "zod";
 import { AokitError } from "../cli/envelope.ts";
 import type { PipelineModule } from "../pipeline/index.ts";
 import { readLocalRegistry, type LocalRegistry } from "../registry/index.ts";
 
 const bundledRegistry = join(import.meta.dir, "..", "..", "..", "..", "registry");
+const urlSourcePattern = /^[A-Za-z][A-Za-z0-9+.-]*:\/\//;
 const registryIndexMinimum = z.object({ minCliVersion: z.string().min(1) });
+
+/** Where relative and `"bundled"` Registry sources resolve from. */
+export interface RegistrySourceContext {
+  /** The directory a relative source resolves against. */
+  readonly projectDir: string;
+  /** The Registry that ships with the running CLI, used for the `"bundled"` source. */
+  readonly bundledRegistryPath: string;
+}
+
+/**
+ * Resolves a Registry source to a local directory: `"bundled"` is the shipped Registry, a
+ * relative path resolves from `projectDir`, and a URL throws `INVALID_INPUT`.
+ */
+export function resolveRegistrySource(source: string, context: RegistrySourceContext): string {
+  if (source === "bundled") {
+    return context.bundledRegistryPath;
+  }
+  if (urlSourcePattern.test(source)) {
+    throw new AokitError(
+      "INVALID_INPUT",
+      `Registry source "${source}" is a URL, and remote Registries are not supported yet.`,
+      "Use a local Registry path or the bundled Registry.",
+    );
+  }
+  return isAbsolute(source) ? source : resolvePath(context.projectDir, source);
+}
 
 /** A loaded Registry with every Module wrapped for the Engine. */
 export interface LoadedRegistry {
@@ -48,7 +75,10 @@ export async function loadRegistry(
   registryFlag: string | undefined,
   cliVersion: string,
 ): Promise<LoadedRegistry> {
-  const registryPath = registryFlag === undefined ? bundledRegistry : resolvePath(registryFlag);
+  const registryPath = resolveRegistrySource(registryFlag ?? "bundled", {
+    projectDir: process.cwd(),
+    bundledRegistryPath: bundledRegistry,
+  });
   const registry = await readLocalRegistry(registryPath, { cliVersion });
   const available = [...registry.modules.keys()]
     .toSorted()
