@@ -1,0 +1,61 @@
+name: Determinism
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: determinism-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  digest:
+    name: digest (${{ matrix.os }})
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, macos-latest]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version-file: package.json
+
+      - name: Install
+        run: bun install --frozen-lockfile
+
+      - name: Compute digest
+        env:
+          AOKIT_DIGEST_FILE: ${{ runner.temp }}/digest.txt
+        run: bun test packages/aokit/test/pipeline/digest.test.ts
+
+      - name: Print digest
+        run: cat "${{ runner.temp }}/digest.txt"
+
+      - uses: actions/upload-artifact@v7
+        with:
+          name: digest-${{ matrix.os }}
+          path: ${{ runner.temp }}/digest.txt
+
+  compare:
+    name: compare digests
+    needs: digest
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/download-artifact@v7
+        with:
+          path: digests
+
+      - name: Compare Linux and macOS
+        run: |
+          echo "linux:"
+          cat digests/digest-ubuntu-latest/digest.txt
+          echo "macos:"
+          cat digests/digest-macos-latest/digest.txt
+          diff digests/digest-ubuntu-latest/digest.txt digests/digest-macos-latest/digest.txt
