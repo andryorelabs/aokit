@@ -2,7 +2,9 @@ import { expect, test } from "bun:test";
 import { mkdtemp, readFile, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
+import { Vfs } from "../../src/engine/index.ts";
 import { parseLockfile } from "../../src/lockfile/index.ts";
+import { assembleLockfile } from "../../src/pipeline/assemble.ts";
 import { buildProject, runPipeline } from "../../src/pipeline/index.ts";
 import { fixtureModules, input } from "./fixtures.ts";
 
@@ -102,4 +104,55 @@ test("a resolution error leaves the target directory untouched", async () => {
   } finally {
     await rm(parent, { recursive: true, force: true });
   }
+});
+
+test.each(["single", "monorepo"] as const)(
+  "rebuilding over an existing Project keeps every Lockfile entry (%s)",
+  async (layout) => {
+    const first = await buildProject(input({ layout }));
+    if (!first.ok) throw new Error("expected success");
+    const second = await buildProject(
+      input({ layout, base: first.plan.vfs.clone(), previous: first.lockfile }),
+    );
+    if (!second.ok) throw new Error("expected success");
+    expect(second.plan.changes).toEqual([]);
+    expect(second.lockfile.files).toEqual(first.lockfile.files);
+    expect(second.lockfileText).toBe(first.lockfileText);
+  },
+);
+
+test("manifest env writes are attributed to the env step", async () => {
+  const built = await buildProject(input({ layout: "single" }));
+  if (!built.ok) throw new Error("expected success");
+  const entries = built.plan.changes.find((change) => change.path === "src/.env")?.provenance ?? [];
+  expect(entries.some((entry) => entry.entry.kind === "op" && entry.entry.op === "env")).toBe(true);
+});
+
+function volatileLockfile(secret: string) {
+  const vfs = Vfs.empty();
+  vfs.write("secret.txt", secret, { volatile: true });
+  return assembleLockfile({
+    plan: {
+      changes: [
+        {
+          type: "create",
+          path: "secret.txt",
+          content: secret,
+          ownership: "managed",
+          mode: undefined,
+          provenance: [{ module: "m", entry: { kind: "op", op: "env" } }],
+        },
+      ],
+      hash: "x",
+      vfs,
+    },
+    modules: [],
+    layout: "single",
+    registry: { name: "r", source: "s", release: "1", minCliVersion: "0.0.0" },
+    deps: {},
+  });
+}
+
+test("volatile file contents never reach the Lockfile hash", () => {
+  expect(volatileLockfile("one").files).toEqual(volatileLockfile("two").files);
 });

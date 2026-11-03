@@ -43,6 +43,8 @@ export interface PipelineInput {
   readonly formatter?: Formatter;
   readonly acceptSuggestions?: boolean;
   readonly base?: Vfs;
+  /** The Lockfile already on disk; its file owners carry over for unchanged files. */
+  readonly previous?: Lockfile;
   readonly opHandlers?: ReadonlyMap<string, OpHandler>;
 }
 
@@ -125,17 +127,17 @@ export async function buildProject(input: PipelineInput): Promise<BuiltProject |
     normalizeProjectPath(posix.join(resolveTarget(input.layout, target), relativePath));
 
   for (const { manifest } of modules) {
-    const opVfs: OpVfs = {
+    const opVfsFor = (op: string): OpVfs => ({
       has: (path) => work.has(path),
       paths: () => work.paths(),
       read: (path) => work.read(path),
       write: (path, content, options) => {
         work.write(path, content, options);
-        note(normalizeProjectPath(path), manifest.name, { kind: "op", op: "deps" });
+        note(normalizeProjectPath(path), manifest.name, { kind: "op", op });
       },
-    };
+    });
     const recorded = applyDeps({
-      vfs: opVfs,
+      vfs: opVfsFor("deps"),
       layout: input.layout,
       module: manifest.name,
       target: depsTarget(manifest, input.layout),
@@ -146,7 +148,7 @@ export async function buildProject(input: PipelineInput): Promise<BuiltProject |
     for (const [name, entry] of Object.entries(recorded)) {
       deps[name] ??= entry;
     }
-    applyEnv({ vfs: opVfs, env: manifest.env, resolvePath });
+    applyEnv({ vfs: opVfsFor("env"), env: manifest.env, resolvePath });
     assembled.push({
       manifest,
       answers: effectiveAnswers(manifest, input.answers[manifest.name] ?? {}),
@@ -178,6 +180,7 @@ export async function buildProject(input: PipelineInput): Promise<BuiltProject |
     layout: input.layout,
     registry: input.registry,
     deps,
+    ...(input.previous === undefined ? {} : { previousFiles: input.previous.files }),
   });
   return {
     ok: true,

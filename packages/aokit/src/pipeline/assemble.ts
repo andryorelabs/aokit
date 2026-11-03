@@ -9,6 +9,7 @@ import { type Lockfile, currentLockfileVersion } from "../lockfile/schema.ts";
 
 const lockfileSchemaUrl = "https://aokit.dev/schema/lockfile/v1.json";
 const protocolVersion = 1;
+const volatileMarker = "volatile";
 
 /** Where the selected Modules came from; recorded in the Lockfile `registries` map. */
 export interface RegistryInfo {
@@ -31,6 +32,8 @@ interface AssembleOptions {
   readonly layout: LayoutName;
   readonly registry: RegistryInfo;
   readonly deps: Lockfile["deps"];
+  /** Files recorded by the Lockfile on disk, whose owners carry over for unchanged files. */
+  readonly previousFiles?: Lockfile["files"];
 }
 
 function sha256(content: FileContent): string {
@@ -38,21 +41,28 @@ function sha256(content: FileContent): string {
   return `sha256-${createHash("sha256").update(bytes).digest("hex")}`;
 }
 
-function fileEntries(plan: Plan): Lockfile["files"] {
+function fileEntries(plan: Plan, previous: Lockfile["files"]): Lockfile["files"] {
+  const provenance = new Map(plan.changes.map((change) => [change.path, change.provenance]));
   const files: Lockfile["files"] = {};
-  for (const change of plan.changes) {
-    if (change.type === "delete" || change.content === undefined) {
+  for (const path of plan.vfs.paths()) {
+    const file = plan.vfs.get(path);
+    if (file === undefined) {
       continue;
     }
-    const owners = [
+    const fromPlan = [
       ...new Set(
-        change.provenance
+        (provenance.get(path) ?? [])
           .filter((entry) => entry.overridden !== true && entry.entry.kind !== "formatter")
           .map((entry) => entry.module),
       ),
-    ].toSorted();
+    ];
+    const owners = (fromPlan.length > 0 ? fromPlan : (previous[path]?.owners ?? [])).toSorted();
     if (owners.length > 0) {
-      files[change.path] = { owners, mode: change.ownership, hash: sha256(change.content) };
+      files[path] = {
+        owners,
+        mode: file.ownership,
+        hash: file.volatile ? sha256(volatileMarker) : sha256(file.content),
+      };
     }
   }
   return files;
@@ -83,7 +93,7 @@ export function assembleLockfile(options: AssembleOptions): Lockfile {
       },
     },
     modules,
-    files: fileEntries(options.plan),
+    files: fileEntries(options.plan, options.previousFiles ?? {}),
     deps: options.deps,
   };
 }
