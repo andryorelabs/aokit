@@ -7,14 +7,13 @@ import { runGit, runGitChecked } from "./run.ts";
 interface MergeLabels {
   readonly base: string;
   readonly user: string;
-  readonly next: string;
+  readonly new: string;
 }
 
 /** Result of a three-way merge of text content. */
 interface MergeResult {
   readonly content: string;
-  /** Number of conflicting hunks; `0` means the merge was clean. */
-  readonly conflicts: number;
+  readonly conflict: boolean;
 }
 
 /** The three sides of a Conflict, written as index stages 1 (base), 2 (user) and 3 (next). */
@@ -72,12 +71,13 @@ async function mergeFileIn(
     const result = await runGit(dir, [
       "merge-file",
       "-p",
+      "--diff3",
       "-L",
       labels.user,
       "-L",
       labels.base,
       "-L",
-      labels.next,
+      labels.new,
       join(scratch, "user"),
       join(scratch, "base"),
       join(scratch, "next"),
@@ -85,7 +85,7 @@ async function mergeFileIn(
     if (result.exitCode > 127) {
       throw new Error(`git merge-file failed (${result.exitCode}): ${result.stderr.trim()}`);
     }
-    return { content: result.stdout, conflicts: result.exitCode };
+    return { content: result.stdout, conflict: result.exitCode > 0 };
   } finally {
     await rm(scratch, { recursive: true, force: true });
   }
@@ -145,6 +145,11 @@ function createGit(dir: string): Git {
 
 /** Opens a {@link Git} for `dir`, or resolves `null` when `dir` is not inside a git repository. */
 export async function openGit(dir: string): Promise<Git | null> {
-  const probe = await runGit(dir, ["rev-parse", "--git-dir"]);
-  return probe.exitCode === 0 ? createGit(dir) : null;
+  try {
+    const probe = await runGit(dir, ["rev-parse", "--git-dir"]);
+    return probe.exitCode === 0 ? createGit(dir) : null;
+  } catch (error) {
+    if (error instanceof Error && "code" in error && error.code === "ENOENT") return null;
+    throw error;
+  }
 }

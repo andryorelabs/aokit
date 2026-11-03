@@ -5,6 +5,7 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { AokitError } from "../../src/cli/envelope.ts";
 import { assertCleanTree, openGit } from "../../src/git/index.ts";
+import { createMerger } from "../../src/merger/index.ts";
 import { runGitChecked } from "../../src/git/run.ts";
 import type { Lockfile } from "../../src/lockfile/schema.ts";
 
@@ -110,11 +111,11 @@ test("outside git the check compares Lockfile hashes and warns", async () => {
 
 test("mergeFile merges cleanly and reports conflicts with labels", async () => {
   const opened = await openGit(repo);
-  const labels = { base: "base", user: "yours", next: "aokit" };
+  const labels = { base: "base", user: "yours", new: "aokit" };
   const clean = await opened?.mergeFile("a\nb\nc\n", "A\nb\nc\n", "a\nb\nC\n", labels);
-  expect(clean).toEqual({ content: "A\nb\nC\n", conflicts: 0 });
+  expect(clean).toEqual({ content: "A\nb\nC\n", conflict: false });
   const conflicted = await opened?.mergeFile("a\n", "u\n", "n\n", labels);
-  expect(conflicted?.conflicts).toBe(1);
+  expect(conflicted?.conflict).toBe(true);
   expect(conflicted?.content).toContain("<<<<<<< yours");
   expect(conflicted?.content).toContain(">>>>>>> aokit");
 });
@@ -135,4 +136,47 @@ test("writeConflictStages records stages 1, 2, 3 without staging or committing",
   expect(unmerged).toContain(path);
   expect(await git(repo, "rev-parse", "HEAD")).toBe(headBefore);
   expect(await git(repo, "show", `:2:${path}`)).toBe("u\n");
+});
+
+test("the real adapter yields the same markers as node-diff3 through the Merger", async () => {
+  const opened = await openGit(repo);
+  if (opened === null) throw new Error("expected a git repository");
+  const input = { base: "a\nb\n", user: "a\nU\n", next: "a\nN\n", path: "x.txt" };
+  const viaGit = await createMerger({ git: opened }).merge(input);
+  const viaDiff3 = await createMerger().merge(input);
+  expect(viaGit.conflict).toBe(true);
+  expect(viaGit.content).toContain("||||||| base");
+  expect(viaGit).toEqual(viaDiff3);
+});
+
+test("binary Uint8Array content keeps its bytes in the aokitNew payload", async () => {
+  const next = new Uint8Array([0, 255, 254, 1]);
+  const result = await createMerger().merge({
+    base: new Uint8Array([0, 1]),
+    user: new Uint8Array([0, 2]),
+    next,
+    path: "logo.png",
+  });
+  expect(result.conflict).toBe(true);
+  expect(result.aokitNew).toEqual(next);
+});
+
+test("outside git a CRLF re-save of a pristine text file is not dirty", async () => {
+  const project = join(root, "crlf");
+  await mkdir(project);
+  await writeFile(join(project, "a.txt"), "one\r\ntwo\r\n");
+  const hash = `sha256-${createHash("sha256").update("one\ntwo\n").digest("hex")}`;
+  const lockfile = {
+    $schema: "https://example.test/lock.json",
+    lockfileVersion: 1,
+    cliVersion: "0.0.0",
+    protocolVersion: 1,
+    layout: "single",
+    registries: {},
+    modules: {},
+    files: { "a.txt": { owners: ["m"], mode: "managed", hash } },
+    deps: {},
+  } as Lockfile;
+  const result = await assertCleanTree(project, { allowDirty: false, lockfile });
+  expect(result.warning).toBeDefined();
 });

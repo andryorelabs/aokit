@@ -26,7 +26,10 @@ async function changedSinceLockfile(dir: string, lockfile: Lockfile): Promise<st
   const checks = Object.entries(lockfile.files).map(async ([path, entry]) => {
     try {
       const bytes = await readFile(join(dir, path));
-      const hash = `sha256-${createHash("sha256").update(bytes).digest("hex")}`;
+      const comparable = bytes.includes(0)
+        ? bytes
+        : Buffer.from(bytes.toString("utf8").replaceAll("\r\n", "\n"));
+      const hash = `sha256-${createHash("sha256").update(comparable).digest("hex")}`;
       return hash === entry.hash ? null : path;
     } catch (error) {
       if (error instanceof Error && "code" in error && error.code === "ENOENT") return path;
