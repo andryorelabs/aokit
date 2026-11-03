@@ -2,7 +2,7 @@ import { createCli, t, type CommanderProgramLike } from "trpc-cli";
 import { z } from "zod";
 import { isColorEnabled } from "./color.ts";
 import { runCommand, type AnyCommand, type CommandContext } from "./command.ts";
-import { renderHuman } from "./human.ts";
+import { renderFailureReport, renderHuman } from "./human.ts";
 import {
   exitCodeForEnvelope,
   failureEnvelope,
@@ -205,6 +205,10 @@ function renderEnvelope(envelope: Envelope, json: boolean, color: boolean, io: C
   if (envelope.ok) {
     io.stdout(`${renderHuman(envelope.data)}\n`);
     return;
+  }
+  const report = renderFailureReport(envelope.data);
+  if (report !== "") {
+    io.stdout(`${report}\n`);
   }
   const label = color ? "\u001B[31merror\u001B[0m" : "error";
   io.stderr(`${label}: ${envelope.error.message}\n  fix:  ${envelope.error.fix}\n`);

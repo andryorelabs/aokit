@@ -8,7 +8,12 @@ import {
   parseManifest,
 } from "@aokit/module";
 import { RegistryError } from "./errors.ts";
-import { computeIntegrity, normalizeLineEndings } from "./integrity.ts";
+import {
+  computeIntegrity,
+  computeModuleIntegrity,
+  type Integrity,
+  normalizeLineEndings,
+} from "./integrity.ts";
 import {
   type RegistryIndex,
   registryIndexSchema,
@@ -16,23 +21,33 @@ import {
 } from "./schema.ts";
 
 /**
- * A verified Module of a local Registry: its manifest and its files, keyed by the path the
- * manifest's `files[].from` uses.
+ * A verified Module version of a local Registry: its manifest, its files keyed by the path the
+ * manifest's `files[].from` uses, and the Module integrity the index published for it.
  */
-interface LocalRegistryModule {
+interface RegistryModule {
   manifest: ModuleManifest;
   files: Map<string, string>;
+  integrity: Integrity;
 }
 
 /**
- * A local Registry read from disk with every manifest, file and the Catalog integrity-checked.
+ * A local Registry read from disk with every Module version, file and Catalog integrity-checked.
  * `modules` holds the `latest` version of each Module.
  */
 export interface LocalRegistry {
   name: string;
+  /** The current Release, whose Catalog is `currentCatalog`. */
   release: string;
-  catalog: Catalog;
-  modules: Map<string, LocalRegistryModule>;
+  currentCatalog: Catalog;
+  modules: Map<string, RegistryModule>;
+  /** Every published Release, sorted. */
+  releases(): string[];
+  /** The Catalog of a published Release, or `undefined` when the Registry never published it. */
+  catalog(release: string): Catalog | undefined;
+  /** A published Module version, or `undefined` when the Registry does not hold it. */
+  version(name: string, version: string): RegistryModule | undefined;
+  /** Every published version of a Module in ascending semver order; empty for an unknown Module. */
+  versions(name: string): string[];
 }
 
 /**
@@ -85,8 +100,7 @@ function parseJson(text: string, onInvalid: (reason: string) => RegistryError): 
   }
 }
 
-function verifyIntegrity(text: string, expected: string, subject: string): void {
-  const actual = computeIntegrity(text);
+function verifyIntegrity(actual: Integrity, expected: Integrity, subject: string): void {
   if (actual !== expected) {
     throw new RegistryError(
       "REGISTRY_INTEGRITY_MISMATCH",
@@ -154,10 +168,15 @@ async function readIndex(root: string): Promise<RegistryIndex> {
   return parsed.data;
 }
 
-async function readCatalog(root: string, index: RegistryIndex): Promise<Catalog> {
-  const subject = `Registry "${index.name}" Catalog ${index.catalog.path}`;
+async function readCatalog(
+  root: string,
+  registryName: string,
+  release: string,
+  pointer: RegistryIndex["releases"][string],
+): Promise<Catalog> {
+  const subject = `Registry "${registryName}" Catalog ${pointer.path}`;
   const text = await readText(
-    join(root, index.catalog.path),
+    join(root, pointer.path),
     () =>
       new RegistryError(
         "REGISTRY_FILE_MISSING",
@@ -165,7 +184,7 @@ async function readCatalog(root: string, index: RegistryIndex): Promise<Catalog>
         "Rebuild the Registry with `bun run registry:build`.",
       ),
   );
-  verifyIntegrity(text, index.catalog.integrity, subject);
+  verifyIntegrity(computeIntegrity(text), pointer.integrity, subject);
   const parsed = catalogSchema.safeParse(
     parseJson(
       text,
@@ -184,11 +203,11 @@ async function readCatalog(root: string, index: RegistryIndex): Promise<Catalog>
       "Fix the Catalog source and rebuild the Registry.",
     );
   }
-  if (parsed.data.release !== index.release) {
+  if (parsed.data.release !== release) {
     throw new RegistryError(
       "REGISTRY_RELEASE_MISMATCH",
-      `${subject} belongs to another Release: expected ${index.release}, actual ${parsed.data.release ?? "(none)"}.`,
-      `Point the index catalog at catalog/${index.release}.json, or set its "release" to ${index.release}, then rebuild.`,
+      `${subject} belongs to another Release: expected ${release}, actual ${parsed.data.release ?? "(none)"}.`,
+      `Point the index release ${release} at catalog/${release}.json, or set its "release" to ${release}, then rebuild.`,
     );
   }
   return parsed.data;
@@ -229,7 +248,7 @@ async function readModuleVersion(
   name: string,
   version: string,
   entry: RegistryIndex["modules"][string]["versions"][string],
-): Promise<LocalRegistryModule> {
+): Promise<RegistryModule> {
   const subject = `Registry "${registryName}" Module ${name}@${version}`;
   const missing = (what: string) => () =>
     new RegistryError(
@@ -241,7 +260,20 @@ async function readModuleVersion(
     join(root, entry.manifest),
     missing(`manifest ${entry.manifest}`),
   );
-  verifyIntegrity(manifestText, entry.integrity, `${subject} manifest ${entry.manifest}`);
+  const fileRoot = join(root, "modules", name, version);
+  const fileEntries = Object.entries(entry.files).toSorted(([left], [right]) =>
+    byCodepoint(left, right),
+  );
+  const texts = await allInOrder(
+    fileEntries.map(([path]) => readText(join(fileRoot, path), missing(`file ${path}`))),
+  );
+  const files = new Map<string, string>();
+  for (const [position, [path, expected]] of fileEntries.entries()) {
+    const text = texts[position] ?? "";
+    verifyIntegrity(computeIntegrity(text), expected, `${subject} file ${path}`);
+    files.set(path, text);
+  }
+  verifyIntegrity(computeModuleIntegrity(manifestText, files), entry.integrity, subject);
   let manifest: ModuleManifest;
   try {
     manifest = parseManifest(
@@ -268,20 +300,6 @@ async function readModuleVersion(
     throw error;
   }
   checkManifestMatchesEntry(registryName, name, version, manifest, entry);
-
-  const fileRoot = join(root, "modules", name, version);
-  const fileEntries = Object.entries(entry.files).toSorted(([left], [right]) =>
-    byCodepoint(left, right),
-  );
-  const texts = await allInOrder(
-    fileEntries.map(([path]) => readText(join(fileRoot, path), missing(`file ${path}`))),
-  );
-  const files = new Map<string, string>();
-  for (const [position, [path, expected]] of fileEntries.entries()) {
-    const text = texts[position] ?? "";
-    verifyIntegrity(text, expected, `${subject} file ${path}`);
-    files.set(path, text);
-  }
   for (const file of manifest.files) {
     if (!files.has(file.from)) {
       throw new RegistryError(
@@ -291,7 +309,7 @@ async function readModuleVersion(
       );
     }
   }
-  return { manifest, files };
+  return { manifest, files, integrity: entry.integrity };
 }
 
 /**
@@ -305,7 +323,23 @@ export async function readLocalRegistry(
 ): Promise<LocalRegistry> {
   const index = await readIndex(path);
   checkCliVersion(index, options.cliVersion);
-  const catalog = await readCatalog(path, index);
+  const releaseEntries = Object.entries(index.releases).toSorted(([left], [right]) =>
+    byCodepoint(left, right),
+  );
+  const loadedCatalogs = await allInOrder(
+    releaseEntries.map(([release, pointer]) => readCatalog(path, index.name, release, pointer)),
+  );
+  const catalogs = new Map(
+    releaseEntries.map(([release], position) => [release, loadedCatalogs[position]] as const),
+  );
+  const currentCatalog = catalogs.get(index.release);
+  if (currentCatalog === undefined) {
+    throw new RegistryError(
+      "REGISTRY_CATALOG_INVALID",
+      `Registry "${index.name}" has no Catalog for its current Release ${index.release}.`,
+      "Rebuild the Registry with `bun run registry:build`.",
+    );
+  }
   const versions = Object.entries(index.modules)
     .toSorted(([left], [right]) => byCodepoint(left, right))
     .flatMap(([name, moduleEntry]) =>
@@ -323,12 +357,31 @@ export async function readLocalRegistry(
       readModuleVersion(path, index.name, name, version, versionEntry),
     ),
   );
-  const modules = new Map<string, LocalRegistryModule>();
-  for (const [position, { name, isLatest }] of versions.entries()) {
+  const modules = new Map<string, RegistryModule>();
+  const everyVersion = new Map<string, Map<string, RegistryModule>>();
+  for (const [position, { name, version, isLatest }] of versions.entries()) {
     const module = loaded[position];
-    if (isLatest && module !== undefined) {
+    if (module === undefined) {
+      continue;
+    }
+    if (isLatest) {
       modules.set(name, module);
     }
+    const byVersion = everyVersion.get(name) ?? new Map<string, RegistryModule>();
+    byVersion.set(version, module);
+    everyVersion.set(name, byVersion);
   }
-  return { name: index.name, release: index.release, catalog, modules };
+  return {
+    name: index.name,
+    release: index.release,
+    currentCatalog,
+    modules,
+    releases: () => releaseEntries.map(([release]) => release),
+    catalog: (release) => catalogs.get(release),
+    version: (name, version) => everyVersion.get(name)?.get(version),
+    versions: (name) =>
+      [...(everyVersion.get(name)?.keys() ?? [])].toSorted((left, right) =>
+        Bun.semver.order(left, right),
+      ),
+  };
 }

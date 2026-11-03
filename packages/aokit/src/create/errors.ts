@@ -21,6 +21,7 @@ export function fromResolveError(error: ResolveError): AokitError {
     resolverErrorCodes[error.code],
     `[${error.code}] ${error.message}`,
     error.fix,
+    { resolverCode: error.code },
   );
 }
 

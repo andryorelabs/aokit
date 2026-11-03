@@ -1,5 +1,11 @@
 import type { z } from "zod";
-import { errorPayloadFrom, failureEnvelope, successEnvelope, type Envelope } from "./envelope.ts";
+import {
+  errorDataFrom,
+  errorPayloadFrom,
+  failureEnvelope,
+  successEnvelope,
+  type Envelope,
+} from "./envelope.ts";
 
 /** What every command receives besides its input. */
 export interface CommandContext {
@@ -58,6 +64,6 @@ export async function runCommand(
     const output: unknown = await command.run(context, parsedInput.data);
     return successEnvelope(command.output.parse(output));
   } catch (thrown) {
-    return failureEnvelope(errorPayloadFrom(thrown));
+    return failureEnvelope(errorPayloadFrom(thrown), errorDataFrom(thrown));
   }
 }

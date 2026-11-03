@@ -19,10 +19,13 @@ describe("exit-code mapping", () => {
     expect(exitCodeForErrorCode("INTERNAL")).toBe(1);
   });
 
-  test("unknown codes are failures and nothing maps to 2", () => {
+  test("unknown codes are failures and only UPDATE_AVAILABLE maps to 2", () => {
     expect(exitCodeForErrorCode("SOMETHING_NEW")).toBe(1);
     expect(exitCodeForErrorCode("toString")).toBe(1);
-    expect(Object.values(errorCodeExitCodes)).not.toContain(2);
+    const mappedToTwo = Object.entries(errorCodeExitCodes)
+      .filter(([, exitCode]) => exitCode === 2)
+      .map(([code]) => code);
+    expect(mappedToTwo).toEqual(["UPDATE_AVAILABLE"]);
   });
 
   test("an envelope maps through its error code", () => {

@@ -8,18 +8,20 @@ export interface ErrorPayload {
 
 export type Envelope =
   | { ok: true; data: unknown; error: null }
-  | { ok: false; data: null; error: ErrorPayload };
+  | { ok: false; data: unknown; error: ErrorPayload };
 
 /** An error a command raises on purpose; carries a stable code and a fix. */
 export class AokitError extends Error {
   readonly code: ErrorCode;
   readonly fix: string;
+  readonly data: unknown;
 
-  constructor(code: ErrorCode, message: string, fix: string) {
+  constructor(code: ErrorCode, message: string, fix: string, data: unknown = null) {
     super(message);
     this.name = "AokitError";
     this.code = code;
     this.fix = fix;
+    this.data = data;
   }
 }
 
@@ -27,8 +29,14 @@ export function successEnvelope(data: unknown): Envelope {
   return { ok: true, data, error: null };
 }
 
-export function failureEnvelope(error: ErrorPayload): Envelope {
-  return { ok: false, data: null, error };
+/** A failed outcome; `data` carries the report of an outcome error and is `null` otherwise. */
+export function failureEnvelope(error: ErrorPayload, data: unknown = null): Envelope {
+  return { ok: false, data, error };
+}
+
+/** The report data an error carries; `null` for anything but an `AokitError` with data. */
+export function errorDataFrom(thrown: unknown): unknown {
+  return thrown instanceof AokitError ? thrown.data : null;
 }
 
 /** Converts anything thrown into an error payload; unknown throws become `INTERNAL`. */
