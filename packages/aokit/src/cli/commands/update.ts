@@ -2,7 +2,13 @@ import { resolve as resolvePath } from "node:path";
 import { createInterface } from "node:readline/promises";
 import { z } from "zod";
 import { toAokitError } from "../../project/errors.ts";
-import { runUpdate, type UpdateResult } from "../../update/run.ts";
+import {
+  abortProjectUpdate,
+  applyUpdatePlan,
+  planUpdate,
+  runUpdate,
+  type UpdateResult,
+} from "../../update/run.ts";
 import { defineCommand } from "../command.ts";
 import { AokitError } from "../envelope.ts";
 import { aokitMeta } from "../meta.ts";
@@ -38,6 +44,21 @@ const updateInput = z.object({
     .default(false)
     .describe("Proceed despite uncommitted changes")
     .register(aokitMeta, { flag: "allow-dirty", examples: ["--allow-dirty"] }),
+  plan: z
+    .boolean()
+    .default(false)
+    .describe("Write a reviewable Plan to the update state directory and change nothing else")
+    .register(aokitMeta, { flag: "plan", examples: ["--plan"] }),
+  apply: z
+    .boolean()
+    .default(false)
+    .describe("Apply exactly the Plan `update --plan` saved; fails when the tree changed since")
+    .register(aokitMeta, { flag: "apply", examples: ["--apply --yes"] }),
+  abort: z
+    .boolean()
+    .default(false)
+    .describe("Undo a conflicted update and delete a saved Plan")
+    .register(aokitMeta, { flag: "abort", examples: ["--abort"] }),
   install: z
     .boolean()
     .default(true)
@@ -84,6 +105,9 @@ const updateOutput = z.object({
     }),
   ),
   diff: z.string().optional(),
+  planFile: z.string().optional(),
+  aborted: z.boolean(),
+  restored: z.array(z.string()),
   warnings: z.array(z.string()),
 });
 
@@ -97,17 +121,27 @@ async function askToConfirm(summary: string): Promise<boolean> {
   }
 }
 
-function describe(result: UpdateResult): string {
+function describe(result: UpdateResult, planned: boolean): string {
+  if (planned && !result.upToDate) {
+    return `Saved the Plan to update from Release ${result.fromRelease} to ${result.release}; the Project is unchanged.`;
+  }
   if (result.upToDate) return `Nothing to update: the Project is on Release ${result.release}.`;
   if (result.applied) return `Updated from Release ${result.fromRelease} to ${result.release}.`;
   return `Plan to update from Release ${result.fromRelease} to ${result.release}; nothing was written.`;
 }
 
-function outputOf(directory: string, result: UpdateResult): z.output<typeof updateOutput> {
+function outputOf(
+  directory: string,
+  result: UpdateResult,
+  planFile?: string,
+): z.output<typeof updateOutput> {
   return {
     directory,
     upToDate: result.upToDate,
-    message: describe(result),
+    message: describe(result, planFile !== undefined),
+    aborted: false,
+    restored: [],
+    ...(planFile === undefined ? {} : { planFile }),
     fromRelease: result.fromRelease,
     release: result.release,
     applied: result.applied,
@@ -129,6 +163,42 @@ function outputOf(directory: string, result: UpdateResult): z.output<typeof upda
   };
 }
 
+async function abortOutput(directory: string): Promise<z.output<typeof updateOutput>> {
+  const aborted = await abortProjectUpdate(directory);
+  return {
+    directory,
+    upToDate: false,
+    message:
+      aborted === null
+        ? "Nothing to abort."
+        : `Aborted the update; restored ${aborted.restored.length} file(s).`,
+    fromRelease: "",
+    release: "",
+    applied: false,
+    installed: false,
+    plan: { hash: "", changes: [] },
+    conflicts: [],
+    keptDeps: [],
+    migrations: [],
+    aborted: aborted !== null,
+    restored: aborted?.restored ?? [],
+    warnings: [],
+  };
+}
+
+function assertSingleMode(input: z.output<typeof updateInput>): void {
+  const modes = [input.plan && "--plan", input.apply && "--apply", input.abort && "--abort"].filter(
+    (mode) => typeof mode === "string",
+  );
+  if (modes.length > 1) {
+    throw new AokitError(
+      "INVALID_INPUT",
+      `${modes.join(" and ")} cannot be combined.`,
+      "Pass only one of --plan, --apply and --abort.",
+    );
+  }
+}
+
 export const updateCommand = defineCommand({
   name: "update",
   description: "Update a Project to a newer Release",
@@ -137,7 +207,9 @@ export const updateCommand = defineCommand({
   async run(context, input) {
     const directory = resolvePath(input.directory);
     try {
-      const result = await runUpdate({
+      assertSingleMode(input);
+      if (input.abort) return await abortOutput(directory);
+      const request = {
         dir: directory,
         allowDirty: input.allowDirty,
         dryRun: input.dryRun,
@@ -147,7 +219,16 @@ export const updateCommand = defineCommand({
         cliVersion: context.version,
         ...(input.to === undefined ? {} : { to: input.to }),
         ...(process.stdin.isTTY ? { confirm: askToConfirm } : {}),
-      });
+      };
+      let planFile: string | undefined;
+      let result: UpdateResult;
+      if (input.plan) {
+        const planned = await planUpdate(request);
+        result = planned.result;
+        planFile = planned.planPath;
+      } else {
+        result = await (input.apply ? applyUpdatePlan : runUpdate)(request);
+      }
       if (result.applied && result.conflicts.length > 0) {
         const paths = result.conflicts.map((conflict) => conflict.path);
         throw new AokitError(
@@ -157,7 +238,7 @@ export const updateCommand = defineCommand({
           { conflicts: paths.map((path) => ({ path })) },
         );
       }
-      return outputOf(directory, result);
+      return outputOf(directory, result, planFile);
     } catch (thrown) {
       throw toAokitError(thrown);
     }
