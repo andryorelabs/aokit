@@ -88,7 +88,8 @@ function changeFor(
 /**
  * Runs the `after` Migrations over the merged tree plus the user files the merge never looked at,
  * and folds what they changed back into the Plan. Files in a Conflict are left alone, and a file
- * the user deleted that the Lockfile tracks is not recreated.
+ * the user deleted that the Lockfile tracks is not recreated. A file a `before` Migration deleted
+ * becomes a delete in the Plan unless the new Render writes it again.
  */
 export async function applyAfterStage(input: AfterStageInput): Promise<MergeProjectResult> {
   const { merged } = input;
@@ -116,6 +117,11 @@ export async function applyAfterStage(input: AfterStageInput): Promise<MergeProj
     changes.set(path, existing?.renamedFrom === undefined ? change : { ...change, type: "rename" });
     if (content === undefined) vfs.delete(path);
     else vfs.write(path, content);
+  }
+  for (const path of input.original.paths()) {
+    if (input.edited.has(path) || vfs.has(path) || skipped.has(path)) continue;
+    const change = changeFor(path, undefined, input.original.read(path), changes.get(path));
+    if (change !== undefined) changes.set(path, change);
   }
   for (const path of outside) {
     if (changes.has(path) || skipped.has(path)) continue;

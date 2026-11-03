@@ -12,6 +12,7 @@ import {
   cleanTemporaryDirectories,
   commandContext,
   createProject,
+  editLockfile,
   temporaryDirectory,
 } from "../diff/support.ts";
 
@@ -64,13 +65,28 @@ export default defineMigration(() => {
 interface Options {
   readonly script?: string;
   readonly notes?: string;
+  readonly beforeScript?: string;
 }
 
 async function publishSecondRelease(out: string, options: Options): Promise<void> {
   const source = await writeRegistrySourceFixture();
   await mkdir(join(source, "oxc/migrations"), { recursive: true });
   await Promise.all([
-    writeFile(join(source, "oxc/module.ts"), secondModule, "utf8"),
+    writeFile(
+      join(source, "oxc/module.ts"),
+      options.beforeScript === undefined
+        ? secondModule
+        : secondModule
+            .replace("  provides:", `  answers: { router: { type: "string" } },\n  provides:`)
+            .replace(
+              "  ],\n};",
+              `    { from: ">=1 <2", to: "1.1.0", stage: "before", script: "migrations/to-1-1.before.js" },\n  ],\n};`,
+            ),
+      "utf8",
+    ),
+    ...(options.beforeScript === undefined
+      ? []
+      : [writeFile(join(source, "oxc/migrations/to-1-1.before.ts"), options.beforeScript, "utf8")]),
     writeFile(join(source, "oxc/renames.json"), `{ "notes.md": "docs/notes.md" }\n`, "utf8"),
     writeFile(
       join(source, "oxc/migrations/to-1-1.after.ts"),
@@ -155,6 +171,48 @@ describe("aokit update", () => {
     expect(
       updateCommand.output.parse(envelope.data).migrations.map((entry) => entry.script),
     ).toEqual(["migrations/to-1-1.after.js"]);
+  });
+
+  test("a before Migration that moves a user file deletes the original", async () => {
+    const { directory } = await project({
+      beforeScript: `import { defineMigration } from "@aokit/module";
+
+export default defineMigration(({ vfs }) => {
+  const text = vfs.read("src/legacy.ts");
+  if (text !== undefined) {
+    vfs.write("src/current.ts", text);
+    vfs.delete("src/legacy.ts");
+  }
+});
+`,
+    });
+    await mkdir(join(directory, "src"), { recursive: true });
+    await writeFile(join(directory, "src/legacy.ts"), "export const legacy = 1;\n");
+    await commitAll(directory);
+    const envelope = await run({ directory, yes: true, install: false });
+    if (!envelope.ok) throw new Error(envelope.error.message);
+    expect(await exists(directory, "src/legacy.ts")).toBe(false);
+    expect(await read(directory, "src/current.ts")).toBe("export const legacy = 1;\n");
+  });
+
+  test("a before Migration that renames an answer is recorded in the Lockfile", async () => {
+    const { directory } = await project({
+      beforeScript: `import { defineMigration } from "@aokit/module";
+
+export default defineMigration(({ answers }) => {
+  const { appRouter, ...rest } = answers;
+  return { ...rest, router: appRouter };
+});
+`,
+    });
+    await editLockfile(directory, (lockfile) => {
+      lockfile.modules.oxc.answers = { appRouter: "tanstack" };
+    });
+    await commitAll(directory);
+    const envelope = await run({ directory, yes: true, install: false });
+    if (!envelope.ok) throw new Error(envelope.error.message);
+    const lockfile = JSON.parse(await read(directory, "aokit.lock.json"));
+    expect(lockfile.modules.oxc.answers).toEqual({ router: "tanstack" });
   });
 
   test("keeps a pinned dependency at its locked version and lists it", async () => {
