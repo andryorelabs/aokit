@@ -19,6 +19,10 @@ export interface RenderFromLockfileOptions {
   readonly cliVersion: string;
   /** Module name to the version to render instead of the locked one. */
   readonly versionOverride?: Readonly<Record<string, string>>;
+  /** Release whose Catalog to render with instead of the Lockfile's; recorded in the result. */
+  readonly release?: string;
+  /** Module name to the answers to render with instead of the locked ones. */
+  readonly answersOverride?: Readonly<Record<string, Readonly<Record<string, unknown>>>>;
 }
 
 function assertCliIsNewEnough(lockfile: Lockfile, cliVersion: string): void {
@@ -129,13 +133,14 @@ async function render(
       "Restore aokit.lock.json from version control.",
     );
   }
-  const catalog = registry.catalog(registryEntry.release);
+  const release = options.release ?? registryEntry.release;
+  const catalog = registry.catalog(release);
   if (catalog === undefined) {
     throw new AokitError(
       "MODULE_VERSION_UNAVAILABLE",
-      `Registry "${registryName}" does not hold the Catalog of Release ${registryEntry.release}.`,
+      `Registry "${registryName}" does not hold the Catalog of Release ${release}.`,
       "Run `aokit recopy` to render with the Registry's current Release.",
-      { registry: registryName, release: registryEntry.release },
+      { registry: registryName, release },
     );
   }
   const formatter = formatterForSelection({
@@ -147,7 +152,13 @@ async function render(
     locked: names,
     available,
     answers: Object.fromEntries(
-      names.map((name) => [name, answerValues(name, lockfile.modules[name]?.answers ?? {})]),
+      names.map((name) => [
+        name,
+        answerValues(
+          name,
+          options.answersOverride?.[name] ?? lockfile.modules[name]?.answers ?? {},
+        ),
+      ]),
     ),
     layout: lockfile.layout,
     catalog,
@@ -155,7 +166,7 @@ async function render(
     registry: {
       name: registryName,
       source: registryEntry.source,
-      release: registryEntry.release,
+      release,
       minCliVersion: registryEntry.minCliVersion,
     },
     ...(formatter === undefined ? {} : { formatter }),
