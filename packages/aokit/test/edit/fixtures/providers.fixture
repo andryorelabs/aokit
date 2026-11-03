@@ -1,0 +1,30 @@
+import { createApp } from "./app";
+import type { Provider } from "./types";
+
+// keep this list sorted by hand
+export const providers: Provider[] = [
+  authProvider(), // auth first
+  dbProvider(),
+];
+
+export const settings = {
+  port: 3000,
+  /* the host */ host: "localhost",
+} satisfies Record<string, unknown>;
+
+export function authProvider(): Provider {
+  return { name: "auth" };
+}
+
+function dbProvider(): Provider {
+  return { name: "db" };
+}
+
+export class Registry {}
+
+export enum Mode {
+  Fast,
+}
+
+const answer = 42;
+export default createApp(providers, answer);
