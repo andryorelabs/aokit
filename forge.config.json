@@ -39,7 +39,7 @@
   "handoff": {
     "maxLines": 60,
     "maxChars": 8000,
-    "autoChain": false,
+    "autoChain": true,
     "launcher": "auto",
     "permissionMode": "bypassPermissions"
   },
