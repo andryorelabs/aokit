@@ -1,5 +1,5 @@
 export { RegistryError } from "./errors.ts";
-export { computeIntegrity, normalizeLineEndings } from "./integrity.ts";
+export { computeIntegrity, computeModuleIntegrity, normalizeLineEndings } from "./integrity.ts";
 export { readLocalRegistry, type LocalRegistry } from "./read.ts";
 export {
   registryIndexSchemaUrl,

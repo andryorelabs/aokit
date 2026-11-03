@@ -1,5 +1,5 @@
 import { afterEach, expect, test } from "bun:test";
-import { mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
+import { cp, mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { catalogSchema } from "@aokit/module";
@@ -36,10 +36,10 @@ test("registry:build writes the registry.md layout with sorted index and integri
   expect(await listFiles(out)).toEqual([
     "catalog/2026.11.0.json",
     "index.json",
-    "modules/knip/2.1.0.json",
-    "modules/oxc/1.0.0.json",
+    "modules/knip/2.1.0/module.json",
     "modules/oxc/1.0.0/files/.oxlintrc.json",
     "modules/oxc/1.0.0/files/nested/notes.md",
+    "modules/oxc/1.0.0/module.json",
   ]);
   const indexText = await readFile(join(out, "index.json"), "utf8");
   const index = JSON.parse(indexText);
@@ -48,7 +48,7 @@ test("registry:build writes the registry.md layout with sorted index and integri
     release: "2026.11.0",
     minCliVersion: "0.1.0",
     schemaVersion: 1,
-    catalog: { path: "catalog/2026.11.0.json" },
+    releases: { "2026.11.0": { path: "catalog/2026.11.0.json" } },
   });
   expect(Object.keys(index.modules)).toEqual(["knip", "oxc"]);
   expect(index.modules.oxc.latest).toBe("1.0.0");
@@ -72,12 +72,77 @@ test("registry:build is deterministic: two runs produce byte-identical output", 
   expect(await diffDirectories(first, second)).toEqual([]);
 });
 
-test("registry:build replaces stale output", async () => {
+test("registry:build never deletes what is already in the Registry", async () => {
   const source = await fixtureSource();
   const out = await temporaryDirectory();
-  await writeFile(join(out, "stale.json"), "{}\n", "utf8");
+  await writeFile(join(out, "keep.json"), "{}\n", "utf8");
   await buildRegistry(source, out);
-  expect(await listFiles(out)).not.toContain("stale.json");
+  expect(await listFiles(out)).toContain("keep.json");
+});
+
+async function bumpedSource(edit: (moduleText: string) => string): Promise<string> {
+  const source = await fixtureSource();
+  const modulePath = join(source, "oxc/module.ts");
+  await writeFile(modulePath, edit(await readFile(modulePath, "utf8")), "utf8");
+  return source;
+}
+
+test("a bumped Module adds a version and keeps the published one byte for byte", async () => {
+  const out = await temporaryDirectory();
+  await buildRegistry(await fixtureSource(), out);
+  const before = await readFile(join(out, "modules/oxc/1.0.0/module.json"), "utf8");
+  await buildRegistry(
+    await bumpedSource((text) => text.replace('version: "1.0.0"', 'version: "1.1.0"')),
+    out,
+  );
+  const index = JSON.parse(await readFile(join(out, "index.json"), "utf8"));
+  expect(Object.keys(index.modules.oxc.versions)).toEqual(["1.0.0", "1.1.0"]);
+  expect(index.modules.oxc.latest).toBe("1.1.0");
+  expect(index.modules.knip.latest).toBe("2.1.0");
+  expect(await readFile(join(out, "modules/oxc/1.0.0/module.json"), "utf8")).toBe(before);
+  expect(await listFiles(out)).toContain("modules/oxc/1.1.0/files/.oxlintrc.json");
+});
+
+test("changing a published Module version without a bump fails naming oxc@1.0.0", async () => {
+  const out = await temporaryDirectory();
+  await buildRegistry(await fixtureSource(), out);
+  const failure = await buildRegistry(
+    await bumpedSource((text) => text.replace('"lint", "format"', '"lint"')),
+    out,
+  ).then(
+    () => undefined,
+    (error: unknown) => error,
+  );
+  expect(failure).toBeInstanceOf(Error);
+  expect(String(failure)).toContain("oxc@1.0.0");
+  expect(await listFiles(out)).not.toContain("modules/oxc/1.1.0/module.json");
+});
+
+test("a new Release adds its own Catalog and an edited published Catalog fails", async () => {
+  const out = await temporaryDirectory();
+  await buildRegistry(await fixtureSource(), out);
+  const next = await fixtureSource();
+  await writeFile(
+    join(next, "catalog/2026.12.0.json"),
+    `${JSON.stringify({ release: "2026.12.0", dependencies: {} })}\n`,
+    "utf8",
+  );
+  await buildRegistry(next, out);
+  const index = JSON.parse(await readFile(join(out, "index.json"), "utf8"));
+  expect(Object.keys(index.releases)).toEqual(["2026.11.0", "2026.12.0"]);
+  expect(index.release).toBe("2026.11.0");
+
+  const edited = await fixtureSource();
+  await writeFile(
+    join(edited, "catalog/2026.11.0.json"),
+    `${JSON.stringify({ release: "2026.11.0", dependencies: {} })}\n`,
+    "utf8",
+  );
+  const failure = await buildRegistry(edited, out).then(
+    () => undefined,
+    (error: unknown) => error,
+  );
+  expect(String(failure)).toContain("Release 2026.11.0");
 });
 
 test("registry:build refuses a manifest file missing from files/", async () => {
@@ -107,6 +172,7 @@ test("the drift check names the path an unbuilt source edit changes", async () =
 
 test("registry/ matches a fresh build of registry-src/ (run `bun run registry:build`)", async () => {
   const fresh = await temporaryDirectory();
+  await cp(join(repoRoot, "registry"), fresh, { recursive: true });
   await buildRegistry(join(repoRoot, "registry-src"), fresh);
   const drifted = await diffDirectories(fresh, join(repoRoot, "registry"));
   expect(

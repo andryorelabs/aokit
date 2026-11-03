@@ -169,13 +169,13 @@ async function plan(request: CreateRequest) {
   }
   const manifests: ModuleManifest[] = resolved.modules.map((module) => module.manifest);
   const answers = completeAnswers(parseAnswers(request.answers, manifests), manifests);
-  const formatter = formatterForSelection({ catalog: registry.catalog, modules: manifests });
+  const formatter = formatterForSelection({ catalog: registry.currentCatalog, modules: manifests });
   const built = await buildProject({
     selection: request.modules,
     available,
     answers,
     layout: request.layout,
-    catalog: registry.catalog,
+    catalog: registry.currentCatalog,
     context: { now: new Date(), random: Math.random, env: request.env },
     registry: {
       name: registry.name,
