@@ -30,6 +30,37 @@
           "type": "object"
         }
       ]
+    },
+    "__schema1": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "number"
+        },
+        {
+          "type": "boolean"
+        },
+        {
+          "type": "null"
+        },
+        {
+          "items": {
+            "$ref": "#/$defs/__schema1"
+          },
+          "type": "array"
+        },
+        {
+          "additionalProperties": {
+            "$ref": "#/$defs/__schema1"
+          },
+          "propertyNames": {
+            "type": "string"
+          },
+          "type": "object"
+        }
+      ]
     }
   },
   "$schema": "https://json-schema.org/draft/2020-12/schema",
@@ -348,7 +379,7 @@
     "ops": {
       "default": [],
       "items": {
-        "oneOf": [
+        "anyOf": [
           {
             "additionalProperties": false,
             "properties": {
@@ -489,208 +520,392 @@
             "type": "object"
           },
           {
-            "additionalProperties": false,
-            "properties": {
-              "file": {
-                "minLength": 1,
-                "type": "string"
-              },
-              "op": {
-                "const": "mergeJson",
-                "type": "string"
-              },
-              "target": {
-                "enum": [
-                  "root",
-                  "config",
-                  "web",
-                  "server",
-                  "db",
-                  "shared-ui"
+            "anyOf": [
+              {
+                "additionalProperties": false,
+                "properties": {
+                  "file": {
+                    "minLength": 1,
+                    "type": "string"
+                  },
+                  "op": {
+                    "const": "mergeJson",
+                    "type": "string"
+                  },
+                  "target": {
+                    "enum": [
+                      "root",
+                      "config",
+                      "web",
+                      "server",
+                      "db",
+                      "shared-ui"
+                    ],
+                    "type": "string"
+                  },
+                  "value": {
+                    "additionalProperties": {
+                      "$ref": "#/$defs/__schema0"
+                    },
+                    "propertyNames": {
+                      "type": "string"
+                    },
+                    "type": "object"
+                  }
+                },
+                "required": [
+                  "op",
+                  "target",
+                  "file",
+                  "value"
                 ],
-                "type": "string"
-              },
-              "value": {
-                "additionalProperties": {
-                  "$ref": "#/$defs/__schema0"
-                },
-                "propertyNames": {
-                  "type": "string"
-                },
-                "type": "object"
-              }
-            },
-            "required": [
-              "op",
-              "target",
-              "file",
-              "value"
-            ],
-            "type": "object"
-          },
-          {
-            "additionalProperties": false,
-            "properties": {
-              "file": {
-                "minLength": 1,
-                "type": "string"
-              },
-              "op": {
-                "const": "mergeYaml",
-                "type": "string"
-              },
-              "target": {
-                "enum": [
-                  "root",
-                  "config",
-                  "web",
-                  "server",
-                  "db",
-                  "shared-ui"
-                ],
-                "type": "string"
-              },
-              "value": {
-                "additionalProperties": {
-                  "$ref": "#/$defs/__schema0"
-                },
-                "propertyNames": {
-                  "type": "string"
-                },
-                "type": "object"
-              }
-            },
-            "required": [
-              "op",
-              "target",
-              "file",
-              "value"
-            ],
-            "type": "object"
-          },
-          {
-            "additionalProperties": false,
-            "properties": {
-              "entries": {
-                "additionalProperties": {
-                  "type": "string"
-                },
-                "propertyNames": {
-                  "type": "string"
-                },
                 "type": "object"
               },
-              "file": {
-                "minLength": 1,
-                "type": "string"
-              },
-              "op": {
-                "const": "addEnv",
-                "type": "string"
-              },
-              "target": {
-                "enum": [
-                  "root",
-                  "config",
-                  "web",
-                  "server",
-                  "db",
-                  "shared-ui"
+              {
+                "additionalProperties": false,
+                "properties": {
+                  "extensionPoint": {
+                    "pattern": "^[a-z][a-z0-9-]*(\\.[a-z][a-z0-9-]*)+$",
+                    "type": "string"
+                  },
+                  "op": {
+                    "const": "mergeJson",
+                    "type": "string"
+                  },
+                  "range": {
+                    "minLength": 1,
+                    "type": "string"
+                  },
+                  "value": {
+                    "$ref": "#/$defs/__schema1"
+                  }
+                },
+                "required": [
+                  "op",
+                  "extensionPoint",
+                  "range",
+                  "value"
                 ],
-                "type": "string"
+                "type": "object"
               }
-            },
-            "required": [
-              "op",
-              "target",
-              "entries"
-            ],
-            "type": "object"
+            ]
           },
           {
-            "additionalProperties": false,
-            "properties": {
-              "body": {
-                "type": "string"
-              },
-              "file": {
-                "minLength": 1,
-                "type": "string"
-              },
-              "op": {
-                "const": "addCssAtRule",
-                "type": "string"
-              },
-              "params": {
-                "type": "string"
-              },
-              "rule": {
-                "enum": [
-                  "import",
-                  "plugin",
-                  "theme"
+            "anyOf": [
+              {
+                "additionalProperties": false,
+                "properties": {
+                  "file": {
+                    "minLength": 1,
+                    "type": "string"
+                  },
+                  "op": {
+                    "const": "mergeYaml",
+                    "type": "string"
+                  },
+                  "target": {
+                    "enum": [
+                      "root",
+                      "config",
+                      "web",
+                      "server",
+                      "db",
+                      "shared-ui"
+                    ],
+                    "type": "string"
+                  },
+                  "value": {
+                    "additionalProperties": {
+                      "$ref": "#/$defs/__schema0"
+                    },
+                    "propertyNames": {
+                      "type": "string"
+                    },
+                    "type": "object"
+                  }
+                },
+                "required": [
+                  "op",
+                  "target",
+                  "file",
+                  "value"
                 ],
-                "type": "string"
+                "type": "object"
               },
-              "target": {
-                "enum": [
-                  "root",
-                  "config",
-                  "web",
-                  "server",
-                  "db",
-                  "shared-ui"
+              {
+                "additionalProperties": false,
+                "properties": {
+                  "extensionPoint": {
+                    "pattern": "^[a-z][a-z0-9-]*(\\.[a-z][a-z0-9-]*)+$",
+                    "type": "string"
+                  },
+                  "op": {
+                    "const": "mergeYaml",
+                    "type": "string"
+                  },
+                  "range": {
+                    "minLength": 1,
+                    "type": "string"
+                  },
+                  "value": {
+                    "additionalProperties": {
+                      "$ref": "#/$defs/__schema0"
+                    },
+                    "propertyNames": {
+                      "type": "string"
+                    },
+                    "type": "object"
+                  }
+                },
+                "required": [
+                  "op",
+                  "extensionPoint",
+                  "range",
+                  "value"
                 ],
-                "type": "string"
+                "type": "object"
               }
-            },
-            "required": [
-              "op",
-              "target",
-              "file",
-              "rule",
-              "params"
-            ],
-            "type": "object"
+            ]
           },
           {
-            "additionalProperties": false,
-            "properties": {
-              "content": {
-                "type": "string"
-              },
-              "file": {
-                "minLength": 1,
-                "type": "string"
-              },
-              "op": {
-                "const": "appendRegion",
-                "type": "string"
-              },
-              "region": {
-                "minLength": 1,
-                "type": "string"
-              },
-              "target": {
-                "enum": [
-                  "root",
-                  "config",
-                  "web",
-                  "server",
-                  "db",
-                  "shared-ui"
+            "anyOf": [
+              {
+                "additionalProperties": false,
+                "properties": {
+                  "entries": {
+                    "additionalProperties": {
+                      "type": "string"
+                    },
+                    "propertyNames": {
+                      "type": "string"
+                    },
+                    "type": "object"
+                  },
+                  "file": {
+                    "minLength": 1,
+                    "type": "string"
+                  },
+                  "op": {
+                    "const": "addEnv",
+                    "type": "string"
+                  },
+                  "target": {
+                    "enum": [
+                      "root",
+                      "config",
+                      "web",
+                      "server",
+                      "db",
+                      "shared-ui"
+                    ],
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "op",
+                  "target",
+                  "entries"
                 ],
-                "type": "string"
+                "type": "object"
+              },
+              {
+                "additionalProperties": false,
+                "properties": {
+                  "entries": {
+                    "additionalProperties": {
+                      "type": "string"
+                    },
+                    "propertyNames": {
+                      "type": "string"
+                    },
+                    "type": "object"
+                  },
+                  "extensionPoint": {
+                    "pattern": "^[a-z][a-z0-9-]*(\\.[a-z][a-z0-9-]*)+$",
+                    "type": "string"
+                  },
+                  "op": {
+                    "const": "addEnv",
+                    "type": "string"
+                  },
+                  "range": {
+                    "minLength": 1,
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "op",
+                  "extensionPoint",
+                  "range",
+                  "entries"
+                ],
+                "type": "object"
               }
-            },
-            "required": [
-              "op",
-              "target",
-              "file",
-              "region",
-              "content"
-            ],
-            "type": "object"
+            ]
+          },
+          {
+            "anyOf": [
+              {
+                "additionalProperties": false,
+                "properties": {
+                  "body": {
+                    "type": "string"
+                  },
+                  "file": {
+                    "minLength": 1,
+                    "type": "string"
+                  },
+                  "op": {
+                    "const": "addCssAtRule",
+                    "type": "string"
+                  },
+                  "params": {
+                    "type": "string"
+                  },
+                  "rule": {
+                    "enum": [
+                      "import",
+                      "plugin",
+                      "theme"
+                    ],
+                    "type": "string"
+                  },
+                  "target": {
+                    "enum": [
+                      "root",
+                      "config",
+                      "web",
+                      "server",
+                      "db",
+                      "shared-ui"
+                    ],
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "op",
+                  "target",
+                  "file",
+                  "rule",
+                  "params"
+                ],
+                "type": "object"
+              },
+              {
+                "additionalProperties": false,
+                "properties": {
+                  "body": {
+                    "type": "string"
+                  },
+                  "extensionPoint": {
+                    "pattern": "^[a-z][a-z0-9-]*(\\.[a-z][a-z0-9-]*)+$",
+                    "type": "string"
+                  },
+                  "op": {
+                    "const": "addCssAtRule",
+                    "type": "string"
+                  },
+                  "params": {
+                    "type": "string"
+                  },
+                  "range": {
+                    "minLength": 1,
+                    "type": "string"
+                  },
+                  "rule": {
+                    "enum": [
+                      "import",
+                      "plugin",
+                      "theme"
+                    ],
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "op",
+                  "extensionPoint",
+                  "range",
+                  "rule",
+                  "params"
+                ],
+                "type": "object"
+              }
+            ]
+          },
+          {
+            "anyOf": [
+              {
+                "additionalProperties": false,
+                "properties": {
+                  "content": {
+                    "type": "string"
+                  },
+                  "file": {
+                    "minLength": 1,
+                    "type": "string"
+                  },
+                  "op": {
+                    "const": "appendRegion",
+                    "type": "string"
+                  },
+                  "region": {
+                    "minLength": 1,
+                    "type": "string"
+                  },
+                  "target": {
+                    "enum": [
+                      "root",
+                      "config",
+                      "web",
+                      "server",
+                      "db",
+                      "shared-ui"
+                    ],
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "op",
+                  "target",
+                  "file",
+                  "region",
+                  "content"
+                ],
+                "type": "object"
+              },
+              {
+                "additionalProperties": false,
+                "properties": {
+                  "content": {
+                    "type": "string"
+                  },
+                  "extensionPoint": {
+                    "pattern": "^[a-z][a-z0-9-]*(\\.[a-z][a-z0-9-]*)+$",
+                    "type": "string"
+                  },
+                  "op": {
+                    "const": "appendRegion",
+                    "type": "string"
+                  },
+                  "range": {
+                    "minLength": 1,
+                    "type": "string"
+                  },
+                  "region": {
+                    "minLength": 1,
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "op",
+                  "extensionPoint",
+                  "range",
+                  "region",
+                  "content"
+                ],
+                "type": "object"
+              }
+            ]
           }
         ]
       },

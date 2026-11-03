@@ -1,7 +1,7 @@
 import type { ModuleManifest, Op } from "@aokit/module";
 import { EngineError } from "./errors.ts";
 import type { AnswerValue } from "./interpolate.ts";
-import type { LayoutName } from "./layout.ts";
+import type { LayoutName, Target } from "./layout.ts";
 import type { FileContent, WriteOptions } from "./vfs.ts";
 
 /** Injected values passed to every Module and Op; the Engine never reads globals. */
@@ -22,7 +22,7 @@ export interface DeclaredExtensionPoint {
   readonly module: string;
   readonly name: string;
   readonly version: string;
-  readonly target: string;
+  readonly target: Target;
   readonly kind: string;
   readonly anchor: string;
 }
@@ -37,7 +37,7 @@ export interface OpVfs {
 }
 
 /** Everything an Op handler receives. */
-interface OpContext {
+export interface OpContext {
   readonly module: string;
   readonly layout: LayoutName;
   readonly context: EngineContext;

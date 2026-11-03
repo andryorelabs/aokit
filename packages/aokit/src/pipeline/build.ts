@@ -85,7 +85,7 @@ function depsTarget(manifest: ModuleManifest, layout: LayoutName): string {
   }
   const targets = [
     ...manifest.files.map((file) => file.target),
-    ...manifest.ops.map((op) => op.target),
+    ...manifest.ops.flatMap((op) => ("target" in op ? [op.target] : [])),
   ].filter((target) => target !== "root" && target !== "config");
   return targets.toSorted(compareByCodepoint)[0] ?? "root";
 }

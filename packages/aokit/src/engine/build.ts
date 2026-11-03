@@ -61,7 +61,9 @@ function targetWriters(modules: readonly EngineModule[]): Map<string, string[]> 
       note(file.target, manifest.name);
     }
     for (const op of manifest.ops) {
-      note(op.target, manifest.name);
+      if ("target" in op) {
+        note(op.target, manifest.name);
+      }
     }
     for (const point of manifest.extensionPoints) {
       note(point.target, manifest.name);

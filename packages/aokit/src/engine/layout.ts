@@ -1,8 +1,9 @@
-import type { Op } from "@aokit/module";
+import type { targetSchema } from "@aokit/module";
+import type { z } from "zod";
 import { EngineError } from "./errors.ts";
 
 /** A logical destination a Module writes to. */
-export type Target = Op["target"];
+export type Target = z.output<typeof targetSchema>;
 
 /** The two supported Layouts. */
 export type LayoutName = "single" | "monorepo";
