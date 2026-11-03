@@ -1,4 +1,18 @@
 import { join, posix } from "node:path";
+import { apply } from "../apply/index.ts";
+import { conflictFile } from "../apply/conflicts.ts";
+import { openGit } from "../git/index.ts";
+import { unifiedDiff } from "../project/diff.ts";
+import { runInstall } from "../project/install.ts";
+import {
+  assertPlanFresh,
+  deletePlanFile,
+  fingerprintFiles,
+  planMissingError,
+  readPlanFile,
+  writePlanFile,
+} from "./plan-file.ts";
+import { abortUpdate, planFilePath, writeUpdateMarker } from "./state.ts";
 import { hashFileBytes, volatileHash } from "../drift/hash.ts";
 import { layoutTables, type Target } from "../engine/layout.ts";
 import type { Plan } from "../engine/plan.ts";
@@ -384,4 +398,119 @@ export async function runUpdate(input: UpdateInput): Promise<UpdateResult> {
   const prepared = await prepare(input);
   if (prepared.run === undefined) return upToDateResult(prepared);
   return resultOf(prepared, await prepared.run(input.dryRun || input.diff));
+}
+
+const lockfileFileName = "aokit.lock.json";
+
+/** What {@link planUpdate} saved. */
+export interface PlannedUpdate {
+  readonly result: UpdateResult;
+  /** Absolute path of the saved Plan; `undefined` when the Project is up to date. */
+  readonly planPath: string | undefined;
+}
+
+/**
+ * Builds the update Plan and saves it to `<git-dir>/aokit/plan.json` (`.aokit/plan.json` outside
+ * git) with the hashes of the Lockfile and every user file it depends on. The Project is unchanged.
+ */
+export async function planUpdate(input: UpdateInput): Promise<PlannedUpdate> {
+  const lockfile = await readProjectLockfile(input.dir);
+  const result = await buildUpdatePlan(input);
+  if (result.upToDate || result.plan === undefined || result.lockfile === undefined) {
+    return { result, planPath: undefined };
+  }
+  const git = (await openGit(input.dir)) ?? undefined;
+  const hashes = await fingerprintFiles(input.dir, [
+    lockfileFileName,
+    ...Object.keys(lockfile.files),
+  ]);
+  const { [lockfileFileName]: lockfileHash, ...userFileHashes } = hashes;
+  await writePlanFile(input.dir, git, {
+    cliVersion: input.cliVersion,
+    targetRelease: result.release,
+    lockfileHash: lockfileHash ?? null,
+    userFileHashes,
+    plan: result.plan,
+    conflicts: result.conflicts,
+    targetLockfile: result.lockfile,
+  });
+  return { result, planPath: await planFilePath(input.dir, git) };
+}
+
+function changesPackageJson(plan: NonNullable<UpdateResult["plan"]>): boolean {
+  return plan.changes.some(
+    (change) =>
+      (change.path === "package.json" || change.path.endsWith("/package.json")) &&
+      change.type !== "delete",
+  );
+}
+
+/**
+ * Applies exactly the saved Plan: `PLAN_MISSING` without one, `PLAN_STALE` when the Lockfile or a
+ * recorded user file changed. Conflicts keep the stash and write the update marker; a successful
+ * apply deletes the saved Plan.
+ */
+export async function applyUpdatePlan(input: UpdateInput): Promise<UpdateResult> {
+  const git = (await openGit(input.dir)) ?? undefined;
+  const saved = await readPlanFile(input.dir, git);
+  if (saved === null) throw planMissingError();
+  await assertPlanFresh(input.dir, saved);
+  const lockfile = await readProjectLockfile(input.dir);
+  const fromRelease = lockfile.registries[registryNameOf(lockfile)]?.release ?? saved.targetRelease;
+  const base = {
+    upToDate: false,
+    fromRelease,
+    release: saved.targetRelease,
+    plan: saved.plan,
+    conflicts: saved.conflicts,
+    warnings: [],
+    lockfile: saved.targetLockfile,
+    keptDeps: [],
+    migrations: [],
+  } satisfies Partial<UpdateResult>;
+  if (input.dryRun || input.diff) {
+    return {
+      ...base,
+      diff: unifiedDiff(saved.plan),
+      applied: false,
+      installed: false,
+      stashKept: false,
+    };
+  }
+  await confirmPlan(input, saved.plan, saved.targetRelease);
+  const keepStash = saved.conflicts.length > 0;
+  const previousLockfile = keepStash
+    ? await Bun.file(join(input.dir, lockfileFileName)).text()
+    : "";
+  const applied = await apply(saved.plan, saved.targetLockfile, input.dir, {
+    ...(git === undefined ? {} : { git }),
+    conflicts: saved.conflicts,
+    keepStash,
+  });
+  if (keepStash && applied.stash !== undefined) {
+    await writeUpdateMarker(input.dir, git, {
+      stashDirectory: applied.stash.directory,
+      conflictedPaths: saved.conflicts.map((conflict) => conflict.path),
+      newSiblingPaths: saved.conflicts
+        .filter((conflict) => conflict.merged === undefined)
+        .map(conflictFile),
+      createdPaths: [...applied.stash.created],
+      previousLockfile,
+    });
+  }
+  await deletePlanFile(input.dir, git);
+  const shouldInstall = input.install && changesPackageJson(saved.plan);
+  if (shouldInstall) await (input.installer ?? ((dir) => runInstall(dir, process.env)))(input.dir);
+  return {
+    ...base,
+    diff: undefined,
+    applied: true,
+    installed: shouldInstall,
+    stashKept: keepStash,
+  };
+}
+
+/** Undoes a conflicted update and drops a saved Plan; `null` when there was nothing to abort. */
+export async function abortProjectUpdate(dir: string): Promise<{ restored: string[] } | null> {
+  return abortUpdate(dir, (await openGit(dir)) ?? undefined);
 }
