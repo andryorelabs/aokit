@@ -1,7 +1,7 @@
 import { StrictMode } from "react";
 import { createRoot } from "react-dom/client";
 import { providers } from "./providers";
-import { routes } from "./routes";
+import { routes } from "./router";
 
 const root = document.getElementById("root");
 if (root === null) {

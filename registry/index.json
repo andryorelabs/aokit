@@ -60,7 +60,7 @@
       }
     },
     "oxc": {
-      "latest": "1.0.0",
+      "latest": "1.0.1",
       "versions": {
         "1.0.0": {
           "files": {
@@ -69,6 +69,16 @@
           },
           "integrity": "sha256-d0b874de4fbf9169f7b0f7190a711edb5a382092eabb3a19eeb34bd5a407e9aa",
           "manifest": "modules/oxc/1.0.0/module.json",
+          "provides": ["lint", "format"],
+          "schemaVersion": 1
+        },
+        "1.0.1": {
+          "files": {
+            "files/oxfmtrc.json": "sha256-7ca658c7bc0bc9c6349df4a082d763b08274f17e1a0f541c3adb65fc6ea93227",
+            "files/oxlintrc.json": "sha256-a01bad19483c7a5db936bbee2acd9145091ee5d5a47c139d62860c8e15e1afe6"
+          },
+          "integrity": "sha256-facd513a0a7e168a7203125175e721b66b8634faec664b2734ec2678d8daabbc",
+          "manifest": "modules/oxc/1.0.1/module.json",
           "provides": ["lint", "format"],
           "schemaVersion": 1
         }
@@ -90,7 +100,7 @@
       }
     },
     "vite-react": {
-      "latest": "1.0.0",
+      "latest": "1.1.0",
       "versions": {
         "1.0.0": {
           "files": {
@@ -105,6 +115,21 @@
           "manifest": "modules/vite-react/1.0.0/module.json",
           "provides": ["web", "web:spa"],
           "schemaVersion": 1
+        },
+        "1.1.0": {
+          "files": {
+            "files/index.html": "sha256-3dbcf875b7dfb41c393c51e420eeb0daa1801b8518a8aef92a38e2a11a587346",
+            "files/main.tsx": "sha256-9fcb27f638654da9306a3ec7870f0f426ed17f748dbc81ddcd0eda19aa5d317b",
+            "files/providers.tsx": "sha256-a5207472b22927d10554b10bb95a4c43f01f4880872c32c0956626e5ca7e15eb",
+            "files/router.tsx": "sha256-8f27867d153c38b0401dba9aefb5fc5c8e298e2a115d13bbbc138b5bb97b1a44",
+            "files/tsconfig.json": "sha256-3af94e731aaad2740ee1bca5c2f91417ec878ea12f3a22fbbd3653fd47027b00",
+            "files/vite.config.ts": "sha256-87859ede600d5b0bbc06ad9b4ca462e6cc6b479dfc420f7e643790e030923045",
+            "migrations/routes-to-router.after.js": "sha256-21686764f847f8d1635c362c02697b0a9a72ba66123d43082057e6e868b12659"
+          },
+          "integrity": "sha256-993d7252a3b6959420d5759875227985dbcbfe68bd5371a15d8b60af81e92eb9",
+          "manifest": "modules/vite-react/1.1.0/module.json",
+          "provides": ["web", "web:spa"],
+          "schemaVersion": 1
         }
       }
     }
@@ -115,6 +140,10 @@
     "2026.11.0": {
       "integrity": "sha256-2968f80b287097945747c596d7639c44e5df5075aff4e3f2f098dc90b92e3073",
       "path": "catalog/2026.11.0.json"
+    },
+    "2026.11.1": {
+      "integrity": "sha256-934c599ceaeb8edf14bb6a992cc3a1bf4d80769cfea79f0e01d321118c6e7d5f",
+      "path": "catalog/2026.11.1.json"
     }
   },
   "schemaVersion": 1

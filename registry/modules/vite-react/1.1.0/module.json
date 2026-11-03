@@ -1,0 +1,137 @@
+{
+  "$schema": "https://aokit.dev/schema/module/v1.json",
+  "conflicts": [],
+  "deps": {
+    "dependencies": {
+      "react": {
+        "range": "catalog"
+      },
+      "react-dom": {
+        "range": "catalog"
+      }
+    },
+    "devDependencies": {
+      "@types/react": {
+        "range": "catalog"
+      },
+      "@types/react-dom": {
+        "range": "catalog"
+      },
+      "@vitejs/plugin-react": {
+        "range": "catalog"
+      },
+      "typescript": {
+        "range": "catalog"
+      },
+      "vite": {
+        "range": "catalog"
+      }
+    }
+  },
+  "env": [],
+  "extensionPoints": [
+    {
+      "anchor": "plugins",
+      "file": "vite.config.ts",
+      "kind": "array",
+      "name": "vite.plugins",
+      "target": "web",
+      "version": "1.0.0"
+    },
+    {
+      "anchor": "providers",
+      "file": "src/providers.tsx",
+      "kind": "array",
+      "name": "web.providers",
+      "target": "web",
+      "version": "1.0.0"
+    },
+    {
+      "anchor": "routes",
+      "file": "src/router.tsx",
+      "kind": "array",
+      "name": "web.routes",
+      "target": "web",
+      "version": "1.0.0"
+    }
+  ],
+  "files": [
+    {
+      "from": "files/index.html",
+      "ownership": "managed",
+      "target": "web",
+      "to": "index.html"
+    },
+    {
+      "from": "files/vite.config.ts",
+      "ownership": "managed",
+      "target": "web",
+      "to": "vite.config.ts"
+    },
+    {
+      "from": "files/tsconfig.json",
+      "ownership": "seed",
+      "target": "web",
+      "to": "tsconfig.json"
+    },
+    {
+      "from": "files/main.tsx",
+      "ownership": "managed",
+      "target": "web",
+      "to": "src/main.tsx"
+    },
+    {
+      "from": "files/providers.tsx",
+      "ownership": "managed",
+      "target": "web",
+      "to": "src/providers.tsx"
+    },
+    {
+      "from": "files/router.tsx",
+      "ownership": "managed",
+      "target": "web",
+      "to": "src/router.tsx"
+    }
+  ],
+  "migrations": [
+    {
+      "from": ">=1.0.0 <1.1.0",
+      "script": "migrations/routes-to-router.after.js",
+      "stage": "after",
+      "to": "1.1.0"
+    }
+  ],
+  "name": "vite-react",
+  "ops": [
+    {
+      "file": "package.json",
+      "op": "mergeJson",
+      "target": "root",
+      "value": {
+        "scripts": {
+          "build": "bun run --cwd {{target:web}} vite build",
+          "dev": "bun run --cwd {{target:web}} vite",
+          "preview": "bun run --cwd {{target:web}} vite preview"
+        }
+      }
+    }
+  ],
+  "override": [],
+  "provides": [
+    {
+      "capability": "web",
+      "cardinality": {
+        "max": 1
+      }
+    },
+    {
+      "capability": "web:spa",
+      "cardinality": {
+        "max": 1
+      }
+    }
+  ],
+  "requires": [],
+  "schemaVersion": 1,
+  "version": "1.1.0"
+}

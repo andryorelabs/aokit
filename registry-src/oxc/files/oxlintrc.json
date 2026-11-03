@@ -4,5 +4,8 @@
     "suspicious": "error",
     "perf": "error"
   },
+  "rules": {
+    "no-debugger": "error"
+  },
   "ignorePatterns": ["**/node_modules/**", "coverage/**", "dist/**"]
 }
