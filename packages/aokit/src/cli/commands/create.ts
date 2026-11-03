@@ -1,5 +1,6 @@
 import { z } from "zod";
 import { runCreate } from "../../create/index.ts";
+import { AokitError } from "../envelope.ts";
 import { defineCommand } from "../command.ts";
 import { aokitMeta } from "../meta.ts";
 
@@ -11,14 +12,21 @@ const createInput = z.object({
     .register(aokitMeta, { positional: 0, examples: ["my-app"] }),
   layout: z
     .enum(["single", "monorepo"])
-    .default("single")
-    .describe("Project Layout")
+    .optional()
+    .describe("Project Layout; `single` by default")
     .register(aokitMeta, { flag: "layout", examples: ["--layout monorepo"] }),
   modules: z
     .string()
     .optional()
     .describe("Comma-separated Modules to install")
     .register(aokitMeta, { flag: "modules", examples: ["--modules oxc,vite-react"] }),
+  from: z
+    .string()
+    .optional()
+    .describe(
+      "Local aokit.lock.json to create from: its Layout, Module versions, answers and Registries",
+    )
+    .register(aokitMeta, { flag: "from", examples: ["--from ../app/aokit.lock.json"] }),
   answer: z
     .array(z.string())
     .default([])
@@ -82,15 +90,32 @@ function splitModules(modules: string | undefined): string[] {
     .filter((name) => name !== "");
 }
 
+function assertFromHasNoSelection(input: z.infer<typeof createInput>): void {
+  const conflicting = [
+    input.layout === undefined ? undefined : "--layout",
+    input.modules === undefined ? undefined : "--modules",
+    input.registry === undefined ? undefined : "--registry",
+  ].filter((flag) => flag !== undefined);
+  if (conflicting.length > 0) {
+    throw new AokitError(
+      "INVALID_INPUT",
+      `${conflicting.join(", ")} cannot be combined with --from: the Lockfile fixes the Layout, Module versions and Registries`,
+      "drop the flag; only `--answer <module.key=value>` can override a value of the Lockfile",
+    );
+  }
+}
+
 export const createCommand = defineCommand({
   name: "create",
   description: "Create a new Project from a selection of Modules",
   input: createInput,
   output: createOutput,
   run(context, input) {
+    if (input.from !== undefined) assertFromHasNoSelection(input);
     return runCreate({
       directory: input.directory,
-      layout: input.layout,
+      layout: input.layout ?? "single",
+      from: input.from,
       modules: splitModules(input.modules),
       answers: input.answer,
       registry: input.registry,
