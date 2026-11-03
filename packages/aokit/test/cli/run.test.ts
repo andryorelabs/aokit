@@ -120,6 +120,8 @@ describe("exit codes", () => {
     const result = await runAokit(["--help"]);
     expect(result.exitCode).toBe(0);
     expect(result.stdout).toContain("schema");
+    expect(result.stdout).not.toContain("ExitRequested");
+    expect(result.stderr).not.toContain("ExitRequested");
   });
 });
 

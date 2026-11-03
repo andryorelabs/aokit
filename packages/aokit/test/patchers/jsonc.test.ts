@@ -26,3 +26,9 @@ test("mergeJsonc merges nested objects and is idempotent", () => {
 test("mergeJsonc creates the document from empty text", () => {
   expect(Bun.JSONC.parse(mergeJsonc("", { z: 1, a: 2 }))).toEqual({ a: 2, z: 1 });
 });
+
+test("mergeJsonc keeps comments inside arrays when appending", () => {
+  const result = mergeJsonc('{"a": ["x", // keep me\n "y"]}\n', { a: ["z"] });
+  expect(result).toContain("// keep me");
+  expect(result).toContain('"z"');
+});

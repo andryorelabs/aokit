@@ -159,6 +159,10 @@ async function dispatchThroughParser(
   const collect = (...parts: unknown[]): void => {
     parserMessages.push(parts.map(String).join(" "));
   };
+  const collectLog = (...parts: unknown[]): void => {
+    if (parts.some((part) => /^ExitRequested\b/.test(String(part)))) return;
+    collect(...parts);
+  };
   const program = cli.buildProgram();
   let requestedExitCode: number | undefined;
   const requestExit = (exitCode: number): never => {
@@ -171,7 +175,7 @@ async function dispatchThroughParser(
       {
         argv: rest,
         prompts: false,
-        logger: { info: collect, error: collect },
+        logger: { info: collect, error: collectLog },
         process: {
           exit: requestExit,
         },

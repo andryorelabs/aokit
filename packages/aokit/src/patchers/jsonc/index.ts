@@ -67,7 +67,15 @@ function mergeAt(text: string, path: JSONPath, current: unknown, patch: JsoncVal
   }
   if (Array.isArray(patch) && isJsoncArray(current)) {
     const merged = unionByValue(current, patch);
-    return merged.length === current.length ? text : setAt(text, path, merged);
+    let next = text;
+    for (let index = current.length; index < merged.length; index += 1) {
+      const edits = modify(next, [...path, index], merged[index], {
+        formattingOptions: FORMATTING,
+        isArrayInsertion: true,
+      });
+      next = applyEdits(next, edits);
+    }
+    return next;
   }
   if (JSON.stringify(current) === JSON.stringify(patch)) return text;
   return setAt(text, path, sortKeysDeep(patch));

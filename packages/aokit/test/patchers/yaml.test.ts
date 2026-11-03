@@ -31,3 +31,16 @@ test("mergeYaml is idempotent", () => {
 test("mergeYaml creates a document from empty text", () => {
   expect(mergeYaml("", { a: 1 })).toBe("a: 1\n");
 });
+
+test("mergeYaml keeps anchors and the data behind an aliased value", () => {
+  const result = mergeYaml("base: &b\n  a: 1\ndev: *b\n", { dev: { c: 2 } });
+  expect(result).toContain("base: &b");
+  expect(result).toContain("a: 1");
+  expect(result).toContain("c: 2");
+  expect(mergeYaml(result, { dev: { c: 2 } })).toBe(result);
+});
+
+test("mergeYaml does not duplicate a value already present through an alias", () => {
+  const aliased = "x: &x foo\nlist: [*x]\n";
+  expect(mergeYaml(aliased, { list: ["foo"] })).toBe(mergeYaml(aliased, {}));
+});
