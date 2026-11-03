@@ -10,6 +10,9 @@
     "idPattern": "^AO-\\d+$",
     "branchPrefix": "ao"
   },
+  "worktree": {
+    "bootstrap": ["bun install --frozen-lockfile"]
+  },
   "concurrency": {
     "waveSize": 4,
     "maxLiveWorkers": "auto",
@@ -18,13 +21,7 @@
   "tracker": {
     "kind": "linear",
     "readyLabel": "ready-for-agent",
-    "triageLabels": [
-      "needs-triage",
-      "needs-info",
-      "ready-for-agent",
-      "ready-for-human",
-      "wontfix"
-    ],
+    "triageLabels": ["needs-triage", "needs-info", "ready-for-agent", "ready-for-human", "wontfix"],
     "transitions": {
       "onStart": "worker",
       "onPrOpen": "automatic",
@@ -73,6 +70,6 @@
     "highRiskPaths": []
   },
   "commands": {
-    "selfCheck": []
+    "selfCheck": ["bun run check", "bun run test"]
   }
 }

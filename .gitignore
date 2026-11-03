@@ -2,3 +2,8 @@
 # forge local tracker: tickets are versioned, tracker state is not.
 .forge/*
 !.forge/tickets/
+
+node_modules/
+coverage/
+dist/
+*.tsbuildinfo

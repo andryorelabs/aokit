@@ -1,0 +1,14 @@
+{
+  "$schema": "./node_modules/oxlint/configuration_schema.json",
+  "plugins": ["typescript", "unicorn", "oxc", "import", "jsdoc", "promise", "node"],
+  "jsPlugins": ["./tools/oxlint/local-plugin.ts"],
+  "categories": {
+    "correctness": "error",
+    "suspicious": "error",
+    "perf": "error"
+  },
+  "rules": {
+    "local/no-non-doc-comments": "error"
+  },
+  "ignorePatterns": [".claude/**", ".forge/**", "**/node_modules/**", "coverage/**", "dist/**"]
+}

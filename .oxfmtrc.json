@@ -1,0 +1,15 @@
+{
+  "$schema": "./node_modules/oxfmt/configuration_schema.json",
+  "ignorePatterns": [
+    "bun.lock",
+    "**/node_modules/**",
+    ".claude/**",
+    ".forge/**",
+    "coverage/**",
+    "dist/**",
+    "schema/**",
+    "docs/**",
+    "CONTEXT.md",
+    "LICENSE"
+  ]
+}
