@@ -181,3 +181,47 @@ test.each(layouts)("applying each Op a second time changes nothing (%s)", async 
   const doubled = await render(layout, [contributor("auth", [...ops, ...ops])]);
   expect(doubled).toBe(once);
 });
+
+const register = (key: string, expression: string) => ({
+  op: "registerAt",
+  ...point("web.handlers"),
+  key,
+  expression,
+});
+
+test.each(layouts)("registerAt on a quoted key is idempotent (%s)", async (layout) => {
+  const once = await render(layout, [contributor("auth", [register('"/login"', "login")])]);
+  const twice = await render(layout, [
+    contributor("auth", [register('"/login"', "login"), register('"/login"', "login")]),
+  ]);
+  expect(twice).toBe(once);
+  expect(once).toContain('"/login": login');
+});
+
+test("two Modules registering one key with different values fail naming both", async () => {
+  const error = await failure([
+    contributor("auth", [register("ping", "authPing")]),
+    contributor("billing", [register("ping", "billingPing")]),
+  ]);
+  expect(error.code).toBe("ops.key-conflict");
+  expect(error.message).toContain('"auth"');
+  expect(error.message).toContain('"billing"');
+});
+
+test("anchor lookup ignores declaration files and generated directories", async () => {
+  const generated = moduleOf(
+    {
+      name: "generated",
+      files: [
+        { from: "providers.ts", to: "dist/providers.ts", target: "web" },
+        { from: "providers.ts", to: "types/providers.d.ts", target: "web" },
+      ],
+    },
+    { "providers.ts": providersSource },
+  );
+  const result = await render("single", [
+    generated,
+    contributor("auth", [{ op: "addToArray", ...point("web.providers"), element: "Auth()" }]),
+  ]);
+  expect(result).toContain("Auth()");
+});

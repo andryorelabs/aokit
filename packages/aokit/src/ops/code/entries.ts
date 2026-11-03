@@ -2,14 +2,15 @@ import type { createEditBatch } from "../../edit/batch.ts";
 import { CodeOpError } from "./errors.ts";
 import type { AnchorSite } from "./resolve.ts";
 
-const keyPattern = /^\[?["']?([A-Za-z_$][\w$-]*)["']?\]?\s*(?::|\(|,|$)/;
+const keyPattern = /^(?:\[\s*)?(?:"([^"]*)"|'([^']*)'|([A-Za-z_$][\w$]*))\s*\]?\s*(?::|\(|,|$)/;
 
 function squash(text: string): string {
   return text.replaceAll(/\s+/g, "");
 }
 
 function entryKey(entrySource: string): string | undefined {
-  return keyPattern.exec(entrySource)?.[1];
+  const match = keyPattern.exec(entrySource);
+  return match?.[1] ?? match?.[2] ?? match?.[3];
 }
 
 function entrySources(site: AnchorSite): string[] {
@@ -24,9 +25,15 @@ export function hasEntryText(site: AnchorSite, text: string): boolean {
   return entrySources(site).some((existing) => squash(existing) === wanted);
 }
 
-/** True when the anchor object already has a property named `key`. */
-export function hasEntryKey(site: AnchorSite, key: string): boolean {
-  return entrySources(site).some((existing) => entryKey(existing) === key);
+/** The source text of the anchor object's property named `key`, if it has one. */
+export function findEntryByKey(site: AnchorSite, key: string): string | undefined {
+  const wanted = key.replace(/^(["'])(.*)\1$/, "$2");
+  return entrySources(site).find((existing) => entryKey(existing) === wanted);
+}
+
+/** True when two entries have the same text ignoring whitespace. */
+export function sameEntry(left: string, right: string): boolean {
+  return squash(left) === squash(right);
 }
 
 function requireValue(site: AnchorSite, kind: "array" | "object", module: string) {
