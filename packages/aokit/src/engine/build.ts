@@ -226,6 +226,7 @@ export async function buildPlan(options: BuildPlanOptions): Promise<Plan> {
     for (const op of manifest.ops) {
       const opVfs: OpVfs = {
         has: (path) => work.has(path),
+        paths: () => work.paths(),
         read: (path) => work.read(path),
         write: (path, content, writeOptions) => {
           work.write(path, content, writeOptions);
