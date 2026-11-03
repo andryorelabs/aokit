@@ -313,7 +313,7 @@ test("an unknown Op name fails naming the Op and the Module", async () => {
     name: "hono",
     ops: [{ op: "addEnv", target: "server", entries: {} }],
   });
-  const error = await capture(() => build([module]));
+  const error = await capture(() => build([module], { opHandlers: createOpRegistry({}) }));
   expect(error.code).toBe("engine.unknown-op");
   expect(error.message).toContain("addEnv");
   expect(error.message).toContain("hono");
