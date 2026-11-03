@@ -88,6 +88,18 @@ _Avoid_: version (of a Registry), drop, channel
 The set of dependency versions a Release ships, tested together.
 _Avoid_: version map, bill of materials
 
+**Migration**:
+A VFS codemod shipped with a Module version that carries a Project across a change a re-render cannot, and may migrate the Module's answers.
+_Avoid_: upgrade script, codemod, hook
+
+**Renames manifest**:
+A Module version's map from the previous version's paths to its own, relative to a Target, so the user's edits follow a moved file.
+_Avoid_: move list, path map
+
+**Upgrade job**:
+The CI check that a Project created at one Release, with representative edits, updates to the next Release with zero Conflicts.
+_Avoid_: upgrade test, migration test
+
 **Toolchain pin group**:
 Dependencies pinned exactly regardless of the default range policy (the oxc packages, the TypeScript 7 alias).
 _Avoid_: locked deps, frozen deps
@@ -106,6 +118,7 @@ _Avoid_: app, workspace
 - A **Render** is built from a selection, or from the Lockfile, and compared with the working tree to give each file a **Drift state**.
 - The **Merger** combines the base Render, the user's file and the new Render; what it cannot reconcile is a **Conflict**.
 - A **Registry** publishes **Releases**; each Release has one **Catalog**; the **Toolchain pin group** is the part of the Catalog pinned exactly.
+- A Module version may ship **Migrations** and a **Renames manifest**; `update` moves a Project from one Release to another and runs them.
 
 ## Flagged ambiguities
 

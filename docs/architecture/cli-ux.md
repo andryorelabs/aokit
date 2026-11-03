@@ -94,7 +94,10 @@ Some results are neither a plain success nor an unexpected failure: `doctor` fou
 | `LOCKFILE_MISSING` | `5` | None. |
 | `NOT_IN_LOCKFILE`, `NOT_SELECTED` | `3` | None. |
 | `DEPENDENTS_EXIST` | `4` | The dependents that block the removal. |
-| `MODULE_VERSION_UNAVAILABLE` | `1` | Module, version and the `aokit recopy` fix. |
+| `MODULE_VERSION_UNAVAILABLE` | `1` | Module, version and the `aokit recopy` fix (`aokit remove <module>` for `update`). |
+| `MIGRATION_FAILED` | `1` | Module, script and the `from` to `to` jump. |
+| `PLAN_STALE` | `5` | The files whose hash changed since `update --plan`. |
+| `PLAN_MISSING` | `5` | None. |
 
 A Resolver rejection keeps its raw Resolver code in `error.data.resolverCode`, so tools can branch on it without parsing the message. These codes are defined together, so adding a command never changes the code table.
 

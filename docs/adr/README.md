@@ -21,6 +21,7 @@ Decisions that are hard to reverse, surprising without context, and the result o
 | 0013 | [No telemetry in v1](0013-no-telemetry-in-v1.md) | Accepted | S11 |
 | 0014 | [Extension point anchors are identifier names](0014-extension-point-anchors-are-identifier-names.md) | Accepted | S12 (core spec) |
 | 0015 | [Lifecycle outcomes are error codes with data](0015-lifecycle-outcomes-are-error-codes-with-data.md) | Accepted | S3 (phase 4a spec) |
+| 0016 | [Update moves a Project between Releases](0016-update-moves-a-project-between-releases.md) | Accepted | S6, S7 (phase 4b spec) |
 
 ## Format
 
