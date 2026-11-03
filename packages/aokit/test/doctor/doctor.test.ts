@@ -1,0 +1,208 @@
+import { afterAll, beforeAll, describe, expect, test } from "bun:test";
+import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
+import { runCommand, type CommandContext } from "../../src/cli/command.ts";
+import { createCommand } from "../../src/cli/commands/create.ts";
+import { doctorCommand } from "../../src/cli/commands/doctor.ts";
+import { exposedCommands } from "../../src/cli/commands/registry.ts";
+import { exitCodeForEnvelope } from "../../src/cli/envelope.ts";
+import { cliVersion } from "../../src/cli/version.ts";
+import { runGitChecked } from "../../src/git/run.ts";
+
+const context: CommandContext = { version: cliVersion, env: {}, commands: exposedCommands };
+const workspaces: string[] = [];
+
+afterAll(() => {
+  for (const path of workspaces) rmSync(path, { recursive: true, force: true });
+});
+
+async function createProject(useGit: boolean): Promise<string> {
+  const root = mkdtempSync(join(tmpdir(), "aokit-doctor-"));
+  workspaces.push(root);
+  const directory = join(root, "app");
+  const created = await runCommand(createCommand, context, {
+    directory,
+    modules: "oxc",
+    yes: true,
+    install: false,
+  });
+  expect(created.ok).toBe(true);
+  if (useGit) await runGitChecked(directory, ["init", "-q"]);
+  return directory;
+}
+
+async function doctor(directory: string) {
+  const envelope = await runCommand(doctorCommand, context, { directory });
+  return { envelope, exitCode: exitCodeForEnvelope(envelope) };
+}
+
+function lockfileOf(directory: string): { files: Record<string, { hash: string; mode: string }> } {
+  return JSON.parse(readFileSync(join(directory, "aokit.lock.json"), "utf8"));
+}
+
+function stateMap(data: unknown): Record<string, string> {
+  const files = doctorCommand.output.parse(data).files;
+  return Object.fromEntries(files.map((file) => [file.path, file.state]));
+}
+
+for (const useGit of [true, false]) {
+  describe(`doctor ${useGit ? "in git" : "outside git"}`, () => {
+    let directory = "";
+    beforeAll(async () => {
+      directory = await createProject(useGit);
+    });
+
+    test("an untouched Project is clean with every file pristine", async () => {
+      const { envelope, exitCode } = await doctor(directory);
+      expect(exitCode).toBe(0);
+      expect(envelope.ok).toBe(true);
+      const states = new Set(Object.values(stateMap(envelope.data)));
+      expect([...states].filter((state) => state !== "pristine" && state !== "volatile")).toEqual(
+        [],
+      );
+    });
+
+    test("an edited, a deleted and a new file report modified, deleted and unknown", async () => {
+      const lockfile = lockfileOf(directory);
+      const managed = Object.entries(lockfile.files)
+        .filter(([path, entry]) => entry.mode === "managed" && !path.endsWith("package.json"))
+        .map(([path]) => path);
+      const edited = managed[0] ?? "";
+      const removed = managed[1] ?? "";
+      expect(edited).not.toBe("");
+      expect(removed).not.toBe("");
+      const original = readFileSync(join(directory, edited), "utf8");
+      writeFileSync(join(directory, edited), `${original}\n// edit\n`);
+      const removedContent = readFileSync(join(directory, removed), "utf8");
+      rmSync(join(directory, removed));
+      mkdirSync(join(directory, "src"), { recursive: true });
+      writeFileSync(join(directory, "src", "brand-new.ts"), "export {};\n");
+
+      const { envelope, exitCode } = await doctor(directory);
+      expect(exitCode).toBe(1);
+      expect(envelope.ok).toBe(false);
+      expect(envelope.error?.code).toBe("DRIFT");
+      const states = stateMap(envelope.data);
+      expect(states[edited]).toBe("modified");
+      expect(states[removed]).toBe("deleted");
+      expect(states["src/brand-new.ts"]).toBe("unknown");
+      const others = Object.entries(states).filter(
+        ([path]) => ![edited, removed, "src/brand-new.ts"].includes(path),
+      );
+      expect(others.every(([, state]) => state === "pristine" || state === "volatile")).toBe(true);
+      expect(Object.values(states).filter((state) => state === "modified")).toHaveLength(1);
+      expect(doctorOutputParses(envelope.data)).toBe(true);
+
+      writeFileSync(join(directory, edited), original);
+      writeFileSync(join(directory, removed), removedContent);
+      rmSync(join(directory, "src", "brand-new.ts"));
+    });
+
+    test("CRLF content hashes like LF", async () => {
+      const lockfile = lockfileOf(directory);
+      const path = Object.entries(lockfile.files).find(
+        ([file, entry]) => entry.mode === "managed" && file.endsWith(".json"),
+      )?.[0];
+      expect(path).toBeDefined();
+      const original = readFileSync(join(directory, path ?? ""), "utf8");
+      writeFileSync(join(directory, path ?? ""), original.replaceAll("\n", "\r\n"));
+      const { envelope } = await doctor(directory);
+      expect(stateMap(envelope.data)[path ?? ""]).toBe("pristine");
+      writeFileSync(join(directory, path ?? ""), original);
+    });
+
+    test("a .aokit-new file is unknown", async () => {
+      const lockfile = lockfileOf(directory);
+      const path = Object.keys(lockfile.files).find((file) => !file.endsWith("package.json")) ?? "";
+      writeFileSync(join(directory, `${path}.aokit-new`), "x");
+      const { envelope, exitCode } = await doctor(directory);
+      expect(exitCode).toBe(1);
+      expect(stateMap(envelope.data)[`${path}.aokit-new`]).toBe("unknown");
+      rmSync(join(directory, `${path}.aokit-new`));
+    });
+
+    test("an ejected file reports no drift when edited", async () => {
+      const lockfile = lockfileOf(directory);
+      const path = Object.keys(lockfile.files).find((file) => !file.endsWith("package.json")) ?? "";
+      const edited = JSON.parse(readFileSync(join(directory, "aokit.lock.json"), "utf8"));
+      edited.files[path].mode = "ejected";
+      writeFileSync(join(directory, "aokit.lock.json"), JSON.stringify(edited));
+      const original = readFileSync(join(directory, path), "utf8");
+      writeFileSync(join(directory, path), `${original}\nchanged\n`);
+      const { envelope, exitCode } = await doctor(directory);
+      expect(exitCode).toBe(0);
+      expect(stateMap(envelope.data)[path]).toBe("pristine");
+      writeFileSync(join(directory, path), original);
+      edited.files[path].mode = lockfile.files[path]?.mode;
+      writeFileSync(join(directory, "aokit.lock.json"), JSON.stringify(edited));
+    });
+
+    test("a volatile-hash file classifies volatile, not modified", async () => {
+      const lockfile = JSON.parse(readFileSync(join(directory, "aokit.lock.json"), "utf8"));
+      const path = Object.keys(lockfile.files).find((file) => !file.endsWith("package.json")) ?? "";
+      const previous = lockfile.files[path].hash;
+      const { createHash } = await import("node:crypto");
+      lockfile.files[path].hash = `sha256-${createHash("sha256").update("volatile").digest("hex")}`;
+      writeFileSync(join(directory, "aokit.lock.json"), JSON.stringify(lockfile));
+      const { envelope, exitCode } = await doctor(directory);
+      expect(exitCode).toBe(0);
+      expect(stateMap(envelope.data)[path]).toBe("volatile");
+      lockfile.files[path].hash = previous;
+      writeFileSync(join(directory, "aokit.lock.json"), JSON.stringify(lockfile));
+    });
+
+    test("a leftover stash is reported and removed", async () => {
+      const stashRoot = useGit
+        ? join(directory, ".git", "aokit", "stash", "old")
+        : join(directory, ".aokit", "stash", "old");
+      mkdirSync(stashRoot, { recursive: true });
+      writeFileSync(join(stashRoot, "leftover.txt"), "x");
+      const first = await doctor(directory);
+      expect(first.exitCode).toBe(1);
+      expect(doctorCommand.output.parse(first.envelope.data).problems.map((p) => p.kind)).toContain(
+        "stash",
+      );
+      expect((await doctor(directory)).exitCode).toBe(0);
+    });
+
+    test("a missing dependency in package.json is a problem", async () => {
+      const manifestPath = join(directory, "package.json");
+      const original = readFileSync(manifestPath, "utf8");
+      const manifest = JSON.parse(original);
+      const lockfile = JSON.parse(readFileSync(join(directory, "aokit.lock.json"), "utf8"));
+      const name = Object.keys(lockfile.deps)[0] ?? "";
+      expect(name).not.toBe("");
+      delete manifest.devDependencies?.[name];
+      delete manifest.dependencies?.[name];
+      writeFileSync(manifestPath, JSON.stringify(manifest, null, 2));
+      const { envelope } = await doctor(directory);
+      const { problems } = doctorCommand.output.parse(envelope.data);
+      expect(problems.some((problem) => problem.kind === "deps")).toBe(true);
+      writeFileSync(manifestPath, original);
+    });
+  });
+}
+
+describe("doctor Lockfile errors", () => {
+  test("a missing Lockfile exits 5 with LOCKFILE_MISSING", async () => {
+    const root = mkdtempSync(join(tmpdir(), "aokit-doctor-empty-"));
+    workspaces.push(root);
+    const { envelope, exitCode } = await doctor(root);
+    expect(exitCode).toBe(5);
+    expect(envelope.error?.code).toBe("LOCKFILE_MISSING");
+  });
+
+  test("an unreadable Lockfile exits 5", async () => {
+    const root = mkdtempSync(join(tmpdir(), "aokit-doctor-bad-"));
+    workspaces.push(root);
+    writeFileSync(join(root, "aokit.lock.json"), "{not json");
+    const { envelope, exitCode } = await doctor(root);
+    expect(exitCode).toBe(5);
+    expect(envelope.error?.code).toBe("LOCKFILE_MISSING");
+  });
+});
+
+function doctorOutputParses(data: unknown): boolean {
+  return doctorCommand.output.safeParse(data).success;
+}
