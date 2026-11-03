@@ -48,8 +48,9 @@ Every Module version has its own immutable directory, and every [Release](../../
   "name": "aokit",
   "release": "2026.11.0",
   "minCliVersion": "0.1.0",
-  "catalog": { "path": "catalog/2026.11.0.json", "integrity": "sha256-<hex>" },
-  "releases": ["2026.11.0"],
+  "releases": {
+    "2026.11.0": { "path": "catalog/2026.11.0.json", "integrity": "sha256-<hex>" }
+  },
   "modules": {
     "oxc": {
       "latest": "1.0.0",
@@ -71,9 +72,8 @@ Every Module version has its own immutable directory, and every [Release](../../
 | `$schema`, `schemaVersion` | Versioned like Module manifests: a CLI reads indexes up to the `schemaVersion` it supports; a newer one fails with an error that tells the user to update the CLI, and unknown fields are an error ([Schema versioning](module-contract.md#schema-versioning)). |
 | `name` | The Registry name, used in `@name/module` addresses and recorded in the Lockfile `registry` field. |
 | `release` | Identifier of the current Release, which is also the stem of `catalog/<release>.json`. |
-| `releases` | Every Release the Registry has published. Each has its own Catalog file, so a Project can be rendered at the Release its Lockfile records. |
+| `releases` | Every Release the Registry has published, each with the path and integrity of its own Catalog file, so a Project can be rendered at the Release its Lockfile records. |
 | `minCliVersion` | Lowest CLI version able to use this release. The Lockfile records it per release ([Lockfile](lockfile.md)); a CLI below it stops with an update instruction before any fetch. |
-| `catalog` | Pointer and integrity for the release Catalog. |
 | `modules.<name>.latest` | The version `add` selects when the user gives none. |
 | `modules.<name>.versions.<v>` | A version entry: `manifest` path, `integrity` over the manifest and the Module's files ([Trust model](#integrity)), and a summary (`provides`) so the Resolver can list candidates without downloading every manifest. The manifest is authoritative; a mismatch with the summary is a Registry error. |
 
