@@ -1,0 +1,12 @@
+{
+  "$schema": "https://aokit.dev/schema/registry/v1.json",
+  "catalog": {
+    "integrity": "sha256:2968f80b287097945747c596d7639c44e5df5075aff4e3f2f098dc90b92e3073",
+    "path": "catalog/2026.11.0.json"
+  },
+  "minCliVersion": "0.1.0",
+  "modules": {},
+  "name": "official",
+  "release": "2026.11.0",
+  "schemaVersion": 1
+}

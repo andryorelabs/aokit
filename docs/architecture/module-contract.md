@@ -38,7 +38,7 @@ export default defineModule({
 | `deps` | see [deps](#deps) | npm dependencies, per dependency type, with optional `pinGroup`. |
 | `env` | `{ key, scope, example?, schema? }[]` | Environment variables the Module needs; written through the `env` patcher, never overwriting existing keys. |
 | `ops` | [Op](engine.md#ops-catalog)[] | Declarative edits at Extension points or files. |
-| `extensionPoints` | `{ name, version, target, kind, anchor }[]` | Extension points this (base) Module declares. See [Capabilities](capabilities.md#extension-points). |
+| `extensionPoints` | `{ name, version, target, kind, anchor, file? }[]` | Extension points this (base) Module declares. See [Capabilities](capabilities.md#extension-points). |
 | `override` | `{ file \| op, reason }[]` | Explicit permission to replace something another Module produced, see [Override](#override). |
 | `migrations` | `{ from, to, stage }[]` | Module migrations between versions; specified in the update docs. |
 
@@ -119,7 +119,7 @@ Declarative Ops cover the common edits. A Module may also ship an arbitrary tran
     }
   ],
   "extensionPoints": [
-    { "name": "lint.ignores", "version": "1.0.0", "target": "config", "kind": "array", "anchor": "ignorePatterns" }
+    { "name": "lint.ignores", "version": "1.0.0", "target": "config", "kind": "json", "anchor": "/ignorePatterns", "file": ".oxlintrc.json" }
   ]
 }
 ```

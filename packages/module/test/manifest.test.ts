@@ -2,6 +2,7 @@ import { expect, test } from "bun:test";
 import { mkdtemp, readFile, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
+import type { z } from "zod";
 import {
   catalogSchema,
   compileModule,
@@ -87,7 +88,12 @@ test("bare-string provides normalizes to { max: 1 } and many is accepted", () =>
 });
 
 test("the Op union covers all 8 Ops", () => {
-  expect(opSchema.options.map((option) => option.shape.op.value).toSorted()).toEqual([
+  const members: readonly z.ZodObject[] = opSchema.options.flatMap(
+    (option): readonly z.ZodObject[] => ("options" in option ? option.options : [option]),
+  );
+  expect(
+    [...new Set(members.map((member) => String(member.shape.op.def.values[0])))].toSorted(),
+  ).toEqual([
     "addCssAtRule",
     "addEnv",
     "addImport",
