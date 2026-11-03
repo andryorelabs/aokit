@@ -257,6 +257,19 @@ describe("aokit create", () => {
     await Bun.sleep(300);
     child.kill("SIGINT");
     expect(await child.exited).toBe(130);
+    expect(await Bun.file(join(parent, "app", "aokit.lock.json")).exists()).toBe(true);
+  });
+
+  test("human --diff prints raw unified diffs and --dry-run prints a change list", async () => {
+    const parent = workspace();
+    const diff = await runAokit(["create", join(parent, "a"), "--modules", "oxc", "--diff"]);
+    expect(diff.exitCode).toBe(0);
+    expect(diff.stdout).toContain("--- /dev/null\n+++ b/.oxlintrc.json\n@@ -0,0 +1,");
+    expect(diff.stdout.trimStart().startsWith("{")).toBe(false);
+    const dryRun = await runAokit(["create", join(parent, "b"), "--modules", "oxc", "--dry-run"]);
+    expect(dryRun.exitCode).toBe(0);
+    expect(dryRun.stdout).toContain("create package.json (");
+    expect(dryRun.stdout.trimStart().startsWith("{")).toBe(false);
   });
 
   test("--version prints 0.1.0 and schema create prints the input schema", async () => {

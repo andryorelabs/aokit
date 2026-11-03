@@ -2,6 +2,7 @@ import { createCli, t, type CommanderProgramLike } from "trpc-cli";
 import { z } from "zod";
 import { isColorEnabled } from "./color.ts";
 import { runCommand, type AnyCommand, type CommandContext } from "./command.ts";
+import { renderHuman } from "./human.ts";
 import {
   exitCodeForEnvelope,
   failureEnvelope,
@@ -202,9 +203,7 @@ function renderEnvelope(envelope: Envelope, json: boolean, color: boolean, io: C
     return;
   }
   if (envelope.ok) {
-    const text =
-      typeof envelope.data === "string" ? envelope.data : stringifySorted(envelope.data, 2);
-    io.stdout(`${text}\n`);
+    io.stdout(`${renderHuman(envelope.data)}\n`);
     return;
   }
   const label = color ? "\u001B[31merror\u001B[0m" : "error";
