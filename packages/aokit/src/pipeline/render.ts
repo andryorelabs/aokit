@@ -1,5 +1,5 @@
-import { isAbsolute, resolve as resolvePath } from "node:path";
 import { AokitError } from "../cli/envelope.ts";
+import { resolveRegistrySource } from "../project/registry.ts";
 import { fromResolveError, toAokitError } from "../project/errors.ts";
 import type { AnswerValue } from "../engine/interpolate.ts";
 import { formatterForSelection } from "../format/index.ts";
@@ -7,7 +7,6 @@ import type { Lockfile } from "../lockfile/schema.ts";
 import { type LocalRegistry, readLocalRegistry } from "../registry/index.ts";
 import { type BuiltProject, type PipelineModule, buildProject } from "./build.ts";
 
-const bundledSource = "bundled";
 const fixedNow = new Date(0);
 
 /** Options of {@link renderFromLockfile}. */
@@ -34,20 +33,6 @@ function assertCliIsNewEnough(lockfile: Lockfile, cliVersion: string): void {
   }
 }
 
-function sourcePath(source: string, options: RenderFromLockfileOptions): string {
-  if (source === bundledSource) {
-    return options.bundledRegistryPath;
-  }
-  if (/^[A-Za-z][A-Za-z0-9+.-]*:\/\//.test(source)) {
-    throw new AokitError(
-      "INVALID_INPUT",
-      `Registry source "${source}" is a URL, and remote Registries are not supported yet.`,
-      "Use a local Registry path or the bundled Registry.",
-    );
-  }
-  return isAbsolute(source) ? source : resolvePath(options.projectDir, source);
-}
-
 async function readRegistries(
   lockfile: Lockfile,
   options: RenderFromLockfileOptions,
@@ -55,7 +40,7 @@ async function readRegistries(
   const entries = Object.entries(lockfile.registries).toSorted(([left], [right]) =>
     left < right ? -1 : left > right ? 1 : 0,
   );
-  const paths = entries.map(([, registry]) => sourcePath(registry.source, options));
+  const paths = entries.map(([, registry]) => resolveRegistrySource(registry.source, options));
   const registries = await Promise.all(
     paths.map((path) => readLocalRegistry(path, { cliVersion: options.cliVersion })),
   );
