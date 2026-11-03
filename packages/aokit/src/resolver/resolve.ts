@@ -392,7 +392,7 @@ function producedItems(manifest: ModuleManifest): ReadonlySet<string> {
   for (const op of manifest.ops) {
     items.add(op.op);
     const location = "extensionPoint" in op ? op.extensionPoint : "file" in op ? op.file : "";
-    items.add(`${op.op}:${op.target}:${location ?? ""}`);
+    items.add(`${op.op}:${"target" in op ? op.target : ""}:${location ?? ""}`);
   }
   return items;
 }
