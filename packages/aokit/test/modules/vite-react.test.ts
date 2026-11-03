@@ -80,6 +80,6 @@ describe("vite-react", () => {
     expect(curated.manifest.provides.map((entry) => entry.capability)).toEqual(["web", "web:spa"]);
     expect(
       curated.manifest.extensionPoints.map((point) => `${point.name}@${point.version}`),
-    ).toEqual(["web.providers@1.0.0", "web.routes@1.0.0"]);
+    ).toEqual(["vite.plugins@1.0.0", "web.providers@1.0.0", "web.routes@1.0.0"]);
   });
 });

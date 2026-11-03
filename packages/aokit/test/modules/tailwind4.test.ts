@@ -25,8 +25,19 @@ const webBase: EngineModule = {
     name: "web-base",
     version: "1.0.0",
     provides: ["web"],
-    files: [{ from: "providers.tsx", to: "providers.tsx", target: "web" }],
+    files: [
+      { from: "providers.tsx", to: "providers.tsx", target: "web" },
+      { from: "vite.config.ts", to: "vite.config.ts", target: "root" },
+    ],
     extensionPoints: [
+      {
+        name: "vite.plugins",
+        version: "1.0.0",
+        target: "root",
+        kind: "array",
+        anchor: "plugins",
+        file: "vite.config.ts",
+      },
       {
         name: "web.providers",
         version: "1.0.0",
@@ -36,7 +47,8 @@ const webBase: EngineModule = {
       },
     ],
   }),
-  readFile: () => "export const providers = [];\n",
+  readFile: (from) =>
+    from === "vite.config.ts" ? "export const plugins = [];\n" : "export const providers = [];\n",
 };
 
 function input(
@@ -76,6 +88,7 @@ describe("tailwind4", () => {
       "src/providers.tsx",
       "src/styles.css",
       "src/tailwind-provider.tsx",
+      "vite.config.ts",
     ]);
     expect(JSON.parse(String(built.plan.vfs.read("package.json")))).toMatchObject({
       dependencies: { tailwindcss: "^4.3.4" },
@@ -100,12 +113,15 @@ describe("tailwind4", () => {
       expect(occurrences(providers, 'from "./tailwind-provider"')).toBe(1);
       expect(occurrences(providers, "TailwindProvider")).toBe(2);
       expect(occurrences(styles, '@import "tailwindcss";')).toBe(1);
+      const viteConfig = String(built.plan.vfs.read("vite.config.ts"));
+      expect(occurrences(viteConfig, 'from "@tailwindcss/vite"')).toBe(1);
+      expect(occurrences(viteConfig, "tailwindcss()")).toBe(1);
     },
   );
 
   test("declares styles.theme as a region point and requires web providers", () => {
     const manifest = parseManifest(tailwind4);
-    expect(manifest.requires).toEqual(["web", "ext:web.providers@^1"]);
+    expect(manifest.requires).toEqual(["web", "ext:web.providers@^1", "ext:vite.plugins@^1"]);
     expect(manifest.extensionPoints).toEqual([
       {
         name: "styles.theme",

@@ -86,7 +86,7 @@
             "files/styles.css": "sha256:4650ea7cbc07104a2fc7e53d850b98eab8310ce4e0bae5a5f7d5da99b1dc8145",
             "files/tailwind-provider.tsx": "sha256:a9b3a5ec86c72a410c7e92cea8c5cf86f2e28b8da78333f4cfa9c9a3109ad6e6"
           },
-          "integrity": "sha256:9a6eb23826eed7ee6b85afca351f9713ff713dcae3af2f4275b423dbfd334141",
+          "integrity": "sha256:f313db2e95f6fa986059e2f4b1916d5e6342012cd9961eb56d70784dafac32e9",
           "manifest": "modules/tailwind4/1.0.0.json",
           "provides": ["styling"],
           "schemaVersion": 1
@@ -102,10 +102,10 @@
             "files/main.tsx": "sha256:df7ab0e0ea9c20c468b34c17825e3365d2d1fc8e7cc64a0c75e789330fe912b7",
             "files/providers.tsx": "sha256:a5207472b22927d10554b10bb95a4c43f01f4880872c32c0956626e5ca7e15eb",
             "files/routes.tsx": "sha256:8f27867d153c38b0401dba9aefb5fc5c8e298e2a115d13bbbc138b5bb97b1a44",
-            "files/tsconfig.json": "sha256:5b50b26a10676b3389ecc4cf8da2ec2f87f6ef05410a45544a4ab0803dc6ed61",
-            "files/vite.config.ts": "sha256:5240308ebeb01504b9a13bf043e020ee88103a35041c31de34ed03e48bcb37fd"
+            "files/tsconfig.json": "sha256:3af94e731aaad2740ee1bca5c2f91417ec878ea12f3a22fbbd3653fd47027b00",
+            "files/vite.config.ts": "sha256:87859ede600d5b0bbc06ad9b4ca462e6cc6b479dfc420f7e643790e030923045"
           },
-          "integrity": "sha256:64675671c61b4f150dc2d89b7fe0005d52f97a2c7c9cced7a62d48dbea959f7c",
+          "integrity": "sha256:d46eb83ac3dfbc5ec6959380d81af5fc2c68ae3072fbf8939a03e25249749f4d",
           "manifest": "modules/vite-react/1.0.0.json",
           "provides": ["web", "web:spa"],
           "schemaVersion": 1

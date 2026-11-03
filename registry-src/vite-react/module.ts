@@ -38,6 +38,14 @@ export default defineModule({
   ],
   extensionPoints: [
     {
+      name: "vite.plugins",
+      version: "1.0.0",
+      target: "root",
+      kind: "array",
+      anchor: "plugins",
+      file: "vite.config.ts",
+    },
+    {
       name: "web.providers",
       version: "1.0.0",
       target: "web",

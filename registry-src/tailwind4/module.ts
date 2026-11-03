@@ -4,7 +4,7 @@ export default defineModule({
   name: "tailwind4",
   version: "1.0.0",
   provides: [{ capability: "styling", cardinality: { max: 1 } }],
-  requires: ["web", "ext:web.providers@^1"],
+  requires: ["web", "ext:web.providers@^1", "ext:vite.plugins@^1"],
   files: [
     { from: "files/styles.css", to: "styles.css", target: "web", ownership: "seed" },
     {
@@ -44,6 +44,21 @@ export default defineModule({
       extensionPoint: "web.providers",
       range: "^1",
       element: "TailwindProvider",
+    },
+    {
+      op: "addImport",
+      target: "root",
+      extensionPoint: "vite.plugins",
+      range: "^1",
+      from: "@tailwindcss/vite",
+      default: "tailwindcss",
+    },
+    {
+      op: "addToArray",
+      target: "root",
+      extensionPoint: "vite.plugins",
+      range: "^1",
+      element: "tailwindcss()",
     },
   ],
   extensionPoints: [

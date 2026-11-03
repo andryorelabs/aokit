@@ -62,6 +62,21 @@
       "op": "addToArray",
       "range": "^1",
       "target": "web"
+    },
+    {
+      "default": "tailwindcss",
+      "extensionPoint": "vite.plugins",
+      "from": "@tailwindcss/vite",
+      "op": "addImport",
+      "range": "^1",
+      "target": "root"
+    },
+    {
+      "element": "tailwindcss()",
+      "extensionPoint": "vite.plugins",
+      "op": "addToArray",
+      "range": "^1",
+      "target": "root"
     }
   ],
   "override": [],
@@ -73,7 +88,7 @@
       }
     }
   ],
-  "requires": ["web", "ext:web.providers@^1"],
+  "requires": ["web", "ext:web.providers@^1", "ext:vite.plugins@^1"],
   "schemaVersion": 1,
   "version": "1.0.0"
 }
