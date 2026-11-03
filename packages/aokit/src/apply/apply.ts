@@ -308,6 +308,7 @@ export async function apply(
     stagingDirectory = await mkdtemp(
       join(dirname(projectDirectory), `.${basename(projectDirectory)}.aokit-tmp-`),
     );
+    await chmod(stagingDirectory, 0o777 & ~process.umask());
     const applyByKind = project === "new" ? applyNew : applyExisting;
     await applyByKind(plan, lockfile, stagingDirectory, projectDirectory, interruption, options);
     return { project, directory: projectDirectory };

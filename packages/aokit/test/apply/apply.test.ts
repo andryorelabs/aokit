@@ -112,6 +112,17 @@ test("a new Project appears only after the final rename, staged in a unique sibl
   expect(await readFile(join(directory, lockfileName), "utf8")).toBe(serializeLockfile(lockfile));
 });
 
+test("a new Project root follows the umask instead of the 0700 staging mode", async () => {
+  const next = Vfs.empty();
+  next.write("package.json", "{}\n");
+  const directory = join(workspace, "moded");
+
+  await apply(planFrom(Vfs.empty(), next), await loadLockfile(), directory);
+
+  const mode = (await stat(directory)).mode & 0o777;
+  expect(mode).toBe(0o777 & ~process.umask());
+});
+
 test("two applies use distinct temp directory names", async () => {
   const lockfile = await loadLockfile();
   const names: string[] = [];
