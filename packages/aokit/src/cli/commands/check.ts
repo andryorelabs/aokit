@@ -118,7 +118,8 @@ function coversMigration(
   return (
     target?.manifest.migrations.some(
       (migration) =>
-        Bun.semver.order(migration.from, current) >= 0 &&
+        Bun.semver.satisfies(current, migration.from) &&
+        Bun.semver.order(current, migration.to) < 0 &&
         Bun.semver.order(migration.to, available) <= 0,
     ) ?? false
   );

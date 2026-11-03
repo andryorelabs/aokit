@@ -70,6 +70,27 @@ describe("aokit check", () => {
     expect(envelope).toMatchObject({ data: { modules: [{ name: "oxc", migration: true }] } });
   });
 
+  test("a target manifest that declares a migration whose `from` is a range sets migration", async () => {
+    const project = await createProject(await builtRegistry());
+    const newer = await builtRegistry(async (source) => {
+      await bumpOxc(
+        source,
+        '\n  migrations: [{ from: ">=1 <2", to: "1.1.0", stage: "before", script: "migrations/a.js" }],',
+      );
+      await mkdir(join(source, "oxc", "migrations"), { recursive: true });
+      await writeFile(
+        join(source, "oxc", "migrations", "a.ts"),
+        "export default () => {};\n",
+        "utf8",
+      );
+    });
+    await editLockfile(project, (lockfile) => {
+      lockfile["registries"]["official"].source = newer;
+    });
+    const envelope = await runCheck(project);
+    expect(envelope).toMatchObject({ data: { modules: [{ name: "oxc", migration: true }] } });
+  });
+
   test("a newer Release with no Module change still exits 2", async () => {
     const project = await createProject(await builtRegistry());
     await editLockfile(project, (lockfile) => {
