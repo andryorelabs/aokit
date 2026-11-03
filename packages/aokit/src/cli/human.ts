@@ -21,6 +21,14 @@ function isPlanPreview(data: unknown): data is PlanPreview {
 }
 
 /**
+ * Renders the report an outcome error (`DRIFT`, `UPDATE_AVAILABLE`) carries
+ * next to its message; empty when the failure has no report.
+ */
+export function renderFailureReport(data: unknown): string {
+  return data === null || data === undefined ? "" : renderHuman(data);
+}
+
+/**
  * Renders a successful command result for a terminal. A Plan preview prints
  * its unified diffs (`--diff`) or its change list with Provenance
  * (`--dry-run`); any other value prints as indented sorted JSON.

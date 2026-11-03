@@ -1,7 +1,8 @@
-/** Exit codes a command run can produce. `2` is reserved for `check` and is never produced here. */
+/** Exit codes a command run can produce. `2` is the `UPDATE_AVAILABLE` outcome of `check`. */
 export const exitCodes = {
   success: 0,
   failure: 1,
+  outcome: 2,
   usage: 3,
   resolution: 4,
   precondition: 5,
@@ -26,6 +27,12 @@ export const errorCodeExitCodes = {
   MIN_CLI_VERSION: exitCodes.precondition,
   MERGE_CONFLICTS: exitCodes.mergeConflicts,
   INTERRUPTED: exitCodes.interrupted,
+  UPDATE_AVAILABLE: exitCodes.outcome,
+  DRIFT: exitCodes.failure,
+  NOT_IN_LOCKFILE: exitCodes.usage,
+  MODULE_VERSION_UNAVAILABLE: exitCodes.failure,
+  DEPENDENTS_EXIST: exitCodes.resolution,
+  NOT_SELECTED: exitCodes.usage,
   IO_ERROR: exitCodes.failure,
   INTERNAL: exitCodes.failure,
 } as const satisfies Record<string, ExitCode>;
