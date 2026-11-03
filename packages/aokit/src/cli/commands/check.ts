@@ -1,5 +1,6 @@
 import { join, resolve as resolvePath } from "node:path";
 import { z } from "zod";
+import { selectMigrations } from "../../migrations/index.ts";
 import { resolveRegistrySource } from "../../project/registry.ts";
 import { LockfileError, readLockfile } from "../../lockfile/index.ts";
 import type { Lockfile } from "../../lockfile/schema.ts";
@@ -115,14 +116,7 @@ function coversMigration(
   available: string,
 ): boolean {
   const target = registry.version(name, available);
-  return (
-    target?.manifest.migrations.some(
-      (migration) =>
-        Bun.semver.satisfies(current, migration.from) &&
-        Bun.semver.order(current, migration.to) < 0 &&
-        Bun.semver.order(migration.to, available) <= 0,
-    ) ?? false
-  );
+  return target !== undefined && selectMigrations(target.manifest, current, available).length > 0;
 }
 
 function moduleUpdates(
