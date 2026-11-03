@@ -131,7 +131,7 @@ test("a new Release adds its own Catalog and an edited published Catalog fails",
   await buildRegistry(next, out);
   const index = JSON.parse(await readFile(join(out, "index.json"), "utf8"));
   expect(Object.keys(index.releases)).toEqual(["2026.11.0", "2026.12.0"]);
-  expect(index.release).toBe("2026.11.0");
+  expect(index.release).toBe("2026.12.0");
 
   const edited = await fixtureSource();
   await writeFile(

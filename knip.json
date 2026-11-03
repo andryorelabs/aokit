@@ -3,7 +3,7 @@
   "ignore": ["registry/**", "registry-src/*/files/**"],
   "workspaces": {
     ".": {
-      "entry": ["tools/**/*.test.ts", "registry-src/*/module.ts"],
+      "entry": ["tools/**/*.test.ts", "registry-src/*/module.ts", "registry-src/*/migrations/*.ts"],
       "ignoreDependencies": ["typescript7"]
     },
     "packages/aokit": {

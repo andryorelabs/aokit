@@ -1,6 +1,7 @@
 import { readFile } from "node:fs/promises";
 import { join } from "node:path";
 import { apply, lockfileName, type ConflictWrite } from "../apply/index.ts";
+import { conflictFile } from "../apply/conflicts.ts";
 import { AokitError } from "../cli/envelope.ts";
 import { Vfs, type FileContent } from "../engine/vfs.ts";
 import type { Plan } from "../engine/plan.ts";
@@ -12,6 +13,7 @@ import { mergeProject, type DriftOf } from "../merge/index.ts";
 import type { BuiltProject } from "../pipeline/build.ts";
 import { unifiedDiff } from "../project/diff.ts";
 import { runInstall } from "../project/install.ts";
+import { writeUpdateMarker } from "../update/state.ts";
 
 /** How a command produces the two Renders the merge works from. */
 interface LifecycleRender {
@@ -35,6 +37,36 @@ export interface LifecycleInput {
   readonly install: boolean;
   /** Replaces the default `bun install` runner. */
   readonly installer?: (directory: string) => Promise<void>;
+  /** Old path to new path, Project-relative and Target-resolved; see `mergeProject`. */
+  readonly renames?: ReadonlyMap<string, string>;
+  /**
+   * Runs after the base Render and before the next one (the `before` Migrations). The edits it
+   * returns, path to new content or `undefined` for a deletion, replace what the merge reads from
+   * the user's tree.
+   */
+  readonly beforeNext?: (context: MigrationHookContext) => Promise<UserEdits | undefined>;
+  /** Runs on the merged result before it is applied (the `after` Migrations and confirmation). */
+  readonly afterMerge?: (
+    merged: MergeProjectResult,
+    context: MigrationHookContext,
+  ) => Promise<MergeProjectResult>;
+  /**
+   * Keeps the stash and writes the update marker when the apply leaves Conflicts, so
+   * `update --abort` can undo it.
+   */
+  readonly keepStashOnConflict?: boolean;
+}
+
+/** What the merge procedure produced; the `after` hook may amend it. */
+export type MergeProjectResult = Awaited<ReturnType<typeof mergeProject>>;
+
+/** User-side file edits a Migration made, keyed by Project-relative path. */
+export type UserEdits = ReadonlyMap<string, FileContent | undefined>;
+
+/** What the Migration hooks of {@link runLifecycle} receive. */
+interface MigrationHookContext {
+  readonly lockfile: Lockfile;
+  readonly base: BuiltProject | undefined;
 }
 
 /** What {@link runLifecycle} did. */
@@ -49,6 +81,8 @@ export interface LifecycleResult {
   readonly applied: boolean;
   /** True when `bun install` ran. */
   readonly installed: boolean;
+  /** True when the stash was kept and the update marker written because of Conflicts. */
+  readonly stashKept: boolean;
 }
 
 async function readUserFile(dir: string, path: string): Promise<FileContent | undefined> {
@@ -95,16 +129,20 @@ export async function runLifecycle(input: LifecycleInput): Promise<LifecycleResu
   const lockfile = await readProjectLockfile(input.dir);
   const clean = await assertCleanTree(input.dir, { allowDirty: input.allowDirty, lockfile });
   const base = await input.render.base(lockfile);
+  const hookContext: MigrationHookContext = { lockfile, base };
+  const edits = (await input.beforeNext?.(hookContext)) ?? new Map();
   const next = await input.render.next(lockfile, base);
-  const git = await openGit(input.dir);
-  const merged = await mergeProject({
+  const repository = await openGit(input.dir);
+  const premerged = await mergeProject({
     base: base?.plan.vfs ?? Vfs.empty(),
     next,
-    readUser: (path) => readUserFile(input.dir, path),
+    readUser: async (path) => (edits.has(path) ? edits.get(path) : readUserFile(input.dir, path)),
     lockfile,
-    merger: createMerger(git === null ? {} : { git }),
+    merger: createMerger(repository === null ? {} : { git: repository }),
     driftOf: input.driftOf,
+    ...(input.renames === undefined ? {} : { renames: input.renames }),
   });
+  const merged = (await input.afterMerge?.(premerged, hookContext)) ?? premerged;
   const warnings = [...(clean.warning === undefined ? [] : [clean.warning]), ...merged.warnings];
   const result = {
     plan: merged.plan,
@@ -113,13 +151,33 @@ export async function runLifecycle(input: LifecycleInput): Promise<LifecycleResu
     lockfile: merged.lockfile,
   };
   if (input.dryRun || input.diff) {
-    return { ...result, diff: unifiedDiff(merged.plan), applied: false, installed: false };
+    return {
+      ...result,
+      diff: unifiedDiff(merged.plan),
+      applied: false,
+      installed: false,
+      stashKept: false,
+    };
   }
-  await apply(merged.plan, merged.lockfile, input.dir, {
-    ...(git === null ? {} : { git }),
+  const keepStash = input.keepStashOnConflict === true && merged.conflicts.length > 0;
+  const previousLockfile = keepStash ? await readFile(join(input.dir, lockfileName), "utf8") : "";
+  const applied = await apply(merged.plan, merged.lockfile, input.dir, {
+    ...(repository === null ? {} : { git: repository }),
     conflicts: merged.conflicts,
+    keepStash,
   });
+  if (keepStash && applied.stash !== undefined) {
+    await writeUpdateMarker(input.dir, repository ?? undefined, {
+      stashDirectory: applied.stash.directory,
+      conflictedPaths: merged.conflicts.map((conflict) => conflict.path),
+      newSiblingPaths: merged.conflicts
+        .filter((conflict) => conflict.merged === undefined)
+        .map(conflictFile),
+      createdPaths: [...applied.stash.created],
+      previousLockfile,
+    });
+  }
   const shouldInstall = input.install && packageJsonChanged(merged.plan);
   if (shouldInstall) await (input.installer ?? ((dir) => runInstall(dir, process.env)))(input.dir);
-  return { ...result, applied: true, installed: shouldInstall };
+  return { ...result, applied: true, installed: shouldInstall, stashKept: keepStash };
 }

@@ -2,7 +2,7 @@ import { defineModule } from "@aokit/module";
 
 export default defineModule({
   name: "vite-react",
-  version: "1.0.0",
+  version: "1.1.0",
   provides: [
     { capability: "web", cardinality: { max: 1 } },
     { capability: "web:spa", cardinality: { max: 1 } },
@@ -13,7 +13,7 @@ export default defineModule({
     { from: "files/tsconfig.json", to: "tsconfig.json", target: "web", ownership: "seed" },
     { from: "files/main.tsx", to: "src/main.tsx", target: "web", ownership: "managed" },
     { from: "files/providers.tsx", to: "src/providers.tsx", target: "web", ownership: "managed" },
-    { from: "files/routes.tsx", to: "src/routes.tsx", target: "web", ownership: "managed" },
+    { from: "files/router.tsx", to: "src/router.tsx", target: "web", ownership: "managed" },
   ],
   deps: {
     dependencies: {
@@ -28,6 +28,14 @@ export default defineModule({
       vite: { range: "catalog" },
     },
   },
+  migrations: [
+    {
+      from: ">=1.0.0 <1.1.0",
+      to: "1.1.0",
+      stage: "after",
+      script: "migrations/routes-to-router.after.js",
+    },
+  ],
   ops: [
     {
       op: "mergeJson",
@@ -65,7 +73,7 @@ export default defineModule({
       target: "web",
       kind: "array",
       anchor: "routes",
-      file: "src/routes.tsx",
+      file: "src/router.tsx",
     },
   ],
 });

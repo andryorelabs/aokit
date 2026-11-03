@@ -2,7 +2,7 @@ import { defineModule } from "@aokit/module";
 
 export default defineModule({
   name: "oxc",
-  version: "1.0.0",
+  version: "1.0.1",
   provides: [
     { capability: "lint", cardinality: { max: 1 } },
     { capability: "format", cardinality: { max: 1 } },

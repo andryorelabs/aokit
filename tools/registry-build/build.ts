@@ -18,11 +18,6 @@ import { registryIndexSchema } from "../../packages/aokit/src/registry/schema.ts
 const officialRegistryName = "official";
 
 /**
- * The Release the first-party Registry is built as.
- */
-const officialRelease = "2026.11.0";
-
-/**
  * The lowest CLI version able to read this Release.
  */
 const officialMinCliVersion = "0.1.0";
@@ -149,10 +144,8 @@ async function buildReleases(
   for (const { release, pointer } of sources) {
     releases[release] = pointer;
   }
-  if (!(officialRelease in releases)) {
-    throw new Error(
-      `registry:build found no Catalog for Release ${officialRelease} at ${join(catalogSourceDir, `${officialRelease}.json`)}`,
-    );
+  if (Object.keys(releases).length === 0) {
+    throw new Error(`registry:build found no Catalog in ${catalogSourceDir}`);
   }
   return releases;
 }
@@ -335,7 +328,7 @@ export async function buildRegistry(sourceDir: string, outDir: string): Promise<
     $schema: registryIndexSchemaUrl,
     schemaVersion: supportedRegistrySchemaVersion,
     name: officialRegistryName,
-    release: officialRelease,
+    release: latestOf(Object.keys(releases)),
     minCliVersion: officialMinCliVersion,
     releases,
     modules,
