@@ -75,7 +75,7 @@ describe("hidden lifecycle stubs", () => {
 
   test("aokit schema lists the implemented lifecycle commands", async () => {
     const names = JSON.stringify(await runCommand(schemaCommand, context, {}));
-    for (const name of ["doctor", "diff", "check", "eject", "restore"]) {
+    for (const name of ["doctor", "diff", "check", "eject", "restore", "add"]) {
       expect(names).toContain(`"name":"${name}"`);
     }
   });
@@ -86,6 +86,6 @@ describe("hidden lifecycle stubs", () => {
     for (const stub of hiddenCommands) {
       expect(names).not.toContain(`"name":"${stub.name}"`);
     }
-    expect(hiddenCommands.map((stub) => stub.name)).toEqual(["add", "remove", "recopy"]);
+    expect(hiddenCommands.map((stub) => stub.name)).toEqual(["remove", "recopy"]);
   });
 });
