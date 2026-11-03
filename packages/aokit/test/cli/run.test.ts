@@ -1,7 +1,7 @@
 import { describe, expect, test } from "bun:test";
 import { runCli, type CliIo } from "../../src/cli/adapter.ts";
 import { runCommand, type CommandContext } from "../../src/cli/command.ts";
-import { exposedCommands } from "../../src/cli/commands/registry.ts";
+import { exposedCommands, hiddenCommands } from "../../src/cli/commands/registry.ts";
 import { schemaCommand } from "../../src/cli/commands/schema.ts";
 import { stringifySorted } from "../../src/cli/envelope.ts";
 
@@ -29,6 +29,7 @@ async function runAokit(
   const exitCode = await runCli({
     argv,
     commands: exposedCommands,
+    hiddenCommands,
     env,
     version: "9.9.9",
     io,
@@ -141,5 +142,20 @@ describe("adapter parity with direct run", () => {
   test("invalid direct input is an INVALID_INPUT envelope", async () => {
     const result = await runCommand(schemaCommand, directContext, { command: 42 });
     expect(result).toMatchObject({ ok: false, error: { code: "INVALID_INPUT" } });
+  });
+});
+
+describe("hidden lifecycle stubs", () => {
+  test("dispatch reaches the stub instead of UNKNOWN_COMMAND", async () => {
+    const result = await runAokit(["doctor", "--json"]);
+    expect(result.stdout).toContain("not implemented yet");
+    expect(result.stdout).not.toContain("UNKNOWN_COMMAND");
+  });
+
+  test("stay out of --help and aokit schema", async () => {
+    const help = await runAokit(["--help"]);
+    expect(help.stdout + help.stderr).not.toContain("doctor");
+    const schema = await runAokit(["schema", "--json"]);
+    expect(schema.stdout).not.toContain("doctor");
   });
 });

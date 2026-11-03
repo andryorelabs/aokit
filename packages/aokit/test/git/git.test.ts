@@ -138,6 +138,15 @@ test("writeConflictStages records stages 1, 2, 3 without staging or committing",
   expect(await git(repo, "show", `:2:${path}`)).toBe("u\n");
 });
 
+test("clearConflictStages removes the stages and leaves nothing unmerged", async () => {
+  const path = "clear me.txt";
+  await writeFile(join(repo, path), "worktree\n");
+  const opened = await openGit(repo);
+  await opened?.writeConflictStages(path, { base: "b\n", user: "u\n", next: "n\n" });
+  await opened?.clearConflictStages(path);
+  expect(await git(repo, "ls-files", "-u")).toBe("");
+});
+
 test("the real adapter yields the same markers as node-diff3 through the Merger", async () => {
   const opened = await openGit(repo);
   if (opened === null) throw new Error("expected a git repository");

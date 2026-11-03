@@ -243,6 +243,9 @@ async function commitWithRollback(
     await commitExisting(stagingDirectory, projectDirectory, written, removed, options);
   } catch (error) {
     try {
+      await inSequence(options.conflicts ?? [], async (conflict) => {
+        await options.git?.clearConflictStages(conflict.path);
+      });
       await restoreStash(projectDirectory, stash, created);
     } catch (restoreError) {
       throw new ApplyError(
