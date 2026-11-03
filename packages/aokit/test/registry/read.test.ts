@@ -60,7 +60,7 @@ test("reads a built Registry: name, Release, Catalog, manifests and files", asyn
   const registry: LocalRegistry = await readLocalRegistry(await builtRegistry(), options);
   expect(registry.name).toBe("official");
   expect(registry.release).toBe("2026.11.0");
-  expect(registry.catalog.dependencies["oxlint"]).toBe("1.90.0");
+  expect(registry.currentCatalog.dependencies["oxlint"]).toBe("1.90.0");
   expect([...registry.modules.keys()]).toEqual(["knip", "oxc"]);
   const oxc = registry.modules.get("oxc");
   expect(oxc?.manifest.version).toBe("1.0.0");
@@ -85,7 +85,7 @@ test("a Module file modified after build fails integrity naming oxc, expected an
 
 test("a modified manifest fails integrity", async () => {
   const root = await builtRegistry();
-  await editJson(join(root, "modules/knip/2.1.0.json"), (manifest) => {
+  await editJson(join(root, "modules/knip/2.1.0/module.json"), (manifest) => {
     manifest["requires"] = [];
   });
   const error = await captureError(() => readLocalRegistry(root, options));
@@ -106,7 +106,9 @@ test("a modified Catalog fails integrity", async () => {
 test("an index release that differs from the Catalog release fails", async () => {
   const root = await builtRegistry();
   await editJson(join(root, "index.json"), (index) => {
+    const parsed = z.looseObject({ releases: z.record(z.string(), z.unknown()) }).parse(index);
     index["release"] = "2027.1.0";
+    index["releases"] = { "2027.1.0": parsed.releases["2026.11.0"] };
   });
   const error = await captureError(() => readLocalRegistry(root, options));
   expect(error.code).toBe("REGISTRY_RELEASE_MISMATCH");
@@ -146,11 +148,13 @@ test("an index with unknown fields or an escaping path is invalid", async () => 
   const root = await builtRegistry();
   await editJson(join(root, "index.json"), (index) => {
     index["extra"] = true;
-    index["catalog"] = { path: "../catalog.json", integrity: computeIntegrity("") };
+    index["releases"] = {
+      "2026.11.0": { path: "../catalog.json", integrity: computeIntegrity("") },
+    };
   });
   const error = await captureError(() => readLocalRegistry(root, options));
   expect(error.code).toBe("REGISTRY_INDEX_INVALID");
-  expect(error.message).toContain("catalog.path");
+  expect(error.message).toContain("releases.2026.11.0.path");
 });
 
 test("a provides summary that disagrees with the manifest fails", async () => {
@@ -188,5 +192,73 @@ test("the committed first-party Registry reads cleanly", async () => {
   const registry = await readLocalRegistry(join(import.meta.dir, "../../../../registry"), options);
   expect(registry.name).toBe("official");
   expect(registry.release).toBe("2026.11.0");
-  expect(registry.catalog.release).toBe("2026.11.0");
+  expect(registry.currentCatalog.release).toBe("2026.11.0");
+});
+
+async function bumpedRegistry(): Promise<string> {
+  const source = await writeRegistrySourceFixture();
+  const root = await mkdtemp(join(tmpdir(), "aokit-registry-"));
+  temporaryDirectories.push(source, root);
+  await buildRegistry(source, root);
+  const bumped = await writeRegistrySourceFixture();
+  temporaryDirectories.push(bumped);
+  const modulePath = join(bumped, "oxc/module.ts");
+  await writeFile(
+    modulePath,
+    (await readFile(modulePath, "utf8")).replace('version: "1.0.0"', 'version: "1.1.0"'),
+    "utf8",
+  );
+  await writeFile(
+    join(bumped, "catalog/2026.12.0.json"),
+    `${JSON.stringify({ release: "2026.12.0", dependencies: { oxfmt: "0.76.0", oxlint: "1.91.0" } })}\n`,
+    "utf8",
+  );
+  await buildRegistry(bumped, root);
+  return root;
+}
+
+test("looks up Module versions by name@version and lists them in semver order", async () => {
+  const registry = await readLocalRegistry(await bumpedRegistry(), options);
+  expect(registry.versions("oxc")).toEqual(["1.0.0", "1.1.0"]);
+  expect(registry.versions("knip")).toEqual(["2.1.0"]);
+  expect(registry.versions("missing")).toEqual([]);
+  expect(registry.modules.get("oxc")?.manifest.version).toBe("1.1.0");
+  expect(registry.version("oxc", "1.0.0")?.manifest.version).toBe("1.0.0");
+  expect(registry.version("oxc", "9.9.9")).toBeUndefined();
+  expect(registry.version("missing", "1.0.0")).toBeUndefined();
+});
+
+test("the version integrity equals the index integrity, the form the Lockfile records", async () => {
+  const root = await bumpedRegistry();
+  const registry = await readLocalRegistry(root, options);
+  const index = registryIndexShape.parse(
+    JSON.parse(await readFile(join(root, "index.json"), "utf8")),
+  );
+  for (const version of ["1.0.0", "1.1.0"]) {
+    const published = index.modules["oxc"]?.versions[version]?.["integrity"];
+    const actual: unknown = registry.version("oxc", version)?.integrity;
+    expect(actual).toBe(published);
+    expect(published).toMatch(/^sha256-[0-9a-f]{64}$/);
+  }
+});
+
+test("looks up the Catalog of every published Release", async () => {
+  const registry = await readLocalRegistry(await bumpedRegistry(), options);
+  expect(registry.releases()).toEqual(["2026.11.0", "2026.12.0"]);
+  expect(registry.catalog("2026.11.0")?.dependencies["oxlint"]).toBe("1.90.0");
+  expect(registry.catalog("2026.12.0")?.dependencies["oxlint"]).toBe("1.91.0");
+  expect(registry.catalog("2030.1.0")).toBeUndefined();
+});
+
+test("a hand-edited file of an older version fails integrity naming Registry, Module and both values", async () => {
+  const root = await bumpedRegistry();
+  const filePath = join(root, "modules/oxc/1.0.0/files/nested/notes.md");
+  const expected = computeIntegrity(await readFile(filePath, "utf8"));
+  await writeFile(filePath, "edited\n", "utf8");
+  const error = await captureError(() => readLocalRegistry(root, options));
+  expect(error.code).toBe("REGISTRY_INTEGRITY_MISMATCH");
+  expect(error.message).toContain('Registry "official"');
+  expect(error.message).toContain("oxc@1.0.0");
+  expect(error.message).toContain(`expected ${expected}`);
+  expect(error.message).toContain(`actual ${computeIntegrity("edited\n")}`);
 });

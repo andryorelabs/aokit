@@ -35,13 +35,13 @@ async function buildDigest(
   const manifests = available
     .map((module) => module.manifest)
     .filter((manifest) => selection.includes(manifest.name));
-  const formatter = formatterForSelection({ catalog: registry.catalog, modules: manifests });
+  const formatter = formatterForSelection({ catalog: registry.currentCatalog, modules: manifests });
   const built = await buildProject({
     selection,
     available,
     answers: {},
     layout,
-    catalog: registry.catalog,
+    catalog: registry.currentCatalog,
     context: { now: new Date(0), random: () => 0.5, env: {} },
     registry: {
       name: registry.name,

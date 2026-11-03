@@ -1,14 +1,16 @@
-import { mkdir, readdir, readFile, rm, stat, writeFile } from "node:fs/promises";
+import { mkdir, readdir, readFile, stat, writeFile } from "node:fs/promises";
 import { dirname, join } from "node:path";
 import { catalogSchema, compileModule, stableStringify } from "@aokit/module";
 import { format } from "oxfmt";
 import {
   computeIntegrity,
+  computeModuleIntegrity,
   normalizeLineEndings,
   type RegistryIndex,
   registryIndexSchemaUrl,
   supportedRegistrySchemaVersion,
 } from "../../packages/aokit/src/registry/index.ts";
+import { registryIndexSchema } from "../../packages/aokit/src/registry/schema.ts";
 
 /**
  * Name of the first-party Registry, recorded in the Lockfile `registry` field.
@@ -28,6 +30,10 @@ const officialMinCliVersion = "0.1.0";
 const catalogDirectory = "catalog";
 const moduleSourceFile = "module.ts";
 const moduleFilesDirectory = "files";
+const moduleManifestFile = "module.json";
+
+type ModuleEntry = RegistryIndex["modules"][string];
+type VersionEntry = ModuleEntry["versions"][string];
 
 function byCodepoint(left: string, right: string): number {
   return left < right ? -1 : left > right ? 1 : 0;
@@ -77,35 +83,77 @@ async function writeText(path: string, text: string): Promise<void> {
   await writeFile(path, text, "utf8");
 }
 
-async function buildCatalog(sourceDir: string, outDir: string): Promise<RegistryIndex["catalog"]> {
-  const catalogPath = `${catalogDirectory}/${officialRelease}.json`;
-  const sourcePath = join(sourceDir, catalogPath);
+async function readExistingIndex(outDir: string): Promise<RegistryIndex | undefined> {
+  const path = join(outDir, "index.json");
   let text: string;
   try {
-    text = normalizeLineEndings(await readFile(sourcePath, "utf8"));
+    text = await readFile(path, "utf8");
   } catch (error) {
+    if (error instanceof Error && "code" in error && error.code === "ENOENT") {
+      return undefined;
+    }
+    throw error;
+  }
+  const parsed = registryIndexSchema.safeParse(JSON.parse(text));
+  if (!parsed.success) {
     throw new Error(
-      `registry:build found no Catalog for Release ${officialRelease} at ${sourcePath}`,
-      {
-        cause: error,
-      },
+      `registry:build cannot extend ${path}: ${parsed.error.issues.map((issue) => issue.message).join("; ")}. Delete the registry directory to start over.`,
     );
   }
-  const catalog = catalogSchema.parse(JSON.parse(text));
-  if (catalog.release !== officialRelease) {
-    throw new Error(
-      `registry:build: ${sourcePath} has release ${catalog.release ?? "(none)"}, expected ${officialRelease}`,
-    );
-  }
-  await writeText(join(outDir, catalogPath), text);
-  return { path: catalogPath, integrity: computeIntegrity(text) };
+  return parsed.data;
 }
 
-async function buildModule(
+async function buildReleases(
+  sourceDir: string,
+  outDir: string,
+  existing: RegistryIndex["releases"],
+): Promise<RegistryIndex["releases"]> {
+  const catalogSourceDir = join(sourceDir, catalogDirectory);
+  const sourcePaths = (await listFiles(catalogSourceDir)).filter((path) => path.endsWith(".json"));
+  const releases: RegistryIndex["releases"] = { ...existing };
+  const sources = await Promise.all(
+    sourcePaths.map(async (sourcePath) => {
+      const release = sourcePath.slice(0, -".json".length);
+      const text = normalizeLineEndings(await readFile(join(catalogSourceDir, sourcePath), "utf8"));
+      const catalog = catalogSchema.parse(JSON.parse(text));
+      if (catalog.release !== release) {
+        throw new Error(
+          `registry:build: ${join(catalogSourceDir, sourcePath)} has release ${catalog.release ?? "(none)"}, expected ${release}`,
+        );
+      }
+      const pointer = {
+        path: `${catalogDirectory}/${sourcePath}`,
+        integrity: computeIntegrity(text),
+      };
+      const published = existing[release];
+      if (published !== undefined && published.integrity !== pointer.integrity) {
+        throw new Error(
+          `registry:build: Release ${release} is already published with a different Catalog (published ${published.integrity}, source ${pointer.integrity}). Publish a new Release instead of editing ${release}.`,
+        );
+      }
+      return { release, text, pointer };
+    }),
+  );
+  await Promise.all(
+    sources.map(({ pointer, text }) => writeText(join(outDir, pointer.path), text)),
+  );
+  for (const { release, pointer } of sources) {
+    releases[release] = pointer;
+  }
+  if (!(officialRelease in releases)) {
+    throw new Error(
+      `registry:build found no Catalog for Release ${officialRelease} at ${join(catalogSourceDir, `${officialRelease}.json`)}`,
+    );
+  }
+  return releases;
+}
+
+async function buildModuleVersion(
   sourceDir: string,
   outDir: string,
   directoryName: string,
-): Promise<RegistryIndex["modules"][string]> {
+  published: ModuleEntry | undefined,
+): Promise<{ version: string; entry: VersionEntry }> {
   const moduleDir = join(sourceDir, directoryName);
   const { manifest } = await compileModule(join(moduleDir, moduleSourceFile));
   if (manifest.name !== directoryName) {
@@ -113,46 +161,68 @@ async function buildModule(
       `registry:build: ${moduleDir}/${moduleSourceFile} declares name "${manifest.name}", expected "${directoryName}"`,
     );
   }
-  const versionDir = join(outDir, "modules", manifest.name, manifest.version);
   const paths = (await listFiles(join(moduleDir, moduleFilesDirectory))).map(
     (relative) => `${moduleFilesDirectory}/${relative}`,
   );
-  const copied = await Promise.all(
-    paths.map(async (path) => {
-      const text = normalizeLineEndings(await readFile(join(moduleDir, path), "utf8"));
-      await writeText(join(versionDir, path), text);
-      return [path, computeIntegrity(text)] as const;
-    }),
+  const texts = new Map<string, string>(
+    await Promise.all(
+      paths.map(
+        async (path) =>
+          [path, normalizeLineEndings(await readFile(join(moduleDir, path), "utf8"))] as const,
+      ),
+    ),
   );
-  const files: Record<string, string> = Object.fromEntries(copied);
   for (const file of manifest.files) {
-    if (!(file.from in files)) {
+    if (!texts.has(file.from)) {
       throw new Error(
         `registry:build: Module ${manifest.name} lists ${file.from}, which is not under ${moduleDir}/${moduleFilesDirectory}`,
       );
     }
   }
-  const manifestPath = `modules/${manifest.name}/${manifest.version}.json`;
+  const versionPath = `modules/${manifest.name}/${manifest.version}`;
+  const manifestPath = `${versionPath}/${moduleManifestFile}`;
   const manifestText = await formatJson(manifestPath, manifest);
-  await writeText(join(outDir, manifestPath), manifestText);
-  return {
-    latest: manifest.version,
-    versions: {
-      [manifest.version]: {
-        manifest: manifestPath,
-        integrity: computeIntegrity(manifestText),
-        schemaVersion: manifest.schemaVersion,
-        provides: manifest.provides.map((entry) => entry.capability),
-        files,
-      },
-    },
+  const entry: VersionEntry = {
+    manifest: manifestPath,
+    integrity: computeModuleIntegrity(manifestText, texts),
+    schemaVersion: manifest.schemaVersion,
+    provides: manifest.provides.map((provided) => provided.capability),
+    files: Object.fromEntries(
+      [...texts].map(([path, text]) => [path, computeIntegrity(text)] as const),
+    ),
   };
+  const publishedEntry = published?.versions[manifest.version];
+  if (publishedEntry !== undefined) {
+    if (publishedEntry.integrity !== entry.integrity) {
+      throw new Error(
+        `registry:build: ${manifest.name}@${manifest.version} is already published with different content (published ${publishedEntry.integrity}, source ${entry.integrity}). Bump the version in ${moduleDir}/${moduleSourceFile} instead of editing a published version.`,
+      );
+    }
+    return { version: manifest.version, entry: publishedEntry };
+  }
+  await writeText(join(outDir, manifestPath), manifestText);
+  await Promise.all(
+    [...texts].map(([path, text]) => writeText(join(outDir, versionPath, path), text)),
+  );
+  return { version: manifest.version, entry };
+}
+
+function latestOf(versions: readonly string[]): string {
+  const sorted = versions.toSorted((left, right) => Bun.semver.order(left, right));
+  const latest = sorted.at(-1);
+  if (latest === undefined) {
+    throw new Error("registry:build: a Module has no versions");
+  }
+  return latest;
 }
 
 /**
- * Compiles `sourceDir` (`<name>/module.ts`, `<name>/files/**`, `catalog/<release>.json`) into a
- * Registry directory at `outDir`, replacing it. Output is sorted, LF-only and oxfmt-formatted, so
- * two runs produce byte-identical directories.
+ * Compiles `sourceDir` (`<name>/module.ts`, `<name>/files/**`, `catalog/<release>.json`) into the
+ * Registry directory `outDir`, only adding: each new Module version gets
+ * `modules/<name>/<version>/`, each Release one `catalog/<release>.json`, and `index.json` lists
+ * everything published. Already published versions and Releases are left untouched; building
+ * fails naming `<module>@<version>` (or the Release) when its source content would change. Output
+ * is sorted, LF-only and oxfmt-formatted, so a build is reproducible.
  */
 export async function buildRegistry(sourceDir: string, outDir: string): Promise<void> {
   const entries = await readdir(sourceDir, { withFileTypes: true });
@@ -161,19 +231,26 @@ export async function buildRegistry(sourceDir: string, outDir: string): Promise<
     .map((entry) => entry.name)
     .toSorted(byCodepoint);
 
-  await rm(outDir, { recursive: true, force: true });
-  const catalog = await buildCatalog(sourceDir, outDir);
+  const existing = await readExistingIndex(outDir);
+  const releases = await buildReleases(sourceDir, outDir, existing?.releases ?? {});
   const built = await Promise.all(
-    moduleNames.map(async (name) => [name, await buildModule(sourceDir, outDir, name)] as const),
+    moduleNames.map(
+      async (name) =>
+        [name, await buildModuleVersion(sourceDir, outDir, name, existing?.modules[name])] as const,
+    ),
   );
-  const modules: RegistryIndex["modules"] = Object.fromEntries(built);
+  const modules: RegistryIndex["modules"] = { ...existing?.modules };
+  for (const [name, { version, entry }] of built) {
+    const versions = { ...modules[name]?.versions, [version]: entry };
+    modules[name] = { latest: latestOf(Object.keys(versions)), versions };
+  }
   const index: RegistryIndex = {
     $schema: registryIndexSchemaUrl,
     schemaVersion: supportedRegistrySchemaVersion,
     name: officialRegistryName,
     release: officialRelease,
     minCliVersion: officialMinCliVersion,
-    catalog,
+    releases,
     modules,
   };
   await writeText(join(outDir, "index.json"), await formatJson("index.json", index));

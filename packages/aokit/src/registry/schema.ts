@@ -1,4 +1,5 @@
 import { z } from "zod";
+import type { Integrity } from "./integrity.ts";
 
 /**
  * The newest Registry index `schemaVersion` this CLI reads.
@@ -14,9 +15,11 @@ const semver = z.string().regex(/^\d+\.\d+\.\d+(-[0-9A-Za-z.-]+)?(\+[0-9A-Za-z.-
   message: "must be a semver version",
 });
 
-const integrity = z.string().regex(/^sha256:[0-9a-f]{64}$/, {
-  message: "must be sha256:<lowercase hex>",
-});
+const integrity = z
+  .string()
+  .refine((value): value is Integrity => /^sha256-[0-9a-f]{64}$/.test(value), {
+    message: "must be sha256-<lowercase hex>",
+  });
 
 const relativePath = z
   .string()
@@ -53,18 +56,29 @@ const moduleEntry = z
   });
 
 /**
- * The Registry index (`index.json`): Release, minimum CLI version, Catalog pointer and Module
- * versions with their integrity. A version entry's `files` maps each Module file path (relative to
- * `modules/<name>/<version>/`) to its integrity.
+ * The Registry index (`index.json`): current Release, minimum CLI version, a Catalog pointer for
+ * every published Release, and every Module version with its integrity. A version entry's
+ * `integrity` covers its manifest and all its files; `files` maps each Module file path (relative
+ * to `modules/<name>/<version>/`) to that file's own integrity.
  */
-export const registryIndexSchema = z.strictObject({
-  $schema: z.string().default(registryIndexSchemaUrl),
-  schemaVersion: z.literal(supportedRegistrySchemaVersion),
-  name: z.string().min(1),
-  release: z.string().min(1),
-  minCliVersion: semver,
-  catalog: z.strictObject({ path: relativePath, integrity }),
-  modules: z.record(z.string().min(1), moduleEntry),
-});
+export const registryIndexSchema = z
+  .strictObject({
+    $schema: z.string().default(registryIndexSchemaUrl),
+    schemaVersion: z.literal(supportedRegistrySchemaVersion),
+    name: z.string().min(1),
+    release: z.string().min(1),
+    minCliVersion: semver,
+    releases: z.record(z.string().min(1), z.strictObject({ path: relativePath, integrity })),
+    modules: z.record(z.string().min(1), moduleEntry),
+  })
+  .superRefine((index, context) => {
+    if (!(index.release in index.releases)) {
+      context.addIssue({
+        code: "custom",
+        path: ["releases"],
+        message: `release "${index.release}" is not one of the listed releases`,
+      });
+    }
+  });
 
 export type RegistryIndex = z.output<typeof registryIndexSchema>;
