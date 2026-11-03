@@ -129,7 +129,12 @@ async function decideManaged(context: PathContext, next: FileContent): Promise<D
   if (entry === undefined) {
     if (user === undefined) return { action: "write", content: next };
     if (sameContent(user, next)) return { action: "keep", entry: "next" };
-    return mergeContents(context, user, next);
+    const decision = await mergeContents(context, user, next);
+    if (decision.action === "conflict") return decision;
+    return {
+      action: "conflict",
+      write: { path, next, base: "", user: textOf(user) },
+    };
   }
   if (user === undefined) {
     const base = input.base.read(path);

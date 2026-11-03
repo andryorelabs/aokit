@@ -73,6 +73,13 @@ describe("unifiedDiff", () => {
 describe("hidden lifecycle stubs", () => {
   const context: CommandContext = { version: "0.0.0", env: {}, commands: exposedCommands };
 
+  test("aokit schema lists the implemented lifecycle commands", async () => {
+    const names = JSON.stringify(await runCommand(schemaCommand, context, {}));
+    for (const name of ["doctor", "diff", "check", "eject", "restore"]) {
+      expect(names).toContain(`"name":"${name}"`);
+    }
+  });
+
   test("aokit schema lists none of them", async () => {
     const envelope = await runCommand(schemaCommand, context, {});
     const names = JSON.stringify(envelope);

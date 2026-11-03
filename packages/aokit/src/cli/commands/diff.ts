@@ -88,10 +88,7 @@ async function loadLockfile(projectDir: string): Promise<Lockfile> {
 }
 
 function contentEquals(left: FileContent, right: FileContent): boolean {
-  if (typeof left === "string" || typeof right === "string") {
-    return left === right;
-  }
-  return left.length === right.length && left.every((byte, index) => byte === right[index]);
+  return Buffer.from(left).equals(Buffer.from(right));
 }
 
 function hunksOf(change: PlanChange): z.output<typeof hunkOutput>[] {

@@ -79,7 +79,11 @@ async function readProjectLockfile(dir: string): Promise<Lockfile> {
 }
 
 function packageJsonChanged(plan: Plan): boolean {
-  return plan.changes.some((change) => change.path === "package.json" && change.type !== "delete");
+  return plan.changes.some(
+    (change) =>
+      (change.path === "package.json" || change.path.endsWith("/package.json")) &&
+      change.type !== "delete",
+  );
 }
 
 /**

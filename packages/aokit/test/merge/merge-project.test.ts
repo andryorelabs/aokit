@@ -124,6 +124,16 @@ describe("mergeProject", () => {
     expect(result.lockfile.files["new.txt"]?.hash).toBe(hashOf("next\n"));
   });
 
+  test("a JSON file next creates over an unknown user JSON file is a Conflict, not a merge", async () => {
+    const result = await run({
+      base: {},
+      next: { "tsconfig.json": '{"b":2}\n' },
+      user: { "tsconfig.json": '{"a":1}\n' },
+    });
+    expect(result.conflicts).toHaveLength(1);
+    expect(result.conflicts[0]?.path).toBe("tsconfig.json");
+  });
+
   test("a file next creates over identical user content is not a Conflict", async () => {
     const result = await run({
       base: {},

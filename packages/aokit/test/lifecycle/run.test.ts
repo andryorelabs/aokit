@@ -168,6 +168,20 @@ describe("runLifecycle", () => {
     expect(calls).toEqual([dir]);
   });
 
+  test("installs when only a workspace package.json changed", async () => {
+    const base = { "apps/web/package.json": "{}\n" };
+    await seedProject(base, { git: true });
+    const calls: string[] = [];
+    const installer = async (directory: string) => {
+      calls.push(directory);
+    };
+    const result = await runLifecycle(
+      options(base, { "apps/web/package.json": '{"a":1}\n' }, { install: true, installer }),
+    );
+    expect(result.installed).toBe(true);
+    expect(calls).toEqual([dir]);
+  });
+
   test("an absent base merges two-way", async () => {
     const base = { "a.txt": "one\n" };
     await seedProject(base, { git: true });
