@@ -26,7 +26,11 @@ Rules for how the `aokit` CLI behaves in a terminal, in CI and under a coding ag
 
 ### `create` flags
 
-`create` adds `--layout <single|monorepo>`, `--modules a,b,c`, `--answer <module.key=value>` (repeatable), `--registry <path>` (a local Registry directory; the bundled first-party Registry is the default) and `--no-install`. A target directory that exists and is not empty fails with exit code `3` and a `fix` that suggests another directory; an empty existing directory is used. The target check runs before `--dry-run` and `--diff`.
+`create` adds `--layout <single|monorepo>`, `--modules a,b,c`, `--answer <module.key=value>` (repeatable), `--registry <path>` (a local Registry directory; the bundled first-party Registry is the default) and `--no-install`. A target directory that exists and is not empty fails with exit code `3` and a `fix` that suggests another directory; an empty existing directory is used. The target check runs before `--dry-run` and `--diff`. `create --from <path>` replays a local Lockfile; a URL fails with exit `3` until remote Registries exist.
+
+### Lifecycle flags
+
+Commands that write project files to an existing Project (`add`, `remove`, `recopy`, `restore`, later `update`) also accept `--allow-dirty` (skip the [clean-tree check](lifecycle.md#clean-tree-precondition)) and `--no-install` where a dependency install can follow. `add` takes `--answer` only for the Modules it adds; `remove` takes `--cascade` to remove the dependents in the same Plan. `doctor` has no `--fix`: it reports, and prints the command that fixes each problem.
 
 ## Non-interactive mode
 
@@ -51,6 +55,12 @@ With `--json`, stdout carries exactly one JSON document and nothing else, using 
 { "ok": false, "data": null, "error": { "code": "CAPABILITY_CONFLICT", "message": "...", "fix": "aokit remove prisma && aokit add drizzle" } }
 ```
 
+An outcome that is not a success but still carries a report uses `ok: false` with a non-null `data` ([lifecycle outcomes](#lifecycle-outcomes)):
+
+```json
+{ "data": { "files": [] }, "error": { "code": "DRIFT", "message": "...", "fix": "aokit restore <path>" }, "ok": false }
+```
+
 - Keys are stable and sorted; the shape per command is the output schema exposed by [`aokit schema`](interfaces.md#aokit-schema).
 - Progress, spinners and prompts are suppressed or sent to stderr. ANSI codes never appear in `--json` output.
 - The process exit code still reflects the outcome, so scripts can use either.
@@ -62,13 +72,31 @@ One table for every command. Codes are stable; new conditions get new numbers, n
 | Code | Name | When |
 | --- | --- | --- |
 | `0` | success | The command did what it was asked. For `check`: the Project is up to date. |
-| `1` | failure | Unexpected runtime error, I/O error, network or integrity failure, or an error raised inside the Engine. The Project is unchanged. |
-| `2` | update available | **Only** `check`: a newer Registry release or Module version exists. Used by CI as a gate. No other command exits `2`. |
-| `3` | usage error | Unknown flag, invalid value, missing required value in non-interactive mode, schema validation failure. |
-| `4` | resolution error | The Resolver rejected the selection (`requires` unmet, `conflicts`, [Cardinality](capabilities.md#cardinality) exceeded). Nothing was built. |
-| `5` | precondition failed | Dirty working tree for `update`/`add`/`remove`, missing or unreadable Lockfile, `minCliVersion` newer than the CLI. |
-| `6` | merge conflicts | `update`/`remove` completed the merge but left conflict markers or `.aokit-new` copies; the user must resolve them. Resumable with `update --apply` or abandoned with `update --abort`. |
+| `1` | failure | Unexpected runtime error, I/O error, network or integrity failure, a Registry that cannot be read, a failed apply that was rolled back, or an error raised inside the Engine. Also the `DRIFT` outcome of `doctor`. The Project is unchanged. |
+| `2` | update available | **Only** `check`, as the `UPDATE_AVAILABLE` outcome: a newer Registry release or Module version exists. Used by CI as a gate. No other command exits `2`. |
+| `3` | usage error | Unknown flag, invalid value, missing required value in non-interactive mode, schema validation failure, a path that is not in the Lockfile (`NOT_IN_LOCKFILE`), removing a Module that was not selected (`NOT_SELECTED`), a URL source before remote Registries exist. |
+| `4` | resolution error | The Resolver rejected the selection (`requires` unmet, `conflicts`, [Cardinality](capabilities.md#cardinality) exceeded), or `remove` found remaining dependents (`DEPENDENTS_EXIST`). Nothing was built. |
+| `5` | precondition failed | Dirty working tree for any command that writes project files (`add`, `remove`, `recopy`, `restore`, `update`), missing or unreadable Lockfile, `minCliVersion` newer than the CLI (`MIN_CLI_VERSION`). |
+| `6` | merge conflicts | **Any** writing command (`add`, `remove`, `recopy`, `update`) completed the merge but left conflict markers or `.aokit-new` copies; the user must resolve them. A file kept with a warning (delete versus modify) is not a conflict. For `update`, resumable with `update --apply` or abandoned with `update --abort`. |
 | `130` | interrupted | Ctrl+C or SIGTERM; the temporary directory was removed and the Project is unchanged. |
+
+### Lifecycle outcomes
+
+Some results are neither a plain success nor an unexpected failure: `doctor` found drift, `check` found an update, a merge left conflicts. They are **error codes that carry data**, not a separate channel. The envelope allows `ok: false` with a non-null `data` report, and the exit code is derived only from `error.code` ([ADR 0015](../adr/0015-lifecycle-outcomes-are-error-codes-with-data.md)).
+
+| Code | Exit | Carries |
+| --- | --- | --- |
+| `DRIFT` | `1` | The `doctor` report. |
+| `UPDATE_AVAILABLE` | `2` | `{ modules: [{ name, current, available, migration }] }`. |
+| `MERGE_CONFLICTS` | `6` | The conflicted paths with provenance. |
+| `DIRTY_TREE` | `5` | The dirty paths. |
+| `MIN_CLI_VERSION` | `5` | The CLI version the Registry release needs. The Registry error `REGISTRY_CLI_TOO_OLD` maps here. |
+| `LOCKFILE_MISSING` | `5` | None. |
+| `NOT_IN_LOCKFILE`, `NOT_SELECTED` | `3` | None. |
+| `DEPENDENTS_EXIST` | `4` | The dependents that block the removal. |
+| `MODULE_VERSION_UNAVAILABLE` | `1` | Module, version and the `aokit recopy` fix. |
+
+A Resolver rejection keeps its raw Resolver code in `error.data.resolverCode`, so tools can branch on it without parsing the message. These codes are defined together, so adding a command never changes the code table.
 
 ### Reconciling with `@clack/prompts`
 
@@ -114,6 +142,7 @@ The goal is that interrupting at any moment leaves either the old Project or the
 - **Prompts**: a clack `group()` that is cancelled continues with the remaining prompts unless `onCancel` exits the process. aokit therefore always passes an `onCancel` that stops the run through the command layer (exit `130`) and never relies on the default. Standalone prompts check `isCancel` the same way.
 - **Spinner**: the clack spinner owns SIGINT while it runs and renders its own cancel message. aokit does not install a competing handler during a spinner; cleanup (removing the temporary directory) is registered once through the command layer's shutdown hook, which runs alongside the spinner's handler, and the exit code comes from the mapping in [Exit codes](#reconciling-with-clackprompts).
 - **Second Ctrl+C** during cleanup exits immediately with `130`; the temporary directory is a uniquely named sibling that `doctor` reports and removes if it survives.
+- **Writing commands on an existing Project** copy every file they will overwrite or delete to a stash under `<git-dir>/aokit/stash/` first, and restore it if the commit fails part-way ([transactional apply](lifecycle.md#transactional-apply)).
 - **`update`** that stops with conflicts is not "half written": it is the documented state exit code `6` describes, and `update --abort` restores the previous state.
 
 ## Color and TTY
@@ -161,9 +190,11 @@ Unknown commands suggest the closest match. `-h` never starts a prompt.
 | Command | Interactive | Writes | Notable exit codes |
 | --- | --- | --- | --- |
 | `create` | yes | Project directory | `0`, `3`, `4`, `130` |
-| `add` / `remove` | yes | Project files, Lockfile | `0`, `4`, `5`, `6`, `130` |
+| `add` / `remove` | yes | Project files, Lockfile | `0`, `3`, `4`, `5`, `6`, `130` |
+| `recopy` / `restore` | confirm only | Project files, Lockfile | `0`, `3`, `5`, `6`, `130` |
+| `eject` | no | Lockfile | `0`, `3`, `5` |
 | `update` | confirm only | Project files, Lockfile | `0`, `5`, `6`, `130` |
 | `check` | no | nothing | `0`, `1`, `2` |
-| `doctor` | no | nothing (`--fix` writes) | `0`, `1`, `5` |
+| `doctor` | no | nothing (read-only, no `--fix`) | `0`, `1`, `5` |
 | `diff`, `schema`, `completion` | no | nothing | `0`, `3` |
 | `mcp init` | yes | client config file | `0`, `3`, `130` |

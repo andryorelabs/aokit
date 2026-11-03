@@ -1,6 +1,6 @@
 # CLI and tooling findings
 
-Findings only. Decisions are in `docs/architecture/` (not yet written; links will be added once it exists). `raw-notes.md` = [raw-notes.md](raw-notes.md); line numbers refer to it. Research date 2026-11-01 (context7 + web).
+Findings only. Decisions are in [`docs/architecture/`](../architecture/overview.md). `raw-notes.md` = [raw-notes.md](raw-notes.md); line numbers refer to it. Research date 2026-11-01 (context7 + web).
 
 ## Command frameworks and completion (raw-notes.md L26)
 

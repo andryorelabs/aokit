@@ -7,23 +7,25 @@
 | Command | Purpose | Writes |
 | --- | --- | --- |
 | `create [dir]` | Build a new Project from a selection. | Whole Project and Lockfile. |
-| `create --from <lockfile\|url>` | Same, replaying another Project's Lockfile. | Whole Project and Lockfile. |
+| `create --from <lockfile\|url>` | Same, replaying another Project's Lockfile. A local path in phase 4a; URLs follow with the remote Registry. | Whole Project and Lockfile. |
 | `add <module>` | Add a Module, plus any Modules it requires. | Plan changes, Lockfile. |
 | `remove <module>` | Remove a Module. | Plan changes, Lockfile. |
 | `update` | Move Modules to newer versions. | Plan changes, Lockfile. |
 | `update --plan` / `--apply` / `--abort` | Two-phase update. | Plan file / Plan changes / nothing. |
-| `doctor` | Report drift and Lockfile health. | Nothing. |
-| `eject <path>` | Hand a file to the user for good. | Lockfile. |
+| `doctor` | Report drift and Lockfile health. Read-only; there is no `--fix`. | Nothing. |
+| `eject <path>` | Hand a file to the user for good. Needs no clean tree. | Lockfile only. |
 | `restore <path>` | Bring a file back to the rendered state. | One file, Lockfile. |
 | `diff` | Show how the working tree differs from a fresh render. | Nothing. |
 | `check` | Say whether an update is available (CI). | Nothing. |
-| `recopy` | Re-render everything from the current versions, ignoring history. | Plan changes, Lockfile. |
+| `recopy` | Re-render everything at the Lockfile versions, ignoring history. | Plan changes, Lockfile. |
+
+The commands ship in two phases. Phase 4a (foundations): `doctor`, `diff`, `check`, `eject`, `restore`, `add`, `remove`, `recopy` and `create --from <path>`. Phase 4b: `update` and its `--plan` / `--apply` / `--abort` flags, Module migrations, the renames manifest and the N-1 to N upgrade job. `layout migrate` stays deferred until `update` works ([roadmap](../roadmap.md#4a-lifecycle-foundations)). Sections below that describe `update`, [Migrations](#migrations) and [Renames manifest](#renames-manifest) are the design that phase 4b implements.
 
 Every command that builds a Plan accepts `--dry-run` and `--diff` ([Engine](engine.md#vfs-and-plan-before-apply)). Flags, `--json`, `--yes` and the full exit-code table belong to the CLI UX design; this page names only the exit codes that carry lifecycle meaning.
 
 ### Clean-tree precondition
 
-Commands that write (`add`, `remove`, `update`, `recopy`, `restore`, `layout migrate`) require a clean working tree when the Project is inside a git repository: no uncommitted changes to any file the Plan would touch. If the tree is dirty the command stops before building anything and says which files are dirty. The point is that the user's own work is always recoverable with git and that a conflict in the merge can only come from committed edits. `--allow-dirty` skips the check explicitly; there is no implicit skip. Outside a git repository, the check is replaced by comparing against the Lockfile hashes and a warning that no undo exists. Read-only commands do not need a clean tree.
+Commands that write project files (`add`, `remove`, `update`, `recopy`, `restore`, `layout migrate`) require a clean working tree when the Project is inside a git repository. The check covers the **whole tree**, not only the files the Plan would touch: any uncommitted change, including untracked files that `.gitignore` does not cover, is dirty. It runs **before anything is built**, so a dirty tree stops the command with exit `5` and the list of dirty paths and no Plan exists yet. The point is that the user's own work is always recoverable with git and that a conflict in the merge can only come from committed edits. `--allow-dirty` skips the check explicitly; there is no implicit skip. A gitignored dirty file passes. Outside a git repository, the check is replaced by comparing against the Lockfile hashes and a warning that no undo exists. Read-only commands and `eject` (which writes only the Lockfile) do not need a clean tree.
 
 ## `create`
 
@@ -36,7 +38,7 @@ Commands that write (`add`, `remove`, `update`, `recopy`, `restore`, `layout mig
 
 ### `create --from <lockfile|url>`
 
-Replaces step 1 with the contents of an existing Lockfile: a local path, or a URL (including a raw file in a git repository). Layout, Module versions, answers and Registries are taken from it; Registry sources and integrity are re-verified. The user's Project becomes a replay of the source one and gets its own fresh Lockfile. There is no preset mechanism: reusable selections are the Lockfile of a real Project. Flags given alongside `--from` override single answers, not Module versions.
+Replaces step 1 with the contents of an existing Lockfile: a local path, or a URL (including a raw file in a git repository). In phase 4a only a local path is accepted; a URL fails with a usage error (exit `3`) until the remote Registry phase. Layout, Module versions, answers and Registries are taken from it; Registry sources and integrity are re-verified. The user's Project becomes a replay of the source one and gets its own fresh Lockfile, equal to the source Lockfile when the source Project is pristine. There is no preset mechanism: reusable selections are the Lockfile of a real Project. Flags given alongside `--from` override single answers, not Module versions.
 
 ### Reproducible command
 
@@ -50,11 +52,13 @@ It is derived from the Lockfile, so it is the same for any CLI version that wrot
 
 ## `add <module>`
 
-1. Require a clean tree.
+1. Require a clean tree (before anything is built).
 2. Load the Lockfile; fetch the new Module (and any auto-accepted providers of its `requires`) with integrity.
-3. Resolve over the **existing Modules plus the new one**, so Cardinality, `conflicts` and Extension point ranges are checked against the whole Project ([Capabilities](capabilities.md#deriving-compatibility)).
-4. Enter the [merge procedure](#the-merge-procedure) with the new Module in the target selection.
-5. Show the Plan; apply; update the Lockfile.
+3. Resolve over the **existing Modules plus the new one**, so Cardinality, `conflicts` and Extension point ranges are checked against the whole Project ([Capabilities](capabilities.md#deriving-compatibility)). The Modules the user named are recorded as Selected Modules (`selected: true`); providers pulled in through `requires` are `selected: false`. Answers are asked only for the new Modules.
+4. Render the **base** from the Lockfile ([Render](#render-from-the-lockfile)), render the target selection as **new**, and enter the [merge procedure](#the-merge-procedure).
+5. Show the Plan; apply transactionally; update the Lockfile. A seed file of the new Module is created. Run `bun install` when `package.json` changed.
+
+A Resolver rejection exits `4`, a failed precondition `5` and a merge that leaves conflicts `6`.
 
 Because the Module reaches others only through Capabilities and Extension points, nothing here edits another Module's files except through Ops at declared Extension points, which are the shared files' normal `owners` ([Lockfile](lockfile.md#field-table)).
 
@@ -73,7 +77,7 @@ Because the Module reaches others only through Capabilities and Extension points
 9. **Apply.** Atomic write; the Lockfile is rewritten with new versions, `integrity`, hashes and `deps`.
 10. **Install.** `bun install` if `package.json` changed; the Bun lockfile is regenerated, never merged.
 
-**Respect deliberate deletions.** A file that is in the Lockfile but absent on disk (state `deleted`) was removed by the user. If the new render still contains it, `update` does not recreate it. If the new render modified it, that is the delete-vs-modify case: the file stays deleted, and a warning is printed ([merge policy](lockfile.md#merge-policy)). `restore <path>` brings it back.
+**Respect deliberate deletions.** A file that is in the Lockfile but absent on disk (state `deleted`) was removed by the user. If the new render still contains it, `update` does not recreate it. If the new render modified it, that is the delete-vs-modify case: the file stays deleted, and a warning is printed, with no conflict and no exit `6` ([merge policy](lockfile.md#merge-policy)). `restore <path>` brings it back.
 
 ### Conflicts
 
@@ -83,7 +87,7 @@ When the `Merger` cannot reconcile a file, `update` leaves the conflict **in the
 - In a git repository, the index gets the three **stages** for the path (1 base, 2 user, 3 new), so `git status` shows the file as unmerged and `git mergetool` works. Resolving it and running `git add` is the user's way to finish; aokit never stages anything on its own.
 - Binary conflicts leave the user's file and write `<name>.aokit-new` beside it.
 - The Lockfile is written for the non-conflicted state; conflicted files keep their previous `hash`, so `doctor` reports them as `modified` until resolved, and `update` can be re-run.
-- The exit code is non-zero and the output lists the conflicted paths with their provenance (which Module and version).
+- The exit code is `6` and the output lists the conflicted paths with their provenance (which Module and version). Exit `6` applies to every writing command that leaves a Conflict (`add`, `remove`, `recopy`, `update`), not only `update`.
 
 ### `update --plan`, `--apply`, `--abort`
 
@@ -91,30 +95,31 @@ Two-phase update for CI and review.
 
 - `update --plan` runs steps 1 to 8 and writes the Plan, including the merged content and the conflict list, to `.git/aokit/plan.json` (outside the working tree). It changes nothing in the Project. The Plan records the hashes of every file it read.
 - `update --apply` applies that Plan. If any recorded hash or the Lockfile has changed since the plan, it refuses and asks for a new `--plan`: what the user reviewed is what is written ([Engine](engine.md#vfs-and-plan-before-apply)).
-- `update --abort` discards a saved Plan, and after a conflicted `update` or `--apply` restores the working tree and index to the pre-update state from the stash of originals kept under `.git/aokit/`.
+- `update --abort` discards a saved Plan, and after a conflicted `update` or `--apply` restores the working tree and index to the pre-update state from the [stash of originals](#transactional-apply) kept under `<git-dir>/aokit/stash/`.
 
 ### `check`
 
-Read-only. Fetches the Registry index and compares the Lockfile's Module versions and Registry release with what is available.
+Read-only. Reads the configured local or bundled Registry index (phase 4a uses no network) and compares the Lockfile's Module versions and Registry release with what is available.
 
 - Exit 0: up to date.
-- Exit **2**: an update is available. Meant for a scheduled CI job that opens an issue or a branch.
+- Exit **2**: an update is available, reported as the `UPDATE_AVAILABLE` [outcome](cli-ux.md#lifecycle-outcomes). Meant for a scheduled CI job that opens an issue or a branch.
+- Exit 1: the Registry cannot be read.
 - Other non-zero codes follow the general exit-code table.
 
-`check --json` lists Modules with current and available versions and whether a migration is involved.
+`check --json` carries `{ "modules": [{ "name", "current", "available", "migration" }] }` as the `data` of the `UPDATE_AVAILABLE` envelope.
 
 ## `remove <module>`
 
 `remove` has no inverse operations. It re-renders the Project **without** the Module and merges, through the same [merge procedure](#the-merge-procedure) as `update` ([Engine](engine.md#ops-catalog)).
 
 1. **Clean tree**, read the Lockfile.
-2. **Check dependents first.** Find the selected Modules that `requires` a Capability or Extension point that only the removed Module provides. If any exist, stop with a message naming them and the fix (remove them first, or `--cascade` to include them in the same Plan, listed explicitly). Nothing is built yet at this point.
-3. **Dependencies are removed only if unused.** The Modules the removed one had pulled in through `requires` stay unless no remaining Module needs their Capabilities and the user confirms (`--yes` accepts). Dependencies in `package.json` are removed only if no remaining Module's `deps` lists them; `deps.<name>` with `source: "user"` is never removed.
+2. **Check dependents first.** Find the remaining Modules that `requires` a Capability or Extension point that only the removed Module provides. If any exist, stop with `DEPENDENTS_EXIST` (exit `4`) naming them and the fix (remove them first, or `--cascade` to include them in the same Plan, listed explicitly). Removing a Module that is not a Selected Module fails with `NOT_SELECTED` (exit `3`). Nothing is built yet at this point.
+3. **Orphans are removed only if unused and confirmed.** The Modules the removed one had pulled in through `requires` (`selected: false`) stay unless no remaining Module needs their Capabilities and the user confirms (`--yes` accepts). Non-interactive without `--yes`, the command fails with `MISSING_VALUE` (exit `3`) listing the orphans. Dependencies in `package.json` are removed only if no remaining Module's `deps` lists them; `deps.<name>` with `source: "user"` is never removed.
 4. **Base** is the current state rendered from the Lockfile (all Modules, recorded versions and answers). **New** is the render of the same selection without the Module. **User** is the working tree.
-5. **Merge procedure.** Files owned only by the removed Module: if `pristine`, deleted; if `modified`, a conflict (delete vs modify, kept with a warning). Files with several `owners` are re-rendered without that Module's contribution (for example its `package.json` scripts and its `registerAt` entries) and 3-way merged with the user's edits.
-6. **Plan, apply, Lockfile.** The Module's entry, its files and its exclusive `deps` disappear from the Lockfile.
+5. **Merge procedure.** Files owned only by the removed Module: if `pristine`, deleted; if `modified`, **kept with a warning**, not a Conflict, so the exit code is not `6` for that case. Files with several `owners` are re-rendered without that Module's contribution (for example its `package.json` scripts and its `registerAt` entries) and 3-way merged with the user's edits. A `seed` file of the removed Module is deleted only if it is `pristine` and solely owned; an edited seed is kept with a warning.
+6. **Plan, apply, Lockfile.** The Module's entry and its exclusive `deps` disappear from the Lockfile. A file that was kept stays in the Lockfile with the removed Module dropped from its `owners`; the entry is removed when no owners remain.
 
-Files the user `eject`ed stay exactly as they are; the Plan notes that an ejected file may still reference the removed Module.
+Files the user `eject`ed stay exactly as they are; the Plan notes that an ejected file may still reference the removed Module. With no user edits, the result equals a fresh `create` without the Module (and without any cascaded Modules).
 
 ## The merge procedure
 
@@ -122,11 +127,13 @@ Files the user `eject`ed stay exactly as they are; the Plan notes that an ejecte
 
 Given a **base** (a render of the Project as the Lockfile describes it), a **new** (a render of the target state) and **user** (the working tree):
 
-1. For each path in the union of base and new, read its Ownership mode and drift state from the Lockfile ([hashes](lockfile.md#per-file-hashes)). `seed` and `ejected` files are skipped.
-2. **Fast paths.** `pristine` and base equals new: untouched. `pristine` and base differs from new: take new. `deleted`: keep it deleted (see the deliberate-deletion rule).
-3. **Created or removed by the render.** In new but not base: create it, unless the user already has an unknown file there, which is a conflict. In base but not new: delete it if `pristine`, otherwise delete-vs-modify (keep, warn).
-4. **Modified files.** Normalize to LF, then hand base, user and new to the [`Merger`](lockfile.md#merge-policy) by file type: text through `git merge-file` / `node-diff3`, JSON structurally, binary as `.aokit-new`. The result is written into the VFS, with conflict markers if any.
-5. **Renames.** If a Module's [renames manifest](#renames-manifest) maps an old path to a new one, base and user are read at the old path, new at the new path, and the merge is a rename plus a content merge.
+The user side is read only for paths that are in the Lockfile or in either render. The merge itself is a pure VFS-to-VFS function; only reading the user's files touches the disk.
+
+1. For each path in the union of base and new, read its Ownership mode and [Drift state](lockfile.md#per-file-hashes) from the Lockfile. `ejected` files are skipped. `seed` files are never merged: a new seed is created, and a seed that the render removes is deleted only if it is `pristine` and solely owned.
+2. **Fast paths.** `pristine` and base equals new: untouched. `pristine` and base differs from new: take new. `deleted`: keep it deleted with a warning when new changed it (see the deliberate-deletion rule). `volatile` files keep the user's content.
+3. **Created or removed by the render.** In new but not base: create it, unless the user already has an `unknown` file there, which is a Conflict. In base but not new: delete it if `pristine`; if `modified`, keep it with a warning (no Conflict), and drop the Module from the file's `owners`.
+4. **Modified files.** Normalize to LF, then hand base, user and new to the [`Merger`](lockfile.md#merge-policy) by file type: text through `git merge-file` / `node-diff3`, JSON structurally, binary as `.aokit-new`. The result is written into the VFS, with conflict markers if any. Formatting runs only on renders, never on the user's content.
+5. **Renames** (phase 4b). If a Module's [renames manifest](#renames-manifest) maps an old path to a new one, base and user are read at the old path, new at the new path, and the merge is a rename plus a content merge. Without a manifest a rename is never inferred from identical content: it is a delete plus a create.
 6. **Package-manager lockfile** is never merged; `bun install` regenerates it.
 7. **Emit** the result as a Plan, with create, update, delete and rename changes and per-Module provenance ([Engine](engine.md#change-types-and-provenance)).
 
@@ -135,14 +142,14 @@ Given a **base** (a render of the Project as the Lockfile describes it), a **new
 | `add` | Lockfile render | render with the Module added |
 | `remove` | Lockfile render | render without the Module |
 | `update` | Lockfile render (old versions) | render at target versions, migrated answers |
-| `recopy` | none (empty) | render at current versions |
+| `recopy` | none (empty) | render at the Lockfile versions |
 | `layout migrate` | Lockfile render, old Layout | render, new Layout |
 
 A Module's declarative Ops are applied by the Engine only while building a render; the merge procedure never replays or reverses an Op. That is why no Op has an inverse.
 
 ## Migrations
 
-A Module that changes in a way a plain re-render cannot carry (a renamed answer, a moved Extension point, a changed file layout) ships migrations in its manifest ([`migrations`](module-contract.md#field-table)):
+Phase 4b. A Module that changes in a way a plain re-render cannot carry (a renamed answer, a moved Extension point, a changed file layout) ships migrations in its manifest ([`migrations`](module-contract.md#field-table)):
 
 ```json
 "migrations": [
@@ -159,7 +166,7 @@ A Module that changes in a way a plain re-render cannot carry (a renamed answer,
 
 ### Renames manifest
 
-A Module version may include `renames.json`, a map from old path to new path (Target-relative, so it works in any Layout). The merge procedure uses it to carry the user's edits across a move instead of treating it as a delete plus a create.
+Phase 4b. A Module version may include `renames.json`, a map from old path to new path (Target-relative, so it works in any Layout). The merge procedure uses it to carry the user's edits across a move instead of treating it as a delete plus a create.
 
 ## `doctor`
 
@@ -167,21 +174,43 @@ Read-only health report.
 
 1. Load the Lockfile; check `lockfileVersion` and `minCliVersion`.
 2. Verify each Module's `integrity` against the Registry or cache.
-3. Re-run Resolver checks against the recorded selection: Capabilities satisfied, Cardinality, `conflicts`.
-4. Classify every file in `files` as `pristine`, `modified`, `deleted` or `unknown` ([hashes](lockfile.md#per-file-hashes)) and list files under Targets that are not in the Lockfile.
+3. Re-run Resolver checks against the recorded selection: Capabilities satisfied, Cardinality, `conflicts`. A Resolver error carries its raw Resolver code in the report data.
+4. Classify every file in `files` as `pristine`, `modified`, `deleted`, `unknown` or `volatile` ([Drift state](lockfile.md#per-file-hashes)). `unknown` covers files under the Targets that are not in the Lockfile and any `<name>.aokit-new` file. `ejected` files report no drift.
 5. Check that `deps` in `package.json` match the recorded `version` and `pinned` state.
+6. Report a leftover [stash](#transactional-apply) from an interrupted apply and remove it.
 
-The output is grouped and actionable: for each problem, the command that fixes it (`aokit restore`, `aokit eject`, `aokit update`). It exits non-zero when something is wrong.
+`doctor` is **read-only**: it has no `--fix`, and it removes only a leftover stash. The output is grouped and actionable: for each problem, the command that fixes it (`aokit restore <path>`, `aokit eject <path>`, `aokit add` / `aokit remove`, and `aokit update` once it exists). It exits `0` when clean, `1` with the `DRIFT` [outcome](cli-ux.md#lifecycle-outcomes) and the full report as data when anything is wrong, and `5` when the Lockfile is missing or unreadable.
 
 ## `eject` and `restore`
 
-- `eject <path>`: sets the file's Ownership mode to `ejected` and records it in the Lockfile. The file's content is not changed. From then on `update`, `remove` and `doctor` skip it.
-- `restore <path>`: renders the file's `owners` at their Lockfile versions and writes it, replacing the user's version after showing a diff (clean tree required). It works for an `ejected` file (mode returns to `managed`), a `modified` one, and a `deleted` one. If the file has no entry in the Lockfile, it fails.
+- `eject <path>`: sets the file's Ownership mode to `ejected` and records it in the Lockfile, keeping its `owners` and last `hash`. Only `aokit.lock.json` is written, so no clean tree is needed. It is allowed on `managed` and `seed` files. From then on `update`, `remove` and `doctor` skip it. A path with no Lockfile entry fails with `NOT_IN_LOCKFILE` (exit `3`).
+- `restore <path>`: requires a clean tree. It takes a **full Render** at the Lockfile versions, picks that path's content, shows a diff and writes it, replacing the user's version. It works for an `ejected` file, a `modified` one and a `deleted` one; the mode returns to `managed`, and a `seed` stays `seed`. If the file has no entry in the Lockfile, it fails with `NOT_IN_LOCKFILE`.
 
 ## `diff`
 
-Renders the Lockfile state in a VFS and prints a unified diff between it and the working tree, per file, for `managed` files. It answers "what have I changed from what aokit generated". `diff --to <release>` instead diffs the working tree against the render at a target release, which previews what `update` would merge.
+Renders the Lockfile state in a VFS and prints a unified diff between it and the working tree, per file, for `managed` files only, with real line hunks. It answers "what have I changed from what aokit generated". It exits `0` whether or not there are differences (`3` on invalid input); `--json` returns the hunks per file. `diff --to <release>` (phase 4b) instead diffs the working tree against the render at a target release, which previews what `update` would merge.
 
 ## `recopy`
 
-For when history is not trustworthy (a lost Module version, a Lockfile gone stale). `recopy` skips the base: it renders the current versions of the selected Modules and treats every `managed` file as `new`, with the user's version as the other side and no common ancestor. Conflicts are therefore more likely and are reported the same way. It keeps `seed` and `ejected` files and rebuilds the Lockfile from the result.
+For when history is not trustworthy (a lost Module version, a Lockfile gone stale). It requires a clean tree. `recopy` skips the base: it renders the selected Modules at their **Lockfile versions** and treats every `managed` file as `new`, with the user's version as the other side and no common ancestor. When a locked version is unavailable in the Registry, it uses the latest version of the Lockfile's Release and notes the substitution in the Plan. `pristine` files take new, `deleted` files stay deleted, and a differing `managed` file is a two-way Conflict (user against new, empty base), reported the same way as any other. It keeps `seed` and `ejected` files and rebuilds the Lockfile from the result. Exit `6` on Conflicts.
+
+## Render from the Lockfile
+
+Every command that needs a base uses one function: it takes a Lockfile and produces the [Render](../../CONTEXT.md) of the Project it describes.
+
+- It starts from an **empty tree** and uses the Lockfile's Layout, Module versions, answers and the Catalog of its Release.
+- The context is deterministic (fixed `now` and `random`) and the format phase is the running CLI's, so a Render of an unedited Project reproduces every recorded `managed` and `seed` hash.
+- It resolves `registries.<name>.source`: `"bundled"` is the Registry shipped with the CLI, and a relative path resolves from the Project directory.
+- It checks `minCliVersion` before reading any Registry (exit `5`, `MIN_CLI_VERSION`).
+- A Module version that is not in the Registry fails with `MODULE_VERSION_UNAVAILABLE`, naming the Module, the version and `aokit recopy` as the way out.
+- Building a Render applies the manifest `deps` and `env` itself, so it never depends on the wrapper that calls it. Building over a non-empty base requires the previous Lockfile.
+
+## Transactional apply
+
+Applying a Plan to an existing Project is transactional:
+
+1. Every file the Plan will overwrite or delete is first copied to `<git-dir>/aokit/stash/<timestamp>/` (resolved with `git rev-parse --git-dir`, so a linked worktree works), or to `.aokit/stash/` outside git.
+2. The Plan is committed. On an I/O error part-way, the originals are restored and the command exits `1`; the Lockfile is unchanged.
+3. On success the stash is removed. `doctor` reports and removes a stash left by a killed process.
+4. A **conflict writer** then writes merged content with markers, writes `<name>.aokit-new` siblings for binaries, and in a git repository records index stages 1, 2 and 3 for each conflicted path. It never runs `git add` or `git commit`.
+5. The Lockfile is written last. Conflicted files keep their previous `hash`, so `doctor` reports them `modified`.

@@ -1,6 +1,6 @@
 # Scaffolding landscape
 
-Findings only. What aokit does about them lives in `docs/architecture/` (not yet written; links will be added there once it exists).
+Findings only. What aokit does about them lives in [`docs/architecture/`](../architecture/overview.md).
 
 Source convention: `raw-notes.md` means [raw-notes.md](raw-notes.md), the unedited research from the planning session. Line numbers refer to that file. The notes record that local clones of both tools were read during the research (raw-notes.md L103); the clones are not in this repo, so the upstream repositories are cited as the places to verify.
 

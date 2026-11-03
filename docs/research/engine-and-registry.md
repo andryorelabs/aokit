@@ -1,6 +1,6 @@
 # Engine and registry findings
 
-Findings only. Decisions are in `docs/architecture/` (not yet written; links will be added once it exists). `raw-notes.md` = [raw-notes.md](raw-notes.md); line numbers refer to it. Findings come from the 2026-11-01 research (3 agents, context7 + web) unless stated.
+Findings only. Decisions are in [`docs/architecture/`](../architecture/overview.md). `raw-notes.md` = [raw-notes.md](raw-notes.md); line numbers refer to it. Findings come from the 2026-11-01 research (3 agents, context7 + web) unless stated.
 
 ## Code-editing libraries (TypeScript sources)
 

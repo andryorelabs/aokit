@@ -59,6 +59,10 @@ export default defineModule({
 
 `range: "catalog"` takes the version from the [Catalog](overview.md#mapping-to-the-glossary) the Registry release ships. By default dependencies resolve to ranges, recorded with a lockfile. A dependency with `pinGroup` belongs to a Toolchain pin group and is pinned exactly regardless of that default. The group is named, so every Module that lists it moves together.
 
+## Integrity
+
+A Module version's `integrity` is not a field the author writes. The Registry build computes it as `sha256-<hex>` over the canonical manifest and the Module's files (sorted path plus LF-normalized content), publishes it in the [Registry index](registry.md#aokit-manifest-index), and the [Lockfile](lockfile.md#integrity-format) copies it verbatim. Editing any file of a published version changes the value, so a version is bumped, never edited in place ([immutability](registry.md#immutability)).
+
 ## Schema versioning
 
 - `$schema` points at the versioned JSON Schema for the manifest.

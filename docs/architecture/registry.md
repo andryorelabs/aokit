@@ -8,8 +8,8 @@ The Registry client (see the [overview](overview.md)) is the only component that
 
 | Kind | Source | Format | Trust by default |
 | --- | --- | --- | --- |
-| `official` | The first-party Registry, shipped with the CLI as the default. Until the Registry client and distribution phases, it lives in this repository as `registry/`, compiled from `registry-src/` and read as a local directory. | aokit index | Trusted. |
-| `local` | A directory on disk (`./registry`, `file:` path). | aokit index | Trusted: it is code the user already has. |
+| `official` | The first-party Registry, shipped with the CLI as the default. Until the Registry client and distribution phases, it lives in this repository as `registry/`, compiled from `registry-src/` and read as a local directory. The Lockfile records its source as `"bundled"`. | aokit index | Trusted. |
+| `local` | A directory on disk (`./registry`, `file:` path). The Lockfile records a path relative to the Project directory, resolved from there. | aokit index | Trusted: it is code the user already has. |
 | `remote` | A URL or a giget source (`github:owner/repo#ref`). | aokit index | Not trusted. See [Trust model](#trust-model). |
 | `shadcn` | A shadcn registry (URL or namespace) read through the [adapter](#shadcn-adapter). | shadcn registry items | Not trusted, and declarative-only. |
 
@@ -22,7 +22,7 @@ A Module name is looked up in this order; the first Registry that has it wins:
 3. `remote` and `shadcn` Registries, in the order configured.
 4. `official`.
 
-A Module already in the [Lockfile](lockfile.md) is always fetched from the Registry recorded in its `registry` field, never re-resolved by name. Two Registries offering the same name is not an error when the lookup is unambiguous by the order above; the Plan shows which Registry supplied each Module. Capability names are owned by the Registry that first uses them ([Capabilities](capabilities.md#naming)), and the Resolver reports a disagreement on [Cardinality](capabilities.md#cardinality) as a Registry warning.
+A Module already in the [Lockfile](lockfile.md) is always fetched from the Registry recorded in its `registry` field, never re-resolved by name. That field points at a key of `registries`, whose `source` is `"bundled"` (the Registry shipped with the CLI), a path relative to the Project directory, or, in later phases, a URL or giget ref. Two Registries offering the same name is not an error when the lookup is unambiguous by the order above; the Plan shows which Registry supplied each Module. Capability names are owned by the Registry that first uses them ([Capabilities](capabilities.md#naming)), and the Resolver reports a disagreement on [Cardinality](capabilities.md#cardinality) as a Registry warning.
 
 ## aokit manifest index
 
@@ -31,11 +31,13 @@ The own protocol is plain JSON over HTTPS, a directory, or a git source. It is i
 ### Layout of a Registry
 
 ```text
-index.json                      # the registry index
-modules/<name>/<version>.json   # one compiled manifest per module version (module.json)
-modules/<name>/<version>/...    # the files the manifest lists in `files[].from`
-catalog/<release>.json          # the Catalog for one registry release
+index.json                              # the registry index
+modules/<name>/<version>/module.json    # one compiled manifest per module version
+modules/<name>/<version>/files/...      # the files the manifest lists in `files[].from`
+catalog/<release>.json                  # the Catalog for one Release
 ```
+
+Every Module version has its own immutable directory, and every [Release](../../CONTEXT.md) has its own Catalog file. Building the Registry (`bun run registry:build`) only **adds** versions and Releases: it never deletes an existing one, and it fails naming `<module>@<version>` if the content of an already published version would change. The reader offers the `latest` view, lookup by `name@version`, and the Catalog of a given Release.
 
 ### Index shape
 
@@ -46,14 +48,15 @@ catalog/<release>.json          # the Catalog for one registry release
   "name": "aokit",
   "release": "2026.11.0",
   "minCliVersion": "0.1.0",
-  "catalog": { "path": "catalog/2026.11.0.json", "integrity": "sha256:<hex>" },
+  "catalog": { "path": "catalog/2026.11.0.json", "integrity": "sha256-<hex>" },
+  "releases": ["2026.11.0"],
   "modules": {
     "oxc": {
       "latest": "1.0.0",
       "versions": {
         "1.0.0": {
-          "manifest": "modules/oxc/1.0.0.json",
-          "integrity": "sha256:<hex>",
+          "manifest": "modules/oxc/1.0.0/module.json",
+          "integrity": "sha256-<hex>",
           "schemaVersion": 1,
           "provides": ["lint", "format"]
         }
@@ -67,11 +70,12 @@ catalog/<release>.json          # the Catalog for one registry release
 | --- | --- |
 | `$schema`, `schemaVersion` | Versioned like Module manifests: a CLI reads indexes up to the `schemaVersion` it supports; a newer one fails with an error that tells the user to update the CLI, and unknown fields are an error ([Schema versioning](module-contract.md#schema-versioning)). |
 | `name` | The Registry name, used in `@name/module` addresses and recorded in the Lockfile `registry` field. |
-| `release` | Identifier of this registry release, which is also the stem of `catalog/<release>.json`. |
+| `release` | Identifier of the current Release, which is also the stem of `catalog/<release>.json`. |
+| `releases` | Every Release the Registry has published. Each has its own Catalog file, so a Project can be rendered at the Release its Lockfile records. |
 | `minCliVersion` | Lowest CLI version able to use this release. The Lockfile records it per release ([Lockfile](lockfile.md)); a CLI below it stops with an update instruction before any fetch. |
 | `catalog` | Pointer and integrity for the release Catalog. |
 | `modules.<name>.latest` | The version `add` selects when the user gives none. |
-| `modules.<name>.versions.<v>` | A version entry: `manifest` path, `integrity` of the manifest, and a summary (`provides`) so the Resolver can list candidates without downloading every manifest. The manifest is authoritative; a mismatch with the summary is a Registry error. |
+| `modules.<name>.versions.<v>` | A version entry: `manifest` path, `integrity` over the manifest and the Module's files ([Trust model](#integrity)), and a summary (`provides`) so the Resolver can list candidates without downloading every manifest. The manifest is authoritative; a mismatch with the summary is a Registry error. |
 
 The index lists first-party Capability names too, so errors can suggest providers ([Capabilities](capabilities.md#error-messages)).
 
@@ -97,7 +101,7 @@ Entries in a `pinGroups` group are the Toolchain pin group: pinned exactly regar
 
 ### Immutability
 
-A published `modules/<name>/<version>` and its files never change. A fix is a new version. Consequences:
+A published `modules/<name>/<version>/` and its files never change. A fix is a new version. Consequences:
 
 - A version entry's `integrity` is permanent; a Registry that serves different bytes for it is faulty or compromised and the client rejects them.
 - Old versions stay fetchable for as long as any Project may reference them. A Registry may yank a version (flagged in the index so `add` will not select it) but must keep serving it, because `update` renders the old version from the Lockfile ([Lockfile](lockfile.md)).
@@ -204,9 +208,9 @@ shadcn has no lockfile and no integrity hash: an item is fetched and written, an
 
 ### Integrity
 
-- Every manifest has a sha256 `integrity` in the index; every file a manifest lists has its sha256 in the manifest or in the index entry it came from. The client computes them over the canonical bytes (LF-normalized text) and rejects a mismatch before anything enters the [VFS](engine.md).
-- The Lockfile records, per Module, `registry` (the Registry name or source it came from) and `integrity` (the sha256 of the manifest); per-file hashes live in the `files` map ([Lockfile](lockfile.md)). `update` and `create --from` re-verify against these.
-- Integrity is stored as `sha256:<lowercase hex>`; the algorithm is part of the string so a stronger hash can be added later without a protocol break.
+- Every Module version has one `integrity` in the index, computed over its canonical manifest and its files (each file as its sorted path plus LF-normalized content). The index also lists each file's own sha256. The client recomputes them over the canonical bytes and rejects a mismatch before anything enters the [VFS](engine.md). The error names the Registry, the Module and both values.
+- The Lockfile records, per Module, `registry` (the Registry name or source it came from) and `integrity`, **copied verbatim from the index**; per-file hashes live in the `files` map ([Lockfile](lockfile.md#integrity-format)). `add`, `remove`, `recopy`, `update` and `create --from` re-verify against these.
+- Integrity is stored as `sha256-<lowercase hex>`, the same format in the Registry index, the Catalog pointer and the Lockfile; the algorithm is part of the string so a stronger hash can be added later without a protocol break.
 - Integrity protects against a changed or corrupted artifact. It does not make a malicious Registry harmless; the trust model below does that.
 
 ### Commit-SHA pinning
