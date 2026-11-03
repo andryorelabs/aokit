@@ -2,7 +2,13 @@ import { posix } from "node:path";
 import { codeOpHandlers } from "../ops/code/index.ts";
 import { dataOpHandlers } from "../ops/data/index.ts";
 import { EngineError } from "./errors.ts";
-import { type AnswerValue, interpolateContent, interpolatePath } from "./interpolate.ts";
+import {
+  type AnswerValue,
+  interpolateContent,
+  interpolatePath,
+  interpolateTargets,
+  interpolateTargetsDeep,
+} from "./interpolate.ts";
 import { type LayoutName, resolveTarget } from "./layout.ts";
 import {
   type DeclaredExtensionPoint,
@@ -177,8 +183,10 @@ export async function buildPlan(options: BuildPlanOptions): Promise<Plan> {
     log.add(path, removal.module, { kind: "remove" });
   }
 
+  const directoryOf = (target: string): string =>
+    directories.get(target) ?? resolveTarget(layout, target);
   const resolvePath = (target: string, relativePath: string): string =>
-    joinTargetPath(directories.get(target) ?? resolveTarget(layout, target), relativePath);
+    joinTargetPath(directoryOf(target), relativePath);
 
   for (const module of modules) {
     const { manifest } = module;
@@ -197,7 +205,10 @@ export async function buildPlan(options: BuildPlanOptions): Promise<Plan> {
       };
       const existing = producers.get(path);
       const source = module.readFile(file.from);
-      const content = typeof source === "string" ? interpolateContent(source, answers) : source;
+      const content =
+        typeof source === "string"
+          ? interpolateTargets(interpolateContent(source, answers), directoryOf)
+          : source;
       const entry: ProvenanceEntry = { kind: "file", from: file.from };
 
       if (existing !== undefined) {
@@ -225,7 +236,8 @@ export async function buildPlan(options: BuildPlanOptions): Promise<Plan> {
       });
     }
 
-    for (const op of manifest.ops) {
+    for (const declaredOp of manifest.ops) {
+      const op = interpolateTargetsDeep(declaredOp, directoryOf);
       const opVfs: OpVfs = {
         has: (path) => work.has(path),
         paths: () => work.paths(),

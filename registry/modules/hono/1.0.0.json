@@ -1,0 +1,75 @@
+{
+  "$schema": "https://aokit.dev/schema/module/v1.json",
+  "conflicts": [],
+  "deps": {
+    "dependencies": {
+      "hono": {
+        "range": "catalog"
+      }
+    },
+    "devDependencies": {
+      "@types/bun": {
+        "range": "catalog"
+      }
+    }
+  },
+  "env": [],
+  "extensionPoints": [
+    {
+      "anchor": "middleware",
+      "file": "src/app.ts",
+      "kind": "array",
+      "name": "server.middleware",
+      "target": "server",
+      "version": "1.0.0"
+    },
+    {
+      "anchor": "routes",
+      "file": "src/app.ts",
+      "kind": "object",
+      "name": "server.routes",
+      "target": "server",
+      "version": "1.0.0"
+    }
+  ],
+  "files": [
+    {
+      "from": "files/app.ts",
+      "ownership": "managed",
+      "target": "server",
+      "to": "src/app.ts"
+    }
+  ],
+  "migrations": [],
+  "name": "hono",
+  "ops": [
+    {
+      "file": "package.json",
+      "op": "mergeJson",
+      "target": "root",
+      "value": {
+        "scripts": {
+          "start": "bun run {{target:server}}/src/app.ts"
+        }
+      }
+    }
+  ],
+  "override": [],
+  "provides": [
+    {
+      "capability": "server",
+      "cardinality": {
+        "max": 1
+      }
+    },
+    {
+      "capability": "api:http",
+      "cardinality": {
+        "max": 1
+      }
+    }
+  ],
+  "requires": [],
+  "schemaVersion": 1,
+  "version": "1.0.0"
+}

@@ -1,0 +1,53 @@
+{
+  "$schema": "https://aokit.dev/schema/module/v1.json",
+  "conflicts": [],
+  "deps": {
+    "devDependencies": {
+      "knip": {
+        "range": "catalog"
+      }
+    }
+  },
+  "env": [],
+  "extensionPoints": [],
+  "files": [
+    {
+      "from": "files/knip.json",
+      "ownership": "managed",
+      "target": "root",
+      "to": "knip.json"
+    }
+  ],
+  "migrations": [],
+  "name": "knip",
+  "ops": [
+    {
+      "file": "package.json",
+      "op": "mergeJson",
+      "target": "root",
+      "value": {
+        "scripts": {
+          "knip": "knip"
+        }
+      }
+    },
+    {
+      "extensionPoint": "lint.ignores",
+      "op": "mergeJson",
+      "range": "^1",
+      "value": ["knip-report/**"]
+    }
+  ],
+  "override": [],
+  "provides": [
+    {
+      "capability": "unused-code",
+      "cardinality": {
+        "max": 1
+      }
+    }
+  ],
+  "requires": ["ext:lint.ignores@^1"],
+  "schemaVersion": 1,
+  "version": "1.0.0"
+}

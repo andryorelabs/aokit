@@ -69,9 +69,8 @@ const point = (extensionPoint: string, range = "^1") => ({
 
 async function render(layout: (typeof layouts)[number], modules: EngineModule[]): Promise<string> {
   const plan = await buildPlan({ modules: [base(), ...modules], layout, answers: {}, context });
-  const content = plan.vfs.read(
-    `${resolveTarget(layout, "web")}/providers.ts`.replace(/^\.\//, ""),
-  );
+  const directory = resolveTarget(layout, "web");
+  const content = plan.vfs.read(directory === "" ? "providers.ts" : `${directory}/providers.ts`);
   if (typeof content !== "string") {
     throw new Error("providers.ts missing");
   }
@@ -224,4 +223,39 @@ test("anchor lookup ignores declaration files and generated directories", async 
     contributor("auth", [{ op: "addToArray", ...point("web.providers"), element: "Auth()" }]),
   ]);
   expect(result).toContain("Auth()");
+});
+
+test("an Extension point with a declared file ignores the same anchor in other files", async () => {
+  const source = "export const routes = [];\n";
+  const twoSites = moduleOf(
+    {
+      name: "two-sites",
+      files: [
+        { from: "routes.ts", to: "src/routes.ts", target: "web" },
+        { from: "routes.ts", to: "src/other.ts", target: "web" },
+      ],
+      extensionPoints: [
+        {
+          name: "web.routes",
+          version: "1.0.0",
+          target: "web",
+          kind: "array",
+          anchor: "routes",
+          file: "src/routes.ts",
+        },
+      ],
+    },
+    { "routes.ts": source },
+  );
+  const plan = await buildPlan({
+    modules: [
+      twoSites,
+      contributor("auth", [{ op: "addToArray", ...point("web.routes"), element: "Auth()" }]),
+    ],
+    layout: "single",
+    answers: {},
+    context,
+  });
+  expect(String(plan.vfs.read("src/routes.ts"))).toContain("Auth()");
+  expect(String(plan.vfs.read("src/other.ts"))).not.toContain("Auth()");
 });

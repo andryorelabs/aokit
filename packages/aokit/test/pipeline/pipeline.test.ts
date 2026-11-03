@@ -17,7 +17,7 @@ test.each(["single", "monorepo"] as const)(
       const result = await runPipeline(input({ layout }), directory);
       if (!result.ok) throw new Error(result.error.message);
 
-      const webDirectory = layout === "single" ? "src" : "apps/web";
+      const webDirectory = layout === "single" ? "" : "apps/web";
       const app = await readFile(join(directory, webDirectory, "app.ts"), "utf8");
       expect(app).toBe("export const name = 'demo';\n");
       const providers = await readFile(join(directory, webDirectory, "providers.ts"), "utf8");
@@ -25,6 +25,8 @@ test.each(["single", "monorepo"] as const)(
       expect(providers).toContain("Auth()");
       expect(await readFile(join(directory, "demo.md"), "utf8")).toBe("# demo\n");
 
+      const webPath = (file: string): string =>
+        webDirectory === "" ? file : `${webDirectory}/${file}`;
       const lockfile = parseLockfile(
         await readFile(join(directory, "aokit.lock.json"), "utf8"),
       ).lockfile;
@@ -34,8 +36,8 @@ test.each(["single", "monorepo"] as const)(
       expect(lockfile.modules["base"]?.answers).toEqual({ appName: "demo" });
       expect(lockfile.files["demo.md"]).toMatchObject({ owners: ["base"], mode: "seed" });
       expect(lockfile.files["run.sh"]).toBeDefined();
-      expect(lockfile.files[`${webDirectory}/providers.ts`]?.owners).toEqual(["auth", "base"]);
-      expect(lockfile.files[`${webDirectory}/.env`]?.owners).toEqual(["auth", "base"]);
+      expect(lockfile.files[webPath("providers.ts")]?.owners).toEqual(["auth", "base"]);
+      expect(lockfile.files[webPath(".env")]?.owners).toEqual(["auth", "base"]);
       expect(lockfile.deps["oxlint"]).toEqual({
         version: "1.90.0",
         pinned: true,
@@ -124,7 +126,7 @@ test.each(["single", "monorepo"] as const)(
 test("manifest env writes are attributed to the env step", async () => {
   const built = await buildProject(input({ layout: "single" }));
   if (!built.ok) throw new Error("expected success");
-  const entries = built.plan.changes.find((change) => change.path === "src/.env")?.provenance ?? [];
+  const entries = built.plan.changes.find((change) => change.path === ".env")?.provenance ?? [];
   expect(entries.some((entry) => entry.entry.kind === "op" && entry.entry.op === "env")).toBe(true);
 });
 

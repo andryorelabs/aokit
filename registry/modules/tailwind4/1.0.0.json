@@ -1,0 +1,94 @@
+{
+  "$schema": "https://aokit.dev/schema/module/v1.json",
+  "conflicts": [],
+  "deps": {
+    "dependencies": {
+      "tailwindcss": {
+        "range": "catalog"
+      }
+    },
+    "devDependencies": {
+      "@tailwindcss/vite": {
+        "range": "catalog"
+      }
+    }
+  },
+  "env": [],
+  "extensionPoints": [
+    {
+      "anchor": "theme",
+      "file": "src/styles.css",
+      "kind": "region",
+      "name": "styles.theme",
+      "target": "web",
+      "version": "1.0.0"
+    }
+  ],
+  "files": [
+    {
+      "from": "files/styles.css",
+      "ownership": "seed",
+      "target": "web",
+      "to": "src/styles.css"
+    },
+    {
+      "from": "files/tailwind-provider.tsx",
+      "ownership": "managed",
+      "target": "web",
+      "to": "src/tailwind-provider.tsx"
+    }
+  ],
+  "migrations": [],
+  "name": "tailwind4",
+  "ops": [
+    {
+      "file": "src/styles.css",
+      "op": "addCssAtRule",
+      "params": "\"tailwindcss\"",
+      "rule": "import",
+      "target": "web"
+    },
+    {
+      "extensionPoint": "web.providers",
+      "from": "./tailwind-provider",
+      "named": ["TailwindProvider"],
+      "op": "addImport",
+      "range": "^1",
+      "target": "web"
+    },
+    {
+      "element": "TailwindProvider",
+      "extensionPoint": "web.providers",
+      "op": "addToArray",
+      "range": "^1",
+      "target": "web"
+    },
+    {
+      "default": "tailwindcss",
+      "extensionPoint": "vite.plugins",
+      "from": "@tailwindcss/vite",
+      "op": "addImport",
+      "range": "^1",
+      "target": "web"
+    },
+    {
+      "element": "tailwindcss()",
+      "extensionPoint": "vite.plugins",
+      "op": "addToArray",
+      "range": "^1",
+      "target": "web"
+    }
+  ],
+  "override": [],
+  "provides": [
+    {
+      "capability": "styling",
+      "cardinality": {
+        "max": 1
+      }
+    }
+  ],
+  "requires": ["web", "ext:web.providers@^1", "ext:vite.plugins@^1"],
+  "schemaVersion": 1,
+  "version": "1.0.0"
+}

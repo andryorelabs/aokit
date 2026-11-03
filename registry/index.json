@@ -5,7 +5,114 @@
     "path": "catalog/2026.11.0.json"
   },
   "minCliVersion": "0.1.0",
-  "modules": {},
+  "modules": {
+    "coolify": {
+      "latest": "1.0.0",
+      "versions": {
+        "1.0.0": {
+          "files": {
+            "files/docker-compose.coolify.yaml": "sha256:caacafc18d5a2e32af00dba1e396efb7894ee95f1822ed038e82a6b78024ef49"
+          },
+          "integrity": "sha256:942ce3f3060d2fec78ef04a893d0473cde75b0698353fce67fe8235e5e21918b",
+          "manifest": "modules/coolify/1.0.0.json",
+          "provides": ["deploy"],
+          "schemaVersion": 1
+        }
+      }
+    },
+    "docker": {
+      "latest": "1.0.0",
+      "versions": {
+        "1.0.0": {
+          "files": {
+            "files/Dockerfile": "sha256:1583e87fe6068db8ee47a91b182b361e57e0dad19a311d62b9cca7145f8318b8",
+            "files/dockerignore": "sha256:03197980f549e8ba951fa6065b7071f2f1c89c0ceb8db6cc07608471a28690e9"
+          },
+          "integrity": "sha256:9fbfa21b9c8250df45f22b6b0c65c53205c21ba8701bec4ab6498f4a98e5b323",
+          "manifest": "modules/docker/1.0.0.json",
+          "provides": ["deploy", "container"],
+          "schemaVersion": 1
+        }
+      }
+    },
+    "hono": {
+      "latest": "1.0.0",
+      "versions": {
+        "1.0.0": {
+          "files": {
+            "files/app.ts": "sha256:a576a83c1453eb9bb95005ffb9fef6f7d396639381a59f86031f0fc1ef8f4541"
+          },
+          "integrity": "sha256:9e83b7dd13564251fbcd7adb8d3f77496e89f7681a44d200234b00a5cdef2c4a",
+          "manifest": "modules/hono/1.0.0.json",
+          "provides": ["server", "api:http"],
+          "schemaVersion": 1
+        }
+      }
+    },
+    "knip": {
+      "latest": "1.0.0",
+      "versions": {
+        "1.0.0": {
+          "files": {
+            "files/knip.json": "sha256:0007d9d0dc2b69ab9338b08e4b294f76d8bb72c6118a3ead5f5b9b3aea42d590"
+          },
+          "integrity": "sha256:6e0e0f14fbe165eefcc3944a50660acb11a43bd3d5a0b85def238be154e122e6",
+          "manifest": "modules/knip/1.0.0.json",
+          "provides": ["unused-code"],
+          "schemaVersion": 1
+        }
+      }
+    },
+    "oxc": {
+      "latest": "1.0.0",
+      "versions": {
+        "1.0.0": {
+          "files": {
+            "files/oxfmtrc.json": "sha256:7ca658c7bc0bc9c6349df4a082d763b08274f17e1a0f541c3adb65fc6ea93227",
+            "files/oxlintrc.json": "sha256:41f0f5f70b133ff26d4dce08b73e817dd0c2306b41857371921e879b61ee221b"
+          },
+          "integrity": "sha256:05bc72519ddc62227f2e7d49609a755b8e80f39ecf09f29c281dafe962c3f2f2",
+          "manifest": "modules/oxc/1.0.0.json",
+          "provides": ["lint", "format"],
+          "schemaVersion": 1
+        }
+      }
+    },
+    "tailwind4": {
+      "latest": "1.0.0",
+      "versions": {
+        "1.0.0": {
+          "files": {
+            "files/styles.css": "sha256:4650ea7cbc07104a2fc7e53d850b98eab8310ce4e0bae5a5f7d5da99b1dc8145",
+            "files/tailwind-provider.tsx": "sha256:a9b3a5ec86c72a410c7e92cea8c5cf86f2e28b8da78333f4cfa9c9a3109ad6e6"
+          },
+          "integrity": "sha256:9c55bb57496dcbae800c771dfb47a627f1edbb7b65a8367a6aea077cd105c2ed",
+          "manifest": "modules/tailwind4/1.0.0.json",
+          "provides": ["styling"],
+          "schemaVersion": 1
+        }
+      }
+    },
+    "vite-react": {
+      "latest": "1.0.0",
+      "versions": {
+        "1.0.0": {
+          "files": {
+            "files/index.html": "sha256:3dbcf875b7dfb41c393c51e420eeb0daa1801b8518a8aef92a38e2a11a587346",
+            "files/main.tsx": "sha256:df7ab0e0ea9c20c468b34c17825e3365d2d1fc8e7cc64a0c75e789330fe912b7",
+            "files/providers.tsx": "sha256:a5207472b22927d10554b10bb95a4c43f01f4880872c32c0956626e5ca7e15eb",
+            "files/routes.tsx": "sha256:8f27867d153c38b0401dba9aefb5fc5c8e298e2a115d13bbbc138b5bb97b1a44",
+            "files/tsconfig.json": "sha256:3af94e731aaad2740ee1bca5c2f91417ec878ea12f3a22fbbd3653fd47027b00",
+            "files/vite.config.ts": "sha256:87859ede600d5b0bbc06ad9b4ca462e6cc6b479dfc420f7e643790e030923045"
+          },
+          "integrity": "sha256:6d4de684024dc09d8ccbff99a14786415f771e57532d8bdc96f7cbd0377f5c69",
+          "manifest": "modules/vite-react/1.0.0.json",
+          "provides": ["web", "web:spa"],
+          "schemaVersion": 1
+        }
+      }
+    }
+  },
   "name": "official",
   "release": "2026.11.0",
   "schemaVersion": 1

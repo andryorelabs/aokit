@@ -12,6 +12,7 @@ import { type DataOp, nodeAtPointer, pointerSegments, resolveDataTarget } from "
 
 export { applyDeps } from "./deps.ts";
 export { applyEnv } from "./env.ts";
+export { wireWorkspaces } from "./workspaces.ts";
 
 type OpContext = Parameters<OpHandler>[0];
 

@@ -13,8 +13,8 @@ export const layoutTables: Readonly<Record<LayoutName, Readonly<Record<Target, s
   single: {
     root: "",
     config: "",
-    web: "src",
-    server: "src/server",
+    web: "",
+    server: "",
     db: "src/db",
     "shared-ui": "src/components",
   },
