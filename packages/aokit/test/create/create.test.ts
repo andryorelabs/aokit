@@ -7,8 +7,8 @@ import { runCli, type CliIo } from "../../src/cli/adapter.ts";
 import { runCommand } from "../../src/cli/command.ts";
 import { createCommand } from "../../src/cli/commands/create.ts";
 import { exposedCommands } from "../../src/cli/commands/registry.ts";
-import { parseAnswers, completeAnswers } from "../../src/create/answers.ts";
-import { reproduceCommand } from "../../src/create/reproduce.ts";
+import { parseAnswers, completeAnswers } from "../../src/project/answers.ts";
+import { reproduceCommand } from "../../src/project/reproduce.ts";
 import { cliVersion } from "../../src/cli/version.ts";
 
 const workspaces: string[] = [];

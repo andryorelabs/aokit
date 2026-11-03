@@ -1,6 +1,6 @@
 import { isAbsolute, resolve as resolvePath } from "node:path";
 import { AokitError } from "../cli/envelope.ts";
-import { fromResolveError, toAokitError } from "../create/errors.ts";
+import { fromResolveError, toAokitError } from "../project/errors.ts";
 import type { AnswerValue } from "../engine/interpolate.ts";
 import { formatterForSelection } from "../format/index.ts";
 import type { Lockfile } from "../lockfile/schema.ts";

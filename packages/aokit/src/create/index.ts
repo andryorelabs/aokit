@@ -1,23 +1,19 @@
-import { join, resolve as resolvePath } from "node:path";
+import { resolve as resolvePath } from "node:path";
 import type { ModuleManifest } from "@aokit/module";
-import { z } from "zod";
 import { apply } from "../apply/index.ts";
 import { AokitError } from "../cli/envelope.ts";
-import { registerShutdownHook } from "../cli/shutdown.ts";
 import type { LayoutName } from "../engine/layout.ts";
 import type { PlanChange } from "../engine/plan.ts";
 import { formatterForSelection } from "../format/index.ts";
-import { buildProject, type PipelineModule } from "../pipeline/index.ts";
-import { readLocalRegistry, type LocalRegistry } from "../registry/index.ts";
+import { buildProject } from "../pipeline/index.ts";
 import { resolve } from "../resolver/resolve.ts";
-import { completeAnswers, parseAnswers } from "./answers.ts";
-import { unifiedDiff } from "./diff.ts";
-import { fromResolveError, toAokitError } from "./errors.ts";
-import { reproduceCommand } from "./reproduce.ts";
+import { completeAnswers, parseAnswers } from "../project/answers.ts";
+import { unifiedDiff } from "../project/diff.ts";
+import { fromResolveError, toAokitError } from "../project/errors.ts";
+import { runInstall } from "../project/install.ts";
+import { loadRegistry } from "../project/registry.ts";
+import { reproduceCommand } from "../project/reproduce.ts";
 import { checkTarget } from "./target.ts";
-
-const bundledRegistry = join(import.meta.dir, "..", "..", "..", "..", "registry");
-const registryIndexMinimum = z.object({ minCliVersion: z.string().min(1) });
 
 /** Everything `create` needs besides the process. */
 export interface CreateRequest {
@@ -75,73 +71,6 @@ function toPlanChange(change: PlanChange): CreatePlanChange {
   };
 }
 
-function toEngineModule(name: string, registry: LocalRegistry): PipelineModule {
-  const entry = registry.modules.get(name);
-  if (entry === undefined) {
-    throw new AokitError(
-      "INTERNAL",
-      `Module ${name} vanished from the Registry`,
-      "report the issue",
-    );
-  }
-  return {
-    manifest: entry.manifest,
-    integrity: entry.integrity,
-    readFile(from) {
-      const content = entry.files.get(from);
-      if (content === undefined) {
-        throw new AokitError("INTERNAL", `Module ${name} has no file ${from}`, "report the issue");
-      }
-      return content;
-    },
-  };
-}
-
-async function readMinCliVersion(registryPath: string): Promise<string> {
-  const index: unknown = await Bun.file(join(registryPath, "index.json")).json();
-  return registryIndexMinimum.parse(index).minCliVersion;
-}
-
-function installFailure(directory: string, detail: string): AokitError {
-  return new AokitError(
-    "IO_ERROR",
-    `the Project was created in \`${directory}\` but \`bun install\` failed${detail === "" ? "" : `: ${detail}`}`,
-    `run \`bun install\` in \`${directory}\` to finish the setup`,
-  );
-}
-
-async function runInstall(
-  directory: string,
-  env: Readonly<Record<string, string | undefined>>,
-): Promise<void> {
-  let child;
-  try {
-    child = Bun.spawn(["bun", "install"], {
-      cwd: directory,
-      env: { ...env },
-      stdout: "ignore",
-      stderr: "pipe",
-    });
-  } catch (error) {
-    throw installFailure(directory, error instanceof Error ? error.message : String(error));
-  }
-  const unregister = registerShutdownHook(() => {
-    child.kill();
-  });
-  try {
-    const [stderrText, exitCode] = await Promise.all([
-      new Response(child.stderr).text(),
-      child.exited,
-    ]);
-    if (exitCode !== 0) {
-      const tail = stderrText.trim().split("\n").slice(-5).join("\n");
-      throw installFailure(directory, `exit code ${exitCode}${tail === "" ? "" : `\n${tail}`}`);
-    }
-  } finally {
-    unregister();
-  }
-}
-
 function warningTexts(warnings: readonly { readonly message: string }[]): string[] {
   return warnings.map((warning) => warning.message);
 }
@@ -154,12 +83,10 @@ async function plan(request: CreateRequest) {
       "pass `--modules a,b,c`, for example `--modules oxc,vite-react`",
     );
   }
-  const registryPath =
-    request.registry === undefined ? bundledRegistry : resolvePath(request.registry);
-  const registry = await readLocalRegistry(registryPath, { cliVersion: request.version });
-  const available = [...registry.modules.keys()]
-    .toSorted()
-    .map((name) => toEngineModule(name, registry));
+  const { registry, available, source, minCliVersion } = await loadRegistry(
+    request.registry,
+    request.version,
+  );
   const resolved = resolve(
     { modules: request.modules },
     available.map((module) => module.manifest),
@@ -179,9 +106,9 @@ async function plan(request: CreateRequest) {
     context: { now: new Date(), random: Math.random, env: request.env },
     registry: {
       name: registry.name,
-      source: request.registry ?? "bundled",
+      source,
       release: registry.release,
-      minCliVersion: await readMinCliVersion(registryPath),
+      minCliVersion,
     },
     ...(formatter === undefined ? {} : { formatter }),
   });
@@ -223,9 +150,7 @@ export async function runCreate(request: CreateRequest): Promise<CreateResult> {
         ...base,
         applied: false,
         installed: false,
-        ...(request.diff
-          ? { diff: built.plan.changes.map((change) => unifiedDiff(change)).join("\n") }
-          : {}),
+        ...(request.diff ? { diff: unifiedDiff(built.plan) } : {}),
       };
     }
     await apply(built.plan, built.lockfile, directory);

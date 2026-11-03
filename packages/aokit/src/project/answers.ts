@@ -66,6 +66,21 @@ function coerce(entry: RawAnswer, declared: DeclaredAnswer): AnswerValue {
   return entry.raw;
 }
 
+/** Declared answers merged over their defaults; answers with neither value nor default are omitted. */
+export function effectiveAnswers(
+  manifest: ModuleManifest,
+  given: Readonly<Record<string, AnswerValue>>,
+): Record<string, AnswerValue> {
+  const merged: Record<string, AnswerValue> = {};
+  for (const [name, answer] of Object.entries(manifest.answers ?? {})) {
+    const value = given[name] ?? answer.default;
+    if (value !== undefined) {
+      merged[name] = value;
+    }
+  }
+  return merged;
+}
+
 /** Validates every `--answer` against the resolved Modules and coerces it to its declared type. */
 export function parseAnswers(
   flags: readonly string[],
