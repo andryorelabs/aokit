@@ -1,4 +1,7 @@
 import { describe, expect, test } from "bun:test";
+import { mkdtempSync, rmSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
 import { runCli, type CliIo } from "../../src/cli/adapter.ts";
 import { runCommand, type CommandContext } from "../../src/cli/command.ts";
 import { exposedCommands, hiddenCommands } from "../../src/cli/commands/registry.ts";
@@ -145,17 +148,17 @@ describe("adapter parity with direct run", () => {
   });
 });
 
-describe("hidden lifecycle stubs", () => {
-  test("dispatch reaches the stub instead of UNKNOWN_COMMAND", async () => {
-    const result = await runAokit(["recopy", "--json"]);
-    expect(result.stdout).toContain("not implemented yet");
-    expect(result.stdout).not.toContain("UNKNOWN_COMMAND");
-  });
-
-  test("stay out of --help and aokit schema", async () => {
-    const help = await runAokit(["--help"]);
-    expect(help.stdout + help.stderr).not.toContain("recopy");
+describe("lifecycle commands", () => {
+  test("recopy is dispatched and listed in aokit schema", async () => {
     const schema = await runAokit(["schema", "--json"]);
-    expect(schema.stdout).not.toContain("recopy");
+    expect(schema.stdout).toContain("recopy");
+    const empty = mkdtempSync(join(tmpdir(), "aokit-run-"));
+    try {
+      const result = await runAokit(["recopy", "--json", "--directory", empty]);
+      expect(result.stdout).not.toContain("UNKNOWN_COMMAND");
+      expect(result.stdout).toContain("LOCKFILE_MISSING");
+    } finally {
+      rmSync(empty, { recursive: true, force: true });
+    }
   });
 });
