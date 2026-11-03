@@ -31,7 +31,7 @@ Commands that write (`add`, `remove`, `update`, `recopy`, `restore`, `layout mig
 2. **Fetch, resolve, build.** As in the [overview flow](overview.md#the-create-and-add-flow): fetch with integrity, resolve Capabilities, build in an empty VFS, run the pinned format phase.
 3. **Plan.** `--dry-run` / `--diff` stop here.
 4. **Apply.** Atomic write; the Lockfile is written last.
-5. **Install.** `bun install` runs after apply, outside the deterministic phase.
+5. **Install.** `bun install` runs after apply, outside the deterministic phase. `--no-install` skips it. An install failure leaves the applied Project in place, exits `1` and tells the user to rerun `bun install`.
 6. **Print the reproducible command** (below).
 
 ### `create --from <lockfile|url>`
@@ -43,7 +43,7 @@ Replaces step 1 with the contents of an existing Lockfile: a local path, or a UR
 After `create` and `add`, the CLI prints one command line that reproduces the selection non-interactively, with every answer as an explicit flag:
 
 ```text
-bunx create-aokit my-app --layout monorepo --module next --module oxc --answer next.appRouter=true --yes
+bunx create-aokit my-app --layout monorepo --modules next,oxc --answer next.appRouter=true --yes
 ```
 
 It is derived from the Lockfile, so it is the same for any CLI version that wrote the same state, and it is also what `--json` returns in a `reproduce` field.

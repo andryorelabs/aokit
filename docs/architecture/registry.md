@@ -8,7 +8,7 @@ The Registry client (see the [overview](overview.md)) is the only component that
 
 | Kind | Source | Format | Trust by default |
 | --- | --- | --- | --- |
-| `official` | The first-party Registry, shipped with the CLI as the default. | aokit index | Trusted. |
+| `official` | The first-party Registry, shipped with the CLI as the default. Until the Registry client and distribution phases, it lives in this repository as `registry/`, compiled from `registry-src/` and read as a local directory. | aokit index | Trusted. |
 | `local` | A directory on disk (`./registry`, `file:` path). | aokit index | Trusted: it is code the user already has. |
 | `remote` | A URL or a giget source (`github:owner/repo#ref`). | aokit index | Not trusted. See [Trust model](#trust-model). |
 | `shadcn` | A shadcn registry (URL or namespace) read through the [adapter](#shadcn-adapter). | shadcn registry items | Not trusted, and declarative-only. |
