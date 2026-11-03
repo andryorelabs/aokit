@@ -2,6 +2,7 @@ import {
   chmod,
   mkdir,
   mkdtemp,
+  readFile,
   rename,
   rm,
   rmdir,
@@ -15,7 +16,12 @@ import type { Plan, PlanChange } from "../engine/plan.ts";
 import type { FileContent } from "../engine/vfs.ts";
 import { serializeLockfile } from "../lockfile/serialize.ts";
 import type { Lockfile } from "../lockfile/schema.ts";
+import { parseLockfile } from "../lockfile/read.ts";
+import type { Git } from "../git/git.ts";
+import { conflictFile, writeConflicts, type ConflictWrite } from "./conflicts.ts";
 import { ApplyError } from "./errors.ts";
+import { inSequence } from "./sequence.ts";
+import { createStash, discardStash, restoreStash } from "./stash.ts";
 
 /** The Lockfile's path, relative to the Project root. */
 export const lockfileName = "aokit.lock.json";
@@ -28,6 +34,10 @@ interface ApplyOptions {
   readonly registerCleanup?: (hook: CleanupHook) => () => void;
   /** Runs once everything is staged, right before the first write into the Project. */
   readonly beforeCommit?: (stagingDirectory: string) => void | Promise<void>;
+  /** The git adapter of the Project; selects the stash location and records Conflict stages. */
+  readonly git?: Git;
+  /** Conflicts to write after the Plan; their paths keep the hash of the previous Lockfile. */
+  readonly conflicts?: readonly ConflictWrite[];
 }
 
 /** What {@link apply} did. */
@@ -62,17 +72,6 @@ async function pathKind(path: string): Promise<"missing" | "directory" | "other"
 
 function isErrnoCode(error: unknown, code: string): boolean {
   return error instanceof Error && "code" in error && error.code === code;
-}
-
-/** Runs `action` for each item, one at a time, in order. */
-async function inSequence<Item>(
-  items: readonly Item[],
-  action: (item: Item) => Promise<void>,
-): Promise<void> {
-  await items.reduce<Promise<void>>(
-    (previous, item) => previous.then(() => action(item)),
-    Promise.resolve(),
-  );
 }
 
 function throwIfInterrupted(interruption: Interruption): void {
@@ -191,6 +190,7 @@ async function commitExisting(
   projectDirectory: string,
   written: readonly string[],
   removed: readonly string[],
+  options: ApplyOptions,
 ): Promise<void> {
   await inSequence(written, async (path) => {
     const destination = join(projectDirectory, path);
@@ -198,7 +198,66 @@ async function commitExisting(
     await rename(join(stagingDirectory, path), destination);
   });
   await inSequence(removed, (path) => removeProjectFile(projectDirectory, path));
+  await writeConflicts(projectDirectory, options.conflicts ?? [], options.git);
   await rename(join(stagingDirectory, lockfileName), join(projectDirectory, lockfileName));
+}
+
+async function pathExists(path: string): Promise<boolean> {
+  return (await existingMode(path)) !== undefined;
+}
+
+async function lockfileKeepingConflictHashes(
+  lockfile: Lockfile,
+  projectDirectory: string,
+  conflicts: readonly ConflictWrite[],
+): Promise<Lockfile> {
+  if (conflicts.length === 0) {
+    return lockfile;
+  }
+  const previous = parseLockfile(await readFile(join(projectDirectory, lockfileName), "utf8"));
+  const files = { ...lockfile.files };
+  for (const { path } of conflicts) {
+    const kept = previous.lockfile.files[path];
+    if (kept !== undefined && files[path] !== undefined) {
+      files[path] = { ...files[path], hash: kept.hash };
+    }
+  }
+  return { ...lockfile, files };
+}
+
+async function commitWithRollback(
+  stagingDirectory: string,
+  projectDirectory: string,
+  touched: readonly string[],
+  written: readonly string[],
+  removed: readonly string[],
+  options: ApplyOptions,
+): Promise<void> {
+  const created = (
+    await Promise.all(
+      touched.map(async (path) => ((await pathExists(join(projectDirectory, path))) ? null : path)),
+    )
+  ).filter((path): path is string => path !== null);
+  const stash = await createStash(projectDirectory, options.git, touched);
+  try {
+    await commitExisting(stagingDirectory, projectDirectory, written, removed, options);
+  } catch (error) {
+    try {
+      await restoreStash(projectDirectory, stash, created);
+    } catch (restoreError) {
+      throw new ApplyError(
+        "IO_ERROR",
+        `Apply failed and the originals could not be restored automatically: ${
+          restoreError instanceof Error ? restoreError.message : String(restoreError)
+        }`,
+        `Copy the files in "${stash.directory}" back into the Project, then run "aokit doctor".`,
+        { cause: error },
+      );
+    }
+    await discardStash(projectDirectory, options.git, stash);
+    throw error;
+  }
+  await discardStash(projectDirectory, options.git, stash);
 }
 
 async function applyNew(
@@ -233,16 +292,26 @@ async function applyExisting(
       keepModeOf: change.renamedFrom ?? change.path,
     }));
   await stageFiles(stagingDirectory, files, interruption, projectDirectory);
-  await stageFiles(stagingDirectory, [lockfileFile(lockfile)], interruption, projectDirectory);
+  const conflicts = options.conflicts ?? [];
+  const effectiveLockfile = await lockfileKeepingConflictHashes(
+    lockfile,
+    projectDirectory,
+    conflicts,
+  );
+  await stageFiles(
+    stagingDirectory,
+    [lockfileFile(effectiveLockfile)],
+    interruption,
+    projectDirectory,
+  );
   await options.beforeCommit?.(stagingDirectory);
   throwIfInterrupted(interruption);
   const removed = removedPaths(plan).filter((path) => path !== lockfileName);
-  await commitExisting(
-    stagingDirectory,
-    projectDirectory,
-    files.map((file) => file.path),
-    removed,
-  );
+  const written = files.map((file) => file.path);
+  const touched = [
+    ...new Set([...written, ...removed, ...conflicts.map(conflictFile), lockfileName]),
+  ];
+  await commitWithRollback(stagingDirectory, projectDirectory, touched, written, removed, options);
 }
 
 function toApplyError(error: unknown, directory: string): ApplyError {
