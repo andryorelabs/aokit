@@ -13,6 +13,7 @@
     "format:check": "oxfmt --check",
     "knip": "knip",
     "test": "bun test",
+    "registry:build": "bun tools/registry-build/main.ts",
     "prepare": "husky"
   },
   "devDependencies": {

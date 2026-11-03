@@ -1,4 +1,9 @@
 {
   "extends": "./tsconfig.base.json",
-  "include": ["packages/*/src", "packages/*/test", "tools", "*.ts"]
+  "compilerOptions": {
+    "paths": {
+      "@aokit/module": ["./packages/module/src/index.ts"]
+    }
+  },
+  "include": ["packages/*/src", "packages/*/test", "tools", "registry-src/*/module.ts", "*.ts"]
 }

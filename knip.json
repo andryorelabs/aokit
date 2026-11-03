@@ -1,8 +1,9 @@
 {
   "$schema": "https://unpkg.com/knip@6/schema.json",
+  "ignore": ["registry/**", "registry-src/*/files/**"],
   "workspaces": {
     ".": {
-      "entry": ["tools/**/*.test.ts"],
+      "entry": ["tools/**/*.test.ts", "registry-src/*/module.ts"],
       "ignoreDependencies": ["typescript7"]
     },
     "packages/aokit": {
