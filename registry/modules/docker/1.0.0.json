@@ -1,0 +1,39 @@
+{
+  "$schema": "https://aokit.dev/schema/module/v1.json",
+  "conflicts": [],
+  "env": [],
+  "extensionPoints": [],
+  "files": [
+    {
+      "from": "files/Dockerfile",
+      "ownership": "managed",
+      "target": "root",
+      "to": "Dockerfile"
+    },
+    {
+      "from": "files/dockerignore",
+      "ownership": "managed",
+      "target": "root",
+      "to": ".dockerignore"
+    }
+  ],
+  "migrations": [],
+  "name": "docker",
+  "ops": [],
+  "override": [],
+  "provides": [
+    {
+      "capability": "deploy",
+      "cardinality": "many"
+    },
+    {
+      "capability": "container",
+      "cardinality": {
+        "max": 1
+      }
+    }
+  ],
+  "requires": [],
+  "schemaVersion": 1,
+  "version": "1.0.0"
+}

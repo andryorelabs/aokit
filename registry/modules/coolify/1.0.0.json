@@ -1,0 +1,27 @@
+{
+  "$schema": "https://aokit.dev/schema/module/v1.json",
+  "conflicts": [],
+  "env": [],
+  "extensionPoints": [],
+  "files": [
+    {
+      "from": "files/docker-compose.coolify.yaml",
+      "ownership": "managed",
+      "target": "root",
+      "to": "docker-compose.coolify.yaml"
+    }
+  ],
+  "migrations": [],
+  "name": "coolify",
+  "ops": [],
+  "override": [],
+  "provides": [
+    {
+      "capability": "deploy",
+      "cardinality": "many"
+    }
+  ],
+  "requires": ["container"],
+  "schemaVersion": 1,
+  "version": "1.0.0"
+}

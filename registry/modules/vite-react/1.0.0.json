@@ -1,0 +1,120 @@
+{
+  "$schema": "https://aokit.dev/schema/module/v1.json",
+  "conflicts": [],
+  "deps": {
+    "dependencies": {
+      "react": {
+        "range": "catalog"
+      },
+      "react-dom": {
+        "range": "catalog"
+      }
+    },
+    "devDependencies": {
+      "@types/react": {
+        "range": "catalog"
+      },
+      "@types/react-dom": {
+        "range": "catalog"
+      },
+      "@vitejs/plugin-react": {
+        "range": "catalog"
+      },
+      "typescript": {
+        "range": "catalog"
+      },
+      "vite": {
+        "range": "catalog"
+      }
+    }
+  },
+  "env": [],
+  "extensionPoints": [
+    {
+      "anchor": "providers",
+      "kind": "array",
+      "name": "web.providers",
+      "target": "web",
+      "version": "1.0.0"
+    },
+    {
+      "anchor": "routes",
+      "kind": "array",
+      "name": "web.routes",
+      "target": "web",
+      "version": "1.0.0"
+    }
+  ],
+  "files": [
+    {
+      "from": "files/index.html",
+      "ownership": "managed",
+      "target": "root",
+      "to": "index.html"
+    },
+    {
+      "from": "files/vite.config.ts",
+      "ownership": "managed",
+      "target": "root",
+      "to": "vite.config.ts"
+    },
+    {
+      "from": "files/tsconfig.json",
+      "ownership": "seed",
+      "target": "root",
+      "to": "tsconfig.json"
+    },
+    {
+      "from": "files/main.tsx",
+      "ownership": "managed",
+      "target": "web",
+      "to": "main.tsx"
+    },
+    {
+      "from": "files/providers.tsx",
+      "ownership": "managed",
+      "target": "web",
+      "to": "providers.tsx"
+    },
+    {
+      "from": "files/routes.tsx",
+      "ownership": "managed",
+      "target": "web",
+      "to": "routes.tsx"
+    }
+  ],
+  "migrations": [],
+  "name": "vite-react",
+  "ops": [
+    {
+      "file": "package.json",
+      "op": "mergeJson",
+      "target": "root",
+      "value": {
+        "scripts": {
+          "build": "vite build",
+          "dev": "vite",
+          "preview": "vite preview"
+        }
+      }
+    }
+  ],
+  "override": [],
+  "provides": [
+    {
+      "capability": "web",
+      "cardinality": {
+        "max": 1
+      }
+    },
+    {
+      "capability": "web:spa",
+      "cardinality": {
+        "max": 1
+      }
+    }
+  ],
+  "requires": [],
+  "schemaVersion": 1,
+  "version": "1.0.0"
+}
