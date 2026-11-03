@@ -161,6 +161,26 @@ describe("aokit update --plan / --apply / --abort", () => {
     expect(await exists(join(directory, ".git"), "aokit/plan.json")).toBe(false);
   });
 
+  test("--apply writes the saved Plan content instead of merging again", async () => {
+    const { directory } = await project();
+    await writeFile(join(directory, "notes.md"), "# mine {{name}}\n");
+    await commitAll(directory);
+    const planned = await run({ directory, plan: true, install: false });
+    expect(planned.ok).toBe(true);
+    const planPath = join(directory, ".git", "aokit", "plan.json");
+    const saved = JSON.parse(await readFile(planPath, "utf8"));
+    const target = saved.changes.find(
+      (change: { type: string; content?: { encoding: string } }) =>
+        change.type !== "delete" && change.content?.encoding === "utf8",
+    );
+    expect(target).toBeDefined();
+    target.content.data = "written from the saved Plan\n";
+    await writeFile(planPath, JSON.stringify(saved));
+    const applied = await run({ directory, apply: true, yes: true, install: false });
+    expect(applied.ok).toBe(true);
+    expect(await read(directory, target.path)).toBe("written from the saved Plan\n");
+  });
+
   test("--apply without a plan exits 5 PLAN_MISSING", async () => {
     const { directory } = await project();
     await commitAll(directory);

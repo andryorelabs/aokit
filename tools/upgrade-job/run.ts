@@ -62,7 +62,13 @@ async function writeIndex(registry: string, index: RegistryIndex): Promise<void>
 
 /** Every consecutive Release pair the Registry at `registry` lists. */
 export async function pairsOf(registry: string): Promise<[string, string][]> {
-  return releasePairs(Object.keys((await readIndex(registry)).releases));
+  const releases = Object.keys((await readIndex(registry)).releases);
+  if (releases.length > 2) {
+    throw new Error(
+      `The Registry lists ${releases.length} Releases, but the index does not record which Module versions each Release fixes, so the Upgrade job can only rebuild a two-Release index. Record per-Release Module versions before adding a third Release.`,
+    );
+  }
+  return releasePairs(releases);
 }
 
 async function listFiles(root: string, relative = ""): Promise<string[]> {
@@ -200,7 +206,7 @@ async function runCase(
   try {
     const prepared = await createAndEdit(entry, context, registry, directory);
     if ("failure" in prepared) return { label, ok: false, failures: [prepared.failure] };
-    await writeIndex(registry, fullIndex);
+    await writeIndex(registry, indexAtRelease(fullIndex, entry.to));
     const updated = await context.exec(
       cliCommand(context, [
         "update",
