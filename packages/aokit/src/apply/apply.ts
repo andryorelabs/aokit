@@ -21,7 +21,7 @@ import type { Git } from "../git/git.ts";
 import { conflictFile, writeConflicts, type ConflictWrite } from "./conflicts.ts";
 import { ApplyError } from "./errors.ts";
 import { inSequence } from "./sequence.ts";
-import { createStash, discardStash, restoreStash } from "./stash.ts";
+import { createStash, discardStash, restoreStash, type StashHandle } from "./stash.ts";
 
 /** The Lockfile's path, relative to the Project root. */
 export const lockfileName = "aokit.lock.json";
@@ -35,15 +35,19 @@ interface ApplyOptions {
   /** Runs once everything is staged, right before the first write into the Project. */
   readonly beforeCommit?: (stagingDirectory: string) => void | Promise<void>;
   /** The git adapter of the Project; selects the stash location and records Conflict stages. */
-  readonly git?: Git;
+  readonly git?: Git | undefined;
   /** Conflicts to write after the Plan; their paths keep the hash of the previous Lockfile. */
   readonly conflicts?: readonly ConflictWrite[];
+  /** Keeps the stash of an existing Project after a successful apply and returns it. */
+  readonly keepStash?: boolean;
 }
 
 /** What {@link apply} did. */
 interface ApplyResult {
   readonly project: "new" | "existing";
   readonly directory: string;
+  /** Present only when `keepStash` was set and the Project already existed. */
+  readonly stash?: StashHandle;
 }
 
 interface StagedFile {
@@ -232,7 +236,7 @@ async function commitWithRollback(
   written: readonly string[],
   removed: readonly string[],
   options: ApplyOptions,
-): Promise<void> {
+): Promise<StashHandle | undefined> {
   const created = (
     await Promise.all(
       touched.map(async (path) => ((await pathExists(join(projectDirectory, path))) ? null : path)),
@@ -260,7 +264,11 @@ async function commitWithRollback(
     await discardStash(projectDirectory, options.git, stash);
     throw error;
   }
+  if (options.keepStash === true) {
+    return { ...stash, created };
+  }
   await discardStash(projectDirectory, options.git, stash);
+  return undefined;
 }
 
 async function applyNew(
@@ -270,12 +278,13 @@ async function applyNew(
   projectDirectory: string,
   interruption: Interruption,
   options: ApplyOptions,
-): Promise<void> {
+): Promise<StashHandle | undefined> {
   await stageFiles(stagingDirectory, newProjectFiles(plan), interruption, undefined);
   await stageFiles(stagingDirectory, [lockfileFile(lockfile)], interruption, undefined);
   await options.beforeCommit?.(stagingDirectory);
   throwIfInterrupted(interruption);
   await rename(stagingDirectory, projectDirectory);
+  return undefined;
 }
 
 async function applyExisting(
@@ -285,7 +294,7 @@ async function applyExisting(
   projectDirectory: string,
   interruption: Interruption,
   options: ApplyOptions,
-): Promise<void> {
+): Promise<StashHandle | undefined> {
   const files = writtenChanges(plan)
     .filter((change) => change.path !== lockfileName)
     .map((change) => ({
@@ -314,7 +323,7 @@ async function applyExisting(
   const touched = [
     ...new Set([...written, ...removed, ...conflicts.map(conflictFile), lockfileName]),
   ];
-  await commitWithRollback(stagingDirectory, projectDirectory, touched, written, removed, options);
+  return commitWithRollback(stagingDirectory, projectDirectory, touched, written, removed, options);
 }
 
 function toApplyError(error: unknown, directory: string): ApplyError {
@@ -382,8 +391,17 @@ export async function apply(
     );
     await chmod(stagingDirectory, 0o777 & ~process.umask());
     const applyByKind = project === "new" ? applyNew : applyExisting;
-    await applyByKind(plan, lockfile, stagingDirectory, projectDirectory, interruption, options);
-    return { project, directory: projectDirectory };
+    const stash = await applyByKind(
+      plan,
+      lockfile,
+      stagingDirectory,
+      projectDirectory,
+      interruption,
+      options,
+    );
+    return stash === undefined
+      ? { project, directory: projectDirectory }
+      : { project, directory: projectDirectory, stash };
   } catch (error) {
     throw toApplyError(error, projectDirectory);
   } finally {

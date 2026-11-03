@@ -1,7 +1,7 @@
 import { afterEach, beforeEach, expect, test } from "bun:test";
 import { mkdir, mkdtemp, readFile, readdir, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
-import { join } from "node:path";
+import { dirname, join } from "node:path";
 import {
   ApplyError,
   apply,
@@ -228,4 +228,52 @@ test("conflicted paths keep their previous Lockfile hash", async () => {
   expect(written.files[conflictedPath]?.hash).toBe(entryOf(conflictedPath).hash);
   expect(written.files[otherPath]?.hash).toBe(changedHash);
   expect(await readFile(join(project, conflictedPath), "utf8")).toContain("<<<<<<< user");
+});
+
+test("keepStash keeps the stash of an existing Project and returns its handle", async () => {
+  await writeFile(join(project, "a.txt"), "old\n");
+  await writeFile(join(project, lockfileName), "{}\n");
+  const base = await Vfs.fromDirectory(project);
+  const next = base.clone();
+  next.write("a.txt", "new\n");
+  next.write("made.txt", "made\n");
+
+  const result = await apply(planFrom(base, next), await loadLockfile(), project, {
+    keepStash: true,
+  });
+
+  expect(result.stash?.stashed.has("a.txt")).toBe(true);
+  expect(result.stash?.created).toContain("made.txt");
+  expect(await readFile(join(result.stash?.directory ?? "", "a.txt"), "utf8")).toBe("old\n");
+  expect(await findLeftoverStash(project)).toEqual([result.stash?.directory ?? ""]);
+});
+
+test("without keepStash the result carries no stash", async () => {
+  await writeFile(join(project, "a.txt"), "old\n");
+  await writeFile(join(project, lockfileName), "{}\n");
+  const base = await Vfs.fromDirectory(project);
+  const next = base.clone();
+  next.write("a.txt", "new\n");
+
+  const result = await apply(planFrom(base, next), await loadLockfile(), project);
+
+  expect(result.stash).toBeUndefined();
+  expect(await findLeftoverStash(project)).toEqual([]);
+});
+
+test("removeLeftoverStash skips the stashes it is told to keep", async () => {
+  await writeFile(join(project, "a.txt"), "old\n");
+  await writeFile(join(project, lockfileName), "{}\n");
+  const base = await Vfs.fromDirectory(project);
+  const next = base.clone();
+  next.write("a.txt", "new\n");
+  const kept = await apply(planFrom(base, next), await loadLockfile(), project, {
+    keepStash: true,
+  });
+  const keptDirectory = kept.stash?.directory ?? "";
+  const stray = join(dirname(keptDirectory), "stray");
+  await mkdir(stray);
+
+  expect(await removeLeftoverStash(project, [keptDirectory])).toEqual([stray]);
+  expect(await findLeftoverStash(project)).toEqual([keptDirectory]);
 });

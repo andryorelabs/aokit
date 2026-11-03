@@ -1,7 +1,7 @@
 import { afterAll, beforeAll, describe, expect, test } from "bun:test";
-import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
-import { join } from "node:path";
+import { join, relative } from "node:path";
 import { runCommand, type CommandContext } from "../../src/cli/command.ts";
 import { createCommand } from "../../src/cli/commands/create.ts";
 import { doctorCommand } from "../../src/cli/commands/doctor.ts";
@@ -10,6 +10,7 @@ import { exitCodeForEnvelope } from "../../src/cli/envelope.ts";
 import { cliVersion } from "../../src/cli/version.ts";
 import { stashRoot as stashRootOf } from "../../src/apply/stash.ts";
 import { openGit } from "../../src/git/index.ts";
+import { abortUpdate, writeUpdateMarker } from "../../src/update/state.ts";
 import { runGitChecked } from "../../src/git/run.ts";
 
 const context: CommandContext = { version: cliVersion, env: {}, commands: exposedCommands };
@@ -166,6 +167,41 @@ for (const useGit of [true, false]) {
       expect(doctorCommand.output.parse(first.envelope.data).problems.map((p) => p.kind)).toContain(
         "stash",
       );
+      expect((await doctor(directory)).exitCode).toBe(0);
+    });
+
+    test("a marked update stash is reported with the abort fix and never removed", async () => {
+      const git = (await openGit(directory)) ?? undefined;
+      const root = await stashRootOf(directory, git);
+      const marked = join(root, "marked");
+      const unmarked = join(root, "unmarked");
+      mkdirSync(marked, { recursive: true });
+      mkdirSync(unmarked, { recursive: true });
+      writeFileSync(
+        join(marked, "aokit.lock.json"),
+        readFileSync(join(directory, "aokit.lock.json"), "utf8"),
+      );
+      writeFileSync(join(unmarked, "leftover.txt"), "x");
+      await writeUpdateMarker(directory, git, {
+        stashDirectory: marked,
+        conflictedPaths: ["a.txt"],
+        newSiblingPaths: [],
+        previousLockfile: readFileSync(join(directory, "aokit.lock.json"), "utf8"),
+      });
+      const first = await doctor(directory);
+      const report = doctorCommand.output.parse(first.envelope.data);
+      expect(first.exitCode).toBe(1);
+      expect(report.problems.find((problem) => problem.kind === "update")?.fix).toBe(
+        "aokit update --abort",
+      );
+      expect(report.removedStashes).toEqual([relative(directory, unmarked)]);
+      expect(existsSync(marked)).toBe(true);
+      expect(existsSync(unmarked)).toBe(false);
+      const second = await doctor(directory);
+      expect(second.exitCode).toBe(1);
+      expect(existsSync(marked)).toBe(true);
+      await abortUpdate(directory, git);
+      expect(existsSync(marked)).toBe(false);
       expect((await doctor(directory)).exitCode).toBe(0);
     });
 
