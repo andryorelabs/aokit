@@ -24,6 +24,14 @@ _Avoid_: hook, slot
 A declarative edit a module applies at an extension point or to a file (`addImport`, `addToArray`, `registerAt`, `mergeJson`).
 _Avoid_: codemod, patch, transform
 
+**Anchor**:
+The stable locator of an Extension point inside its Target's files, such as a top-level declaration name; contributors never see the file path.
+_Avoid_: marker, hook point
+
+**Provenance**:
+The Modules, and the file entry or Op, that caused a change in a Plan.
+_Avoid_: origin, blame
+
 **Target**:
 A logical destination a module writes to (`web`, `server`, `shared-ui`, `db`), never a path.
 _Avoid_: folder, path
