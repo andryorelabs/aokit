@@ -86,13 +86,31 @@ const answer = z.strictObject({
   choices: z.array(z.string()).optional(),
 });
 
-const extensionPoint = z.strictObject({
-  name: z.string().regex(/^[a-z][a-z0-9-]*(\.[a-z][a-z0-9-]*)+$/),
-  version: semver,
-  target: targetSchema,
-  kind: z.enum(["array", "object", "import-list", "json", "region"]),
-  anchor: z.string().min(1),
-});
+const extensionPoint = z
+  .strictObject({
+    name: z.string().regex(/^[a-z][a-z0-9-]*(\.[a-z][a-z0-9-]*)+$/),
+    version: semver,
+    target: targetSchema,
+    kind: z.enum(["array", "object", "import-list", "json", "region"]),
+    anchor: z.string().min(1),
+    file: z.string().min(1).optional(),
+  })
+  .superRefine((point, context) => {
+    if ((point.kind === "json" || point.kind === "region") && point.file === undefined) {
+      context.addIssue({
+        code: "custom",
+        path: ["file"],
+        message: `extension point "${point.name}" of kind "${point.kind}" must declare the file it lives in, relative to its target`,
+      });
+    }
+    if (point.kind === "json" && !point.anchor.startsWith("/")) {
+      context.addIssue({
+        code: "custom",
+        path: ["anchor"],
+        message: `extension point "${point.name}" of kind "json" needs a JSON pointer anchor starting with "/", got "${point.anchor}"`,
+      });
+    }
+  });
 
 const overrideEntry = z.union([
   z.strictObject({ file: z.string().min(1), reason: z.string().min(1) }),

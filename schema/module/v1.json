@@ -258,6 +258,10 @@
             "minLength": 1,
             "type": "string"
           },
+          "file": {
+            "minLength": 1,
+            "type": "string"
+          },
           "kind": {
             "enum": [
               "array",

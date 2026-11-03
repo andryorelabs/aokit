@@ -2,7 +2,6 @@ import type { Op } from "@aokit/module";
 import { type Node, findNodeAtLocation, parseTree } from "jsonc-parser";
 import type { DeclaredExtensionPoint, OpContext } from "../../engine/ops.ts";
 import { DataOpError } from "./errors.ts";
-import { readText } from "./files.ts";
 
 import type { Target } from "../../engine/layout.ts";
 
@@ -74,34 +73,36 @@ function requirePoint(
   return point;
 }
 
-function underDirectory(path: string, directory: string): boolean {
-  return directory === "" || directory === "." || path.startsWith(`${directory}/`);
-}
-
-function relativeTo(path: string, directory: string): string {
-  return directory === "" || directory === "." ? path : path.slice(directory.length + 1);
-}
-
-function candidateFiles(
-  context: OpContext,
-  point: DeclaredExtensionPoint,
-  op: DataOp,
-  pointer: string | undefined,
-): string[] {
-  const directory = context.resolvePath(point.target, "");
-  return context.vfs
-    .paths()
-    .filter((path) => underDirectory(path, directory) && fileMatchers[op.op].test(path))
-    .filter(
-      (path) =>
-        pointer === undefined || nodeAtPointer(readText(context.vfs, path), pointer) !== undefined,
+function declaredFile(context: OpContext, point: DeclaredExtensionPoint, op: DataOp): string {
+  const file = point.file;
+  if (file === undefined) {
+    throw new DataOpError(
+      "ops.extension-point-file",
+      `Module "${context.module}" cannot resolve extension point ${describePoint(point)}: the declaring Module lists no file for it.\n  fix: declare "file" on the extension point in "${point.module}".`,
+      context.module,
     );
+  }
+  if (!fileMatchers[op.op].test(file)) {
+    throw new DataOpError(
+      "ops.extension-point-file",
+      `Op "${op.op}" of Module "${context.module}" cannot write ${describePoint(point)}: its file "${file}" is not a file type that Op edits.`,
+      context.module,
+    );
+  }
+  if (!context.vfs.has(context.resolvePath(point.target, file))) {
+    throw new DataOpError(
+      "ops.extension-point-file",
+      `Module "${context.module}" cannot resolve extension point ${describePoint(point)}: file "${file}" does not exist under target "${point.target}".`,
+      context.module,
+    );
+  }
+  return file;
 }
 
 /**
  * Resolves where a data Op writes. A path form passes through; an Extension point form resolves
- * the declaring Module's Target, finds the single file that holds the point and, for `json`
- * points, returns the Anchor as the JSON pointer.
+ * the declaring Module's Target and the file it declares for the point and, for `json` points,
+ * returns the Anchor as the JSON pointer.
  */
 export function resolveDataTarget(context: OpContext, op: DataOp): DataTarget {
   if (!("extensionPoint" in op)) {
@@ -117,20 +118,8 @@ export function resolveDataTarget(context: OpContext, op: DataOp): DataTarget {
     );
   }
   const pointer = isJson ? point.anchor : undefined;
-  const files = candidateFiles(context, point, op, pointer);
-  const [file, ...others] = files;
-  if (file === undefined || others.length > 0) {
-    const code =
-      isJson && files.length === 0 ? "ops.json-pointer-missing" : "ops.extension-point-file";
-    const found = files.length === 0 ? "no file" : files.join(", ");
-    throw new DataOpError(
-      code,
-      `Module "${context.module}" cannot resolve extension point ${describePoint(point)}: expected exactly one file${pointer === undefined ? "" : ` with a node at "${pointer}"`} under target "${point.target}", found ${found}.`,
-      context.module,
-    );
-  }
-  const relative = relativeTo(file, context.resolvePath(point.target, ""));
+  const file = declaredFile(context, point, op);
   return pointer === undefined
-    ? { target: point.target, file: relative }
-    : { target: point.target, file: relative, pointer };
+    ? { target: point.target, file }
+    : { target: point.target, file, pointer };
 }

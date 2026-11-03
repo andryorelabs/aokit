@@ -48,10 +48,17 @@ function mergeAtPointer(
   const value = op.value;
   const valueIsArray = Array.isArray(value);
   const valueIsObject = typeof value === "object" && value !== null && !valueIsArray;
-  if ((valueIsArray && node.type !== "array") || (valueIsObject && node.type !== "object")) {
+  const valueIsScalar = !valueIsArray && !valueIsObject;
+  const scalarOverContainer = valueIsScalar && (node.type === "array" || node.type === "object");
+  if (
+    (valueIsArray && node.type !== "array") ||
+    (valueIsObject && node.type !== "object") ||
+    scalarOverContainer
+  ) {
+    const received = valueIsArray ? "an array" : valueIsObject ? "an object" : "a scalar";
     throw new DataOpError(
       "ops.json-pointer-type",
-      `Module "${context.module}" cannot merge ${valueIsArray ? "an array" : "an object"} into ${where}: the node is ${describeNodeType(node)}.`,
+      `Module "${context.module}" cannot merge ${received} into ${where}: the node is ${describeNodeType(node)}.`,
       context.module,
     );
   }

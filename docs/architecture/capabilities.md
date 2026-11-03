@@ -83,7 +83,8 @@ Declaration, in the base Module's `extensionPoints`:
 - `version`: semver.
 - `target`: the [Target](layouts.md#targets) whose files contain the Extension point.
 - `kind`: the shape the Engine edits (`array`, `object`, `import-list`, `json`, `region`), which decides which [Ops](engine.md#ops-catalog) apply.
-- `anchor`: the stable marker or AST location the Engine finds. Its internals can change in a minor version without breaking contributors.
+- `anchor`: the stable marker or AST location the Engine finds. Its internals can change in a minor version without breaking contributors. For `json` it is a JSON pointer (`/ignorePatterns`).
+- `file`: the file, relative to the `target`, that holds the Extension point. Required for `json` and `region`; data Ops that address the point write this file, so contributors never see a path.
 
 A contributing Module lists the Extension point it needs in `requires` as `ext:web.providers@^1`. The Resolver treats it like a Capability that the base Module provides implicitly, and the Op that uses it names the same range. A missing Extension point or an unmet range yields the same style of error:
 

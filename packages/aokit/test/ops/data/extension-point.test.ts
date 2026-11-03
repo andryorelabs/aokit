@@ -16,6 +16,7 @@ const ignoresPoint: ModuleManifestInput["extensionPoints"] = [
     target: "config",
     kind: "json",
     anchor: "/ignorePatterns",
+    file: ".oxlintrc.json",
   },
 ];
 
@@ -105,4 +106,78 @@ test("an array merge into a non-array fails naming the Module, the point and the
   expect(error.message).toContain("knip");
   expect(error.message).toContain("lint.ignores");
   expect(error.message).toContain("1.2.0");
+});
+
+test("the declared file wins over another json file with the same node", async () => {
+  const oxfmtPath = "packages/config/.oxfmtrc.json";
+  const once = await run(mergeIgnores(["coverage"]), {
+    ...baseFiles,
+    [oxfmtPath]: '{\n  "ignorePatterns": ["other"]\n}\n',
+  });
+  expect(JSON.parse(String(once.read(configPath)))).toEqual({
+    ignorePatterns: ["dist", "coverage"],
+  });
+  expect(JSON.parse(String(once.read(oxfmtPath)))).toEqual({ ignorePatterns: ["other"] });
+});
+
+test("a declared file that does not exist fails naming the Module and the point", async () => {
+  const error = await failure(run(mergeIgnores(["a"]), {}));
+  expect(error.code).toBe("ops.extension-point-file");
+  expect(error.message).toContain("knip");
+  expect(error.message).toContain("lint.ignores");
+});
+
+test("a scalar merged over an array node fails instead of replacing the array", async () => {
+  const error = await failure(run(mergeIgnores("coverage"), baseFiles));
+  expect(error.code).toBe("ops.json-pointer-type");
+  expect(error.message).toContain("knip");
+  expect(error.message).toContain("lint.ignores");
+});
+
+test("a json Extension point needs a file and a JSON pointer anchor", () => {
+  const point = { name: "lint.ignores", version: "1.0.0", target: "config", kind: "json" };
+  expect(() =>
+    parseManifest({
+      name: "oxc",
+      version: "1.0.0",
+      extensionPoints: [{ ...point, anchor: "/ignorePatterns" }],
+    }),
+  ).toThrow(/must declare the file/);
+  expect(() =>
+    parseManifest({
+      name: "oxc",
+      version: "1.0.0",
+      extensionPoints: [{ ...point, anchor: "ignorePatterns", file: ".oxlintrc.json" }],
+    }),
+  ).toThrow(/JSON pointer/);
+});
+
+test("addCssAtRule through a region Extension point writes the declared file once", async () => {
+  const stylesPoint: ModuleManifestInput["extensionPoints"] = [
+    {
+      name: "styles.theme",
+      version: "1.0.0",
+      target: "web",
+      kind: "region",
+      anchor: "theme",
+      file: "src/styles.css",
+    },
+  ];
+  const ops = parseManifest({
+    name: "tailwind4",
+    version: "1.0.0",
+    ops: [
+      {
+        op: "addCssAtRule",
+        extensionPoint: "styles.theme",
+        range: "^1",
+        rule: "import",
+        params: '"tailwindcss"',
+      },
+    ],
+  }).ops;
+  const vfs = await run(ops, { "apps/web/src/styles.css": "body {}\n" }, stylesPoint);
+  const css = String(vfs.read("apps/web/src/styles.css"));
+  expect(css).toContain('@import "tailwindcss"');
+  expect(vfs.paths().some((path) => path.includes("apps/web/apps/web"))).toBe(false);
 });
