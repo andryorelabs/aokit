@@ -1,0 +1,5 @@
+import { a, b } from "alpha";
+import * as everything from "beta";
+
+export const labels = ["é", "日本語", "😀"];
+export const flags = { on: true, off: false } as const;
