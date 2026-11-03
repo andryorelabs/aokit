@@ -1,4 +1,15 @@
-import { chmod, copyFile, lstat, mkdir, mkdtemp, readdir, rm, rmdir } from "node:fs/promises";
+import { createHash } from "node:crypto";
+import {
+  chmod,
+  copyFile,
+  lstat,
+  mkdir,
+  mkdtemp,
+  readdir,
+  realpath,
+  rm,
+  rmdir,
+} from "node:fs/promises";
 import { dirname, join } from "node:path";
 import type { Git } from "../git/git.ts";
 import { openGit } from "../git/index.ts";
@@ -15,10 +26,17 @@ function hasErrnoCode(error: unknown, ...codes: string[]): boolean {
   return error instanceof Error && "code" in error && codes.includes(String(error.code));
 }
 
-async function stashRoot(projectDirectory: string, git: Git | undefined): Promise<string> {
-  return git === undefined
-    ? join(projectDirectory, ".aokit", "stash")
-    : join(await git.gitDir(), "aokit", "stash");
+/**
+ * The directory holding a Project's stashes. Inside git it is keyed by the Project directory, so
+ * several Projects sharing one git dir never see or remove each other's stashes.
+ */
+export async function stashRoot(projectDirectory: string, git: Git | undefined): Promise<string> {
+  if (git === undefined) return join(projectDirectory, ".aokit", "stash");
+  const key = createHash("sha256")
+    .update(await realpath(projectDirectory))
+    .digest("hex")
+    .slice(0, 12);
+  return join(await git.gitDir(), "aokit", "stash", key);
 }
 
 async function removeEmptyDirectory(path: string): Promise<void> {
@@ -37,7 +55,12 @@ async function pruneStashRoot(
   git: Git | undefined,
 ): Promise<void> {
   await removeEmptyDirectory(root);
-  await removeEmptyDirectory(git === undefined ? join(projectDirectory, ".aokit") : dirname(root));
+  if (git === undefined) {
+    await removeEmptyDirectory(join(projectDirectory, ".aokit"));
+    return;
+  }
+  await removeEmptyDirectory(dirname(root));
+  await removeEmptyDirectory(dirname(dirname(root)));
 }
 
 /** Copies the existing regular file at each of `paths` into a fresh timestamped stash directory. */

@@ -3,6 +3,7 @@ import { readFile } from "node:fs/promises";
 import { join } from "node:path";
 import { AokitError } from "../cli/envelope.ts";
 import type { Lockfile } from "../lockfile/schema.ts";
+import { volatileHash } from "../drift/hash.ts";
 import { openGit } from "./git.ts";
 
 /** Options of {@link assertCleanTree}. */
@@ -23,7 +24,10 @@ const noUndoWarning =
   "Project is not a git repository: no undo is available. Changes to files aokit owns were checked against the Lockfile only.";
 
 async function changedSinceLockfile(dir: string, lockfile: Lockfile): Promise<string[]> {
-  const checks = Object.entries(lockfile.files).map(async ([path, entry]) => {
+  const tracked = Object.entries(lockfile.files).filter(
+    ([, entry]) => entry.mode !== "ejected" && entry.hash !== volatileHash,
+  );
+  const checks = tracked.map(async ([path, entry]) => {
     try {
       const bytes = await readFile(join(dir, path));
       const comparable = bytes.includes(0)

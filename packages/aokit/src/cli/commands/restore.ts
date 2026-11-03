@@ -1,3 +1,229 @@
-import { defineStubCommand } from "./stub.ts";
+import { readFile } from "node:fs/promises";
+import { join, resolve as resolvePath } from "node:path";
+import { z } from "zod";
+import { apply, lockfileName } from "../../apply/index.ts";
+import { Vfs, normalizeProjectPath } from "../../engine/vfs.ts";
+import type { FileContent } from "../../engine/vfs.ts";
+import type { Plan, PlanChange } from "../../engine/plan.ts";
+import { assertCleanTree } from "../../git/index.ts";
+import { LockfileError, readLockfile } from "../../lockfile/index.ts";
+import type { Lockfile } from "../../lockfile/schema.ts";
+import { renderFromLockfile } from "../../pipeline/index.ts";
+import { unifiedDiff } from "../../project/diff.ts";
+import { toAokitError } from "../../project/errors.ts";
+import { defineCommand } from "../command.ts";
+import { AokitError } from "../envelope.ts";
+import { aokitMeta } from "../meta.ts";
 
-export const restoreCommand = defineStubCommand("restore", "Restore a file to its Render");
+const bundledRegistryPath = join(import.meta.dir, "..", "..", "..", "..", "..", "registry");
+
+/** A Lockfile entry of the Project's file, with the Lockfile that holds it. */
+export interface LockedFile {
+  readonly directory: string;
+  readonly path: string;
+  readonly lockfile: Lockfile;
+  readonly entry: Lockfile["files"][string];
+}
+
+function projectPath(rawPath: string): string {
+  try {
+    return normalizeProjectPath(rawPath);
+  } catch {
+    throw new AokitError(
+      "INVALID_INPUT",
+      `\`${rawPath}\` is not a Project-relative path`,
+      "pass a path relative to the Project root, for example `src/main.tsx`",
+    );
+  }
+}
+
+async function readProjectLockfile(directory: string): Promise<Lockfile> {
+  let parsed;
+  try {
+    parsed = await readLockfile(join(directory, lockfileName));
+  } catch (thrown) {
+    if (thrown instanceof LockfileError) {
+      throw new AokitError("LOCKFILE_MISSING", thrown.message, thrown.fix);
+    }
+    throw thrown;
+  }
+  if (parsed === null) {
+    throw new AokitError(
+      "LOCKFILE_MISSING",
+      `no ${lockfileName} in \`${directory}\``,
+      "run the command inside an aokit Project, or pass --directory",
+    );
+  }
+  return parsed.lockfile;
+}
+
+/** Reads the Project's Lockfile and finds `path` in it; a missing path is `NOT_IN_LOCKFILE`. */
+export async function findLockedFile(directoryFlag: string, rawPath: string): Promise<LockedFile> {
+  const directory = resolvePath(directoryFlag);
+  const lockfile = await readProjectLockfile(directory);
+  const path = projectPath(rawPath);
+  const entry = lockfile.files[path];
+  if (entry === undefined) {
+    throw new AokitError(
+      "NOT_IN_LOCKFILE",
+      `\`${path}\` is not in ${lockfileName}`,
+      "run `aokit doctor` to list the files aokit tracks",
+    );
+  }
+  return { directory, path, lockfile, entry };
+}
+
+const restoreInput = z.object({
+  path: z
+    .string()
+    .describe("Project-relative path of the file to restore")
+    .register(aokitMeta, { positional: 0, examples: ["src/main.tsx"] }),
+  directory: z
+    .string()
+    .default(".")
+    .describe("Project directory")
+    .register(aokitMeta, { flag: "directory", examples: ["--directory ./my-app"] }),
+  dryRun: z
+    .boolean()
+    .default(false)
+    .describe("Print the change and write nothing")
+    .register(aokitMeta, { flag: "dry-run", examples: ["--dry-run"] }),
+  diff: z
+    .boolean()
+    .default(false)
+    .describe("Print the unified diff; implies --dry-run")
+    .register(aokitMeta, { flag: "diff", examples: ["--diff"] }),
+  yes: z
+    .boolean()
+    .default(false)
+    .describe("Non-interactive: write without asking")
+    .register(aokitMeta, { flag: "yes", examples: ["--yes"] }),
+  allowDirty: z
+    .boolean()
+    .default(false)
+    .describe("Proceed despite uncommitted changes")
+    .register(aokitMeta, { flag: "allow-dirty", examples: ["--allow-dirty"] }),
+});
+
+const restoreOutput = z.object({
+  directory: z.string(),
+  path: z.string(),
+  mode: z.enum(["managed", "seed"]),
+  previousMode: z.enum(["managed", "seed", "ejected"]),
+  change: z.enum(["create", "update", "none"]),
+  applied: z.boolean(),
+  diff: z.string().optional(),
+  warnings: z.array(z.string()),
+});
+
+async function readUserFile(directory: string, path: string): Promise<FileContent | undefined> {
+  let bytes: Buffer;
+  try {
+    bytes = await readFile(join(directory, path));
+  } catch (error) {
+    if (error instanceof Error && "code" in error && error.code === "ENOENT") {
+      return undefined;
+    }
+    throw error;
+  }
+  return bytes.includes(0)
+    ? new Uint8Array(bytes)
+    : bytes.toString("utf8").replaceAll(/\r\n?/g, "\n");
+}
+
+function sameContent(left: FileContent, right: FileContent): boolean {
+  if (typeof left === "string" && typeof right === "string") {
+    return left === right;
+  }
+  return Buffer.compare(Buffer.from(left), Buffer.from(right)) === 0;
+}
+
+function withoutPath(lockfile: Lockfile, path: string): Lockfile {
+  const files = Object.fromEntries(Object.entries(lockfile.files).filter(([key]) => key !== path));
+  return { ...lockfile, files };
+}
+
+function restoredLockfile(locked: LockedFile, rendered: LockedFile["entry"]): Lockfile {
+  const mode = rendered.mode === "seed" ? "seed" : "managed";
+  return {
+    ...locked.lockfile,
+    files: {
+      ...locked.lockfile.files,
+      [locked.path]: { ...locked.entry, mode, hash: rendered.hash },
+    },
+  };
+}
+
+function restoreChanges(
+  path: string,
+  rendered: Plan,
+  current: FileContent | undefined,
+): PlanChange[] {
+  const file = rendered.vfs.get(path);
+  if (file === undefined || (current !== undefined && sameContent(current, file.content))) {
+    return [];
+  }
+  const provenance = rendered.changes.find((change) => change.path === path)?.provenance ?? [];
+  return [
+    {
+      type: current === undefined ? "create" : "update",
+      path,
+      content: file.content,
+      ...(current === undefined ? {} : { previousContent: current }),
+      ownership: file.ownership,
+      mode: file.mode,
+      provenance,
+    },
+  ];
+}
+
+export const restoreCommand = defineCommand({
+  name: "restore",
+  description: "Restore a file to its Render at the Lockfile versions",
+  input: restoreInput,
+  output: restoreOutput,
+  async run(context, input) {
+    const locked = await findLockedFile(input.directory, input.path);
+    const clean = await assertCleanTree(locked.directory, {
+      allowDirty: input.allowDirty,
+      lockfile: withoutPath(locked.lockfile, locked.path),
+    });
+    try {
+      const built = await renderFromLockfile(locked.lockfile, {
+        projectDir: locked.directory,
+        bundledRegistryPath,
+        cliVersion: context.version,
+      });
+      const renderedEntry = built.lockfile.files[locked.path];
+      if (renderedEntry === undefined || !built.plan.vfs.has(locked.path)) {
+        throw new AokitError(
+          "MODULE_VERSION_UNAVAILABLE",
+          `\`${locked.path}\` is not produced by a Render at the locked Module versions`,
+          "run `aokit recopy` to re-render the Project at the Release's versions",
+        );
+      }
+      const current = await readUserFile(locked.directory, locked.path);
+      const changes = restoreChanges(locked.path, built.plan, current);
+      const plan: Plan = { changes, hash: built.plan.hash, vfs: Vfs.empty() };
+      const result = {
+        directory: locked.directory,
+        path: locked.path,
+        mode: renderedEntry.mode === "seed" ? "seed" : "managed",
+        previousMode: locked.entry.mode,
+        change: changes.length === 0 ? "none" : current === undefined ? "create" : "update",
+        warnings: clean.warning === undefined ? [] : [clean.warning],
+      } as const;
+      if (input.dryRun || input.diff) {
+        return {
+          ...result,
+          applied: false,
+          ...(input.diff ? { diff: unifiedDiff(plan) } : {}),
+        };
+      }
+      await apply(plan, restoredLockfile(locked, renderedEntry), locked.directory);
+      return { ...result, applied: true, diff: unifiedDiff(plan) };
+    } catch (thrown) {
+      throw toAokitError(thrown);
+    }
+  },
+});

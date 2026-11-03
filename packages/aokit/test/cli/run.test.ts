@@ -147,15 +147,15 @@ describe("adapter parity with direct run", () => {
 
 describe("hidden lifecycle stubs", () => {
   test("dispatch reaches the stub instead of UNKNOWN_COMMAND", async () => {
-    const result = await runAokit(["doctor", "--json"]);
+    const result = await runAokit(["recopy", "--json"]);
     expect(result.stdout).toContain("not implemented yet");
     expect(result.stdout).not.toContain("UNKNOWN_COMMAND");
   });
 
   test("stay out of --help and aokit schema", async () => {
     const help = await runAokit(["--help"]);
-    expect(help.stdout + help.stderr).not.toContain("doctor");
+    expect(help.stdout + help.stderr).not.toContain("recopy");
     const schema = await runAokit(["schema", "--json"]);
-    expect(schema.stdout).not.toContain("doctor");
+    expect(schema.stdout).not.toContain("recopy");
   });
 });
