@@ -18,9 +18,11 @@ export const exposedCommands: readonly AnyCommand[] = [
   diffCommand,
   checkCommand,
   ejectCommand,
+  removeCommand,
+  recopyCommand,
   restoreCommand,
   schemaCommand,
 ];
 
-/** Lifecycle stubs: registered for their tickets, kept out of `--help` and `aokit schema`. */
-export const hiddenCommands: readonly AnyCommand[] = [removeCommand, recopyCommand];
+/** Commands registered for dispatch but kept out of `--help` and `aokit schema`. */
+export const hiddenCommands: readonly AnyCommand[] = [];

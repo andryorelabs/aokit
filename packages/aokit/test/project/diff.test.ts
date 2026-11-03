@@ -1,6 +1,6 @@
 import { describe, expect, test } from "bun:test";
 import { runCommand, type CommandContext } from "../../src/cli/command.ts";
-import { exposedCommands, hiddenCommands } from "../../src/cli/commands/registry.ts";
+import { exposedCommands } from "../../src/cli/commands/registry.ts";
 import { schemaCommand } from "../../src/cli/commands/schema.ts";
 import type { PlanChange } from "../../src/engine/plan.ts";
 import { unifiedDiff } from "../../src/project/diff.ts";
@@ -70,22 +70,13 @@ describe("unifiedDiff", () => {
   });
 });
 
-describe("hidden lifecycle stubs", () => {
+describe("lifecycle commands", () => {
   const context: CommandContext = { version: "0.0.0", env: {}, commands: exposedCommands };
 
   test("aokit schema lists the implemented lifecycle commands", async () => {
     const names = JSON.stringify(await runCommand(schemaCommand, context, {}));
-    for (const name of ["doctor", "diff", "check", "eject", "restore", "add"]) {
+    for (const name of ["doctor", "diff", "check", "eject", "restore", "add", "remove", "recopy"]) {
       expect(names).toContain(`"name":"${name}"`);
     }
-  });
-
-  test("aokit schema lists none of them", async () => {
-    const envelope = await runCommand(schemaCommand, context, {});
-    const names = JSON.stringify(envelope);
-    for (const stub of hiddenCommands) {
-      expect(names).not.toContain(`"name":"${stub.name}"`);
-    }
-    expect(hiddenCommands.map((stub) => stub.name)).toEqual(["remove", "recopy"]);
   });
 });
