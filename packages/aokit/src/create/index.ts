@@ -178,6 +178,9 @@ async function planFrom(request: CreateRequest, directory: string): Promise<Plan
     directory,
     answers: request.answers,
     cliVersion: request.version,
+    trust: request.trust ?? [],
+    interactive: request.interactive ?? false,
+    adapters: { env: request.env, ...request.adapters },
   });
   return {
     plan: rendered.built.plan,

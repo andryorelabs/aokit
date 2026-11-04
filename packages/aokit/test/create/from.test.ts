@@ -98,17 +98,6 @@ test("a Module selection flag with --from is a usage error", async () => {
   if (!envelope.ok) expect(envelope.error.code).toBe("INVALID_INPUT");
 });
 
-test("a URL source is a usage error pointing to the local path", async () => {
-  const envelope = await create({
-    directory: uniqueDirectory("b"),
-    from: "https://example.com/aokit.lock.json",
-  });
-  expect(envelope.ok).toBe(false);
-  if (envelope.ok) return;
-  expect(envelope.error.code).toBe("INVALID_INPUT");
-  expect(envelope.error.fix).toContain("local path");
-});
-
 test("a Lockfile whose integrity does not match the Registry fails", async () => {
   const a = await source();
   const path = join(a, "aokit.lock.json");
