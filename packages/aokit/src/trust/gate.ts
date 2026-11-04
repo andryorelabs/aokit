@@ -1,4 +1,3 @@
-import { createInterface } from "node:readline/promises";
 import {
   addTrustedRegistry,
   loadUserConfig,
@@ -43,7 +42,7 @@ interface EnsureTrustedOptions {
   readonly lockfile?: Pick<Lockfile, "registries">;
   /** Whether an untrusted Registry may be asked about; see {@link isNonInteractive}. */
   readonly interactive: boolean;
-  /** Asks the trust question; a readline prompt on stderr by default. */
+  /** Asks the trust question; without it an untrusted Registry cannot be asked about. */
   readonly prompt?: TrustPrompt;
   /** The user config allowlist; read from {@link env} when absent. */
   readonly userConfig?: UserConfig;
@@ -164,13 +163,8 @@ function trustQuestion(registry: TrustedRegistryInput): string {
   ].join("\n");
 }
 
-async function askOnTerminal(question: string): Promise<string> {
-  const terminal = createInterface({ input: process.stdin, output: process.stderr });
-  try {
-    return await terminal.question(question);
-  } finally {
-    terminal.close();
-  }
+async function rejectPrompt(): Promise<string> {
+  return "no";
 }
 
 function parseAnswer(answer: string): "yes" | "always" | "no" {
@@ -242,20 +236,16 @@ export async function ensureTrusted(
     };
   });
   const firstUntrusted = pending.find((entry) => entry.via === undefined);
-  if (firstUntrusted !== undefined && !options.interactive) {
+  if (firstUntrusted !== undefined && (!options.interactive || options.prompt === undefined)) {
     throw untrusted(firstUntrusted.registry, firstUntrusted.nameContested, userConfigPath(env));
   }
   const decisions: TrustDecision[] = [];
+  const prompt = options.prompt;
   for (const entry of pending) {
     const via =
       entry.via ??
       // oxlint-disable-next-line eslint/no-await-in-loop -- one trust prompt at a time, in order
-      (await askForTrust(
-        entry.registry,
-        entry.nameContested,
-        options.prompt ?? askOnTerminal,
-        env,
-      ));
+      (await askForTrust(entry.registry, entry.nameContested, prompt ?? rejectPrompt, env));
     decisions.push({
       registry: entry.registry.name,
       source: formatRegistrySource(entry.registry.source),

@@ -489,7 +489,8 @@ async function renderNext(
  * Registries; the real network, cache and prompt by default.
  */
 export async function runAdd(
-  context: Pick<CommandContext, "version" | "env">,
+  context: Pick<CommandContext, "version" | "env"> &
+    Partial<Pick<CommandContext, "interactive" | "prompt">>,
   input: AddInput,
   adapters: RegistryAdapters = {},
 ): Promise<AddOutput> {
@@ -500,9 +501,13 @@ export async function runAdd(
     interactive: !isNonInteractive({
       yes: input.yes,
       env: context.env,
-      isTTY: process.stdin.isTTY,
+      isTTY: context.interactive ?? false,
     }),
-    adapters: { env: context.env, ...adapters },
+    adapters: {
+      env: context.env,
+      ...(context.prompt === undefined ? {} : { prompt: context.prompt }),
+      ...adapters,
+    },
   };
   try {
     const result = await runLifecycle({
