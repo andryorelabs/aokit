@@ -17,6 +17,9 @@ async function downgradeToV1(directory: string): Promise<void> {
   lock.lockfileVersion = 1;
   for (const entry of Object.values<Record<string, unknown>>(lock.modules)) delete entry.selected;
   for (const entry of Object.values<Record<string, unknown>>(lock.deps)) delete entry.owners;
+  const agentFiles = ["AGENTS.md", "CLAUDE.md"];
+  for (const agentFile of agentFiles) delete lock.files[agentFile];
+  await Promise.all(agentFiles.map((agentFile) => rm(join(directory, agentFile), { force: true })));
   await writeFile(path, `${JSON.stringify(lock, null, 2)}\n`);
 }
 

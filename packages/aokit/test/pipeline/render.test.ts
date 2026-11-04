@@ -1,10 +1,10 @@
 import { afterAll, expect, test } from "bun:test";
-import { createHash } from "node:crypto";
 import { mkdtempSync, readFileSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join, relative } from "node:path";
 import { AokitError } from "../../src/cli/envelope.ts";
 import { cliVersion } from "../../src/cli/version.ts";
+import { hashTrackedFile } from "../../src/drift/hash.ts";
 import { runCreate } from "../../src/create/index.ts";
 import { parseLockfile } from "../../src/lockfile/index.ts";
 import type { Lockfile } from "../../src/lockfile/schema.ts";
@@ -25,8 +25,9 @@ function workspace(): string {
   return directory;
 }
 
-function sha256(content: string | Uint8Array): string {
-  return `sha256-${createHash("sha256").update(content).digest("hex")}`;
+function trackedHash(path: string, content: string | Uint8Array): string {
+  const bytes = typeof content === "string" ? new TextEncoder().encode(content) : content;
+  return hashTrackedFile(path, bytes);
 }
 
 async function createProject(layout: "single" | "monorepo"): Promise<{
@@ -79,8 +80,8 @@ test.each(["single", "monorepo"] as const)(
       if (file === undefined || file.volatile) {
         continue;
       }
-      expect(sha256(file.content)).toBe(entry.hash);
-      expect(sha256(readFileSync(join(directory, path)))).toBe(entry.hash);
+      expect(trackedHash(path, file.content)).toBe(entry.hash);
+      expect(trackedHash(path, readFileSync(join(directory, path)))).toBe(entry.hash);
     }
     expect(rendered.lockfileText).toBe(readFileSync(join(directory, "aokit.lock.json"), "utf8"));
   },

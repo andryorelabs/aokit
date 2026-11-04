@@ -93,6 +93,23 @@ export function main() {
     expect(first.plan.hash).toBe(second.plan.hash);
   });
 
+  test("the Agent files are byte-identical with and without oxc, for both Layouts", async () => {
+    const formatter = formatterForSelection({ catalog, modules: [oxcModule.manifest] });
+    if (formatter === undefined) throw new Error("expected a Formatter for oxc");
+    for (const layout of ["single", "monorepo"] as const) {
+      // oxlint-disable-next-line eslint/no-await-in-loop -- two layouts, ordered
+      const plain = await buildProject(input({ selection: [], available: [], layout }));
+      // oxlint-disable-next-line eslint/no-await-in-loop -- two layouts, ordered
+      const formatted = await buildProject(
+        input({ selection: [], available: [], layout, formatter }),
+      );
+      if (!plain.ok || !formatted.ok) throw new Error("pipeline failed");
+      for (const path of ["AGENTS.md", "CLAUDE.md"]) {
+        expect(formatted.plan.vfs.read(path)).toBe(plain.plan.vfs.read(path));
+      }
+    }
+  });
+
   test("honors the Project's .oxfmtrc.json from the VFS", async () => {
     const vfs = Vfs.empty();
     vfs.write(".oxfmtrc.json", '{\n  // jsonc\n  "semi": false,\n  "singleQuote": true\n}\n');

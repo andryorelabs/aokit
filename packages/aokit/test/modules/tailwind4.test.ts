@@ -83,6 +83,8 @@ describe("tailwind4", () => {
     );
     if (!built.ok) throw new Error(built.error.message);
     expect(built.plan.vfs.paths()).toEqual([
+      "AGENTS.md",
+      "CLAUDE.md",
       "package.json",
       "src/providers.tsx",
       "src/styles.css",

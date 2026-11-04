@@ -1,5 +1,6 @@
 import { createHash } from "node:crypto";
 import type { ModuleManifest } from "@aokit/module";
+import { hashTrackedFile } from "../drift/hash.ts";
 import { cliVersion } from "../cli/version.ts";
 import type { AnswerValue } from "../engine/interpolate.ts";
 import type { LayoutName } from "../engine/layout.ts";
@@ -51,6 +52,11 @@ function sha256(content: FileContent): string {
   return `sha256-${createHash("sha256").update(bytes).digest("hex")}`;
 }
 
+function hashContent(path: string, content: FileContent): string {
+  const bytes = typeof content === "string" ? new TextEncoder().encode(content) : content;
+  return hashTrackedFile(path, bytes);
+}
+
 function fileEntries(plan: Plan, previous: Lockfile["files"]): Lockfile["files"] {
   const provenance = new Map(plan.changes.map((change) => [change.path, change.provenance]));
   const files: Lockfile["files"] = {};
@@ -71,7 +77,7 @@ function fileEntries(plan: Plan, previous: Lockfile["files"]): Lockfile["files"]
       files[path] = {
         owners,
         mode: file.ownership,
-        hash: file.volatile ? sha256(volatileMarker) : sha256(file.content),
+        hash: file.volatile ? sha256(volatileMarker) : hashContent(path, file.content),
       };
     }
   }
