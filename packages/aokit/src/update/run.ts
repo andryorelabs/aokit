@@ -13,7 +13,7 @@ import {
   writePlanFile,
 } from "./plan-file.ts";
 import { abortUpdate, planFilePath, writeUpdateMarker } from "./state.ts";
-import { hashFileBytes, volatileHash } from "../drift/hash.ts";
+import { lockfileDriftOf } from "../drift/drift-of.ts";
 import { layoutTables, type Target } from "../engine/layout.ts";
 import type { Plan } from "../engine/plan.ts";
 import type { Vfs } from "../engine/vfs.ts";
@@ -24,7 +24,7 @@ import { applyAfterStage, loadUserTree, mergeVisibleEdits } from "../lifecycle/m
 import { runLifecycle, type LifecycleResult } from "../lifecycle/index.ts";
 import { readLockfile } from "../lockfile/index.ts";
 import type { Lockfile } from "../lockfile/schema.ts";
-import { composeRenames, type DriftOf } from "../merge/index.ts";
+import { composeRenames } from "../merge/index.ts";
 import { runMigrations, selectMigrations } from "../migrations/index.ts";
 import { renderFromLockfile } from "../pipeline/index.ts";
 import { fromResolveError } from "../project/errors.ts";
@@ -121,15 +121,6 @@ interface UpdateState {
   migrations: RanMigration[];
   answers: Record<string, Record<string, unknown>>;
 }
-
-const driftOf: DriftOf = ({ entry, user }) => {
-  if (entry === undefined) return user === undefined ? "deleted" : "unknown";
-  if (entry.mode === "ejected") return "pristine";
-  if (user === undefined) return "deleted";
-  if (entry.hash === volatileHash) return "volatile";
-  const bytes = typeof user === "string" ? new TextEncoder().encode(user) : user;
-  return hashFileBytes(bytes) === entry.hash ? "pristine" : "modified";
-};
 
 async function readProjectLockfile(dir: string): Promise<Lockfile> {
   const parsed = await readLockfile(join(dir, "aokit.lock.json"));
@@ -401,7 +392,7 @@ async function prepare(input: UpdateInput): Promise<Prepared> {
   const run = (dryRun: boolean): Promise<LifecycleResult> =>
     runLifecycle({
       dir: input.dir,
-      driftOf,
+      driftOf: lockfileDriftOf,
       allowDirty: input.allowDirty,
       dryRun,
       diff: input.diff,
