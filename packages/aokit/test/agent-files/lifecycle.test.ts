@@ -157,6 +157,17 @@ describe("Agent files lifecycle", () => {
     expect(clean).toMatchObject({ ok: true, data: { files: [], diff: "" } });
   });
 
+  test("add pulls in a required Module with one Region each", async () => {
+    const directory = await createProject(registry, "docker");
+    const added = await addModule(directory, "knip");
+    if (!added.ok) throw new Error(added.error.message);
+    expect(regionIds(await readText(directory, "AGENTS.md")).toSorted()).toEqual(
+      ["aokit:header", "docker:agents", "knip:agents", "oxc:agents"].toSorted(),
+    );
+    expect(regionIds(await readText(directory, "AGENTS.md"))).toHaveLength(4);
+    expect(await driftStateOf(directory, "AGENTS.md")).toBe("pristine");
+  });
+
   test("a cascaded remove drops the Regions of every dependent Module at once", async () => {
     const directory = await createProject(registry, "oxc,knip");
     expect(regionIds(await readText(directory, "AGENTS.md"))).toEqual([

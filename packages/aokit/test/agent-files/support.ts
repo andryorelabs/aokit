@@ -1,5 +1,5 @@
 import { mkdtempSync } from "node:fs";
-import { readFile, readdir, rm, writeFile } from "node:fs/promises";
+import { mkdir, readFile, readdir, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { z } from "zod";
@@ -62,6 +62,12 @@ export async function agentsRegistry(): Promise<string> {
         version: "2.1.0",
         extra: `provides: ["unused-code"], requires: ["lint"],`,
       }),
+    ),
+    mkdir(join(source, "docker"), { recursive: true }).then(() =>
+      writeFile(
+        join(source, "docker/module.ts"),
+        agentsModuleSource({ name: "docker", version: "1.0.0", extra: `provides: ["container"],` }),
+      ),
     ),
   ]);
   await buildRegistry(source, out);
