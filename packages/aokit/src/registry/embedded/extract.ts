@@ -1,6 +1,7 @@
 import { mkdir, mkdtemp, rename, rm } from "node:fs/promises";
 import { dirname, join } from "node:path";
 import { xdgCacheDir } from "../../xdg.ts";
+import { RegistryError } from "../errors.ts";
 
 /** One Registry file embedded in the binary: its path under the Registry root and where to read it. */
 interface EmbeddedRegistryFile {
@@ -67,7 +68,7 @@ export async function extractRegistryTo(
   return target;
 }
 
-/** Where {@link extractBundledRegistry} puts the embedded Registry, whether or not it exists yet. */
+/** Where {@link ensureEmbeddedRegistry} puts the embedded Registry, whether or not it exists yet. */
 export function embeddedRegistryTarget(env: CacheEnvironment): string {
   if (registeredRegistry === undefined) {
     throw new Error("No Registry is embedded in this build of aokit.");
@@ -75,10 +76,43 @@ export function embeddedRegistryTarget(env: CacheEnvironment): string {
   return join(xdgCacheDir(env), "bundled-registry", registeredRegistry.contentHash);
 }
 
-/** The on-disk copy of the embedded Registry under the aokit cache directory, extracted on first use. */
-export async function extractBundledRegistry(env: CacheEnvironment): Promise<string> {
-  if (registeredRegistry === undefined) {
-    throw new Error("No Registry is embedded in this build of aokit.");
+/**
+ * {@link extractRegistryTo} where any filesystem failure becomes a `REGISTRY_EXTRACT_FAILED`
+ * {@link RegistryError} naming the target directory and the original cause.
+ */
+export async function extractRegistryOrFail(
+  registry: EmbeddedRegistry,
+  cacheRoot: string,
+): Promise<string> {
+  try {
+    return await extractRegistryTo(registry, cacheRoot);
+  } catch (thrown) {
+    const target = join(cacheRoot, "bundled-registry", registry.contentHash);
+    const cause = thrown instanceof Error ? thrown.message : String(thrown);
+    throw new RegistryError(
+      "REGISTRY_EXTRACT_FAILED",
+      `Could not extract the embedded Registry to ${target}: ${cause}`,
+      "Make the cache directory writable, or set XDG_CACHE_HOME to a writable absolute directory.",
+      { path: target },
+    );
   }
-  return extractRegistryTo(registeredRegistry, xdgCacheDir(env));
+}
+
+let pendingExtraction: Promise<void> | undefined;
+
+/**
+ * Extracts the embedded Registry into the cache directory once per process; a no-op when this
+ * process embeds no Registry. Called by the Registry client before it reads the `"bundled"` source.
+ */
+export function ensureEmbeddedRegistry(env: CacheEnvironment): Promise<void> {
+  if (registeredRegistry === undefined) return Promise.resolve();
+  const registry = registeredRegistry;
+  pendingExtraction ??= extractRegistryOrFail(registry, xdgCacheDir(env)).then(
+    () => undefined,
+    (thrown: unknown) => {
+      pendingExtraction = undefined;
+      throw thrown;
+    },
+  );
+  return pendingExtraction;
 }

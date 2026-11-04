@@ -103,6 +103,38 @@ describeWithBinary("the standalone binary", () => {
     expect(JSON.parse(result.stdout)).toMatchObject({ ok: true });
   });
 
+  test("does not extract the Registry for --version", async () => {
+    const workDirectory = await freshDirectory("lazy");
+    const cacheDirectory = await freshDirectory("lazy-cache");
+    const result = await spawnAokit(["--version", "--json"], {
+      cwd: workDirectory,
+      env: { XDG_CACHE_HOME: cacheDirectory },
+    });
+    expect(result.exitCode).toBe(0);
+    expect(await Bun.file(join(cacheDirectory, "aokit", "bundled-registry")).exists()).toBe(false);
+    expect(await readdir(cacheDirectory)).not.toContain("aokit");
+  });
+
+  test("reports REGISTRY_EXTRACT_FAILED when the cache directory is unwritable", async () => {
+    const workDirectory = await freshDirectory("extract-failed");
+    const blocker = join(workDirectory, "not-a-directory");
+    await writeFile(blocker, "file");
+    const result = await spawnAokit(
+      ["create", "my-app", "--modules", "oxc", "--yes", "--no-install", "--json"],
+      { cwd: workDirectory, env: { XDG_CACHE_HOME: blocker } },
+    );
+    expect(result.exitCode).not.toBe(0);
+    const envelope: unknown = JSON.parse(result.stdout);
+    expect(envelope).toMatchObject({
+      ok: false,
+      error: { code: "IO_ERROR" },
+      data: { registryCode: "REGISTRY_EXTRACT_FAILED" },
+    });
+    const fix = JSON.stringify(envelope);
+    expect(fix).toContain("XDG_CACHE_HOME");
+    expect(fix).not.toContain("registry:build");
+  });
+
   test("creates a Project that formats and parses with the embedded native bindings", async () => {
     const workDirectory = await freshDirectory("native");
     const cacheDirectory = await freshDirectory("native-cache");
