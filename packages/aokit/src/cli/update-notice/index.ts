@@ -18,8 +18,13 @@ export interface UpdateNoticeInput {
   readonly interactive: boolean;
   readonly now: () => number;
   readonly fetch: UpdateFetch;
+  /** Starts the cache refresh outside this process; the in-process {@link refreshLatestVersion} when absent. */
+  readonly refresh?: () => void;
   readonly stderr: (text: string) => void;
 }
+
+/** What {@link refreshLatestVersion} needs from the notice input. */
+export type UpdateRefreshInput = Pick<UpdateNoticeInput, "env" | "now" | "fetch">;
 
 interface UpdateCache {
   readonly checkedAt?: number;
@@ -73,7 +78,7 @@ function isVersion(value: unknown): value is string {
  * Asks the npm registry for the latest `aokit` version and stores it in the cache. Never throws:
  * an unreachable registry leaves the cache as it was.
  */
-export async function refreshLatestVersion(input: UpdateNoticeInput): Promise<void> {
+export async function refreshLatestVersion(input: UpdateRefreshInput): Promise<void> {
   const path = cachePath(input.env);
   try {
     const response = await input.fetch(registryUrl, {
@@ -88,7 +93,7 @@ export async function refreshLatestVersion(input: UpdateNoticeInput): Promise<vo
     if (!isVersion(latest)) {
       return;
     }
-    writeCache(path, { ...readCache(path), latest, checkedAt: input.now() });
+    writeCache(path, { ...readCache(path), latest });
   } catch {
     return;
   }
@@ -116,6 +121,11 @@ export function maybeNotifyUpdate(input: UpdateNoticeInput): void {
     writeCache(path, { ...cache, notifiedAt: now });
   }
   if (isOlderThanADay(cache.checkedAt, now)) {
-    void refreshLatestVersion(input);
+    writeCache(path, { ...readCache(path), checkedAt: now });
+    if (input.refresh === undefined) {
+      void refreshLatestVersion(input);
+    } else {
+      input.refresh();
+    }
   }
 }

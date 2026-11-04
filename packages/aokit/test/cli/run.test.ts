@@ -57,14 +57,18 @@ describe("aokit --version", () => {
   });
 });
 
-async function runOnTerminal(argv: string[], cacheHome: string): Promise<CapturedRun> {
+async function runOnTerminal(
+  argv: string[],
+  cacheHome: string,
+  options: { isStderrTTY?: boolean; env?: Record<string, string> } = {},
+): Promise<CapturedRun> {
   let stdout = "";
   let stderr = "";
   const exitCode = await runCli({
     argv,
     commands: exposedCommands,
     hiddenCommands,
-    env: { XDG_CACHE_HOME: cacheHome },
+    env: { XDG_CACHE_HOME: cacheHome, ...options.env },
     version: "9.9.9",
     io: {
       stdout: (text) => {
@@ -74,6 +78,7 @@ async function runOnTerminal(argv: string[], cacheHome: string): Promise<Capture
         stderr += text;
       },
       isTTY: true,
+      ...(options.isStderrTTY === undefined ? {} : { isStderrTTY: options.isStderrTTY }),
     },
     interactive: true,
     now: () => 1_800_000_000_000,
@@ -98,6 +103,42 @@ describe("aokit update notice", () => {
       expect(plain.stderr).toContain("10.0.0");
       const json = await runOnTerminal(["--version", "--json"], cacheHome);
       expect(json.stderr).toBe("");
+    } finally {
+      rmSync(cacheHome, { recursive: true, force: true });
+    }
+  });
+
+  test("prints nothing when stdout is a terminal but stderr is redirected", async () => {
+    const cacheHome = mkdtempSync(join(tmpdir(), "aokit-notice-"));
+    try {
+      mkdirSync(join(cacheHome, "aokit"));
+      writeFileSync(
+        join(cacheHome, "aokit", "update-check.json"),
+        JSON.stringify({ latest: "10.0.0", checkedAt: 1_800_000_000_000 }),
+      );
+      const redirected = await runOnTerminal(["--version"], cacheHome, { isStderrTTY: false });
+      expect(redirected.stderr).toBe("");
+    } finally {
+      rmSync(cacheHome, { recursive: true, force: true });
+    }
+  });
+
+  test("prints nothing in non-interactive runs: --yes and a detected coding agent", async () => {
+    const cacheHome = mkdtempSync(join(tmpdir(), "aokit-notice-"));
+    try {
+      mkdirSync(join(cacheHome, "aokit"));
+      writeFileSync(
+        join(cacheHome, "aokit", "update-check.json"),
+        JSON.stringify({ latest: "10.0.0", checkedAt: 1_800_000_000_000 }),
+      );
+      const withYes = await runOnTerminal(["--version", "--yes"], cacheHome);
+      expect(withYes.stderr).not.toContain("Update available");
+      const underAgent = await runOnTerminal(["--version"], cacheHome, {
+        env: { CLAUDECODE: "1" },
+      });
+      expect(underAgent.stderr).not.toContain("Update available");
+      const control = await runOnTerminal(["--version"], cacheHome);
+      expect(control.stderr).toContain("Update available");
     } finally {
       rmSync(cacheHome, { recursive: true, force: true });
     }

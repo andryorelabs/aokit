@@ -5,6 +5,7 @@
 
 node_modules/
 coverage/
-dist/
+/dist/
+/packages/*/dist/
 /packages/aokit/registry/
 *.tsbuildinfo

@@ -15,12 +15,16 @@ import { exitCodes, type ExitCode } from "./exit-codes.ts";
 import { aokitMeta } from "./meta.ts";
 import { currentLockfileVersion } from "../lockfile/schema.ts";
 import { registryProtocolVersion } from "../pipeline/assemble.ts";
+import { isNonInteractive } from "../trust/gate.ts";
 import { maybeNotifyUpdate, type UpdateFetch } from "./update-notice/index.ts";
+import { spawnDetachedRefresh } from "./update-notice/spawn.ts";
 
 export interface CliIo {
   stdout(text: string): void;
   stderr(text: string): void;
   isTTY: boolean;
+  /** Whether stderr is a terminal; {@link CliIo.isTTY} when absent. */
+  isStderrTTY?: boolean;
 }
 
 export interface RunCliOptions {
@@ -36,8 +40,10 @@ export interface RunCliOptions {
   prompt?: (question: string) => Promise<string>;
   /** Clock for the update notice; `Date.now` by default. */
   now?: () => number;
-  /** Fetch for the update check; the global `fetch` by default. */
+  /** Fetch for the update check, run in this process; absent means a detached process does it. */
   fetch?: UpdateFetch;
+  /** Whether the update notice may run; true by default. */
+  updateNotice?: boolean;
 }
 
 async function askOnTerminal(question: string): Promise<string> {
@@ -283,15 +289,22 @@ function notifyAboutUpdate(
   flags: GlobalFlags,
   context: CommandContext,
 ): void {
+  if (options.updateNotice === false) {
+    return;
+  }
+  const stderrIsTTY = options.io.isStderrTTY ?? options.io.isTTY;
+  const yes = flags.rest.some((argument) => argument === "--yes" || argument === "-y");
   maybeNotifyUpdate({
     version: options.version,
     env: options.env,
-    isTTY: options.io.isTTY,
+    isTTY: stderrIsTTY,
     json: flags.json,
     quiet: flags.rest.some((argument) => argument === "--quiet" || argument === "-q"),
-    interactive: context.interactive === true,
+    interactive:
+      context.interactive === true && !isNonInteractive({ yes, env: options.env, isTTY: true }),
     now: options.now ?? Date.now,
     fetch: options.fetch ?? fetch,
+    ...(options.fetch === undefined ? { refresh: spawnDetachedRefresh } : {}),
     stderr: (text) => options.io.stderr(text),
   });
 }

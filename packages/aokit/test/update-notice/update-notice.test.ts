@@ -117,6 +117,28 @@ describe("update notice", () => {
     expect(fetchCalls).toBe(1);
   });
 
+  test("a stale cache starts the injected refresh once, records the attempt and never fetches in process", () => {
+    let started = 0;
+    maybeNotifyUpdate(
+      input({
+        refresh: () => {
+          started += 1;
+        },
+      }),
+    );
+    expect(started).toBe(1);
+    expect(fetchCalls).toBe(0);
+    expect(JSON.parse(readFileSync(cacheFile(), "utf8"))).toEqual({ checkedAt: now });
+    maybeNotifyUpdate(
+      input({
+        refresh: () => {
+          started += 1;
+        },
+      }),
+    );
+    expect(started).toBe(1);
+  });
+
   test("a fresh cache does not trigger a refresh", () => {
     seedCache({ latest: "1.0.0", checkedAt: now - hour });
     maybeNotifyUpdate(input());
@@ -134,10 +156,7 @@ describe("update notice", () => {
       }),
     );
     expect(requested).toBe("https://registry.npmjs.org/aokit/latest");
-    expect(JSON.parse(readFileSync(cacheFile(), "utf8"))).toEqual({
-      latest: "3.1.4",
-      checkedAt: now,
-    });
+    expect(JSON.parse(readFileSync(cacheFile(), "utf8"))).toEqual({ latest: "3.1.4" });
   });
 
   test("a failed refresh leaves the cache untouched", async () => {

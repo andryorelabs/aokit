@@ -18,3 +18,12 @@ test("buildPackage emits an executable bundle with the shebang and a Registry co
     await readFile(join(repoRoot, "registry", "index.json"), "utf8"),
   );
 }, 120_000);
+
+test("create-aokit has the version of aokit and depends on exactly that version", async () => {
+  const aokit: { version: string } = await Bun.file(join(packageDirectory, "package.json")).json();
+  const createAokit: { version: string; dependencies: Record<string, string> } = await Bun.file(
+    join(repoRoot, "packages", "create-aokit", "package.json"),
+  ).json();
+  expect(createAokit.version).toBe(aokit.version);
+  expect(createAokit.dependencies["aokit"]).toBe(aokit.version);
+});
