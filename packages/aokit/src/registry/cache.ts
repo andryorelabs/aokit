@@ -69,7 +69,8 @@ async function readEntryFiles(filesRoot: string): Promise<Map<string, string>> {
   }
   const paths = entries
     .filter((entry) => entry.isFile())
-    .map((entry) => relative(filesRoot, join(entry.parentPath, entry.name)).split(sep).join("/"));
+    .map((entry) => relative(filesRoot, join(entry.parentPath, entry.name)).split(sep).join("/"))
+    .toSorted();
   const texts = await Promise.all(paths.map((path) => readFile(join(filesRoot, path), "utf8")));
   for (const [position, path] of paths.entries()) {
     files.set(path, normalizeLineEndings(texts[position] ?? ""));
