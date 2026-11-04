@@ -74,20 +74,25 @@ function asRecord(value: unknown): Record<string, unknown> | null {
 }
 
 /**
- * Registers the aokit server in JSONC config text without touching other
- * servers or comments. An existing `aokit` entry that differs is replaced whole.
+ * Registers the aokit server in JSONC config text without touching other servers or comments.
+ * On an existing `aokit` entry only the fields aokit owns (`command`, `args`, `type`) are set, so
+ * keys the user added, such as `env`, stay.
  */
 export function registerServer(path: string, text: string, layout: JsonClientLayout): string {
   const current = text.trim() === "" ? {} : parseConfig(path, text);
   const root = asRecord(current);
   if (root === null) throw new InvalidClientConfigError(path, "the root must be an object");
-  const existing = asRecord(root[layout.key])?.[serverName];
-  if (existing === undefined) {
+  const existing = asRecord(asRecord(root[layout.key])?.[serverName]);
+  if (existing === null) {
     return mergeJsonc(text, { [layout.key]: { [serverName]: layout.entry } });
   }
-  if (isDeepStrictEqual(existing, layout.entry)) return text;
-  const edits = modify(text, [layout.key, serverName], layout.entry, {
-    formattingOptions: { insertSpaces: true, tabSize: 2, eol: "\n" },
-  });
-  return applyEdits(text, edits);
+  let result = text;
+  for (const [field, value] of Object.entries(layout.entry)) {
+    if (isDeepStrictEqual(existing[field], value)) continue;
+    const edits = modify(result, [layout.key, serverName, field], value, {
+      formattingOptions: { insertSpaces: true, tabSize: 2, eol: "\n" },
+    });
+    result = applyEdits(result, edits);
+  }
+  return result;
 }

@@ -141,6 +141,23 @@ test("an existing aokit entry with different args is replaced, not unioned", asy
   expect(parse(text).mcpServers.aokit).toEqual({ command: "bunx", args: ["aokit", "mcp"] });
 });
 
+test("an existing aokit entry keeps keys the user added", async () => {
+  await writeFile(
+    join(directory, ".mcp.json"),
+    `{\n  // note\n  "mcpServers": {\n    "aokit": { "command": "npx", "args": ["old"], "env": { "A": "1" } }\n  }\n}\n`,
+  );
+  const result = await init({ client: "claude" });
+  expect(result).toMatchObject({ ok: true, data: { changed: true } });
+  const text = await read(".mcp.json");
+  expect(text).toContain("// note");
+  expect(parse(text).mcpServers.aokit).toEqual({
+    command: "bunx",
+    args: ["aokit", "mcp"],
+    env: { A: "1" },
+  });
+  expect(await init({ client: "claude" })).toMatchObject({ ok: true, data: { changed: false } });
+});
+
 test("an invalid JSONC file fails with INVALID_CONFIG and stays unchanged", async () => {
   const broken = `{ "mcpServers": { `;
   await writeFile(join(directory, ".mcp.json"), broken);
