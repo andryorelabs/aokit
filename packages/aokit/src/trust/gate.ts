@@ -36,7 +36,10 @@ type TrustPrompt = (question: string) => Promise<string>;
 interface EnsureTrustedOptions {
   /** Every `--trust <name|source>` value of the command. */
   readonly trustFlags: readonly string[];
-  /** The Project Lockfile, when the Project has one. */
+  /**
+   * The Lockfile already on disk in the Project, when it has one. Never pass a Lockfile fetched
+   * from elsewhere (`create --from <url>`): its `trusted` flags are not the user's decision.
+   */
   readonly lockfile?: Pick<Lockfile, "registries">;
   /** Whether an untrusted Registry may be asked about; see {@link isNonInteractive}. */
   readonly interactive: boolean;

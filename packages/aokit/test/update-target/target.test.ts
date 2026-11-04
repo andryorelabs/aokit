@@ -78,6 +78,28 @@ test("--to the locked Release picks that Release's versions, not the latest", as
   expect(target.upToDate).toBe(true);
 });
 
+test("a Yanked version a Release Catalog fixes is never selected by an update", async () => {
+  const source = await writeRegistrySourceFixture();
+  const registryPath = await temporaryDirectory();
+  await mkdir(registryPath, { recursive: true });
+  await buildRegistry(source, registryPath);
+  const directory = await createProject(registryPath);
+  const lockfile = parseLockfile(
+    await readFile(join(directory, "aokit.lock.json"), "utf8"),
+  ).lockfile;
+  const second = await writeRegistrySourceFixture();
+  const modulePath = join(second, "oxc/module.ts");
+  const moduleText = await readFile(modulePath, "utf8");
+  await writeFile(modulePath, moduleText.replace('version: "1.0.0"', 'version: "1.1.0"'), "utf8");
+  await writeFile(join(second, "catalog/2026.11.1.json"), secondCatalog, "utf8");
+  await writeFile(join(second, "yanked.json"), '["oxc@1.1.0"]\n', "utf8");
+  await buildRegistry(second, registryPath);
+  const registry = await readLocalRegistry(registryPath, { cliVersion });
+  const target = resolveUpdateTarget(lockfile, registry);
+  expect(target.release).toBe("2026.11.1");
+  expect(target.versions).toEqual({ oxc: "1.0.0" });
+});
+
 test("an older target is INVALID_INPUT", async () => {
   const { registryPath, lockfile } = await twoReleaseProject();
   const registry = await readLocalRegistry(registryPath, { cliVersion });

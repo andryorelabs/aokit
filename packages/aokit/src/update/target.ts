@@ -27,6 +27,24 @@ function lockedRelease(lockfile: Lockfile, registry: LocalRegistry): string {
   return (own ?? fallback)?.release ?? registry.release;
 }
 
+/**
+ * The version an update installs for a Module the Release Catalog maps to `target`. A Yanked
+ * `target` is never selected unless the Project already runs it; it falls back to the highest
+ * selectable version at or below `target`, or `undefined` when none exists.
+ */
+function selectUnyanked(
+  registry: LocalRegistry,
+  name: string,
+  target: string,
+  locked: string,
+): string | undefined {
+  const selectable = registry.selectableVersions(name);
+  if (selectable.includes(target) || target === locked) {
+    return target;
+  }
+  return selectable.toReversed().find((version) => Bun.semver.order(version, target) <= 0);
+}
+
 function chooseRelease(
   lockfile: Lockfile,
   registry: LocalRegistry,
@@ -79,8 +97,17 @@ export function resolveUpdateTarget(
         { module: name, release, registry: registry.name },
       );
     }
-    versions[name] = target;
-    upToDate &&= target === entry.version;
+    const chosen = selectUnyanked(registry, name, target, entry.version);
+    if (chosen === undefined) {
+      throw new AokitError(
+        "MODULE_VERSION_UNAVAILABLE",
+        `Module "${name}" ${target} in Release ${release} is yanked and no earlier version is available.`,
+        `Run \`aokit remove ${name}\` to drop it, or pick another Release with --to.`,
+        { module: name, release, registry: registry.name },
+      );
+    }
+    versions[name] = chosen;
+    upToDate &&= chosen === entry.version;
   }
   return { release, versions, upToDate };
 }

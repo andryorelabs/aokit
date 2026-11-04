@@ -102,6 +102,19 @@ test("a key that is not an integrity or a file path that escapes the entry is re
   expect(await readdir(dir)).toEqual([]);
 });
 
+test("a cache that fails to read or write never fails a verified read", async () => {
+  const server = await servedFixture();
+  const broken = {
+    get: () => Promise.reject(new Error("EACCES")),
+    put: () => Promise.reject(new Error("ENOSPC")),
+  };
+  const source = parseRegistrySource(server.url, sourceContext);
+  const registry = await openRegistry(source, { ...context, cache: broken });
+  const read = await registry.version("oxc", "1.0.0");
+  await server.stop();
+  expect(read.files.size).toBeGreaterThan(0);
+});
+
 test("a Module fetched once is read from the cache after the server stops", async () => {
   const server = await servedFixture();
   const cache = createRegistryCache({ dir: await cacheDirectory() });

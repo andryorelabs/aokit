@@ -85,6 +85,8 @@ export interface Registry {
   catalog(release: string): Promise<ReleaseCatalog | undefined>;
   /** Every published version of a Module in ascending semver order; empty for an unknown Module. */
   versions(name: string): string[];
+  /** Like `versions`, without Yanked versions: the ones `add`, `create` and `update` may select. */
+  selectableVersions(name: string): string[];
   /** A published Module version; throws `REGISTRY_MODULE_NOT_FOUND` when the index lacks it. */
   version(name: string, version: string): Promise<ModuleVersion>;
 }
@@ -446,7 +448,7 @@ async function readVerifiedContent(
 ): Promise<CachedModuleVersion> {
   const subject = `Registry "${registryName}" Module ${name}@${version}`;
   const data = { registry: registryName, module: `${name}@${version}` };
-  const cached = await cache?.get(entry.integrity);
+  const cached = await cache?.get(entry.integrity).catch(() => undefined);
   if (cached !== undefined) {
     try {
       verifyModuleContent(cached, entry, subject, data);
@@ -459,7 +461,7 @@ async function readVerifiedContent(
   }
   const fetched = await fetchModuleContent(transport, name, version, entry, subject, registryName);
   verifyModuleContent(fetched, entry, subject, data);
-  await cache?.put(entry.integrity, fetched);
+  await cache?.put(entry.integrity, fetched).catch(() => undefined);
   return fetched;
 }
 
@@ -662,10 +664,13 @@ export async function openRegistry(
     Object.keys(index.modules[name]?.versions ?? {}).toSorted((left, right) =>
       Bun.semver.order(left, right),
     );
+  const selectableVersions = (name: string): string[] =>
+    versions(name).filter((version) => index.modules[name]?.versions[version]?.yanked !== true);
   return {
     name: index.name,
     source: opened.source,
     index,
+    selectableVersions,
     release: index.release,
     currentCatalog,
     releases: () => Object.keys(index.releases).toSorted(byCodepoint),
