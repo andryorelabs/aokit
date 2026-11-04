@@ -39,6 +39,14 @@ function invalidSource(source: string, reason: string): RegistryError {
   );
 }
 
+/**
+ * Whether a Registry may be read from `url`: any `https://` URL, or `http://` on a loopback host.
+ * Applied to a source and to every redirect hop, so a redirect cannot downgrade the transport.
+ */
+export function isReadableRegistryUrl(url: URL): boolean {
+  return url.protocol === "https:" || (url.protocol === "http:" && loopbackHosts.has(url.hostname));
+}
+
 function parseUrlSource(source: string): RegistrySource {
   let url: URL;
   try {
@@ -49,8 +57,7 @@ function parseUrlSource(source: string): RegistrySource {
   if (url.protocol === "file:") {
     return { kind: "local", path: fileURLToPath(url) };
   }
-  const plainLoopback = url.protocol === "http:" && loopbackHosts.has(url.hostname);
-  if (url.protocol !== "https:" && !plainLoopback) {
+  if (!isReadableRegistryUrl(url)) {
     throw invalidSource(source, "only https:// URLs (or http:// on a loopback host) are read");
   }
   if (url.username !== "" || url.password !== "" || url.search !== "" || url.hash !== "") {

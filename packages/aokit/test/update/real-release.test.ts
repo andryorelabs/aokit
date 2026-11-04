@@ -3,6 +3,7 @@ import { cp, readFile, writeFile } from "node:fs/promises";
 import { join } from "node:path";
 import { runCommand } from "../../src/cli/command.ts";
 import { createCommand } from "../../src/cli/commands/create.ts";
+import { doctorCommand } from "../../src/cli/commands/doctor.ts";
 import { updateCommand } from "../../src/cli/commands/update.ts";
 import { cleanTemporaryDirectories, commandContext, temporaryDirectory } from "../diff/support.ts";
 
@@ -88,5 +89,31 @@ describe("aokit update against the committed Registry", () => {
     );
     const lockfile = JSON.parse(await readFile(join(directory, "aokit.lock.json"), "utf8"));
     expect(lockfile.modules["vite-react"].version).toBe("1.1.0");
+  });
+
+  test("doctor verifies the integrity of the pinned version, not the latest", async () => {
+    const registry = join(await temporaryDirectory(), "registry");
+    await cp(committedRegistry, registry, { recursive: true });
+    const indexPath = join(registry, "index.json");
+    const fullIndexText = await readFile(indexPath, "utf8");
+    const full: IndexShape = JSON.parse(fullIndexText);
+    await writeFile(indexPath, `${JSON.stringify(atFirstRelease(full), null, 2)}\n`, "utf8");
+    const directory = join(await temporaryDirectory(), "app");
+    const created = await runCommand(createCommand, commandContext, {
+      directory,
+      modules: "vite-react",
+      registry,
+      yes: true,
+      install: false,
+    });
+    if (!created.ok) throw new Error(created.error.message);
+    const pinned = JSON.parse(await readFile(join(directory, "aokit.lock.json"), "utf8"));
+    expect(pinned.modules["vite-react"].version).toBe("1.0.0");
+    await git(directory, "init", "-q");
+    await git(directory, "add", "-A");
+    await git(directory, "commit", "-q", "-m", "init");
+    await writeFile(indexPath, fullIndexText, "utf8");
+    const report = await runCommand(doctorCommand, commandContext, { directory, registry });
+    expect(report.ok).toBe(true);
   });
 });

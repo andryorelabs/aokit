@@ -250,6 +250,16 @@ test("a redirect to another host is followed and its content is still integrity-
   expect(error.data.module).toBe("oxc@1.0.0");
 });
 
+test("a redirect to a host that is neither https nor loopback is refused before it is requested", async () => {
+  const { server } = await served();
+  const notes = "modules/oxc/1.0.0/files/nested/notes.md";
+  server.redirects.set(notes, `http://192.0.2.1/${notes}`);
+  const opened = await openRegistry(urlSource(server.url), context);
+  const error = await captureError(() => opened.version("oxc", "1.0.0"));
+  expect(error.code).toBe("REGISTRY_FETCH_FAILED");
+  expect(error.message).toContain("neither https nor a loopback host");
+});
+
 test("the injected fetch is the only way a URL Registry reads, and its failure is REGISTRY_FETCH_FAILED", async () => {
   const requested: string[] = [];
   const failingFetch: typeof fetch = Object.assign(

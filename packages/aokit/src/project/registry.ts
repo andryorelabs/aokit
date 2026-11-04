@@ -1,12 +1,17 @@
-import { isAbsolute, join, resolve as resolvePath } from "node:path";
+import { join } from "node:path";
 import { z } from "zod";
 import { AokitError } from "../cli/envelope.ts";
 import type { PipelineModule } from "../pipeline/index.ts";
 import type { Lockfile } from "../lockfile/schema.ts";
 import { bundledRegistryPath } from "../registry/bundled.ts";
-import { readLocalRegistry, type LocalRegistry } from "../registry/index.ts";
+import {
+  parseRegistrySource,
+  readLocalRegistry,
+  RegistryError,
+  type LocalRegistry,
+  type RegistrySource,
+} from "../registry/index.ts";
 
-const urlSourcePattern = /^[A-Za-z][A-Za-z0-9+.-]*:\/\//;
 const registryIndexMinimum = z.object({ minCliVersion: z.string().min(1) });
 
 /** Where relative and `"bundled"` Registry sources resolve from. */
@@ -19,20 +24,27 @@ export interface RegistrySourceContext {
 
 /**
  * Resolves a Registry source to a local directory: `"bundled"` is the shipped Registry, a
- * relative path resolves from `projectDir`, and a URL throws `INVALID_INPUT`.
+ * relative path or a `file:` URL is a local directory, and an `https://` URL or a `github:` source
+ * throws `INVALID_INPUT` until the commands read remote Registries.
  */
 export function resolveRegistrySource(source: string, context: RegistrySourceContext): string {
-  if (source === "bundled") {
-    return context.bundledRegistryPath;
+  let parsed: RegistrySource;
+  try {
+    parsed = parseRegistrySource(source, context);
+  } catch (error) {
+    if (error instanceof RegistryError) {
+      throw new AokitError("INVALID_INPUT", error.message, error.fix);
+    }
+    throw error;
   }
-  if (urlSourcePattern.test(source)) {
-    throw new AokitError(
-      "INVALID_INPUT",
-      `Registry source "${source}" is a URL, and remote Registries are not supported yet.`,
-      "Use a local Registry path or the bundled Registry.",
-    );
+  if (parsed.kind === "bundled" || parsed.kind === "local") {
+    return parsed.path;
   }
-  return isAbsolute(source) ? source : resolvePath(context.projectDir, source);
+  throw new AokitError(
+    "INVALID_INPUT",
+    `Registry source "${source}" is remote, and the commands do not read remote Registries yet.`,
+    "Use a local Registry path or the bundled Registry.",
+  );
 }
 
 /** Inputs of {@link openProjectRegistry}. */

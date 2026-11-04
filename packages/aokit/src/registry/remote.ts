@@ -2,6 +2,7 @@ import { readFile } from "node:fs/promises";
 import { join, resolve } from "node:path";
 import { RegistryError } from "./errors.ts";
 import { normalizeLineEndings } from "./integrity.ts";
+import { isReadableRegistryUrl } from "./source.ts";
 
 /**
  * Reads files of one Registry by their path relative to its root (`index.json`,
@@ -87,6 +88,35 @@ function fetchFailed(url: string, reason: string, status?: number): RegistryErro
   );
 }
 
+const maximumRedirects = 5;
+const redirectStatuses = new Set([301, 302, 303, 307, 308]);
+
+async function fetchFollowingSafeRedirects(
+  target: string,
+  fetchImpl: typeof fetch,
+  redirectsLeft: number = maximumRedirects,
+): Promise<Response> {
+  const response = await fetchImpl(target, {
+    method: "GET",
+    redirect: "manual",
+    signal: AbortSignal.timeout(fetchTimeoutMilliseconds),
+  });
+  if (!redirectStatuses.has(response.status)) return response;
+  await response.body?.cancel();
+  const location = response.headers.get("location");
+  if (location === null) throw fetchFailed(target, `HTTP ${response.status} without a Location`);
+  if (redirectsLeft === 0) throw fetchFailed(target, `more than ${maximumRedirects} redirects`);
+  const next = new URL(location, target);
+  if (!isReadableRegistryUrl(next)) {
+    throw fetchFailed(
+      target,
+      `redirected to ${next.origin}, which is neither https nor a loopback host`,
+      response.status,
+    );
+  }
+  return fetchFollowingSafeRedirects(next.href, fetchImpl, redirectsLeft - 1);
+}
+
 /**
  * A transport over a Registry served as static files under `base`, read with `fetchImpl` (native
  * `fetch` unless a test injects one). A 404 is a missing file; any other failure is
@@ -100,12 +130,9 @@ export function urlTransport(base: string, fetchImpl: typeof fetch): RegistryTra
       const url = `${base}/${path.split("/").map(encodeURIComponent).join("/")}`;
       let response: Response;
       try {
-        response = await fetchImpl(url, {
-          method: "GET",
-          redirect: "follow",
-          signal: AbortSignal.timeout(fetchTimeoutMilliseconds),
-        });
+        response = await fetchFollowingSafeRedirects(url, fetchImpl);
       } catch (error) {
+        if (error instanceof RegistryError) throw error;
         throw fetchFailed(url, error instanceof Error ? error.message : String(error));
       }
       if (response.status === 404) {

@@ -28,6 +28,18 @@ test("an absolute source is kept as is", () => {
   expect(resolveRegistrySource("/srv/registry", context)).toBe("/srv/registry");
 });
 
+test("a file: URL resolves to its local directory, as the Registry client reads it", () => {
+  expect(resolveRegistrySource("file:///srv/registry", context)).toBe("/srv/registry");
+});
+
+test("an https URL and a github source are rejected until the commands read remote Registries", () => {
+  for (const source of ["https://registry.example.test", "github:acme/modules#main"]) {
+    const thrown = thrownBy(() => resolveRegistrySource(source, context));
+    expect(thrown).toBeInstanceOf(AokitError);
+    expect(thrown).toMatchObject({ code: "INVALID_INPUT" });
+  }
+});
+
 test("the bundled Registry path is the shipped registry directory", () => {
   expect(bundledRegistryPath.endsWith("registry")).toBe(true);
 });

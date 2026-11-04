@@ -193,10 +193,14 @@ test("the old schema domain appears nowhere in the tree", async () => {
 });
 
 test("tsconfig.json typechecks Registry source files and Migration scripts", async () => {
-  const tsconfig = await readFile(join(repoRoot, "tsconfig.json"), "utf8");
-  expect(tsconfig).toContain("registry-src/*/files/**/*.ts");
-  expect(tsconfig).toContain("registry-src/*/files/**/*.tsx");
-  expect(tsconfig).toContain("registry-src/*/migrations/*.ts");
+  const listed = Bun.spawnSync(
+    ["node_modules/typescript7/bin/tsc", "--project", "tsconfig.json", "--listFilesOnly"],
+    { cwd: repoRoot },
+  );
+  const files = listed.stdout.toString();
+  expect(listed.exitCode).toBe(0);
+  expect(files).toContain("registry-src/vite-react/migrations/routes-to-router.after.ts");
+  expect(files).toMatch(/registry-src\/vite-react\/files\/.*\.tsx?\n/);
 });
 
 test("registry:build refuses a manifest file missing from files/", async () => {
