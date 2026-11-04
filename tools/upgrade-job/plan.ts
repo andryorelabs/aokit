@@ -21,6 +21,8 @@ export interface Edit {
   readonly path: string;
   /** Text the edit adds; it must survive the update, at its path or at a renamed one. */
   readonly marker: string;
+  /** Module specifier a `user-import` edit imports; the router file when the base already has it. */
+  readonly importFrom?: "./router" | "./routes";
 }
 
 function bySemver(left: string, right: string): number {
@@ -153,6 +155,9 @@ export function planEdits(
       kind: "user-import",
       path: posix.join(posix.dirname(main), "user-routes.ts"),
       marker: "upgradeJobUserRoute",
+      importFrom: Object.keys(files).some((path) => path.endsWith("src/router.tsx"))
+        ? "./router"
+        : "./routes",
     });
   }
   edits.push({ kind: "user-note", path: "AGENTS.md", marker: "upgradeJobAgentsNote" });
@@ -163,7 +168,7 @@ export function planEdits(
 export function applyEdit(edit: Edit, content: string): string {
   if (edit.kind === "managed-json") return content.replace("{", `{\n  "${edit.marker}": true,`);
   if (edit.kind === "user-import") {
-    return `import { ${edit.marker} } from "./routes";\n\nexport { ${edit.marker} };\n`;
+    return `import { ${edit.marker} } from "${edit.importFrom ?? "./routes"}";\n\nexport { ${edit.marker} };\n`;
   }
   const separator = content === "" || content.endsWith("\n") ? "" : "\n";
   return `${content}${separator}${appendedLine(edit.path, edit.marker)}`;
