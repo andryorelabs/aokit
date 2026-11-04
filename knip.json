@@ -7,8 +7,7 @@
       "ignoreDependencies": ["typescript7"]
     },
     "packages/aokit": {
-      "entry": ["test/**/*.test.ts"],
-      "ignoreDependencies": ["@oxc-parser/binding-wasm32-wasip1"]
+      "entry": ["test/**/*.test.ts", "src/cli/main.ts"]
     },
     "packages/module": {
       "entry": ["test/**/*.test.ts"]

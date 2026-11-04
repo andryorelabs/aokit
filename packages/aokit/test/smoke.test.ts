@@ -14,8 +14,10 @@ test("the aokit package declares the aokit bin without a shared barrel", async (
   const packageManifest: unknown = await Bun.file(
     join(import.meta.dir, "..", "package.json"),
   ).json();
-  expect(packageManifest).toHaveProperty("bin", { aokit: "./src/cli/main.ts" });
+  expect(packageManifest).toHaveProperty("bin", { aokit: "./dist/cli.js" });
   expect(packageManifest).not.toHaveProperty("main");
-  expect(packageManifest).not.toHaveProperty("exports");
+  expect(packageManifest).toHaveProperty("exports", {
+    "./cli": { types: "./src/cli/run.ts", default: "./dist/run.js" },
+  });
   expect(await Bun.file(join(import.meta.dir, "..", "src", "index.ts")).exists()).toBe(false);
 });
