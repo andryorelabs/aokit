@@ -143,7 +143,10 @@ export const createTool: McpToolDefinition = {
       return planRequiredFailure("this `planId` was not issued by `plan` in this session");
     const directory = await canonicalDirectory(requested);
     const replanned = await planCreate(context, explicit, directory);
-    if (!replanned.ok) return replanned.envelope;
+    if (!replanned.ok) {
+      const { code, message } = replanned.envelope.error ?? { code: "UNKNOWN", message: "" };
+      return planRequiredFailure(`the Plan no longer applies (${code}: ${message})`);
+    }
     if (replanned.planned.planId !== planId) {
       return planRequiredFailure("the input, the Release or the Plan changed since `plan`");
     }
@@ -153,6 +156,7 @@ export const createTool: McpToolDefinition = {
       commandInputOf(explicit, directory, false),
     );
     if (!applied.ok) return applied;
+    session.consume(planId);
     return successEnvelope({
       ...(isRecord(applied.data) ? applied.data : {}),
       nextSteps: [`cd ${shellWord(directory)}`, "bun install"],

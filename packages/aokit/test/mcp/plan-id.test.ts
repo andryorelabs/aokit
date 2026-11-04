@@ -23,3 +23,10 @@ test("a session only knows the ids it issued", () => {
   expect(session.has("plan_b")).toBe(false);
   expect(createPlanSession().has("plan_a")).toBe(false);
 });
+
+test("a consumed planId is no longer issued", () => {
+  const session = createPlanSession();
+  session.issue("plan_a");
+  session.consume("plan_a");
+  expect(session.has("plan_a")).toBe(false);
+});

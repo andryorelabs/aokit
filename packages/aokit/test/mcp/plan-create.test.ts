@@ -140,6 +140,7 @@ describe("create", () => {
       planId: planned.data?.["planId"],
     });
     expect(result.ok).toBe(false);
+    expect(result.error?.code).toBe("PLAN_REQUIRED");
     expect(entriesOf(directory)).toEqual(["notes.txt"]);
   });
 
@@ -152,6 +153,7 @@ describe("create", () => {
     const lockfile = readFileSync(join(directory, "aokit.lock.json"), "utf8");
     const second = await callTool(client, "create", args);
     expect(second.ok).toBe(false);
+    expect(second.error?.code).toBe("PLAN_REQUIRED");
     expect(readFileSync(join(directory, "aokit.lock.json"), "utf8")).toBe(lockfile);
   });
 
@@ -226,6 +228,7 @@ describe("call queue", () => {
     ]);
     expect(first.ok).toBe(true);
     expect(second.ok).toBe(false);
+    expect(second.error?.code).toBe("PLAN_REQUIRED");
     expect(entriesOf(directory)).toContain("aokit.lock.json");
   }, 60_000);
 });

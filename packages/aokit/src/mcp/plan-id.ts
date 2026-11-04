@@ -5,6 +5,7 @@ import { stringifySorted } from "../cli/envelope.ts";
 export interface PlanSession {
   issue(planId: string): void;
   has(planId: string): boolean;
+  consume(planId: string): void;
 }
 
 /** A session with no `planId` issued yet, so a Plan never survives a server restart. */
@@ -16,6 +17,9 @@ export function createPlanSession(): PlanSession {
     },
     has(planId) {
       return issued.has(planId);
+    },
+    consume(planId) {
+      issued.delete(planId);
     },
   };
 }
