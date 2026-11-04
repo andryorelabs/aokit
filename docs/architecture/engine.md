@@ -70,7 +70,16 @@ Further rules:
 | YAML (workflows, compose) | `yaml` Document API | Edits keep comments and anchors. |
 | Tailwind v4 CSS | postcss | Edits `@import`, `@plugin`, `@theme` at-rules and adds nested `@layer`, `@utility`, `@keyframes` and `@custom-variant` rules without duplicating existing content. |
 | `.env*` | line-based | Adds missing keys; **never overwrites** an existing key. |
-| Markdown (`AGENTS.md`, docs) | marker regions | A Module owns the lines between its own start and end markers and nothing else. |
+| Markdown (`AGENTS.md`, docs) | marker regions | A Module owns the lines between its own start and end markers and nothing else. See [Marker regions](#marker-regions). |
+
+### Marker regions
+
+A Region is the span between `<!-- aokit:begin <id> -->` and `<!-- aokit:end <id> -->`. The `<id>` is `<module>:<region>`, where `<module>` is the owner (a Module name, or the reserved `aokit` for the header) and `<region>` is the `region` field of the `appendRegion` Op. A start marker without its end marker, or a repeated id, is an error.
+
+- A Region that exists is replaced in place; only the lines between its own markers change.
+- A new Region is inserted right after the last aokit Region, or at the end of a file with none. The header Region is inserted at the top.
+- The Engine writes Regions in canonical Module order, after the `aokit:header` Region. The [Merger](lockfile.md#region-files) keeps that order when it merges into a file the user has edited.
+- Region content is authored already formatted, so the [pinned format phase](#determinism) leaves it unchanged with or without `oxc`.
 
 ## No template engine
 

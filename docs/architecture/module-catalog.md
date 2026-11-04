@@ -88,7 +88,7 @@ Notes:
 | `turborepo` | `task-runner` (1) | none | declares `workspace.tasks` on target `root` |
 | `catalog` | `dep-catalog` (1) | `task-runner` | contributes to `workspace.tasks`; writes the Bun catalog |
 | `renovate` | `dep-updates` (1) | none | contributes to `root` files only |
-| `adr-docs` | `docs:adr` (1) | none | declares `docs.index`; writes `GLOSSARY.md`, `AGENTS.md`, `CLAUDE.md`, skills |
+| `adr-docs` | `docs:adr` (1) | none | declares `docs.index`; writes `GLOSSARY.md` and its own skills, and contributes a Region to `AGENTS.md` (the header and `CLAUDE.md` belong to aokit) |
 
 Notes:
 

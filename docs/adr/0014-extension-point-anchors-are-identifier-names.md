@@ -2,6 +2,7 @@
 
 Status: Accepted (2026-11-03)
 Revised: 2026-11-03 — `json` Extension points use JSON-pointer Anchors and data Ops can address an Extension point
+Revised: 2026-11-04 — `region` Extension points cover Markdown and CSS files, not Markdown only
 Spec: S12 (Spec: aokit core, schema, VFS and engine ops)
 Architecture: [Capabilities: extension points](../architecture/capabilities.md#extension-points), [Engine: locate and splice](../architecture/engine.md#code-edits-locate-and-splice)
 
@@ -11,7 +12,7 @@ An Extension point needs an Anchor the Engine can find after the user has edited
 
 ## Decision
 
-For the TypeScript kinds (`array`, `object`, `import-list`) the Anchor is the name of a top-level declaration, such as `providers` in `export const providers = [...]`. The Engine locates it with oxc-parser and splices at the declaration's value. Marker comments are used only for `region` Extension points, which live in Markdown. oxc-parser is the only locate backend for now; ast-grep is added when an Op needs a structural pattern that a declaration name cannot express.
+For the TypeScript kinds (`array`, `object`, `import-list`) the Anchor is the name of a top-level declaration, such as `providers` in `export const providers = [...]`. The Engine locates it with oxc-parser and splices at the declaration's value. Marker comments are used only for `region` Extension points, which live in Markdown and in CSS files such as `src/styles.css`. oxc-parser is the only locate backend for now; ast-grep is added when an Op needs a structural pattern that a declaration name cannot express.
 
 For `json` Extension points the Anchor is a JSON pointer (`/ignorePatterns`), because JSON has no identifiers. Data Ops (`mergeJson`, `mergeYaml`, `addEnv`, `addCssAtRule`, `appendRegion`) may name `extensionPoint` and `range` instead of `target` and `file`; the Engine then resolves the file and the pointer from the declaring Module, so a contributor never sees the path.
 
