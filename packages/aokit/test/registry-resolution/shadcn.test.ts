@@ -309,7 +309,10 @@ test("a locked shadcn version keeps resolving after the item changes upstream", 
   expect(removed).toMatchObject({ ok: false, error: { code: "REGISTRY_ITEM_CHANGED" } });
   expect(exitCodeForEnvelope(removed)).toBe(1);
   const changedDoctor = await runCommand(doctorCommand, context, { directory: project });
-  expect(changedDoctor).toMatchObject({ ok: false, error: { code: "DRIFT" } });
+  expect(changedDoctor).toMatchObject({
+    ok: false,
+    error: { code: "REGISTRY_ITEM_CHANGED", fix: expect.stringContaining("aokit update") },
+  });
   expect(JSON.stringify(changedDoctor)).toContain("[REGISTRY_ITEM_CHANGED]");
   expect(exitCodeForEnvelope(changedDoctor)).toBe(1);
   expect(await snapshotTree(project)).toEqual(before);

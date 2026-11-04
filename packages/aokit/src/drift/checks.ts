@@ -14,6 +14,8 @@ export interface ProjectProblem {
   readonly kind: "cli" | "registry" | "integrity" | "resolver" | "deps" | "update";
   readonly message: string;
   readonly fix: string;
+  /** The error code behind the problem, when a lifecycle outcome caused it (such as `REGISTRY_ITEM_CHANGED`). */
+  readonly code?: RegistryError["code"];
 }
 
 /** Inputs of {@link checkProject}. */
@@ -74,6 +76,7 @@ async function readOne(
         kind: error.code === "REGISTRY_INTEGRITY_MISMATCH" ? "integrity" : "registry",
         message: `Registry "${name}" cannot be read: [${error.code}] ${error.message}`,
         fix: error.fix,
+        code: error.code,
       },
     };
   }
