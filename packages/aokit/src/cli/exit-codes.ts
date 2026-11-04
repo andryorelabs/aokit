@@ -18,6 +18,7 @@ export const errorCodeExitCodes = {
   MISSING_VALUE: exitCodes.usage,
   UNKNOWN_FLAG: exitCodes.usage,
   UNKNOWN_COMMAND: exitCodes.usage,
+  INVALID_CONFIG: exitCodes.usage,
   CAPABILITY_CONFLICT: exitCodes.resolution,
   REQUIREMENT_UNMET: exitCodes.resolution,
   CARDINALITY_EXCEEDED: exitCodes.resolution,

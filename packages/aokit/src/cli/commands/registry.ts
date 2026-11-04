@@ -5,6 +5,7 @@ import { createCommand } from "./create.ts";
 import { diffCommand } from "./diff.ts";
 import { doctorCommand } from "./doctor.ts";
 import { ejectCommand } from "./eject.ts";
+import { mcpInitCommand } from "./mcp-init.ts";
 import { recopyCommand } from "./recopy.ts";
 import { removeCommand } from "./remove.ts";
 import { restoreCommand } from "./restore.ts";
@@ -24,6 +25,7 @@ export const exposedCommands: readonly AnyCommand[] = [
   updateCommand,
   restoreCommand,
   schemaCommand,
+  mcpInitCommand,
 ];
 
 /** Commands registered for dispatch but kept out of `--help` and `aokit schema`. */
