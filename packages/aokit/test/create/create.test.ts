@@ -18,9 +18,9 @@ import { exposedCommands } from "../../src/cli/commands/registry.ts";
 import { parseAnswers, completeAnswers } from "../../src/project/answers.ts";
 import { reproduceCommand } from "../../src/project/reproduce.ts";
 import { cliVersion } from "../../src/cli/version.ts";
+import { aokitCommand, spawnAokit as spawnAokitProcess } from "../helpers/aokit-process.ts";
 
 const workspaces: string[] = [];
-const cliEntry = join(import.meta.dir, "..", "..", "src", "cli", "main.ts");
 
 afterAll(() => {
   for (const leftover of workspaces) {
@@ -64,18 +64,8 @@ async function runAokit(argv: string[], env: Record<string, string | undefined> 
   return { exitCode, stdout, stderr };
 }
 
-async function spawnAokit(argv: string[], env: Record<string, string> = {}) {
-  const child = Bun.spawn([process.execPath, cliEntry, ...argv], {
-    stdout: "pipe",
-    stderr: "pipe",
-    env: { ...process.env, ...env },
-  });
-  const [stdout, stderr, exitCode] = await Promise.all([
-    new Response(child.stdout).text(),
-    new Response(child.stderr).text(),
-    child.exited,
-  ]);
-  return { stdout, stderr, exitCode };
+function spawnAokit(argv: string[], env: Record<string, string> = {}) {
+  return spawnAokitProcess(argv, { env });
 }
 
 describe("aokit create", () => {
@@ -254,7 +244,7 @@ describe("aokit create", () => {
     writeFileSync(join(fakeBin, "bun"), "#!/bin/sh\nexec sleep 30\n");
     chmodSync(join(fakeBin, "bun"), 0o755);
     const child = Bun.spawn(
-      [process.execPath, cliEntry, "create", join(parent, "app"), "--modules", "oxc", "--json"],
+      [...aokitCommand(), "create", join(parent, "app"), "--modules", "oxc", "--json"],
       {
         stdout: "pipe",
         stderr: "pipe",
