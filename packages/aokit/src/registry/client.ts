@@ -1,5 +1,13 @@
 import { z } from "zod";
-import { catalogSchema, ManifestError, type ModuleManifest, parseManifest } from "@aokit/module";
+import {
+  catalogSchema,
+  ManifestError,
+  type ModuleManifest,
+  parseManifest,
+  stableStringify,
+} from "@aokit/module";
+import { loadUserConfig, type UserConfig } from "../config/user-config.ts";
+import { createRegistryCache } from "./cache.ts";
 import { RegistryError } from "./errors.ts";
 import {
   type GitLsRemote,
@@ -16,14 +24,18 @@ import {
   type RegistryTransport,
   urlTransport,
 } from "./remote.ts";
+import { expandNamespaceRequest, loadNamespaceEnvironment, resolveNamespace } from "./namespace.ts";
 import {
   catalogFileSchema,
   type ReleaseCatalog,
   type RegistryIndex,
   registryIndexSchema,
+  registryIndexSchemaUrl,
   releaseModulesSchema,
   supportedRegistrySchemaVersion,
 } from "./schema.ts";
+import { type AdaptedModule, adaptShadcnItem } from "./shadcn/adapt.ts";
+import { shadcnItemSchema, shadcnRegistrySchema } from "./shadcn/schema.ts";
 import type { RegistrySource } from "./source.ts";
 
 /**
@@ -103,6 +115,25 @@ interface OpenRegistryContext {
   cache?: RegistryCache;
   /** The adapters a `github:` source is pinned and read with; the real ones by default. */
   github?: GithubAdapters;
+  /** The user config a Namespace resolves through; read from `env` when a Namespace needs it. */
+  userConfig?: UserConfig;
+  /**
+   * The environment `${VAR}` placeholders expand from and the user config is found by;
+   * `process.env` by default.
+   */
+  env?: Readonly<Record<string, string | undefined>>;
+  /** The Project directory whose `.env` underlies `env` for Namespace placeholders; none by default. */
+  projectDir?: string;
+  /**
+   * Module `name@version` to the integrity the Lockfile records, for a shadcn Registry: those
+   * versions are listed by `versions` and served from the integrity cache once upstream moved on.
+   */
+  pinned?: ReadonlyMap<string, string>;
+  /**
+   * The shadcn items to read at open instead of every item `registry.json` lists (a Namespace
+   * lists none); a failure reading one of them fails the open.
+   */
+  items?: readonly string[];
 }
 
 /**
@@ -175,7 +206,7 @@ function parseJson(text: string, onInvalid: (reason: string) => RegistryError): 
  * that is the Pin, `github:owner/repo#<sha40>`, so the Lockfile never records a moving ref.
  */
 async function transportFor(
-  source: RegistrySource,
+  source: Exclude<RegistrySource, { kind: "shadcn" }>,
   context: OpenRegistryContext,
 ): Promise<{ transport: RegistryTransport; source: RegistrySource }> {
   const fetchImpl = context.fetch ?? fetch;
@@ -230,9 +261,8 @@ function assertIndexPathsSafe(raw: unknown, location: string): void {
   }
 }
 
-async function readIndex(transport: RegistryTransport): Promise<RegistryIndex> {
+function parseIndex(transport: RegistryTransport, text: string | undefined): RegistryIndex {
   const location = `${transport.location}/index.json`;
-  const text = await transport.read("index.json");
   if (text === undefined) {
     throw new RegistryError(
       "REGISTRY_NOT_FOUND",
@@ -630,8 +660,561 @@ async function loadModuleVersion(
   };
 }
 
+const shadcnIndexFile = "registry.json";
+const shadcnRelease = "shadcn";
+const shadcnMinCliVersion = "0.0.0";
+const scopePattern = /^[a-z][a-z0-9]*(-[a-z0-9]+)*$/;
+const namespaceProbeItem = "aokit-item-name";
+const itemChangedFix = "Run `aokit update` to move it to the version the Registry serves now.";
+
+type TemplateEnvironment = Readonly<Record<string, string | undefined>>;
+
+/** Every `${VAR}` reads as set, so a Namespace resolves without expanding or checking anything. */
+const permissiveEnvironment: TemplateEnvironment = new Proxy(
+  {},
+  { get: () => "", has: () => true },
+);
+
+/** How one shadcn item is fetched: the transport that serves it and the path it is read at. */
+interface ItemLocation {
+  readonly transport: RegistryTransport;
+  readonly path: string;
+}
+
+/** The outcome of reading one shadcn item at open: adapted, absent upstream, or failed. */
+type ItemRead =
+  | { readonly kind: "served"; readonly module: AdaptedModule }
+  | { readonly kind: "missing" }
+  | { readonly kind: "failed"; readonly error: unknown };
+
+/** A Namespace as the user config (or the Lockfile) declares it, placeholders kept. */
+interface NamespaceDeclaration {
+  readonly template: string;
+  readonly headers: Readonly<Record<string, string>>;
+}
+
+/** What `registry.json` tells: the declared name and the item names. */
+interface ShadcnIndex {
+  readonly name?: string;
+  readonly items: readonly string[];
+}
+
+type ShadcnSource = Extract<RegistrySource, { kind: "shadcn" }>;
+
+function asIntegrity(value: string | undefined): Integrity | undefined {
+  return value !== undefined && isIntegrity(value) ? value : undefined;
+}
+
+function isIntegrity(value: string): value is Integrity {
+  return /^sha256-[0-9a-f]{64}$/.test(value);
+}
+
+function isOffline(error: unknown): boolean {
+  return (
+    error instanceof RegistryError &&
+    error.code === "REGISTRY_FETCH_FAILED" &&
+    error.data.status === undefined
+  );
+}
+
+function hostScope(url: string): string {
+  const slug = new URL(url).hostname
+    .toLowerCase()
+    .replaceAll(/[^a-z0-9]+/g, "-")
+    .replaceAll(/^-+|-+$/g, "");
+  return /^[a-z]/.test(slug) ? slug : `r-${slug}`;
+}
+
+function scopeOf(moduleName: string): string | undefined {
+  return /^@([^/]+)\//.exec(moduleName)?.[1];
+}
+
+/** Splits a `name@version` key of the Lockfile into Module name and version. */
+function splitModuleKey(key: string): { name: string; version: string } | undefined {
+  const at = key.lastIndexOf("@");
+  return at <= 0 ? undefined : { name: key.slice(0, at), version: key.slice(at + 1) };
+}
+
 /**
- * Opens a Registry from any source behind one lazy interface. It reads `index.json`, refuses an
+ * The template and headers of a Namespace: the user config entry (or the built-in one), else the
+ * template the Lockfile recorded, sent without headers. Nothing is expanded here.
+ */
+function declareNamespace(
+  namespace: string,
+  recordedTemplate: string,
+  userConfig: UserConfig,
+): NamespaceDeclaration {
+  try {
+    const target = resolveNamespace(
+      `${namespace}/${namespaceProbeItem}`,
+      userConfig,
+      permissiveEnvironment,
+    );
+    return {
+      template: target.urlTemplate.replaceAll(namespaceProbeItem, "{name}"),
+      headers: target.headers,
+    };
+  } catch (error) {
+    if (
+      error instanceof RegistryError &&
+      error.code === "REGISTRY_NOT_FOUND" &&
+      recordedTemplate !== ""
+    ) {
+      return { template: recordedTemplate, headers: {} };
+    }
+    throw error;
+  }
+}
+
+function splitParent(url: string): { base: string; file: string; suffix: string } {
+  const queryStart = url.search(/[?#]/);
+  const pathPart = queryStart === -1 ? url : url.slice(0, queryStart);
+  const cut = pathPart.lastIndexOf("/");
+  return {
+    base: pathPart.slice(0, cut),
+    file: pathPart.slice(cut + 1),
+    suffix: queryStart === -1 ? "" : url.slice(queryStart),
+  };
+}
+
+/** Where a Namespace item is read: its expanded URL, with headers only for the Namespace origin. */
+function namespaceItemLocation(
+  namespace: string,
+  declaration: NamespaceDeclaration,
+  item: string,
+  env: TemplateEnvironment,
+  fetchImpl: typeof fetch,
+): ItemLocation {
+  const urlTemplate = declaration.template.replaceAll("{name}", encodeURIComponent(item));
+  const request = expandNamespaceRequest(
+    { namespace, item, urlTemplate, headers: { ...declaration.headers } },
+    env,
+  );
+  const expanded = splitParent(request.url);
+  const shown = splitParent(urlTemplate);
+  return {
+    transport: urlTransport(expanded.base, fetchImpl, {
+      headers: request.headers,
+      displayBase: shown.base,
+      suffix: expanded.suffix,
+      displaySuffix: shown.suffix,
+    }),
+    path: decodeURIComponent(expanded.file),
+  };
+}
+
+function shadcnIndexInvalid(location: string, reason: string): RegistryError {
+  return new RegistryError(
+    "REGISTRY_INDEX_INVALID",
+    `shadcn Registry index ${location} is invalid: ${reason}`,
+    "Point --registry at a shadcn Registry that serves a valid registry.json.",
+    { registry: location, path: location },
+  );
+}
+
+function parseShadcnIndex(text: string, location: string): ShadcnIndex {
+  const parsed = shadcnRegistrySchema.safeParse(
+    parseJson(text, (reason) => shadcnIndexInvalid(location, reason)),
+  );
+  if (!parsed.success) {
+    throw shadcnIndexInvalid(
+      location,
+      parsed.error.issues
+        .map((issue) => `${issue.path.join(".") || "(root)"}: ${issue.message}`)
+        .join("; "),
+    );
+  }
+  return {
+    ...(parsed.data.name === undefined ? {} : { name: parsed.data.name }),
+    items: parsed.data.items.map((item) => item.name),
+  };
+}
+
+/** Reads `registry.json`; `undefined` when the network is unreachable, so a warm cache serves. */
+async function readShadcnIndex(
+  transport: RegistryTransport,
+  preRead: string | undefined,
+): Promise<{ index: ShadcnIndex; text: string } | undefined> {
+  const location = `${transport.location}/${shadcnIndexFile}`;
+  let text = preRead;
+  if (text === undefined) {
+    try {
+      text = await transport.read(shadcnIndexFile);
+    } catch (error) {
+      if (isOffline(error)) return undefined;
+      throw error;
+    }
+  }
+  if (text === undefined) {
+    throw new RegistryError(
+      "REGISTRY_NOT_FOUND",
+      `No shadcn Registry index at ${location}.`,
+      "Point --registry at a shadcn Registry that serves registry.json.",
+      { registry: transport.location, path: location },
+    );
+  }
+  return { index: parseShadcnIndex(text, location), text };
+}
+
+async function readItem(
+  location: ItemLocation,
+  item: string,
+  registryName: string,
+): Promise<ItemRead> {
+  const text = await location.transport.read(location.path);
+  if (text === undefined) {
+    return { kind: "missing" };
+  }
+  const subject = `Registry "${registryName}" shadcn item ${item}`;
+  const invalid = (reason: string): RegistryError =>
+    new RegistryError(
+      "REGISTRY_MANIFEST_INVALID",
+      `${subject} is invalid: ${reason}`,
+      "Report the item to its Registry maintainer.",
+      { registry: registryName, module: item },
+    );
+  const parsed = shadcnItemSchema.safeParse(parseJson(text, invalid));
+  if (!parsed.success) {
+    throw invalid(parsed.error.issues.map((issue) => issue.message).join("; "));
+  }
+  if (parsed.data.name !== item) {
+    throw new RegistryError(
+      "REGISTRY_SUMMARY_MISMATCH",
+      `${subject} is named differently: expected ${item}, actual ${parsed.data.name}.`,
+      "Report the item to its Registry maintainer.",
+      { registry: registryName, module: item, expected: item, actual: parsed.data.name },
+    );
+  }
+  try {
+    return { kind: "served", module: adaptShadcnItem(parsed.data, { scope: registryName }) };
+  } catch (error) {
+    if (error instanceof RegistryError) {
+      throw new RegistryError(error.code, error.message, error.fix, {
+        ...error.data,
+        registry: registryName,
+      });
+    }
+    throw error;
+  }
+}
+
+function cachedContent(module: AdaptedModule): CachedModuleVersion {
+  return { manifest: stableStringify(module.manifest), files: module.files };
+}
+
+function adaptedModuleVersion(
+  name: string,
+  version: string,
+  manifest: ModuleManifest,
+  files: ReadonlyMap<string, string>,
+  integrity: Integrity,
+  registryName: string,
+): ModuleVersion {
+  return {
+    name,
+    version,
+    manifest,
+    files: new Map(files),
+    integrity,
+    renames: {},
+    migrationScript: (script) => {
+      throw new RegistryError(
+        "REGISTRY_FILE_MISSING",
+        `Adapted Module ${name}@${version} of Registry "${registryName}" ships no Migration script ${script}.`,
+        "Adapted Modules are declarative; they carry no Migration.",
+        { registry: registryName, module: `${name}@${version}`, path: script },
+      );
+    },
+  };
+}
+
+/**
+ * A cache hit for a recorded integrity, verified again: the integrity over its content, a valid
+ * declarative manifest of the same name and version, and every file the manifest lists. Anything
+ * else is ignored, as a miss.
+ */
+async function readCachedAdapted(
+  cache: RegistryCache,
+  recorded: Integrity,
+  name: string,
+  version: string,
+  registryName: string,
+): Promise<ModuleVersion | undefined> {
+  const cached = await cache.get(recorded).catch(() => undefined);
+  if (cached === undefined || computeModuleIntegrity(cached.manifest, cached.files) !== recorded) {
+    return undefined;
+  }
+  let manifest: ModuleManifest;
+  try {
+    manifest = parseModuleManifest(cached.manifest, `Adapted Module ${name}`, registryName);
+  } catch {
+    return undefined;
+  }
+  const declarative =
+    manifest.name === name &&
+    manifest.version === version &&
+    manifest.migrations.length === 0 &&
+    manifest.files.every((file) => cached.files.has(file.from));
+  return declarative
+    ? adaptedModuleVersion(name, version, manifest, cached.files, recorded, registryName)
+    : undefined;
+}
+
+function syntheticIndex(
+  registryName: string,
+  indexText: string,
+  served: ReadonlyMap<string, AdaptedModule>,
+): RegistryIndex {
+  const modules: RegistryIndex["modules"] = {};
+  for (const [moduleName, module] of [...served].toSorted(([left], [right]) =>
+    byCodepoint(left, right),
+  )) {
+    modules[moduleName] = {
+      latest: module.version,
+      versions: {
+        [module.version]: {
+          manifest: shadcnIndexFile,
+          integrity: module.integrity,
+          schemaVersion: module.manifest.schemaVersion,
+          provides: module.manifest.provides.map((provided) => provided.capability),
+          files: Object.fromEntries(
+            [...module.files].map(([path, text]) => [path, computeIntegrity(text)]),
+          ),
+        },
+      },
+    };
+  }
+  return {
+    $schema: registryIndexSchemaUrl,
+    schemaVersion: supportedRegistrySchemaVersion,
+    name: registryName,
+    release: shadcnRelease,
+    minCliVersion: shadcnMinCliVersion,
+    releases: {
+      [shadcnRelease]: { path: shadcnIndexFile, integrity: computeIntegrity(indexText) },
+    },
+    modules,
+  };
+}
+
+async function namespaceEnvironment(context: OpenRegistryContext): Promise<TemplateEnvironment> {
+  const env = context.env ?? process.env;
+  return context.projectDir === undefined
+    ? env
+    : await loadNamespaceEnvironment(context.projectDir, env);
+}
+
+/** The opened side of a shadcn source: its name, reported source, items and how to fetch one. */
+interface ShadcnOrigin {
+  readonly name: string;
+  readonly source: ShadcnSource;
+  readonly listed: readonly string[];
+  readonly indexText: string;
+  readonly locate: (item: string) => ItemLocation;
+}
+
+async function openShadcnOrigin(
+  source: ShadcnSource,
+  context: OpenRegistryContext,
+  preReadIndex: string | undefined,
+): Promise<ShadcnOrigin> {
+  const fetchImpl = context.fetch ?? fetch;
+  if (source.namespace === undefined) {
+    const transport = urlTransport(source.url, fetchImpl);
+    const read = await readShadcnIndex(transport, preReadIndex);
+    const declared = read?.index.name;
+    const pinnedScope = [...(context.pinned?.keys() ?? [])]
+      .map(scopeOf)
+      .find((scope) => scope !== undefined);
+    return {
+      name:
+        declared !== undefined && scopePattern.test(declared)
+          ? declared
+          : (pinnedScope ?? hostScope(source.url)),
+      source: { kind: "shadcn", url: source.url },
+      listed: read?.index.items ?? [],
+      indexText: read?.text ?? "",
+      locate: (item) => ({ transport, path: `${item}.json` }),
+    };
+  }
+  const { namespace } = source;
+  const userConfig = context.userConfig ?? (await loadUserConfig(context.env ?? process.env));
+  const declaration = declareNamespace(namespace, source.url, userConfig);
+  const env = await namespaceEnvironment(context);
+  return {
+    name: namespace,
+    source: { kind: "shadcn", namespace, url: declaration.template },
+    listed: [],
+    indexText: declaration.template,
+    locate: (item) => namespaceItemLocation(namespace, declaration, item, env, fetchImpl),
+  };
+}
+
+function itemChanged(
+  registryName: string,
+  module: string,
+  recorded: Integrity,
+  current: AdaptedModule | undefined,
+): RegistryError {
+  return new RegistryError(
+    "REGISTRY_ITEM_CHANGED",
+    `Registry "${registryName}" no longer serves ${module}, and the integrity cache does not hold its recorded integrity ${recorded}.`,
+    itemChangedFix,
+    {
+      registry: registryName,
+      module,
+      expected: recorded,
+      ...(current === undefined ? {} : { actual: current.integrity }),
+    },
+  );
+}
+
+/**
+ * Opens a shadcn Registry: a base URL whose `registry.json` lists its items, or a Namespace whose
+ * URL template and headers come from the user config. Every item `registry.json` lists (or only
+ * those of `items`) and every item the Lockfile pins is read and adapted with `adaptShadcnItem` at
+ * open, and stored in the integrity cache, which is mandatory here. `version` serves the adapted
+ * item when it still has the requested version and recorded integrity, else the verified cache
+ * entry of the recorded integrity, and fails with `REGISTRY_ITEM_CHANGED` when neither holds it.
+ */
+async function openShadcnRegistry(
+  source: ShadcnSource,
+  context: OpenRegistryContext,
+  preReadIndex?: string,
+): Promise<Registry> {
+  const cache = context.cache ?? createRegistryCache();
+  const pinned = context.pinned ?? new Map<string, string>();
+  const origin = await openShadcnOrigin(source, context, preReadIndex);
+  const registryName = origin.name;
+  const modulePrefix = `@${registryName.startsWith("@") ? registryName.slice(1) : registryName}/`;
+  const itemOf = (name: string): string | undefined =>
+    name.startsWith(modulePrefix) ? name.slice(modulePrefix.length) : undefined;
+  const pinnedVersions = new Map<string, string[]>();
+  for (const key of [...pinned.keys()].toSorted(byCodepoint)) {
+    const split = splitModuleKey(key);
+    if (split !== undefined && itemOf(split.name) !== undefined) {
+      pinnedVersions.set(split.name, [...(pinnedVersions.get(split.name) ?? []), split.version]);
+    }
+  }
+  const requested = new Set(context.items ?? []);
+  const names = [
+    ...new Set([
+      ...(context.items === undefined ? origin.listed : requested),
+      ...[...pinnedVersions.keys()].flatMap((name) => itemOf(name) ?? []),
+    ]),
+  ].toSorted(byCodepoint);
+  const outcomes = await Promise.all(
+    names.map(async (item): Promise<ItemRead> => {
+      try {
+        return await readItem(origin.locate(item), item, registryName);
+      } catch (error) {
+        return { kind: "failed", error };
+      }
+    }),
+  );
+  const reads = new Map<string, ItemRead>();
+  const served = new Map<string, AdaptedModule>();
+  for (const [position, item] of names.entries()) {
+    const outcome: ItemRead = outcomes[position] ?? { kind: "missing" };
+    if (outcome.kind === "failed" && requested.has(item)) {
+      throw outcome.error;
+    }
+    reads.set(item, outcome);
+    if (outcome.kind === "served") {
+      served.set(`${modulePrefix}${item}`, outcome.module);
+    }
+  }
+  await Promise.all(
+    [...served.values()].map((module) => cache.put(module.integrity, cachedContent(module))),
+  );
+  const currentCatalog: ReleaseCatalog = {
+    release: shadcnRelease,
+    dependencies: {},
+    pinGroups: {},
+    modules: Object.fromEntries([...served].map(([name, module]) => [name, module.version])),
+  };
+  const selectableVersions = (name: string): string[] => {
+    const module = served.get(name);
+    return module === undefined ? [] : [module.version];
+  };
+  const versions = (name: string): string[] =>
+    [...new Set([...selectableVersions(name), ...(pinnedVersions.get(name) ?? [])])].toSorted(
+      (left, right) => Bun.semver.order(left, right),
+    );
+  const load = async (name: string, version: string): Promise<ModuleVersion> => {
+    const module = `${name}@${version}`;
+    const item = itemOf(name);
+    const read = item === undefined ? undefined : reads.get(item);
+    const current = read?.kind === "served" ? read.module : undefined;
+    const recorded = asIntegrity(pinned.get(module));
+    if (
+      current?.version === version &&
+      (recorded === undefined || current.integrity === recorded)
+    ) {
+      return adaptedModuleVersion(
+        name,
+        version,
+        current.manifest,
+        current.files,
+        current.integrity,
+        registryName,
+      );
+    }
+    const cached =
+      recorded === undefined
+        ? undefined
+        : await readCachedAdapted(cache, recorded, name, version, registryName);
+    if (cached !== undefined) {
+      return cached;
+    }
+    if (current?.version === version && recorded !== undefined) {
+      verifyIntegrity(current.integrity, recorded, `Adapted Module ${module}`, {
+        registry: registryName,
+        module,
+      });
+    }
+    if (read?.kind === "failed") {
+      throw read.error;
+    }
+    if (recorded !== undefined) {
+      throw itemChanged(registryName, module, recorded, current);
+    }
+    throw new RegistryError(
+      "REGISTRY_MODULE_NOT_FOUND",
+      `Registry "${registryName}" does not serve ${module}.`,
+      `Pick the version it serves: ${versions(name).join(", ") || "(none)"}.`,
+      { registry: registryName, module },
+    );
+  };
+  const loaded = new Map<string, Promise<ModuleVersion>>();
+  return {
+    name: registryName,
+    source: origin.source,
+    index: syntheticIndex(registryName, origin.indexText, served),
+    release: shadcnRelease,
+    currentCatalog,
+    releases: () => [shadcnRelease],
+    catalog: (release) => Promise.resolve(release === shadcnRelease ? currentCatalog : undefined),
+    versions,
+    selectableVersions,
+    version(name, version) {
+      const key = `${name}@${version}`;
+      const known = loaded.get(key);
+      if (known !== undefined) {
+        return known;
+      }
+      const loading = load(name, version);
+      loaded.set(key, loading);
+      loading.catch(() => loaded.delete(key));
+      return loading;
+    },
+  };
+}
+
+/**
+ * Opens a Registry from any source behind one lazy interface. A URL source serving no `index.json`
+ * but a `registry.json` is a shadcn Registry, opened as {@link openShadcnRegistry} describes, as is
+ * every `shadcn` source; a shadcn Registry never reaches the index path below. It reads `index.json`, refuses an
  * unknown `schemaVersion`, a `minCliVersion` above `cliVersion` and any index path that is
  * absolute or escapes its directory, then reads and verifies the current Catalog. Nothing else is
  * read until a caller asks for it; every Module version is integrity-checked on each read, from
@@ -641,10 +1224,20 @@ export async function openRegistry(
   source: RegistrySource,
   context: OpenRegistryContext,
 ): Promise<Registry> {
+  if (source.kind === "shadcn") {
+    return openShadcnRegistry(source, context);
+  }
   const opened = await transportFor(source, context);
   const { transport } = opened;
   const cache = source.kind === "url" || source.kind === "github" ? context.cache : undefined;
-  const index = await readIndex(transport);
+  const indexText = await transport.read("index.json");
+  if (indexText === undefined && source.kind === "url") {
+    const shadcnIndexText = await transport.read(shadcnIndexFile);
+    if (shadcnIndexText !== undefined) {
+      return openShadcnRegistry({ kind: "shadcn", url: source.url }, context, shadcnIndexText);
+    }
+  }
+  const index = parseIndex(transport, indexText);
   checkCliVersion(index, context.cliVersion);
   const currentPointer = index.releases[index.release];
   if (currentPointer === undefined) {

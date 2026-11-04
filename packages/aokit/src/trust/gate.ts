@@ -60,7 +60,7 @@ const agentVariables = [
   "AOKIT_AGENT",
 ] as const;
 
-const sourceLikePattern = /^[A-Za-z][A-Za-z0-9+.-]*:/;
+const sourceLikePattern = /^(?:[A-Za-z][A-Za-z0-9+.-]*:|@[^=\s]+=)/;
 
 /**
  * Whether the run cannot ask for trust: `--yes`, no TTY, or a detected CI or coding agent. `--yes`

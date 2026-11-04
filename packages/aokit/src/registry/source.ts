@@ -4,12 +4,18 @@ import { RegistryError } from "./errors.ts";
 
 /**
  * Where a Registry lives. `bundled` is the Registry shipped with the CLI, `local` a directory,
- * `url` a base URL serving the local layout over HTTP, and `github` a repository at a ref.
+ * `url` a base URL serving either the local layout (`index.json`) or a shadcn Registry
+ * (`registry.json`), `github` a repository at a ref, and `shadcn` a shadcn Registry.
+ *
+ * A `shadcn` source is either a base URL whose `registry.json` lists the items (no `namespace`), or
+ * a Namespace (`namespace` set) whose `url` is the item URL template holding `{name}` and any
+ * `${VAR}` placeholders unexpanded; an empty `url` means the template comes from the user config.
  */
 export type RegistrySource =
   | { readonly kind: "bundled"; readonly path: string }
   | { readonly kind: "local"; readonly path: string }
   | { readonly kind: "url"; readonly url: string }
+  | { readonly kind: "shadcn"; readonly url: string; readonly namespace?: string }
   | {
       readonly kind: "github";
       readonly owner: string;
@@ -25,6 +31,8 @@ interface ParseRegistrySourceContext {
   readonly bundledRegistryPath: string;
 }
 
+const shadcnIndexFile = "registry.json";
+const namespaceSourcePattern = /^(@[a-z0-9][a-z0-9._-]*)(?:=(.+))?$/;
 const githubSourcePattern = /^github:([A-Za-z0-9_.-]+)\/([A-Za-z0-9_.-]+)#([^\s#]+)$/;
 const schemePattern = /^[A-Za-z][A-Za-z0-9+.-]*:/;
 const windowsDrivePattern = /^[A-Za-z]:[\\/]/;
@@ -34,7 +42,7 @@ function invalidSource(source: string, reason: string): RegistryError {
   return new RegistryError(
     "REGISTRY_SOURCE_UNSUPPORTED",
     `Registry source "${source}" is not supported: ${reason}.`,
-    "Use `bundled`, a local path, a `file:` URL, an `https://` URL or `github:owner/repo#ref`.",
+    "Use `bundled`, a local path (write `./@name` for a path that starts with `@`), a `file:` URL, an `https://` URL, `github:owner/repo#ref` or a Namespace such as `@shadcn`.",
     { registry: source },
   );
 }
@@ -64,12 +72,33 @@ function parseUrlSource(source: string): RegistrySource {
     throw invalidSource(source, "a Registry URL carries no credentials, query or fragment");
   }
   const base = url.href.endsWith("/") ? url.href.slice(0, -1) : url.href;
+  if (base.endsWith(`/${shadcnIndexFile}`)) {
+    return { kind: "shadcn", url: base.slice(0, -shadcnIndexFile.length - 1) };
+  }
   return { kind: "url", url: base };
+}
+
+function parseNamespaceSource(source: string): RegistrySource {
+  const match = namespaceSourcePattern.exec(source);
+  const namespace = match?.[1];
+  if (namespace === undefined) {
+    throw invalidSource(
+      source,
+      "a Namespace source is `@namespace` or `@namespace=<url template>`",
+    );
+  }
+  const template = match?.[2];
+  if (template !== undefined && !template.includes("{name}")) {
+    throw invalidSource(source, "a Namespace url template must contain {name}");
+  }
+  return { kind: "shadcn", namespace, url: template ?? "" };
 }
 
 /**
  * Parses a Registry source string: `"bundled"`, `github:owner/repo#ref`, an `https://` URL (or
- * `http://` on a loopback host), a `file:` URL, or a path resolved against `projectDir`. Throws a
+ * `http://` on a loopback host), a `file:` URL, a Namespace (`@acme`, or `@acme=<url template>` as
+ * the Lockfile records it), or a path resolved against `projectDir`. A URL ending in
+ * `/registry.json` is a shadcn Registry; any other URL is autodetected when it is opened. Throws a
  * `REGISTRY_SOURCE_UNSUPPORTED` RegistryError for anything else.
  */
 export function parseRegistrySource(
@@ -87,6 +116,9 @@ export function parseRegistrySource(
     const [, owner = "", repo = "", ref = ""] = match;
     return { kind: "github", owner, repo, ref };
   }
+  if (source.startsWith("@")) {
+    return parseNamespaceSource(source);
+  }
   if (schemePattern.test(source) && !windowsDrivePattern.test(source)) {
     return parseUrlSource(source);
   }
@@ -101,9 +133,17 @@ export function parseRegistrySource(
 
 /**
  * The canonical string of a Registry source, as messages and the Lockfile show it: `bundled`, the
- * absolute path, the base URL without a trailing slash, or `github:owner/repo#ref`.
+ * absolute path, the base URL without a trailing slash, `github:owner/repo#ref`, the
+ * `<base>/registry.json` URL of a shadcn Registry, or `@namespace=<url template>` of a Namespace
+ * (placeholders kept). {@link parseRegistrySource} reads every form back to the same source.
  */
 export function formatRegistrySource(source: RegistrySource): string {
+  if (source.kind === "shadcn") {
+    if (source.namespace !== undefined) {
+      return source.url === "" ? source.namespace : `${source.namespace}=${source.url}`;
+    }
+    return `${source.url}/${shadcnIndexFile}`;
+  }
   if (source.kind === "github") {
     return `github:${source.owner}/${source.repo}#${source.ref}`;
   }

@@ -149,6 +149,13 @@ export interface UrlTransportOptions {
    * placeholders when `base` is its expansion. Defaults to `base`.
    */
   readonly displayBase?: string;
+  /**
+   * A query or fragment appended verbatim after the encoded path, such as `?key=value`. Shown as
+   * `displaySuffix` in messages when it holds expanded `${VAR}` values.
+   */
+  readonly suffix?: string;
+  /** The suffix as messages show it. Defaults to `suffix`. */
+  readonly displaySuffix?: string;
 }
 
 /** Header values shorter than this are not secrets worth blanking inside unrelated text. */
@@ -170,6 +177,14 @@ function redactor(
     .map((value) => [value, "[redacted]"]);
   if (options?.displayBase !== undefined && options.displayBase !== base) {
     replacements.unshift([base, options.displayBase]);
+  }
+  if (
+    options?.suffix !== undefined &&
+    options.suffix !== "" &&
+    options.displaySuffix !== undefined &&
+    options.displaySuffix !== options.suffix
+  ) {
+    replacements.unshift([options.suffix, options.displaySuffix]);
   }
   return (text) =>
     replacements.reduce((current, [secret, shown]) => current.replaceAll(secret, shown), text);
@@ -213,7 +228,7 @@ export function urlTransport(
     location,
     async read(path) {
       assertSafeRelativePath(path, `Registry at ${location}`, location);
-      const url = `${base}/${path.split("/").map(encodeURIComponent).join("/")}`;
+      const url = `${base}/${path.split("/").map(encodeURIComponent).join("/")}${options?.suffix ?? ""}`;
       try {
         return await readResponse(url, await fetchFollowingSafeRedirects(url, fetchImpl, scope));
       } catch (error) {
