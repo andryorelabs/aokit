@@ -2,6 +2,7 @@ import type { ConflictWrite } from "../apply/index.ts";
 import { type FileContent, Vfs } from "../engine/vfs.ts";
 import { hashVfs, type Plan, type PlanChange, type Provenance } from "../engine/plan.ts";
 import type { Lockfile } from "../lockfile/schema.ts";
+import { isRegionFile } from "../patchers/markdown/regions.ts";
 import type { Merger } from "../merger/index.ts";
 import type { BuiltProject } from "../pipeline/build.ts";
 import { normalizeUserContent, sameContent, textOf } from "./content.ts";
@@ -138,8 +139,7 @@ async function decideManaged(context: PathContext, next: FileContent): Promise<D
   if (entry === undefined) {
     if (user === undefined) return { action: "write", content: next };
     if (sameContent(user, next)) return { action: "keep", entry: "next" };
-    const decision = await mergeContents(context, user, next);
-    if (decision.action === "conflict") return decision;
+    if (isRegionFile(path)) return mergeContents(context, user, next);
     return {
       action: "conflict",
       write: { path, next, base: "", user: textOf(user) },
@@ -156,7 +156,7 @@ async function decideManaged(context: PathContext, next: FileContent): Promise<D
         : {}),
     };
   }
-  if (drift === "pristine") {
+  if (drift === "pristine" && !isRegionFile(path)) {
     return sameContent(user, next)
       ? { action: "keep", entry: "next" }
       : { action: "write", content: next };
