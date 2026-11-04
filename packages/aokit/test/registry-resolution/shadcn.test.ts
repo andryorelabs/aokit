@@ -9,6 +9,7 @@ import { removeCommand } from "../../src/cli/commands/remove.ts";
 import { updateCommand } from "../../src/cli/commands/update.ts";
 import { exitCodeForEnvelope } from "../../src/cli/envelope.ts";
 import { parseRegistryDependency } from "../../src/project/registry.ts";
+import { githubRawBaseUrl } from "../../src/registry/github.ts";
 import { RegistryError } from "../../src/registry/index.ts";
 import {
   type FixtureItem,
@@ -479,6 +480,82 @@ test("an owner/repo/item#ref dependency is read through the github: transport, p
     source: `github:acme/ui#${sha}`,
     trusted: true,
   });
+});
+
+/**
+ * Replaces `globalThis.fetch` for the duration of `run` so commands that take no adapters reach the
+ * raw GitHub host through the local fixture, and any other non-loopback request fails.
+ */
+async function withRawGithubAt<T>(rawUrl: string, run: () => Promise<T>): Promise<T> {
+  const original = globalThis.fetch;
+  const rerouted = async (input: string | URL | Request, init?: RequestInit) => {
+    const url = typeof input === "string" ? input : input instanceof URL ? input.href : input.url;
+    if (url.startsWith(githubRawBaseUrl)) {
+      return original(`${rawUrl}${url.slice(githubRawBaseUrl.length)}`, init);
+    }
+    if (new URL(url).hostname !== "127.0.0.1") {
+      throw new Error(`unexpected network request to ${url}`);
+    }
+    return original(input, init);
+  };
+  globalThis.fetch = Object.assign(rerouted, { preconnect: original.preconnect });
+  try {
+    return await run();
+  } finally {
+    globalThis.fetch = original;
+  }
+}
+
+test("an owner/repo/item#ref dependency is versioned from its commit SHA and stays in the lifecycle", async () => {
+  const context = await isolatedContext();
+  const sha = "0123456789abcdef0123456789abcdef01234567";
+  const root = await temporaryDirectory("aokit-shadcn-github-sha-");
+  await mkdir(join(root, "acme", "ui", sha), { recursive: true });
+  await writeFile(join(root, "acme", "ui", sha, "icon.json"), JSON.stringify(item("icon")));
+  const raw = served(root);
+  const fixture = await shadcnRegistry([item("toolbar", ["acme/ui/icon#v2"])]);
+  const project = await styledProject(context);
+  const github = { lsRemote: async (): Promise<string> => `${sha}\trefs/tags/v2\n` };
+  await withRawGithubAt(raw.url, () =>
+    runAdd(
+      context,
+      addCommand.input.parse({
+        ...lifecycle,
+        directory: project,
+        modules: ["@fixture/toolbar"],
+        registry: fixture.url,
+        trust: [fixture.url, "github:acme/ui"],
+      }),
+      { github },
+    ),
+  );
+  const lockfile = await readLockfileJson(project);
+  const iconName = Object.keys(lockfile["modules"]).find((name) => name.endsWith("/icon")) ?? "";
+  expect(lockfile["modules"][iconName]["version"]).toBe(`0.0.0-shadcn.${sha.slice(0, 12)}`);
+  const toolbarVersion: string = lockfile["modules"]["@fixture/toolbar"]["version"];
+  expect(toolbarVersion).toMatch(/^0\.0\.0-shadcn\.[0-9a-f]{12}$/);
+  expect(toolbarVersion).not.toBe(`0.0.0-shadcn.${sha.slice(0, 12)}`);
+
+  await withRawGithubAt(raw.url, async () => {
+    const doctor = await runCommand(doctorCommand, context, { directory: project });
+    expect(doctor).toMatchObject({ ok: true, data: { clean: true, problems: [] } });
+    const updated = await runCommand(updateCommand, context, {
+      ...lifecycle,
+      directory: project,
+    });
+    expect(updated).toMatchObject({ ok: true });
+    expect((await readLockfileJson(project))["modules"][iconName]["version"]).toBe(
+      `0.0.0-shadcn.${sha.slice(0, 12)}`,
+    );
+    const removed = await runCommand(removeCommand, context, {
+      ...lifecycle,
+      directory: project,
+      module: "@fixture/toolbar",
+    });
+    expect(removed).toMatchObject({ ok: true });
+  });
+  const after = await readLockfileJson(project);
+  expect(Object.keys(after["modules"]).filter((name) => name.endsWith("/icon"))).toEqual([]);
 });
 
 test("an untrusted item's own URL dependency host receives no request", async () => {

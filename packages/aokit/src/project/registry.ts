@@ -293,6 +293,8 @@ interface OpenSourceExtras {
   readonly indexOptional?: boolean;
   /** The source a shadcn Registry reports instead of its URL: the Pin of a `github:` source. */
   readonly reportedSource?: RegistrySource;
+  /** The commit SHA of the `github:` Pin a shadcn Registry is read at; it versions its items. */
+  readonly sourceSha?: string;
 }
 
 const shadcnIndexPath = /\/registry\.json$/;
@@ -357,13 +359,14 @@ async function openSource(
     ...(adapters?.env === undefined ? {} : { env: adapters.env }),
     ...(adapters?.userConfig === undefined ? {} : { userConfig: adapters.userConfig }),
     ...(extras.items === undefined ? {} : { items: extras.items }),
+    ...(extras.sourceSha === undefined ? {} : { sourceSha: extras.sourceSha }),
   });
   if (registry.source.kind === "shadcn") {
     const reported =
       extras.reportedSource === undefined
         ? registry
         : { ...registry, source: extras.reportedSource };
-    return withRegistryDependencies(reported, captured, cache);
+    return withRegistryDependencies(reported, captured, cache, extras.sourceSha);
   }
   if (!indexKept) return registry;
   const guarded = pinnedToLockfile(registry, pinned, extras.lockedRelease);
@@ -404,7 +407,7 @@ async function openGithubSource(
     },
     options,
     cache,
-    { ...extras, items: extras.items ?? [], reportedSource: pinnedSource },
+    { ...extras, items: extras.items ?? [], reportedSource: pinnedSource, sourceSha: pin.sha },
   );
 }
 
@@ -531,15 +534,20 @@ function itemRecordKey(moduleIntegrity: string): Integrity {
   return computeIntegrity(`aokit-shadcn-item\n${moduleIntegrity}`);
 }
 
-/** The item `text` parses to when it adapts, under `scope`, to a Module of that integrity. */
+/**
+ * The item `text` parses to when it adapts, under `scope` (and the git `sourceSha` it was read
+ * at), to a Module of that integrity.
+ */
 function verifiedItem(
   text: string,
   scope: string,
+  sourceSha: string | undefined,
 ): { integrity: string; item: ShadcnItem } | undefined {
   try {
     const parsed = shadcnItemSchema.safeParse(JSON.parse(text));
     if (!parsed.success) return undefined;
-    return { integrity: adaptShadcnItem(parsed.data, { scope }).integrity, item: parsed.data };
+    const context = sourceSha === undefined ? { scope } : { scope, sourceSha };
+    return { integrity: adaptShadcnItem(parsed.data, context).integrity, item: parsed.data };
   } catch {
     return undefined;
   }
@@ -556,10 +564,11 @@ async function withRegistryDependencies(
   registry: Registry,
   captured: readonly string[],
   cache: RegistryCache,
+  sourceSha: string | undefined,
 ): Promise<Registry> {
   const items = new Map<string, ShadcnItem>();
   for (const text of captured) {
-    const verified = verifiedItem(text, registry.name);
+    const verified = verifiedItem(text, registry.name, sourceSha);
     if (verified === undefined) continue;
     items.set(verified.integrity, verified.item);
     // oxlint-disable-next-line eslint/no-await-in-loop -- a handful of records, written in order
@@ -570,7 +579,7 @@ async function withRegistryDependencies(
     if (known !== undefined) return known;
     const record = await cache.get(itemRecordKey(version.integrity)).catch(() => undefined);
     const verified =
-      record === undefined ? undefined : verifiedItem(record.manifest, registry.name);
+      record === undefined ? undefined : verifiedItem(record.manifest, registry.name, sourceSha);
     return verified?.integrity === version.integrity ? verified.item : undefined;
   };
   const isNamespace = registry.source.kind === "shadcn" && registry.source.namespace !== undefined;
