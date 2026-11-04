@@ -1,6 +1,6 @@
 # Lifecycle
 
-`create` is the first command of a Project's life, not the last. This page specifies the commands that keep a Project maintainable: what each one reads, builds and writes. All of them are built from the same parts: the [Resolver](capabilities.md#resolution-order), the [Engine](engine.md) (VFS, Plan, atomic apply) and the [Lockfile](lockfile.md). Vocabulary follows [CONTEXT.md](../../CONTEXT.md). Related: [overview](overview.md), [Module contract](module-contract.md), [Layouts](layouts.md), [versions](versions.md).
+`create` is the first command of a Project's life, not the last. This page specifies the commands that keep a Project maintainable: what each one reads, builds and writes. All of them are built from the same parts: the [Resolver](capabilities.md#resolution-order), the [Engine](engine.md) (VFS, Plan, atomic apply) and the [Lockfile](lockfile.md). Vocabulary follows [GLOSSARY.md](../../GLOSSARY.md). Related: [overview](overview.md), [Module contract](module-contract.md), [Layouts](layouts.md), [versions](versions.md).
 
 ## Command reference
 
@@ -199,7 +199,7 @@ For when history is not trustworthy (a lost Module version, a Lockfile gone stal
 
 ## Render from the Lockfile
 
-Every command that needs a base uses one function: it takes a Lockfile and produces the [Render](../../CONTEXT.md) of the Project it describes.
+Every command that needs a base uses one function: it takes a Lockfile and produces the [Render](../../GLOSSARY.md) of the Project it describes.
 
 - It starts from an **empty tree** and uses the Lockfile's Layout, Module versions, answers and the Catalog of its Release.
 - The context is deterministic (fixed `now` and `random`) and the format phase is the running CLI's, so a Render of an unedited Project reproduces every recorded `managed` and `seed` hash.

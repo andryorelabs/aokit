@@ -1,6 +1,6 @@
 # Lockfile and state
 
-The Lockfile, `aokit.lock.json`, is the recorded state of a Project. Every lifecycle command in [lifecycle](lifecycle.md) reads it; every apply writes it, last and atomically ([Engine](engine.md#atomic-writes)). This page fixes its format, the Ownership modes, how per-file hashes are used, and the merge policy. Vocabulary follows [CONTEXT.md](../../CONTEXT.md). Related: [overview](overview.md), [Module contract](module-contract.md), [Layouts](layouts.md), [versions](versions.md).
+The Lockfile, `aokit.lock.json`, is the recorded state of a Project. Every lifecycle command in [lifecycle](lifecycle.md) reads it; every apply writes it, last and atomically ([Engine](engine.md#atomic-writes)). This page fixes its format, the Ownership modes, how per-file hashes are used, and the merge policy. Vocabulary follows [GLOSSARY.md](../../GLOSSARY.md). Related: [overview](overview.md), [Module contract](module-contract.md), [Layouts](layouts.md), [versions](versions.md).
 
 The Lockfile is not a manifest: a manifest describes a Module, the Lockfile describes a Project. It contains no timestamps and no volatile values, so two identical Projects have byte-identical Lockfiles ([determinism](engine.md#determinism)).
 
@@ -20,7 +20,7 @@ The Lockfile is not a manifest: a manifest describes a Module, the Lockfile desc
 | `modules` | map `name → object` | Selected Modules, sorted by name. |
 | `modules.<name>.version` | semver | Exact Module version. |
 | `modules.<name>.registry` | string | Key into `registries`. |
-| `modules.<name>.selected` | boolean | `true` for a [Selected Module](../../CONTEXT.md) (named by the user), `false` for one pulled in by `requires`. `remove` uses it to find orphans. |
+| `modules.<name>.selected` | boolean | `true` for a [Selected Module](../../GLOSSARY.md) (named by the user), `false` for one pulled in by `requires`. `remove` uses it to find orphans. |
 | `modules.<name>.integrity` | string | `sha256-<hex>` over the canonical manifest and the Module's files, copied verbatim from the Registry index. See [Integrity format](#integrity-format). |
 | `modules.<name>.answers` | object | The answers given to this Module, scoped to it. Feeds `{{var}}` ([Engine](engine.md#no-template-engine)) and replays the old render. |
 | `files` | map `path → object` | Every generated file, keyed by Project-relative POSIX path, sorted. |

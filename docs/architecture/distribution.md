@@ -1,6 +1,6 @@
 # Distribution
 
-How aokit is built, published and verified. Related: [overview](overview.md), [Engine](engine.md) (determinism), [CLI UX](cli-ux.md), [Interfaces](interfaces.md). Vocabulary follows [CONTEXT.md](../../CONTEXT.md).
+How aokit is built, published and verified. Related: [overview](overview.md), [Engine](engine.md) (determinism), [CLI UX](cli-ux.md), [Interfaces](interfaces.md). Vocabulary follows [GLOSSARY.md](../../GLOSSARY.md).
 
 ## Bun only
 

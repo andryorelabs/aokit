@@ -6,7 +6,7 @@ Projects carry two TypeScript versions: a real 6.x for every tool that needs the
 
 | Dependency | Resolves to | Used for |
 | --- | --- | --- |
-| `typescript` | Real TypeScript 6.x, through the `@typescript/typescript6` alias or the [Catalog](../../CONTEXT.md) | Everything that imports the TypeScript API: typescript-eslint, ts-morph, `astro check`, editors. |
+| `typescript` | Real TypeScript 6.x, through the `@typescript/typescript6` alias or the [Catalog](../../GLOSSARY.md) | Everything that imports the TypeScript API: typescript-eslint, ts-morph, `astro check`, editors. |
 | `typescript7` | Exact alias to `typescript@7.1.0-beta` | The `tsc` compiler for type checking and builds. |
 
 `typescript7` is the single alias name in every standard and every Module. The `typescript7` alias is part of a Toolchain pin group: exact version, never automerged ([renovate](renovate.md)).

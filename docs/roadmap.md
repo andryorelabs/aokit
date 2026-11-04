@@ -1,6 +1,6 @@
 # Roadmap
 
-Implementation phases for the next `/forge` runs, with the testing strategy for aokit itself. No code exists yet. The phases build the components of the [overview](architecture/overview.md#component-map) in dependency order. Decisions are in the [ADRs](adr/README.md); the [module catalog](architecture/module-catalog.md) is illustrative and this roadmap decides which Modules ship first. Terms follow [CONTEXT.md](../CONTEXT.md).
+Implementation phases for the next `/forge` runs, with the testing strategy for aokit itself. No code exists yet. The phases build the components of the [overview](architecture/overview.md#component-map) in dependency order. Decisions are in the [ADRs](adr/README.md); the [module catalog](architecture/module-catalog.md) is illustrative and this roadmap decides which Modules ship first. Terms follow [GLOSSARY.md](../GLOSSARY.md).
 
 ## Phases
 

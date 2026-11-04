@@ -1,6 +1,6 @@
 # Architecture decision records
 
-Decisions that are hard to reverse, surprising without context, and the result of a real trade-off. The ADRs summarize decisions already fixed by the [architecture docs](../architecture/overview.md), the [standards](../standards/README.md) and the [research](../research/README.md); the architecture doc named in each ADR holds the detail. Terms follow [CONTEXT.md](../../CONTEXT.md).
+Decisions that are hard to reverse, surprising without context, and the result of a real trade-off. The ADRs summarize decisions already fixed by the [architecture docs](../architecture/overview.md), the [standards](../standards/README.md) and the [research](../research/README.md); the architecture doc named in each ADR holds the detail. Terms follow [GLOSSARY.md](../../GLOSSARY.md).
 
 ## Index
 

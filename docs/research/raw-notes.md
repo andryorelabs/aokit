@@ -4,7 +4,7 @@ Unedited research and decision history from the planning session. Superseded whe
 
 
 ## Context
-Andry wants a personal, public scaffolding CLI (`aokit`) that grows with the stack he actually uses. References: create-t3-app, Better-T-Stack. Goal: adding modules later must never require restructuring. This forge run = docs only (research + architecture + ADRs + CONTEXT.md); implementation in a later forge.
+Andry wants a personal, public scaffolding CLI (`aokit`) that grows with the stack he actually uses. References: create-t3-app, Better-T-Stack. Goal: adding modules later must never require restructuring. This forge run = docs only (research + architecture + ADRs + GLOSSARY.md); implementation in a later forge.
 
 ## Settled decisions
 - Name: `aokit` everywhere — npm `aokit` + `create-aokit`, bin `aokit`, repo renamed `aokit` (local dir + GitHub). "andryore" = Andry Orellana (never ore/mineral metaphors).
@@ -18,7 +18,7 @@ Andry wants a personal, public scaffolding CLI (`aokit`) that grows with the sta
 - Interfaces: single Zod schema drives flags, prompts, MCP, possible future web UI. Per-module AGENTS.md sections/skills: designed now, built later.
 - Testing: per-module VFS tests, in-memory capability-derived matrix with snapshots, real builds for a curated set.
 - CLI stack: TS strict, Bun, citty, @clack/prompts, Zod, magicast + ts-morph, giget; npm + `bun build --compile`.
-- Docs: English; docs/research, docs/architecture, docs/adr, CONTEXT.md.
+- Docs: English; docs/research, docs/architecture, docs/adr, GLOSSARY.md.
 - Example module catalog (illustrative only, from Andry's repos): Astro, Next.js, Vite+React, Hono, Turborepo+Bun catalogs, Tailwind v4, shadcn, Prisma(pg), Better Auth, @t3-oss/env, dotenvx, Zod, ESLint+Prettier, husky+lint-staged+commitlint, knip, Playwright+axe, Vitest, PostHog, Resend/react-email, Trigger.dev, next-intl.
 - Forge infra: Linear team `AO`, project "AndryOre Starter" (P-AO-4); private GitHub repo `AndryOre/aokit`; adjust forge.config.json tracker local→linear in Phase 5.
 
@@ -59,7 +59,7 @@ Andry wants a personal, public scaffolding CLI (`aokit`) that grows with the sta
 ## Cross-repo consensus (in progress)
 Peers: andryore-web-13, snug-23, animated-fluent-emojis-9e. I proposed aokit docs hold the consensus.
 - andryore-web reply: single-package Astro 7, ESLint strictTypeChecked + plugins, Prettier, husky/lint-staged/commitlint, knip, `bun test` (NOT Vitest) + Playwright/axe, dotenvx only (no t3 env), Renovate RANGES (bump, minReleaseAge 3d), docs/adr living + index test, CLAUDE.md = `@AGENTS.md`, forge trunk `develop` → promotion to main. Research (unapproved): Oxlint+Oxfmt replace ESLint/Prettier except ESLint for *.astro templates (oxc#23207); Oxfmt formats .astro (@astrojs/compiler-rs); TS7 dual layout `typescript: npm:@typescript/typescript6@6.0.2` + `@typescript/native: npm:typescript@7.1.0-beta` keeps JS API for ts-morph/typescript-eslint; Astro typecheck via @astrojs/ts-content-mapper; @oxlint/migrate unreliable → parity gate (StreamBoss parity/*); Renovate Oxc exact pins, no automerge.
-- snug reply: AO-2587 Oxlint(--type-aware + jsPlugins aliases for unicorn/jsdoc/local rules, no rule lost)+Oxfmt+TS7.1 (typescript6 catalog + `typescript7` alias exact); parity gate per (file,line,rule); shim for @eslint-react rule. Today: Turborepo+Bun workspaces+catalog (^ ranges, Renovate preserve-semver-ranges, deliberate), Tailwind v4+shadcn+@shadcn/lint, ESLint+Prettier, husky/lint-staged/commitlint (conventional enforced, gitmoji convention), knip, Vitest, Playwright(+axe), docs/adr 30 ADRs w/ index test, CONTEXT.md, docs/architecture.md, AGENTS.md root + per-workspace, CLAUDE.md=@AGENTS.md, .claude/skills; forge linear AO, branchPrefix ao, every ticket needs explicit `project` (sub-issues don't inherit). Comments: TSDoc-only rule (optional module). Disagrees: standard should be Oxlint+Oxfmt (not Biome: can't run unicorn/shadcn rules); default = ranges + lockfile, selective pins for toolchain. Gotchas: @oxlint/migrate broken config; Oxlint overrides lack `ignores`; jsPlugins context frozen; package.json/bun.lock edits serialize forge tickets.
+- snug reply: AO-2587 Oxlint(--type-aware + jsPlugins aliases for unicorn/jsdoc/local rules, no rule lost)+Oxfmt+TS7.1 (typescript6 catalog + `typescript7` alias exact); parity gate per (file,line,rule); shim for @eslint-react rule. Today: Turborepo+Bun workspaces+catalog (^ ranges, Renovate preserve-semver-ranges, deliberate), Tailwind v4+shadcn+@shadcn/lint, ESLint+Prettier, husky/lint-staged/commitlint (conventional enforced, gitmoji convention), knip, Vitest, Playwright(+axe), docs/adr 30 ADRs w/ index test, GLOSSARY.md, docs/architecture.md, AGENTS.md root + per-workspace, CLAUDE.md=@AGENTS.md, .claude/skills; forge linear AO, branchPrefix ao, every ticket needs explicit `project` (sub-issues don't inherit). Comments: TSDoc-only rule (optional module). Disagrees: standard should be Oxlint+Oxfmt (not Biome: can't run unicorn/shadcn rules); default = ranges + lockfile, selective pins for toolchain. Gotchas: @oxlint/migrate broken config; Oxlint overrides lack `ignores`; jsPlugins context frozen; package.json/bun.lock edits serialize forge tickets.
 - Implications for aokit: tooling is a module choice (Oxc module + ESLint-for-astro companion), test runner is a capability (bun test | vitest), env module dotenvx standalone, pin policy must be per-project configurable (andryore-web prefers ranges) — reconcile with Q23.
 
 - Consensus proposal v1 sent (C1–C12 agreed, A1–A4 aokit consequences, O1–O6 open for Andry: dep default ranges vs pins, TS7 alias name, leaked-conditional-rendering approach, trunk develop+promotion, test runner, gitmoji enforcement).
@@ -96,7 +96,7 @@ Module candidates from real usage: next, vite-react, astro, hono(+tsdown), prism
 
 ## Pending
 - Which other repo/changes to incorporate (user paused before domain-modeling).
-- Then: domain-modeling (CONTEXT.md glossary terms), spec (S1..Sn), tickets, ExitPlanMode.
+- Then: domain-modeling (GLOSSARY.md glossary terms), spec (S1..Sn), tickets, ExitPlanMode.
 
 ## Notes
 - `forge init --help` ignored `--help` and ran init during plan mode: wrote forge.config.json (tracker local), docs/agents/*.md, .gitignore — uncommitted. TODO(forge) markers remain in docs/agents/forge.md.

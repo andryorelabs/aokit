@@ -9,7 +9,7 @@
     "dist/**",
     "schema/**",
     "docs/**",
-    "CONTEXT.md",
+    "GLOSSARY.md",
     "registry/modules/**/migrations/**",
     "LICENSE"
   ]
