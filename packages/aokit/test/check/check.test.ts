@@ -10,9 +10,30 @@ import {
   commandContext,
   createProject,
   editLockfile,
+  temporaryDirectory,
 } from "../diff/support.ts";
+import { type ServedRegistry, serveRegistry } from "../registry-remote/served-registry.ts";
 
-afterEach(cleanTemporaryDirectories);
+const servers: ServedRegistry[] = [];
+const savedEnvironment = {
+  XDG_CACHE_HOME: process.env.XDG_CACHE_HOME,
+  XDG_CONFIG_HOME: process.env.XDG_CONFIG_HOME,
+};
+
+afterEach(async () => {
+  await Promise.all(servers.splice(0).map((server) => server.stop()));
+  for (const [name, value] of Object.entries(savedEnvironment)) {
+    if (value === undefined) delete process.env[name];
+    else process.env[name] = value;
+  }
+  await cleanTemporaryDirectories();
+});
+
+/** Points the Module cache and the user config at fresh directories for this test. */
+async function isolateUserDirectories(): Promise<void> {
+  process.env.XDG_CACHE_HOME = await temporaryDirectory();
+  process.env.XDG_CONFIG_HOME = await temporaryDirectory();
+}
 
 async function runCheck(directory: string) {
   return runCommand(checkCommand, commandContext, { directory });
@@ -115,11 +136,33 @@ describe("aokit check", () => {
     expect(exitCodeForEnvelope(envelope)).toBe(1);
   });
 
-  test("a URL Registry source exits 3", async () => {
-    const project = await createProject(await builtRegistry());
+  test("an untrusted URL Registry source exits 5 with REGISTRY_UNTRUSTED", async () => {
+    const registry = await builtRegistry();
+    const project = await createProject(registry);
+    const server = serveRegistry(registry);
+    servers.push(server);
+    await isolateUserDirectories();
     await editLockfile(project, (lockfile) => {
-      lockfile["registries"]["official"].source = "https://example.com/registry";
+      lockfile["registries"]["official"].source = server.url;
     });
-    expect(exitCodeForEnvelope(await runCheck(project))).toBe(3);
+    const envelope = await runCheck(project);
+    expect(envelope).toMatchObject({ ok: false, error: { code: "REGISTRY_UNTRUSTED" } });
+    expect(exitCodeForEnvelope(envelope)).toBe(5);
+  });
+
+  test("a trusted URL Registry is read, then served offline from the warm cache", async () => {
+    const registry = await builtRegistry();
+    const project = await createProject(registry);
+    const server = serveRegistry(registry);
+    servers.push(server);
+    await isolateUserDirectories();
+    await editLockfile(project, (lockfile) => {
+      lockfile["registries"]["official"].source = server.url;
+      lockfile["registries"]["official"].trusted = true;
+    });
+    expect(exitCodeForEnvelope(await runCheck(project))).toBe(0);
+    await server.stop();
+    const offline = await runCheck(project);
+    expect(offline).toMatchObject({ ok: true, data: { modules: [] } });
   });
 });

@@ -12,10 +12,19 @@ import type { BuiltProject } from "../../pipeline/build.ts";
 import { type PipelineModule, buildProject, renderFromLockfile } from "../../pipeline/index.ts";
 import { type AnswerMap, completeAnswers, parseAnswers } from "../../project/answers.ts";
 import { fromResolveError, toAokitError } from "../../project/errors.ts";
-import { loadRegistry, resolveRegistrySource } from "../../project/registry.ts";
+import {
+  openProjectRegistries,
+  primaryRegistryName,
+  type ProjectRegistries,
+  type RegistryAdapters,
+  resolutionOrder,
+  toPipelineModule,
+} from "../../project/registry.ts";
 import { bundledRegistryPath } from "../../registry/bundled.ts";
+import type { Registry } from "../../registry/index.ts";
 import { resolve as resolveModules } from "../../resolver/resolve.ts";
-import { defineCommand } from "../command.ts";
+import { isNonInteractive } from "../../trust/gate.ts";
+import { type CommandContext, defineCommand } from "../command.ts";
 import { AokitError } from "../envelope.ts";
 import { aokitMeta } from "../meta.ts";
 
@@ -37,6 +46,19 @@ const addInput = z.object({
     .default([])
     .describe("Answer of an added Module as <module.key=value>; repeatable")
     .register(aokitMeta, { flag: "answer", examples: ["--answer next.appRouter=true"] }),
+  registry: z
+    .string()
+    .optional()
+    .describe("Registry to look the added Modules up in first, by Lockfile name or source")
+    .register(aokitMeta, {
+      flag: "registry",
+      examples: ["--registry https://registry.example.com", "--registry github:acme/mods#v1"],
+    }),
+  trust: z
+    .array(z.string())
+    .default([])
+    .describe("Trust a Registry by name or source; repeatable. `--yes` never grants trust")
+    .register(aokitMeta, { flag: "trust", examples: ["--trust github:acme/mods"] }),
   dryRun: z
     .boolean()
     .default(false)
@@ -67,6 +89,16 @@ const addInput = z.object({
 
 const provenanceOutput = z.array(z.object({ module: z.string(), source: z.string() }));
 
+const fetchedOutput = z.array(
+  z.object({
+    module: z.string(),
+    version: z.string(),
+    registry: z.string(),
+    source: z.string(),
+    integrity: z.string(),
+  }),
+);
+
 const addOutput = z.object({
   directory: z.string(),
   added: z.array(z.string()),
@@ -86,12 +118,16 @@ const addOutput = z.object({
     ),
   }),
   conflicts: z.array(z.object({ path: z.string(), provenance: provenanceOutput })),
+  fetched: fetchedOutput,
   diff: z.string().optional(),
   warnings: z.array(z.string()),
   reproduce: z.string(),
 });
 
 type Provenance = z.infer<typeof provenanceOutput>;
+type Fetched = z.infer<typeof fetchedOutput>;
+type AddInput = z.output<typeof addInput>;
+type AddOutput = z.output<typeof addOutput>;
 
 /** What the next Render decided; filled while the lifecycle runs. */
 interface AddState {
@@ -99,6 +135,14 @@ interface AddState {
   pulledIn: string[];
   answers: AnswerMap;
   next: BuiltProject | undefined;
+  fetched: Fetched;
+}
+
+/** How `add` reads Registries. */
+interface AddEnvironment {
+  readonly cliVersion: string;
+  readonly interactive: boolean;
+  readonly adapters: RegistryAdapters;
 }
 
 const driftOf: DriftOf = ({ entry, user }) => {
@@ -147,11 +191,7 @@ function shellQuote(value: string): string {
   return /^[A-Za-z0-9_@%+=:,./-]+$/.test(value) ? value : `'${value.replaceAll("'", "'\\''")}'`;
 }
 
-function reproduceAdd(
-  input: z.output<typeof addInput>,
-  directory: string,
-  answers: AnswerMap,
-): string {
+function reproduceAdd(input: AddInput, directory: string, answers: AnswerMap): string {
   const answerFlags = Object.entries(answers).flatMap(([module, values]) =>
     Object.entries(values).map(
       ([key, value]: [string, AnswerValue]) =>
@@ -162,22 +202,123 @@ function reproduceAdd(
     "aokit add",
     ...input.modules.toSorted().map(shellQuote),
     ...(directory === "." ? [] : [`--directory ${shellQuote(directory)}`]),
+    ...(input.registry === undefined ? [] : [`--registry ${shellQuote(input.registry)}`]),
+    ...input.trust.map((value) => `--trust ${shellQuote(value)}`),
     ...answerFlags.toSorted(),
     ...(input.install ? [] : ["--no-install"]),
     "--yes",
   ].join(" ");
 }
 
+function isRemote(registry: Registry | undefined): boolean {
+  return registry?.source.kind === "url" || registry?.source.kind === "github";
+}
+
+function unavailable(name: string, version: string | undefined, registry: string): AokitError {
+  return new AokitError(
+    "MODULE_VERSION_UNAVAILABLE",
+    `Module ${name}@${version} is not available in Registry "${registry}".`,
+    `Run \`aokit recopy\` to render ${name} at the latest version the Registry offers.`,
+  );
+}
+
+/** Every locked Module at its locked version, read from the Registry the Lockfile records. */
+async function lockedModules(
+  lockfile: Lockfile,
+  set: ProjectRegistries,
+): Promise<PipelineModule[]> {
+  return Promise.all(
+    Object.keys(lockfile.modules)
+      .toSorted()
+      .map(async (name) => {
+        const entry = lockfile.modules[name];
+        const registry = set.registries.get(entry?.registry ?? "");
+        if (entry === undefined || registry === undefined) {
+          throw unavailable(name, entry?.version, entry?.registry ?? "");
+        }
+        if (!registry.versions(name).includes(entry.version)) {
+          throw unavailable(name, entry.version, entry.registry);
+        }
+        return toPipelineModule(await registry.version(name, entry.version), entry.registry);
+      }),
+  );
+}
+
+/** The Registry key each requested, not yet locked Module is taken from: the first that has it. */
+function requestedPicks(
+  lockfile: Lockfile,
+  set: ProjectRegistries,
+  requested: readonly string[],
+): Map<string, string> {
+  const order = resolutionOrder(set);
+  const picks = new Map<string, string>();
+  for (const name of requested) {
+    if (lockfile.modules[name] !== undefined) continue;
+    const key = order.find(
+      (candidate) => (set.registries.get(candidate)?.selectableVersions(name).length ?? 0) > 0,
+    );
+    if (key !== undefined) picks.set(name, key);
+  }
+  return picks;
+}
+
+/**
+ * The Modules `add` offers besides the locked ones, at their newest selectable version. A
+ * requested Module comes from the first Registry in resolution order that publishes it; any other
+ * Module from the first first-party Registry that has it, so a remote Registry is read only for
+ * the Modules the user named.
+ */
+async function offeredModules(
+  lockfile: Lockfile,
+  set: ProjectRegistries,
+  requested: readonly string[],
+): Promise<PipelineModule[]> {
+  const picks = requestedPicks(lockfile, set, requested);
+  const chosen = new Map<string, string>(picks);
+  for (const key of resolutionOrder(set)) {
+    const registry = set.registries.get(key);
+    if (registry === undefined || isRemote(registry)) continue;
+    for (const name of Object.keys(registry.index.modules)) {
+      if (!chosen.has(name) && lockfile.modules[name] === undefined) chosen.set(name, key);
+    }
+  }
+  const reads = [...chosen]
+    .toSorted(([left], [right]) => (left < right ? -1 : 1))
+    .flatMap(([name, key]) => {
+      const registry = set.registries.get(key);
+      const newest = registry?.selectableVersions(name).at(-1);
+      return registry === undefined || newest === undefined
+        ? []
+        : [registry.version(name, newest).then((version) => toPipelineModule(version, key))];
+    });
+  return Promise.all(reads);
+}
+
+/** The Modules this run reads from a Registry that is not first-party, for the Plan. */
+function fetchedFrom(built: BuiltProject, lockfile: Lockfile, set: ProjectRegistries): Fetched {
+  return Object.entries(built.lockfile.modules)
+    .filter(
+      ([name, entry]) =>
+        lockfile.modules[name] === undefined && isRemote(set.registries.get(entry.registry)),
+    )
+    .map(([name, entry]) => ({
+      module: name,
+      version: entry.version,
+      registry: entry.registry,
+      source: built.lockfile.registries[entry.registry]?.source ?? "",
+      integrity: entry.integrity,
+    }))
+    .toSorted((left, right) => (left.module < right.module ? -1 : 1));
+}
+
 async function renderNext(
   lockfile: Lockfile,
-  input: z.output<typeof addInput>,
+  input: AddInput,
   directory: string,
-  cliVersion: string,
+  environment: AddEnvironment,
   state: AddState,
 ): Promise<BuiltProject> {
-  const lockedNames = Object.keys(lockfile.modules).toSorted();
-  const registryName =
-    lockfile.modules[lockedNames[0] ?? ""]?.registry ?? Object.keys(lockfile.registries)[0] ?? "";
+  const registryName = primaryRegistryName(lockfile);
   const registryEntry = lockfile.registries[registryName];
   if (registryEntry === undefined) {
     throw new AokitError(
@@ -186,12 +327,16 @@ async function renderNext(
       "Restore aokit.lock.json from version control.",
     );
   }
-  const loaded = await loadRegistry(
-    resolveRegistrySource(registryEntry.source, { projectDir: directory, bundledRegistryPath }),
-    cliVersion,
-  );
-  const { registry } = loaded;
-  const catalog = registry.catalog(registryEntry.release);
+  const set = await openProjectRegistries(lockfile, {
+    registryFlag: input.registry,
+    trustFlags: input.trust,
+    interactive: environment.interactive,
+    projectDir: directory,
+    cliVersion: environment.cliVersion,
+    bundledRegistryPath,
+    adapters: environment.adapters,
+  });
+  const catalog = await set.registries.get(registryName)?.catalog(registryEntry.release);
   if (catalog === undefined) {
     throw new AokitError(
       "MODULE_VERSION_UNAVAILABLE",
@@ -199,34 +344,12 @@ async function renderNext(
       "Run `aokit recopy` to render with the Registry's current Release.",
     );
   }
-  const locked = new Map<string, PipelineModule>();
-  for (const name of lockedNames) {
-    const entry = lockfile.modules[name];
-    const found = entry === undefined ? undefined : registry.version(name, entry.version);
-    if (entry === undefined || found === undefined) {
-      throw new AokitError(
-        "MODULE_VERSION_UNAVAILABLE",
-        `Module ${name}@${entry?.version} is not available in Registry "${registryName}".`,
-        `Run \`aokit recopy\` to render ${name} at the latest version the Registry offers.`,
-      );
-    }
-    locked.set(name, {
-      manifest: found.manifest,
-      integrity: found.integrity,
-      readFile: (from) => {
-        const content = found.files.get(from);
-        if (content === undefined) {
-          throw new AokitError(
-            "INTERNAL",
-            `Module ${name} has no file ${from}`,
-            "report the issue",
-          );
-        }
-        return content;
-      },
-    });
-  }
-  const available = loaded.available.map((module) => locked.get(module.manifest.name) ?? module);
+  const lockedNames = Object.keys(lockfile.modules).toSorted();
+  const [locked, offered] = await Promise.all([
+    lockedModules(lockfile, set),
+    offeredModules(lockfile, set, input.modules),
+  ]);
+  const available = [...locked, ...offered];
   const selection = [
     ...lockedNames.filter((name) => lockfile.modules[name]?.selected === true),
     ...input.modules,
@@ -265,6 +388,7 @@ async function renderNext(
       release: registryEntry.release,
       minCliVersion: registryEntry.minCliVersion,
     },
+    registries: set.entries,
     acceptSuggestions: true,
     ...(formatter === undefined ? {} : { formatter }),
   });
@@ -275,7 +399,91 @@ async function renderNext(
     .filter((name) => !input.modules.includes(name));
   state.answers = freshAnswers;
   state.next = built;
+  state.fetched = fetchedFrom(built, lockfile, set);
   return built;
+}
+
+/**
+ * Runs `add`: reads the Project's Registries and the `--registry` one through the Registry client,
+ * the cache and the trust gate, renders the next Project and applies it. `adapters` reach the
+ * Registries; the real network, cache and prompt by default.
+ */
+async function runAdd(
+  context: Pick<CommandContext, "version" | "env">,
+  input: AddInput,
+  adapters: RegistryAdapters = {},
+): Promise<AddOutput> {
+  const directory = resolvePath(input.directory);
+  const state: AddState = { added: [], pulledIn: [], answers: {}, next: undefined, fetched: [] };
+  const environment: AddEnvironment = {
+    cliVersion: context.version,
+    interactive: !isNonInteractive({
+      yes: input.yes,
+      env: context.env,
+      isTTY: process.stdin.isTTY,
+    }),
+    adapters: { env: context.env, ...adapters },
+  };
+  try {
+    const result = await runLifecycle({
+      dir: directory,
+      driftOf,
+      allowDirty: input.allowDirty,
+      dryRun: input.dryRun,
+      diff: input.diff,
+      install: input.install,
+      render: {
+        base: async (lockfile) => {
+          alreadySelected(lockfile, input.modules);
+          return renderFromLockfile(lockfile, {
+            projectDir: directory,
+            bundledRegistryPath,
+            cliVersion: context.version,
+            trustFlags: input.trust,
+            adapters: environment.adapters,
+          });
+        },
+        next: (lockfile) => renderNext(lockfile, input, directory, environment, state),
+      },
+    });
+    const nextChanges = state.next?.plan.changes ?? [];
+    const conflicts = result.conflicts.map((conflict) => ({
+      path: conflict.path,
+      provenance: provenanceOf(nextChanges, conflict.path),
+    }));
+    if (result.applied && conflicts.length > 0) {
+      throw new AokitError(
+        "MERGE_CONFLICTS",
+        `${conflicts.length} file(s) have Conflicts: ${conflicts.map((conflict) => conflict.path).join(", ")}`,
+        "resolve the markers (or the `.aokit-new` siblings), then run `aokit doctor`",
+        { conflicts },
+      );
+    }
+    return {
+      directory,
+      added: state.added,
+      pulledIn: state.pulledIn,
+      applied: result.applied,
+      installed: result.installed,
+      plan: {
+        hash: result.plan.hash,
+        changes: result.plan.changes.map((change) => ({
+          type: change.type,
+          path: change.path,
+          mode: change.mode ?? null,
+          ownership: change.ownership,
+          provenance: provenanceOf(result.plan.changes, change.path),
+        })),
+      },
+      conflicts,
+      fetched: state.fetched,
+      ...(result.diff === undefined ? {} : { diff: result.diff }),
+      warnings: result.warnings,
+      reproduce: reproduceAdd(input, input.directory, state.answers),
+    };
+  } catch (thrown) {
+    throw toAokitError(thrown);
+  }
 }
 
 export const addCommand = defineCommand({
@@ -283,65 +491,5 @@ export const addCommand = defineCommand({
   description: "Add a Module to a Project",
   input: addInput,
   output: addOutput,
-  async run(context, input) {
-    const directory = resolvePath(input.directory);
-    const state: AddState = { added: [], pulledIn: [], answers: {}, next: undefined };
-    try {
-      const result = await runLifecycle({
-        dir: directory,
-        driftOf,
-        allowDirty: input.allowDirty,
-        dryRun: input.dryRun,
-        diff: input.diff,
-        install: input.install,
-        render: {
-          base: async (lockfile) => {
-            alreadySelected(lockfile, input.modules);
-            return renderFromLockfile(lockfile, {
-              projectDir: directory,
-              bundledRegistryPath,
-              cliVersion: context.version,
-            });
-          },
-          next: (lockfile) => renderNext(lockfile, input, directory, context.version, state),
-        },
-      });
-      const nextChanges = state.next?.plan.changes ?? [];
-      const conflicts = result.conflicts.map((conflict) => ({
-        path: conflict.path,
-        provenance: provenanceOf(nextChanges, conflict.path),
-      }));
-      if (result.applied && conflicts.length > 0) {
-        throw new AokitError(
-          "MERGE_CONFLICTS",
-          `${conflicts.length} file(s) have Conflicts: ${conflicts.map((conflict) => conflict.path).join(", ")}`,
-          "resolve the markers (or the `.aokit-new` siblings), then run `aokit doctor`",
-          { conflicts },
-        );
-      }
-      return {
-        directory,
-        added: state.added,
-        pulledIn: state.pulledIn,
-        applied: result.applied,
-        installed: result.installed,
-        plan: {
-          hash: result.plan.hash,
-          changes: result.plan.changes.map((change) => ({
-            type: change.type,
-            path: change.path,
-            mode: change.mode ?? null,
-            ownership: change.ownership,
-            provenance: provenanceOf(result.plan.changes, change.path),
-          })),
-        },
-        conflicts,
-        ...(result.diff === undefined ? {} : { diff: result.diff }),
-        warnings: result.warnings,
-        reproduce: reproduceAdd(input, input.directory, state.answers),
-      };
-    } catch (thrown) {
-      throw toAokitError(thrown);
-    }
-  },
+  run: (context, input) => runAdd(context, input),
 });

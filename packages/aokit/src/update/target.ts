@@ -76,7 +76,8 @@ function chooseRelease(
 /**
  * Chooses the Release an update moves to, the latest one the Registry index lists or `to`, and
  * the Module versions that Release's Catalog map fixes, never the latest Module version. A `to` that is not published, or is older than the Lockfile's
- * Release, is `INVALID_INPUT`. A locked Module the Registry no longer offers is
+ * Release, is `INVALID_INPUT`. A locked Module of another Registry of the Lockfile keeps its
+ * version. A locked Module the Registry no longer offers is
  * `MODULE_VERSION_UNAVAILABLE`, and the fix suggests removing it.
  */
 export function resolveUpdateTarget(
@@ -92,6 +93,10 @@ export function resolveUpdateTarget(
     byCodepoint(left, right),
   );
   for (const [name, entry] of entries) {
+    if (entry.registry !== registry.name && lockfile.registries[registry.name] !== undefined) {
+      versions[name] = entry.version;
+      continue;
+    }
     const target = releaseModules[name];
     if (target === undefined) {
       throw new AokitError(

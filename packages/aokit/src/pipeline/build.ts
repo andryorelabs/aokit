@@ -24,6 +24,8 @@ import { type AssembledModule, type RegistryInfo, assembleLockfile } from "./ass
  */
 export interface PipelineModule extends EngineModule {
   readonly integrity?: string;
+  /** The key of the Registry the Module comes from; `registry.name` of the build when absent. */
+  readonly registry?: string;
 }
 
 interface PipelineInputBase {
@@ -38,6 +40,11 @@ interface PipelineInputBase {
   readonly catalog: Catalog;
   readonly context: EngineContext;
   readonly registry: RegistryInfo;
+  /**
+   * Every other Registry the Lockfile records, by key; kept when a Module still comes from it. The
+   * entry of `registry.name` supplies its `trusted` flag.
+   */
+  readonly registries?: Lockfile["registries"];
   /** Runs on the files this build renders only, never on files that came from `base`. */
   readonly formatter?: Formatter;
   readonly acceptSuggestions?: boolean;
@@ -114,8 +121,9 @@ export async function buildProject(input: PipelineInput): Promise<BuiltProject |
   });
 
   const selected = new Set(input.selection);
-  const assembled: AssembledModule[] = modules.map(({ manifest, integrity }) => ({
+  const assembled: AssembledModule[] = modules.map(({ manifest, integrity, registry }) => ({
     manifest,
+    registry,
     answers: effectiveAnswers(manifest, input.answers[manifest.name] ?? {}),
     integrity: integrity ?? computeIntegrity(stableStringify(manifest)),
     selected: selected.has(manifest.name),
@@ -126,6 +134,7 @@ export async function buildProject(input: PipelineInput): Promise<BuiltProject |
     modules: assembled,
     layout: input.layout,
     registry: input.registry,
+    ...(input.registries === undefined ? {} : { registries: input.registries }),
     deps: built.deps,
     ...(input.previous === undefined ? {} : { previousFiles: input.previous.files }),
   });
