@@ -33,6 +33,7 @@ const registryErrorCodes: Partial<Record<RegistryError["code"], ErrorCode>> = {
   REGISTRY_UNTRUSTED: "REGISTRY_UNTRUSTED",
   REGISTRY_FETCH_FAILED: "REGISTRY_FETCH_FAILED",
   REGISTRY_INTEGRITY_MISMATCH: "REGISTRY_INTEGRITY_MISMATCH",
+  REGISTRY_ENV_UNSET: "REGISTRY_ENV_UNSET",
 };
 
 /** Turns the subsystem errors a create run can hit into coded command errors. */

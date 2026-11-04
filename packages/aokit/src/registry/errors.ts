@@ -13,7 +13,8 @@ type RegistryErrorCode =
   | "REGISTRY_UNTRUSTED"
   | "REGISTRY_PATH_UNSAFE"
   | "REGISTRY_MODULE_NOT_FOUND"
-  | "REGISTRY_SOURCE_UNSUPPORTED";
+  | "REGISTRY_SOURCE_UNSUPPORTED"
+  | "REGISTRY_ENV_UNSET";
 
 /**
  * Structured detail of a Registry failure, carried into the command envelope's `error.data`.
@@ -31,6 +32,8 @@ export interface RegistryErrorData {
   actual?: string;
   /** The HTTP status of a failed fetch. */
   status?: number;
+  /** The name of an environment variable a Namespace references, never its value. */
+  variable?: string;
 }
 
 /**
