@@ -6,7 +6,7 @@ Architecture: [Lifecycle: update](../architecture/lifecycle.md#update), [Registr
 
 ## Context
 
-A Project records exact Module versions in its Lockfile. Moving it forward needs a target. The Registry can offer the newest version of each Module independently, or the versions that a [Release](../../CONTEXT.md) groups together with its Catalog. Modules agree through Capabilities and Extension point ranges, and the Catalog pins the dependencies tested with them. A mix of newest versions has never been built together.
+A Project records exact Module versions in its Lockfile. Moving it forward needs a target. The Registry can offer the newest version of each Module independently, or the versions that a [Release](../../GLOSSARY.md) groups together with its Catalog. Modules agree through Capabilities and Extension point ranges, and the Catalog pins the dependencies tested with them. A mix of newest versions has never been built together.
 
 ## Decision
 

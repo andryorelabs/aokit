@@ -1,6 +1,6 @@
 # CLI UX
 
-Rules for how the `aokit` CLI behaves in a terminal, in CI and under a coding agent. They follow [clig.dev](https://clig.dev) and use the vocabulary of [CONTEXT.md](../../CONTEXT.md). The CLI layer parses input and prints results only; generation logic lives in the [Engine](engine.md) (see the component map in the [overview](overview.md#component-map)). The single schema behind flags and prompts is described in [Interfaces](interfaces.md).
+Rules for how the `aokit` CLI behaves in a terminal, in CI and under a coding agent. They follow [clig.dev](https://clig.dev) and use the vocabulary of [GLOSSARY.md](../../GLOSSARY.md). The CLI layer parses input and prints results only; generation logic lives in the [Engine](engine.md) (see the component map in the [overview](overview.md#component-map)). The single schema behind flags and prompts is described in [Interfaces](interfaces.md).
 
 ## Principles
 

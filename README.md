@@ -1,6 +1,6 @@
 # aokit
 
-aokit generates and maintains Projects from composable Modules. The design is in [`docs/`](docs/): start with the [roadmap](docs/roadmap.md), the [architecture overview](docs/architecture/overview.md) and the [glossary](CONTEXT.md).
+aokit generates and maintains Projects from composable Modules. The design is in [`docs/`](docs/): start with the [roadmap](docs/roadmap.md), the [architecture overview](docs/architecture/overview.md) and the [glossary](GLOSSARY.md).
 
 ## Workspace
 

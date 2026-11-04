@@ -21,7 +21,7 @@
 - `.oxlintrc.json`
 - `bun.lock`
 - `commitlint.config.ts`
-- `CONTEXT.md`
+- `GLOSSARY.md`
 - `docs/` (45 files)
 - `forge.config.json`
 - `knip.json`
@@ -62,7 +62,7 @@
 
 ## Hotspots
 
-- `CONTEXT.md` (3 commits)
+- `GLOSSARY.md` (3 commits)
 - `forge.config.json` (3 commits)
 - `packages/aokit/src/engine/build.ts` (3 commits)
 - `packages/aokit/src/engine/ops.ts` (3 commits)

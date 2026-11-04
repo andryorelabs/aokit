@@ -1,6 +1,6 @@
 # Interfaces
 
-aokit has several ways in: flags, interactive prompts, `--json`, an MCP server and, later, possibly a web UI. They are all generated from one Zod v4 schema, so a field is declared once and cannot drift between surfaces. Related: [overview](overview.md), [Module contract](module-contract.md), [Engine](engine.md), [CLI UX](cli-ux.md). Vocabulary follows [CONTEXT.md](../../CONTEXT.md).
+aokit has several ways in: flags, interactive prompts, `--json`, an MCP server and, later, possibly a web UI. They are all generated from one Zod v4 schema, so a field is declared once and cannot drift between surfaces. Related: [overview](overview.md), [Module contract](module-contract.md), [Engine](engine.md), [CLI UX](cli-ux.md). Vocabulary follows [GLOSSARY.md](../../GLOSSARY.md).
 
 ## One schema, many surfaces
 

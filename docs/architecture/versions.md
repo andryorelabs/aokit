@@ -1,6 +1,6 @@
 # Dependency versions
 
-How generated Projects pin their dependencies, how the Catalog is maintained, and how CI proves a Registry release is safe to update to. Vocabulary follows [CONTEXT.md](../../CONTEXT.md). Related: [Module contract](module-contract.md#deps), [Lockfile](lockfile.md), [lifecycle](lifecycle.md), [Layouts](layouts.md), [Capabilities](capabilities.md).
+How generated Projects pin their dependencies, how the Catalog is maintained, and how CI proves a Registry release is safe to update to. Vocabulary follows [GLOSSARY.md](../../GLOSSARY.md). Related: [Module contract](module-contract.md#deps), [Lockfile](lockfile.md), [lifecycle](lifecycle.md), [Layouts](layouts.md), [Capabilities](capabilities.md).
 
 ## Policy
 

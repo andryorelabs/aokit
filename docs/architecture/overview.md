@@ -1,6 +1,6 @@
 # Architecture overview
 
-aokit turns a selection of Modules into a TypeScript Project and keeps that Project updatable. This page fixes the goals, the component map and the end-to-end flow. Vocabulary follows [CONTEXT.md](../../CONTEXT.md) exactly.
+aokit turns a selection of Modules into a TypeScript Project and keeps that Project updatable. This page fixes the goals, the component map and the end-to-end flow. Vocabulary follows [GLOSSARY.md](../../GLOSSARY.md) exactly.
 
 Detail lives in the sibling documents:
 

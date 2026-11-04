@@ -39,7 +39,7 @@ modules/<name>/<version>/renames.json   # optional Renames manifest, previous ve
 catalog/<release>.json                  # the Catalog for one Release
 ```
 
-The migration scripts and `renames.json` are listed in the version's `files` hashes and covered by its `integrity` like any other file. Every Module version has its own immutable directory, and every [Release](../../CONTEXT.md) has its own Catalog file. Building the Registry (`bun run registry:build`) only **adds** versions and Releases: it never deletes an existing one, and it fails naming `<module>@<version>` if the content of an already published version would change. The reader offers the `latest` view, lookup by `name@version`, and the Catalog of a given Release.
+The migration scripts and `renames.json` are listed in the version's `files` hashes and covered by its `integrity` like any other file. Every Module version has its own immutable directory, and every [Release](../../GLOSSARY.md) has its own Catalog file. Building the Registry (`bun run registry:build`) only **adds** versions and Releases: it never deletes an existing one, and it fails naming `<module>@<version>` if the content of an already published version would change. The reader offers the `latest` view, lookup by `name@version`, and the Catalog of a given Release.
 
 ### Index shape
 
@@ -83,7 +83,7 @@ The index lists first-party Capability names too, so errors can suggest provider
 
 ### Catalog per release
 
-`catalog/<release>.json` is the [Catalog](../../CONTEXT.md): the dependency versions a release ships, tested together. It is what `range: "catalog"` resolves against ([`deps`](module-contract.md#deps)).
+`catalog/<release>.json` is the [Catalog](../../GLOSSARY.md): the dependency versions a release ships, tested together. It is what `range: "catalog"` resolves against ([`deps`](module-contract.md#deps)).
 
 ```json
 {

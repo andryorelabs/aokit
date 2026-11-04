@@ -6,7 +6,7 @@ Architecture: [Capabilities](../architecture/capabilities.md), [Module contract]
 
 ## Context
 
-A scaffolder must decide which option combinations are legal. create-t3-app and Better-T-Stack organize options into fixed categories (database, ORM, auth, API) with compatibility rules written per combination, and their templates branch on those choices. Adding one option means editing shared rules and templates, which is the cost [CONTEXT.md](../../CONTEXT.md) rules out: adding a Module must never edit other Modules. See the [scaffolding landscape](../research/scaffolding-landscape.md).
+A scaffolder must decide which option combinations are legal. create-t3-app and Better-T-Stack organize options into fixed categories (database, ORM, auth, API) with compatibility rules written per combination, and their templates branch on those choices. Adding one option means editing shared rules and templates, which is the cost [GLOSSARY.md](../../GLOSSARY.md) rules out: adding a Module must never edit other Modules. See the [scaffolding landscape](../research/scaffolding-landscape.md).
 
 ## Decision
 

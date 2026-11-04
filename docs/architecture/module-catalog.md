@@ -1,6 +1,6 @@
 # Module catalog
 
-An illustrative catalog of candidate [Modules](../../CONTEXT.md), derived from what the current reference projects actually use. It is **not a roadmap**: it shows how real usage maps onto [Capabilities](capabilities.md) and [Extension points](capabilities.md#extension-points), and it is a worked test of the [Module contract](module-contract.md). Which Modules ship, and in what order, is decided in the roadmap, not here.
+An illustrative catalog of candidate [Modules](../../GLOSSARY.md), derived from what the current reference projects actually use. It is **not a roadmap**: it shows how real usage maps onto [Capabilities](capabilities.md) and [Extension points](capabilities.md#extension-points), and it is a worked test of the [Module contract](module-contract.md). Which Modules ship, and in what order, is decided in the roadmap, not here.
 
 ## Scope and filter
 
@@ -57,7 +57,7 @@ Notes:
 | Module | Provides (Cardinality) | Requires | Declares / contributes to |
 | --- | --- | --- | --- |
 | `base-ui` | `ui:primitives` (1) | `web` | declares `ui.primitives` on target `shared-ui` |
-| `shadcn` | `ui:components` (1) | `ui:primitives`, `styling`, `ext:web.layout@^1` | contributes to `web.layout`; consumes the shadcn [Registry](../../CONTEXT.md) adapter |
+| `shadcn` | `ui:components` (1) | `ui:primitives`, `styling`, `ext:web.layout@^1` | contributes to `web.layout`; consumes the shadcn [Registry](../../GLOSSARY.md) adapter |
 | `tailwind4` | `styling` (1) | `web` | declares `styles.theme` on target `web`; uses the `addCssAtRule` Op |
 
 `shadcn` is always on Base UI. `base-ui` and `shadcn` are separate Modules so the primitives can be used without the component set. The shadcn lint rules ship with `shadcn`'s tooling files, not as a separate Module.
@@ -88,7 +88,7 @@ Notes:
 | `turborepo` | `task-runner` (1) | none | declares `workspace.tasks` on target `root` |
 | `catalog` | `dep-catalog` (1) | `task-runner` | contributes to `workspace.tasks`; writes the Bun catalog |
 | `renovate` | `dep-updates` (1) | none | contributes to `root` files only |
-| `adr-docs` | `docs:adr` (1) | none | declares `docs.index`; writes `CONTEXT.md`, `AGENTS.md`, `CLAUDE.md`, skills |
+| `adr-docs` | `docs:adr` (1) | none | declares `docs.index`; writes `GLOSSARY.md`, `AGENTS.md`, `CLAUDE.md`, skills |
 
 Notes:
 

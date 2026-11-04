@@ -1,6 +1,6 @@
 # Research
 
-Sourced findings behind aokit's design. This folder says what is true and where it came from; the architecture docs ([`docs/architecture/`](../architecture/overview.md)) say what aokit does about it. Terms follow [CONTEXT.md](../../CONTEXT.md).
+Sourced findings behind aokit's design. This folder says what is true and where it came from; the architecture docs ([`docs/architecture/`](../architecture/overview.md)) say what aokit does about it. Terms follow [GLOSSARY.md](../../GLOSSARY.md).
 
 | Doc | Summary |
 | --- | --- |

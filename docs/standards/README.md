@@ -9,9 +9,9 @@ Cross-repo standards that aokit's first-party Modules encode and that Andry's ow
 | [tooling](tooling.md) | Oxc (Oxfmt, Oxlint), the `eslint` companion, git hooks, commit lint, knip, Playwright with axe, the TSDoc-only comments rule. |
 | [typescript](typescript.md) | TypeScript 6.x plus the `typescript7` alias, explicit bins, `astro check`. |
 | [renovate](renovate.md) | Range strategy, release age, automerge, Toolchain pin groups. |
-| [docs-and-forge](docs-and-forge.md) | ADRs, `CONTEXT.md`, `AGENTS.md`, skills, Linear conventions, trunk branch. |
+| [docs-and-forge](docs-and-forge.md) | ADRs, `GLOSSARY.md`, `AGENTS.md`, skills, Linear conventions, trunk branch. |
 
-The standards map to Modules in the [module catalog](../architecture/module-catalog.md): `oxc`, `eslint` companion, `commitlint` + `husky` + `lint-staged`, `knip`, `playwright` + `axe`, `renovate` and `adr-docs`. Terms follow [CONTEXT.md](../../CONTEXT.md).
+The standards map to Modules in the [module catalog](../architecture/module-catalog.md): `oxc`, `eslint` companion, `commitlint` + `husky` + `lint-staged`, `knip`, `playwright` + `axe`, `renovate` and `adr-docs`. Terms follow [GLOSSARY.md](../../GLOSSARY.md).
 
 ## Fixed premises
 

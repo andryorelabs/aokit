@@ -49,7 +49,7 @@ repo root, and both must pass before a worker reports done:
 - `bun run test` runs `bun test` across the workspace and `tools/`.
 
 Run `bun run format` to fix formatting instead of hand-editing whitespace.
-Docs edits are still re-read against the `CONTEXT.md` vocabulary, with
+Docs edits are still re-read against the `GLOSSARY.md` vocabulary, with
 internal links checked by hand.
 
 ## Concurrency
