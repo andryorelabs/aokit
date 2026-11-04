@@ -19,6 +19,11 @@ const curatedProjects: readonly CuratedProject[] = [
   { name: "single-oxc", args: ["--modules", "oxc"] },
   { name: "single-web", args: ["--modules", "oxc,vite-react,tailwind4,knip"] },
   { name: "monorepo-oxc", args: ["--layout", "monorepo", "--modules", "oxc"] },
+  { name: "single-server", args: ["--modules", "oxc,hono,docker,coolify"] },
+  {
+    name: "monorepo-server",
+    args: ["--layout", "monorepo", "--modules", "oxc,hono,docker,coolify"],
+  },
 ];
 
 interface Envelope {

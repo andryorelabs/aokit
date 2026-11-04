@@ -11,7 +11,7 @@ const pinnedReference = /^[^@\s]+@[0-9a-f]{40}$/;
 export function findUnpinnedActions(file: string, text: string): string[] {
   const problems: string[] = [];
   text.split("\n").forEach((line, index) => {
-    const match = usesLine.exec(line);
+    const match = usesLine.exec(line.trimEnd());
     if (match === null) return;
     const [, reference = "", tagComment] = match;
     if (reference.startsWith("./")) return;
@@ -39,6 +39,11 @@ describe("S13: workflow actions are pinned by commit SHA", () => {
     expect(findUnpinnedActions("ci.yml", text)).toEqual([
       "ci.yml:4 actions/checkout@v7 is not pinned to a 40-character SHA",
     ]);
+  });
+
+  test("trailing whitespace and CRLF line endings do not hide an unpinned reference", () => {
+    const text = "      - uses: actions/checkout@v7 \r\n";
+    expect(findUnpinnedActions("ci.yml", text)).toHaveLength(1);
   });
 
   test("a pinned reference without a tag comment fails", () => {
