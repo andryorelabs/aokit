@@ -1,4 +1,4 @@
-/** Exit codes a command run can produce. `2` is the `UPDATE_AVAILABLE` outcome of `check`. */
+/** Exit codes a command run can produce. `2` is the `UPDATE_AVAILABLE` outcome of `check` and `REGISTRY_ENV_UNSET`. */
 export const exitCodes = {
   success: 0,
   failure: 1,

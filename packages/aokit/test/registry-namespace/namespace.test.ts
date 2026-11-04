@@ -154,6 +154,10 @@ test("a .env file parses comments, export, quotes and inline comments", () => {
   ).toEqual({ A: "1", B: "two words", C: "single", D: "plain" });
 });
 
+test("a quoted .env value followed by an inline comment drops the quotes and the comment", () => {
+  expect(parseEnvFile("A=\"x\" # c\nB='y' # d")).toEqual({ A: "x", B: "y" });
+});
+
 test("the Namespace environment is .env overlaid by the process environment", async () => {
   const directory = await mkdtemp(join(tmpdir(), "aokit-namespace-env-"));
   directories.push(directory);

@@ -151,12 +151,22 @@ export interface UrlTransportOptions {
   readonly displayBase?: string;
 }
 
+/** Header values shorter than this are not secrets worth blanking inside unrelated text. */
+const minimumRedactedLength = 8;
+
 function redactor(
   base: string,
   options: UrlTransportOptions | undefined,
 ): (text: string) => string {
-  const replacements: [string, string][] = Object.values(options?.headers ?? {})
-    .filter((value) => value !== "")
+  const secrets = new Set(
+    Object.values(options?.headers ?? {}).flatMap((value) => [
+      value,
+      value.split(/\s+/).at(-1) ?? "",
+    ]),
+  );
+  const replacements: [string, string][] = [...secrets]
+    .filter((value) => value.length >= minimumRedactedLength)
+    .toSorted((first, second) => second.length - first.length)
     .map((value) => [value, "[redacted]"]);
   if (options?.displayBase !== undefined && options.displayBase !== base) {
     replacements.unshift([base, options.displayBase]);

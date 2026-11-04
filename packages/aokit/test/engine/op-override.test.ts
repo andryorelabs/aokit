@@ -91,3 +91,19 @@ test("two Modules overriding the same Op fail with engine.override-conflict", as
   expect(error).toBeInstanceOf(EngineError);
   expect(error instanceof EngineError && error.code).toBe("engine.override-conflict");
 });
+
+test("a bare and a qualified override of the same Op fail with engine.override-conflict", async () => {
+  const run = buildPlan({
+    modules: [
+      base,
+      adder("one", "One()", [{ op: "addToArray", reason: "replace" }]),
+      adder("two", "Two()", [overrideEntry]),
+    ],
+    layout: "single",
+    answers: {},
+    context,
+  });
+  const error = await run.catch((caught: unknown) => caught);
+  expect(error).toBeInstanceOf(EngineError);
+  expect(error instanceof EngineError && error.code).toBe("engine.override-conflict");
+});

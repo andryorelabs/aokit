@@ -144,8 +144,11 @@ const envLinePattern = /^(?:export\s+)?([A-Za-z_][A-Za-z0-9_]*)\s*=\s*(.*)$/;
 
 function unquote(raw: string): string {
   const first = raw.at(0);
-  if ((first === '"' || first === "'") && raw.length >= 2 && raw.endsWith(first)) {
-    return raw.slice(1, -1);
+  if (first === '"' || first === "'") {
+    const close = raw.indexOf(first, 1);
+    if (close !== -1) {
+      return raw.slice(1, close);
+    }
   }
   const comment = raw.search(/\s#/);
   return (comment === -1 ? raw : raw.slice(0, comment)).trim();

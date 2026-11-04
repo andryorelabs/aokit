@@ -200,18 +200,31 @@ function opKeysOf(op: ModuleManifest["ops"][number]): string[] {
   return [op.op, `${op.op}:${"target" in op ? (op.target ?? "") : ""}:${location ?? ""}`];
 }
 
-/** Maps every overridden Op key to the single Module that overrides it; two overriders fail. */
+function opKeysOverlap(first: string, second: string): boolean {
+  if (first === second) {
+    return true;
+  }
+  const firstOp = first.split(":")[0];
+  const secondOp = second.split(":")[0];
+  return firstOp === secondOp && (!first.includes(":") || !second.includes(":"));
+}
+
+/**
+ * Maps every overridden Op key to the single Module that overrides it. Two overriders fail, and
+ * a bare Op name overlaps every qualified `op:target:location` key of the same Op.
+ */
 function opOverriders(modules: readonly EngineModule[]): Map<string, string> {
   const overriders = new Map<string, string>();
   for (const { manifest } of modules) {
     for (const key of opOverrideKeys(manifest)) {
-      const existing = overriders.get(key);
-      if (existing !== undefined && existing !== manifest.name) {
-        throw new EngineError(
-          "engine.override-conflict",
-          `Modules "${existing}" and "${manifest.name}" both override Op "${key}". Only one Module may override an item.`,
-          [existing, manifest.name],
-        );
+      for (const [existingKey, existing] of overriders) {
+        if (existing !== manifest.name && opKeysOverlap(existingKey, key)) {
+          throw new EngineError(
+            "engine.override-conflict",
+            `Modules "${existing}" and "${manifest.name}" both override Op "${key}". Only one Module may override an item.`,
+            [existing, manifest.name],
+          );
+        }
       }
       overriders.set(key, manifest.name);
     }

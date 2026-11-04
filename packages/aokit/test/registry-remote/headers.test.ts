@@ -235,6 +235,21 @@ test("a header value is redacted from a fetch failure message", async () => {
   expect(failure.message).toContain("[redacted]");
 });
 
+test("the bare token and not a short header value is redacted from a failure message", async () => {
+  const failingFetch: typeof fetch = Object.assign(
+    async () => {
+      throw new Error(`rejected token ${token} for version 1`);
+    },
+    { preconnect: fetch.preconnect },
+  );
+  const transport = urlTransport("https://r.test/r", failingFetch, {
+    headers: { Authorization: `Bearer ${token}`, "X-Version": "1" },
+  });
+  const failure = await rejection(() => transport.read("button.json"));
+  expect(failure.message).not.toContain(token);
+  expect(failure.message).toContain("for version 1");
+});
+
 test("without headers the transport sends none, as before", async () => {
   const origin = await servedItems();
   await urlTransport(`${origin.url}/r`, fetch).read("button.json");
