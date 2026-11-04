@@ -24,6 +24,7 @@ Decisions that are hard to reverse, surprising without context, and the result o
 | 0016 | [Update moves a Project between Releases](0016-update-moves-a-project-between-releases.md) | Accepted | S6, S7 (phase 4b spec) |
 | 0017 | [Remote Registries serve the local layout, trust is recorded per user and per Project](0017-remote-registries-over-the-local-layout.md) | Accepted | S6 to S13 (phase 5a spec) |
 | 0018 | [shadcn items become declarative Adapted Modules with a synthetic version and a mandatory cache](0018-shadcn-items-are-adapted-modules.md) | Accepted | S1 to S15 (phase 5b spec) |
+| 0019 | [MCP tools take an explicit variant of the command schema and session-scoped plan ids](0019-mcp-tools-take-an-explicit-schema-and-session-plan-ids.md) | Accepted | S1 to S12 (phase 6a spec) |
 
 ## Format
 

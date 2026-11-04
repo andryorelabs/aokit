@@ -75,8 +75,10 @@ The layer holds no generation logic: it calls the Registry client, Resolver and 
 
 ### Rules
 
-- **Plan before create.** `create` and `add` require that the same inputs were planned: the tool takes a `planId` (a hash of the validated inputs and the resolved Registry release) returned by `plan` / `plan_add`, and rejects stale or unknown ids with `PLAN_REQUIRED`. The agent therefore always has a reviewable [Plan](engine.md#vfs-and-plan-before-apply) before anything is written.
-- **All fields explicit.** In MCP mode defaults are not applied silently. Every field of the input schema is required (nullable where "none" is a valid answer), and the schema returned by `get_schema` marks them so. An agent must state each choice, which makes its action reproducible from the printed command and the Lockfile.
+- **Plan before create.** `create` and `add` require that the same inputs were planned: the tool takes a `planId` (a hash of the normalized input, the resolved Release and the Plan's VFS hash) returned by `plan` / `plan_add`. The server remembers the ids it issued in the current session, re-plans the same input before writing, and rejects an unknown or no longer matching id with `PLAN_REQUIRED`, writing nothing. A plan therefore never survives a server restart, and the agent always has a reviewable [Plan](engine.md#vfs-and-plan-before-apply) before anything is written ([ADR 0019](../adr/0019-mcp-tools-take-an-explicit-schema-and-session-plan-ids.md)).
+- **All fields explicit.** In MCP mode defaults are not applied silently. The tool input is derived mechanically from the command's Zod input (`toExplicitInput`): defaults are removed, every optional field is required and nullable ("none" is `null`), and the schema returned by `get_schema` marks them so. An agent must state each choice, which makes its action reproducible from the printed command and the Lockfile.
+- **CLI-only fields are not exposed.** `dryRun`, `diff`, `yes`, `install` and `allowDirty` do not exist in MCP: the server never runs `bun install` (it returns `nextSteps` instead), never writes into a dirty tree and never prompts. `trust` and `registry` are explicit fields with the CLI's meaning; an untrusted Registry fails with an error whose `fix` names the `trust` field.
+- **Absolute directory.** `directory` must be an absolute path; a relative one is `INVALID_INPUT`, because the server's working directory is not something an agent can know.
 - **No stdout noise.** stdout carries only MCP protocol frames. Logs, progress and warnings go to stderr, or are returned inside the result. No spinner, prompt or color is ever initialized in this mode.
 - **Uniform result.** Every tool returns `{ ok, data, error }`, with `error = { code, message, fix }` when `ok` is false, matching [`--json`](cli-ux.md#--json). Resolver failures are results, not protocol errors.
 - **Annotations.** Read-only tools set `readOnlyHint: true`; `create` and `add` set `destructiveHint: true` because they write to disk.
@@ -87,15 +89,16 @@ The layer holds no generation logic: it calls the Registry client, Resolver and 
 | --- | --- | --- | --- |
 | `get_guidance` | How to use aokit correctly: vocabulary, the plan-before-create rule, how to choose Modules, which tools to call in what order. | `{ topic: "overview" \| "workflow" \| "modules" \| "layouts" \| "errors" }` | `{ topic, markdown }` |
 | `get_schema` | JSON Schema for a command's input (the same output as `aokit schema`), plus the available Modules, Capabilities and Layouts. | `{ command: "create" \| "add" \| "remove" \| "update" }` | `{ command, inputSchema, modules: [{ name, version, provides, requires, conflicts }], layouts }` |
-| `plan` | Resolve a new Project and return its Plan without writing. | the `create` input: `{ directory, layout, modules, answers, trunk, ... }`, all explicit | `{ planId, resolvedModules, changes: [{ type, path, modules }], commandLine }` |
-| `create` | Apply a previously planned `create`. Writes the Project. `destructiveHint: true`. | the `create` input plus `{ planId }` | `{ directory, lockfile, commandLine, nextSteps }` |
-| `plan_add` | Resolve adding Modules to an existing Project (read from its Lockfile) and return the Plan. | `{ directory, modules, answers }` | `{ planId, addedModules, changes, requiredCapabilities }` |
-| `add` | Apply a previously planned `add`. Writes files and the Lockfile. `destructiveHint: true`. | the `plan_add` input plus `{ planId }` | `{ lockfile, changes, commandLine, nextSteps }` |
+| `plan` | Resolve a new Project and return its Plan without writing. | the explicit `create` input (`directory`, `layout`, `modules`, `answer`, `registry`, `trust`, ...) | the `create` output data (`modules`, `plan`, `warnings`, `reproduce`, ...) plus `{ planId, nextSteps }` |
+| `create` | Apply a previously planned `create`. Writes the Project. `destructiveHint: true`. | the explicit `create` input plus `{ planId }` | the `create` output data plus `{ nextSteps }` |
+| `plan_add` | Resolve adding Modules to an existing Project (read from its Lockfile) and return the Plan. | the explicit `add` input | the `add` output data (`added`, `pulledIn`, `conflicts`, `plan`, `reproduce`, ...) plus `{ planId, nextSteps }` |
+| `add` | Apply a previously planned `add`. Writes files and the Lockfile. `destructiveHint: true`. | the explicit `add` input plus `{ planId }` | the `add` output data plus `{ nextSteps }` |
 
 Notes:
 
-- `changes` entries are the [Plan](engine.md#change-types-and-provenance) objects: `type` is `create | update | delete | rename`, with per-Module provenance in `modules`.
-- `commandLine` is the printed reproducible command, so the agent can tell the user exactly what ran.
+- `plan.changes` entries are the [Plan](engine.md#change-types-and-provenance) objects: `type` is `create | update | delete | rename`, with per-Module provenance in `provenance`. The tool outputs reuse the command output schemas, so they cannot drift from `--json`.
+- `reproduce` is the printed reproducible command, so the agent can tell the user exactly what ran.
+- `answer` keeps the CLI shape: a list of `module.key=value` strings.
 - `nextSteps` is data (for example `bun install`); the server never runs the install, as it is outside the [deterministic phase](engine.md#determinism).
 - `remove` and `update` are CLI-only in v1: they can leave merge conflicts that need a human, which does not fit a single-shot tool call.
 - `error.code` is a stable specific code (`CAPABILITY_CONFLICT`, `PLAN_REQUIRED`, `DIRTY_TREE`, ...). Each code belongs to one category of the [exit-code table](cli-ux.md#exit-codes) (usage, resolution, precondition, failure), which is what the CLI turns into its exit code; MCP has no exit codes, so the specific code is the contract.
@@ -115,16 +118,16 @@ Example result (`plan`, failing resolution):
 
 ### `aokit mcp init`
 
-`aokit mcp init --client <claude|cursor|vscode|codex>` writes the client's MCP configuration so the server starts with `bunx aokit mcp`:
+`aokit mcp` with no subcommand starts the server; `aokit mcp init --client <claude|cursor|vscode|codex>` writes the client's MCP configuration so the server starts with `bunx aokit mcp`:
 
-| Client | File written |
-| --- | --- |
-| `claude` | `.mcp.json` in the project (or `claude mcp add` instructions with `--print`) |
-| `cursor` | `.cursor/mcp.json` |
-| `vscode` | `.vscode/mcp.json` |
-| `codex` | `~/.codex/config.toml` entry (printed unless `--write` is passed) |
+| Client | File written | Server key |
+| --- | --- | --- |
+| `claude` | `.mcp.json` in the project (or `claude mcp add` instructions with `--print`) | `mcpServers` |
+| `cursor` | `.cursor/mcp.json` | `mcpServers` |
+| `vscode` | `.vscode/mcp.json` | `servers`, with `type: "stdio"` |
+| `codex` | prints the `~/.codex/config.toml` block and writes nothing (`--write` is deferred) | `mcp_servers` |
 
-The command merges into an existing file without touching other servers (the same JSON/TOML patcher rules as the [non-TS patchers](engine.md#non-ts-patchers)), honors `--dry-run`, and prints the exact change.
+The command merges into an existing file without touching other servers or comments (the JSONC patcher of the [non-TS patchers](engine.md#non-ts-patchers)), is a no-op on a second run, honors `--dry-run`, and prints the exact change. A file that is not valid JSONC fails with `INVALID_CONFIG` and is left unchanged. With `--json` it returns `{ client, path, changed, content }`.
 
 ## Agent files in generated Projects
 

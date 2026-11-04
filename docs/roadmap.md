@@ -13,9 +13,12 @@ flowchart LR
   P3 --> P5A[5a Registry client]
   P4A --> P5A
   P5A --> P5B[5b shadcn adapter]
-  P4B --> P6[6 MCP and agent files]
-  P5B --> P6
-  P6 --> P7[7 Distribution]
+  P4B --> P6A[6a MCP server]
+  P5B --> P6A
+  P4B --> P6B[6b Agent files]
+  P5B --> P6B
+  P6A --> P7[7 Distribution]
+  P6B --> P7
   P5B --> P7
 ```
 
@@ -28,8 +31,9 @@ flowchart LR
 | 4b. Updates and migrations | 4a | `update`, migrations, renames, upgrade job. |
 | 5a. Registry client | 3, 4a | Remote and `github:` Registries, cache, Pins, trust, yank, `create --from <url>`. |
 | 5b. shadcn adapter | 5a | Adapter, namespaces, `registryDependencies`. |
-| 6. MCP and agent files | 4b, 5b | MCP server, `aokit schema`, agent files in generated Projects. |
-| 7. Distribution | 5b, 6 | Binary, publishing, releases. |
+| 6a. MCP server | 4b, 5b | MCP server, `aokit schema`, `aokit mcp init`. |
+| 6b. Agent files | 4b, 5b | Agent files in generated Projects. |
+| 7. Distribution | 5b, 6a, 6b | Binary, publishing, releases. |
 
 ### 1. Core + schema + VFS
 
@@ -122,12 +126,25 @@ Exit criteria:
 
 ### 6. MCP and agent files
 
-Scope: `aokit schema`; the MCP server (stdio) with `get_guidance`, `get_schema`, `plan`, `create`, `plan_add`, `add`; `aokit mcp init --client`; `AGENTS.md` (and `CLAUDE.md` as `@AGENTS.md`) with per-Module sections, and skills in generated Projects ([Interfaces](architecture/interfaces.md#mcp-server)).
+Phase 6 is split into two specs. Both build on [Interfaces](architecture/interfaces.md).
+
+#### 6a. MCP server
+
+Scope: `aokit schema` (already shipped); the MCP server (stdio) with `get_guidance`, `get_schema`, `plan`, `create`, `plan_add`, `add`, with explicit inputs derived from the command schemas and session-scoped plan ids ([ADR 0019](adr/0019-mcp-tools-take-an-explicit-schema-and-session-plan-ids.md)); `aokit mcp init --client` for claude, cursor and vscode, with codex printed only ([Interfaces](architecture/interfaces.md#mcp-server)).
 
 Exit criteria:
 
 - MCP tool input schemas are generated from the same Zod schemas as the flags, and a test fails if they drift.
 - A plan-then-create session through MCP works with all fields explicit and no stdout noise.
+- `create` or `add` with an unknown or stale `planId` fails with `PLAN_REQUIRED` and writes nothing.
+- `mcp init` merges into an existing client config without touching other servers.
+
+#### 6b. Agent files
+
+Scope: `AGENTS.md` (and `CLAUDE.md` as `@AGENTS.md`) with per-Module sections, and skills in generated Projects ([Interfaces](architecture/interfaces.md#agent-files-in-generated-projects)).
+
+Exit criteria:
+
 - Generated agent files contain one section per selected Module and are updated by `add` and `remove`.
 
 ### 7. Distribution
