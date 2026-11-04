@@ -12,6 +12,14 @@ export interface UpdateTarget {
   readonly upToDate: boolean;
 }
 
+const adaptedRelease = "shadcn";
+
+function isAdaptedRegistry(registry: LocalRegistry): boolean {
+  return (
+    registry.release === adaptedRelease && registry.releases().every((r) => r === adaptedRelease)
+  );
+}
+
 function byCodepoint(left: string, right: string): number {
   return left < right ? -1 : left > right ? 1 : 0;
 }
@@ -63,7 +71,7 @@ function chooseRelease(
       `Pick one of: ${registry.releases().join(", ")}.`,
     );
   }
-  if (Bun.semver.order(release, locked) < 0) {
+  if (release !== locked && Bun.semver.order(release, locked) < 0) {
     throw new AokitError(
       "INVALID_INPUT",
       `Release ${release} is older than the ${locked} this Project is on, and update does not downgrade.`,
@@ -74,6 +82,10 @@ function chooseRelease(
 }
 
 /**
+ * An Adapted Module's target is the item its Registry serves now, whatever the Release Catalog
+ * says: a changed item has a new `0.0.0-shadcn.<12hex>` version, and one the Registry no longer
+ * serves stays at its locked version.
+ *
  * Chooses the Release an update moves to, the latest one the Registry index lists or `to`, and
  * the Module versions that Release's Catalog map fixes, never the latest Module version. A `to` that is not published, or is older than the Lockfile's
  * Release, is `INVALID_INPUT`. A locked Module of another Registry of the Lockfile keeps its
@@ -86,6 +98,7 @@ export function resolveUpdateTarget(
   to?: string,
 ): UpdateTarget {
   const { release, locked } = chooseRelease(lockfile, registry, to);
+  const adapted = isAdaptedRegistry(registry);
   const releaseModules = registry.catalog(release)?.modules ?? {};
   const versions: Record<string, string> = {};
   let upToDate = release === locked;
@@ -95,6 +108,12 @@ export function resolveUpdateTarget(
   for (const [name, entry] of entries) {
     if (entry.registry !== registry.name && lockfile.registries[registry.name] !== undefined) {
       versions[name] = entry.version;
+      continue;
+    }
+    if (adapted) {
+      const served = registry.selectableVersions(name).at(-1) ?? entry.version;
+      versions[name] = served;
+      upToDate &&= served === entry.version;
       continue;
     }
     const target = releaseModules[name];

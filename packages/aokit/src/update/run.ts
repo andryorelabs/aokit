@@ -263,15 +263,20 @@ function newestRelease(registry: Registry): string {
   );
 }
 
-/** Every version of the primary Registry's locked Modules an update may cross or land on. */
+/**
+ * Every version of the primary Registry's locked Modules an update may cross or land on. For a
+ * shadcn Registry that is the locked version and the item it serves now: their versions are
+ * content hashes, not ordered.
+ */
 function upgradeScope(lockfile: Lockfile, key: string, registry: Registry): [string, string][] {
+  const adapted = registry.source.kind === "shadcn";
   return Object.entries(lockfile.modules)
     .filter(([, entry]) => entry.registry === key)
     .flatMap(([name, entry]) =>
-      registry
-        .versions(name)
-        .filter((version) => Bun.semver.order(version, entry.version) >= 0)
-        .map((version): [string, string] => [name, version]),
+      (adapted
+        ? [...new Set([entry.version, ...registry.selectableVersions(name)])]
+        : registry.versions(name).filter((version) => Bun.semver.order(version, entry.version) >= 0)
+      ).map((version): [string, string] => [name, version]),
     );
 }
 
