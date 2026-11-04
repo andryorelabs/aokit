@@ -172,9 +172,19 @@ Each generated file has exactly one Ownership mode, recorded in `files.<path>.mo
 
 The initial mode comes from the Module's `files[].ownership` (default `managed`). `aokit eject <path>` sets a file to `ejected`: the Lockfile entry keeps its `owners` and last `hash` so `restore` knows what to bring back. `aokit restore <path>` returns an `ejected` file (or a drifted `managed` one) to the state a fresh render of its owners would produce, and sets the mode back to `managed`; for a `seed` file it rewrites the seed content. Command flows are in [lifecycle](lifecycle.md#eject-and-restore).
 
+### Region files
+
+The root `AGENTS.md` and `CLAUDE.md` are Region files: they are `managed`, and the Merger treats them by [Region](engine.md#marker-regions) instead of by line ([ADR 0020](../adr/0020-agent-files-are-region-files-merged-by-region.md)).
+
+- Each Region the user did not edit is replaced with its next content; a Region the next Render no longer has is deleted; text outside markers is never changed.
+- A Region the user edited is 3-way merged on its own, and Conflict markers stay inside it.
+- A new Region goes right after the closest earlier Region (in the next Render's order) that the file already has.
+- A file with no aokit markers at a path the next Render writes is adopted: the user's text is kept after the inserted Regions, with no Conflict.
+- The Lockfile `owners` of these files include the reserved `aokit` owner for the header and `CLAUDE.md`.
+
 ## Per-file hashes
 
-`files.<path>.hash` is the hash of the file as aokit last wrote it. Comparing it with the hash of the file on disk now gives a drift state without rendering anything:
+`files.<path>.hash` is the hash of the file as aokit last wrote it. For a [Region file](#region-files) it covers only the line-ending-normalized aokit Regions, so text outside markers is not drift and an edit inside a Region is `modified`. Comparing it with the hash of the file on disk now gives a drift state without rendering anything:
 
 | State | Condition |
 | --- | --- |

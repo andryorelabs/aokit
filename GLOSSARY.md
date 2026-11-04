@@ -29,7 +29,7 @@ The stable locator of an Extension point inside its Target's files, such as a to
 _Avoid_: marker, hook point
 
 **Provenance**:
-The Modules, and the file entry or Op, that caused a change in a Plan.
+The Modules (or aokit itself, for its own Regions), and the file entry or Op, that caused a change in a Plan.
 _Avoid_: origin, blame
 
 **Target**:
@@ -71,6 +71,22 @@ _Avoid_: config, manifest (a manifest describes a module, not a project)
 **Ownership mode**:
 Per generated file, one of `managed` (regenerated and 3-way merged), `seed` (written once), or `ejected` (the user's, never touched again).
 _Avoid_: lock state, protection level
+
+**Region**:
+A span of a Markdown file between aokit begin and end markers, owned by one Module or by aokit itself; aokit rewrites only its Regions.
+_Avoid_: block, managed section
+
+**Region file**:
+A managed file made of Regions plus the user's own text, such as `AGENTS.md` and `CLAUDE.md`.
+_Avoid_: mixed file
+
+**Agent files**:
+`AGENTS.md`, `CLAUDE.md` and the Skills of a Project, which tell coding agents how the Project is built.
+_Avoid_: AI docs, agent config
+
+**Skill**:
+A `.claude/skills/<name>/SKILL.md` file a Module ships to teach an agent one workflow of that Module.
+_Avoid_: recipe, playbook
 
 **Plan**:
 The reviewable result of resolving a configuration into file changes before anything is written (`create --dry-run`, `update --plan`).
@@ -137,6 +153,7 @@ _Avoid_: app, workspace
 - The Lockfile assigns every generated file an **Ownership mode** and records which Modules are **Selected Modules**.
 - A **Render** is built from a selection, or from the Lockfile, and compared with the working tree to give each file a **Drift state**.
 - The **Merger** combines the base Render, the user's file and the new Render; what it cannot reconcile is a **Conflict**.
+- A **Region file** holds one **Region** per Module plus aokit's header; the Merger replaces Regions and keeps the user's text outside them.
 - A **Registry** publishes **Releases**; each Release has one **Catalog**; the **Toolchain pin group** is the part of the Catalog pinned exactly.
 - A command fetches only from a **Trusted Registry**; a git-hosted Registry is fetched at its **Pin**, and a **Yanked version** is served but never chosen.
 - A Module version may ship **Migrations** and a **Renames manifest**; `update` moves a Project from one Release to another and runs them.
@@ -144,4 +161,5 @@ _Avoid_: app, workspace
 ## Flagged ambiguities
 
 - "preset" is deliberately absent: reusable selections are the Lockfile of a real project (`create --from`), not a maintained bundle.
+- "marker" means only the begin or end comment of a Region; an Anchor is never a marker.
 - "template" means only a Module's plain source files; it never means a bundle of choices.

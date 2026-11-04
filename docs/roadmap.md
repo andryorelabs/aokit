@@ -141,11 +141,14 @@ Exit criteria:
 
 #### 6b. Agent files
 
-Scope: `AGENTS.md` (and `CLAUDE.md` as `@AGENTS.md`) with per-Module sections, and skills in generated Projects ([Interfaces](architecture/interfaces.md#agent-files-in-generated-projects)).
+Scope: `AGENTS.md` (and `CLAUDE.md` as `@AGENTS.md`) with an aokit-owned header and per-Module Regions, and skills in generated Projects, as Region files with a Region-aware Merger, hash and adoption of hand-written files ([Interfaces](architecture/interfaces.md#agent-files-in-generated-projects), [ADR 0020](adr/0020-agent-files-are-region-files-merged-by-region.md)); a Region for each curated Module and Adapted Module, one skill (`hono`), `SKILL.md` validation in `registry:build`, Release `2026.11.2`, and the Upgrade job testing the last Release pair.
 
 Exit criteria:
 
 - Generated agent files contain one section per selected Module and are updated by `add` and `remove`.
+- A user's notes outside the markers survive `add`, `remove` and `update` and are not reported as drift.
+- A hand-written `AGENTS.md` is adopted by `update` with no Conflict.
+- The Upgrade job (`2026.11.1` to `2026.11.2`, with a user note appended to `AGENTS.md`) is green.
 
 ### 7. Distribution
 
