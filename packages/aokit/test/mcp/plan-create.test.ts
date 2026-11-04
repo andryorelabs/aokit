@@ -9,6 +9,7 @@ import {
   entriesOf,
   newWorkspace,
   planChangeCount,
+  releasedRegistry,
 } from "./helpers.ts";
 
 const workspace = newWorkspace();
@@ -238,5 +239,22 @@ describe("invalid tool input", () => {
     expect(result.error?.code).toBe("INVALID_INPUT");
     expect(result.error?.fix).toContain("null");
     expect(entriesOf(workspace)).not.toContain("partial");
+  });
+});
+
+describe("planId and the Release", () => {
+  test("the same input against another Release yields another planId", async () => {
+    const first = await releasedRegistry(workspace, "2026.11.0");
+    const second = await releasedRegistry(workspace, "2026.12.0");
+    const client = await connectClient();
+    const directory = join(workspace, "released");
+    const planOn = (registry: string) =>
+      callTool(client, "plan", { ...createInput(directory, "oxc"), registry });
+    const onFirst = await planOn(first);
+    const onSecond = await planOn(second);
+    expect(onFirst.error).toBeNull();
+    expect(onSecond.error).toBeNull();
+    expect(onFirst.data?.["release"]).not.toBe(onSecond.data?.["release"]);
+    expect(onFirst.data?.["planId"]).not.toBe(onSecond.data?.["planId"]);
   });
 });

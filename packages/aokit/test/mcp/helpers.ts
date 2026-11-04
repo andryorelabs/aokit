@@ -1,6 +1,6 @@
 import { expect } from "bun:test";
 import { existsSync, mkdtempSync, readdirSync, realpathSync } from "node:fs";
-import { mkdir, rm, writeFile } from "node:fs/promises";
+import { mkdir, readFile, rename, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { Client, InMemoryTransport } from "@modelcontextprotocol/client";
@@ -50,6 +50,20 @@ export async function conflictingRegistry(workspace: string): Promise<string> {
     `export default { name: "eslint", version: "1.0.0", provides: ["eslint"], conflicts: ["lint"] };\n`,
   );
   const out = join(workspace, "conflicting-registry");
+  await buildRegistry(source, out);
+  await rm(source, { recursive: true, force: true });
+  return out;
+}
+
+/** Builds a fixture Registry with the bundled fixture's files under another Release. */
+export async function releasedRegistry(workspace: string, release: string): Promise<string> {
+  const source = await writeRegistrySourceFixture();
+  const catalog = join(source, "catalog");
+  const original = join(catalog, "2026.11.0.json");
+  const renamed = join(catalog, `${release}.json`);
+  await rename(original, renamed);
+  await writeFile(renamed, (await readFile(renamed, "utf8")).replace("2026.11.0", release));
+  const out = join(workspace, `registry-${release}`);
   await buildRegistry(source, out);
   await rm(source, { recursive: true, force: true });
   return out;

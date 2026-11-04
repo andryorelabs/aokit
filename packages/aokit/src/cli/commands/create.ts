@@ -92,6 +92,7 @@ const createOutput = z.object({
   diff: z.string().optional(),
   warnings: z.array(z.string()),
   reproduce: z.string(),
+  release: z.string(),
 });
 
 function splitModules(modules: string | undefined): string[] {

@@ -73,9 +73,8 @@ function commandInputOf(
 }
 
 /**
- * Runs `create` as a dry run and derives its `planId` from the normalized input, the Release and
- * the Plan's VFS hash. The CLI version stands for the Release: the `create` output does not carry
- * the resolved Release, and the bundled Registry's Release is fixed by the CLI version.
+ * Runs `create` as a dry run and derives its `planId` from the normalized input, the resolved
+ * Release and the Plan's VFS hash.
  */
 async function planCreate(
   context: CommandContext,
@@ -92,7 +91,8 @@ async function planCreate(
   const plan = isRecord(data["plan"]) ? data["plan"] : {};
   const vfsHash = typeof plan["hash"] === "string" ? plan["hash"] : "";
   const { dryRun: _dryRun, ...normalized } = commandInput;
-  const planId = computePlanId({ tool: "create", input: normalized }, context.version, vfsHash);
+  const release = typeof data["release"] === "string" ? data["release"] : "";
+  const planId = computePlanId({ tool: "create", input: normalized }, release, vfsHash);
   return { ok: true, planned: { data, planId } };
 }
 
