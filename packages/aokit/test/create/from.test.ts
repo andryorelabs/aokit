@@ -117,5 +117,5 @@ test("a Lockfile whose integrity does not match the Registry fails", async () =>
   await Bun.write(path, JSON.stringify(lock, null, 2));
   const envelope = await create({ directory: uniqueDirectory("b"), from: path });
   expect(envelope.ok).toBe(false);
-  if (!envelope.ok) expect(envelope.error.message).toContain("REGISTRY_INTEGRITY_MISMATCH");
+  if (!envelope.ok) expect(envelope.error.code).toBe("REGISTRY_INTEGRITY_MISMATCH");
 });

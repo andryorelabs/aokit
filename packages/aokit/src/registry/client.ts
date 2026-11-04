@@ -1,11 +1,5 @@
 import { z } from "zod";
-import {
-  type Catalog,
-  catalogSchema,
-  ManifestError,
-  type ModuleManifest,
-  parseManifest,
-} from "@aokit/module";
+import { catalogSchema, ManifestError, type ModuleManifest, parseManifest } from "@aokit/module";
 import { RegistryError } from "./errors.ts";
 import { computeIntegrity, computeModuleIntegrity, type Integrity } from "./integrity.ts";
 import {
@@ -15,8 +9,11 @@ import {
   urlTransport,
 } from "./remote.ts";
 import {
+  catalogFileSchema,
+  type ReleaseCatalog,
   type RegistryIndex,
   registryIndexSchema,
+  releaseModulesSchema,
   supportedRegistrySchemaVersion,
 } from "./schema.ts";
 import { formatRegistrySource, type RegistrySource } from "./source.ts";
@@ -73,11 +70,11 @@ export interface Registry {
   readonly index: RegistryIndex;
   /** The current Release, whose Catalog is `currentCatalog`. */
   readonly release: string;
-  readonly currentCatalog: Catalog;
+  readonly currentCatalog: ReleaseCatalog;
   /** Every published Release, sorted. */
   releases(): string[];
   /** The Catalog of a published Release, or `undefined` when the Registry never published it. */
-  catalog(release: string): Promise<Catalog | undefined>;
+  catalog(release: string): Promise<ReleaseCatalog | undefined>;
   /** Every published version of a Module in ascending semver order; empty for an unknown Module. */
   versions(name: string): string[];
   /** A published Module version; throws `REGISTRY_MODULE_NOT_FOUND` when the index lacks it. */
@@ -288,7 +285,7 @@ async function readCatalog(
   registryName: string,
   release: string,
   pointer: RegistryIndex["releases"][string],
-): Promise<Catalog> {
+): Promise<ReleaseCatalog> {
   const subject = `Registry "${registryName}" Catalog ${pointer.path}`;
   const text = await transport.read(pointer.path);
   if (text === undefined) {
@@ -308,9 +305,21 @@ async function readCatalog(
       "Fix the Catalog source and rebuild the Registry.",
       { registry: registryName, path: pointer.path },
     );
-  const parsed = catalogSchema.safeParse(parseJson(text, invalid));
-  if (!parsed.success) {
-    throw invalid(parsed.error.issues.map((issue) => issue.message).join("; "));
+  const file = catalogFileSchema.safeParse(parseJson(text, invalid));
+  const { modules: rawModules, ...rawCatalog } = file.success ? file.data : {};
+  const parsed = catalogSchema.safeParse(rawCatalog);
+  const parsedModules = releaseModulesSchema.safeParse(rawModules);
+  if (!parsed.success || !parsedModules.success) {
+    const issues = [
+      ...(parsed.success ? [] : parsed.error.issues),
+      ...(parsedModules.success
+        ? []
+        : parsedModules.error.issues.map((issue) => ({
+            ...issue,
+            message: `modules: ${issue.message}`,
+          }))),
+    ];
+    throw invalid(issues.map((issue) => issue.message).join("; "));
   }
   if (parsed.data.release !== release) {
     throw new RegistryError(
@@ -320,7 +329,7 @@ async function readCatalog(
       { registry: registryName, expected: release, actual: parsed.data.release ?? "(none)" },
     );
   }
-  return parsed.data;
+  return { ...parsed.data, modules: parsedModules.data };
 }
 
 /**
@@ -615,7 +624,7 @@ export async function openRegistry(
     );
   }
   const currentCatalog = await readCatalog(transport, index.name, index.release, currentPointer);
-  const catalogs = new Map<string, Promise<Catalog>>([
+  const catalogs = new Map<string, Promise<ReleaseCatalog>>([
     [index.release, Promise.resolve(currentCatalog)],
   ]);
   const loadedVersions = new Map<string, Promise<ModuleVersion>>();

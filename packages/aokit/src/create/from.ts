@@ -103,8 +103,8 @@ function assertIntegrity(source: Lockfile, rendered: Lockfile): void {
     const actual = rendered.modules[name]?.integrity;
     if (actual !== entry.integrity) {
       throw new AokitError(
-        "IO_ERROR",
-        `[REGISTRY_INTEGRITY_MISMATCH] Module ${name}@${entry.version} in Registry "${entry.registry}": the Lockfile records ${entry.integrity}, the Registry holds ${actual}.`,
+        "REGISTRY_INTEGRITY_MISMATCH",
+        `Module ${name}@${entry.version} in Registry "${entry.registry}": the Lockfile records ${entry.integrity}, the Registry holds ${actual}.`,
         "Restore the Registry the Lockfile was created from, or recreate the Project with `aokit create`.",
       );
     }
