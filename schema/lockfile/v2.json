@@ -194,6 +194,9 @@
           "source": {
             "minLength": 1,
             "type": "string"
+          },
+          "trusted": {
+            "type": "boolean"
           }
         },
         "required": [
