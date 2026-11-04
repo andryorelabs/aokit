@@ -1,5 +1,4 @@
 {
-  "release": "2026.11.1",
   "dependencies": {
     "@tailwindcss/vite": "^4.3.4",
     "@types/bun": "^1.4.4",
@@ -16,7 +15,17 @@
     "typescript": "^7.0.2",
     "vite": "^8.3.5"
   },
+  "modules": {
+    "coolify": "1.0.0",
+    "docker": "1.0.0",
+    "hono": "1.0.0",
+    "knip": "1.0.0",
+    "oxc": "1.0.1",
+    "tailwind4": "1.0.0",
+    "vite-react": "1.1.0"
+  },
   "pinGroups": {
     "oxc": ["oxlint", "oxfmt"]
-  }
+  },
+  "release": "2026.11.1"
 }

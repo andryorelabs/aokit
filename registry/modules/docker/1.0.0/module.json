@@ -1,5 +1,5 @@
 {
-  "$schema": "https://aokit.dev/schema/module/v1.json",
+  "$schema": "https://aokit.andryore.dev/schema/module/v1.json",
   "conflicts": [],
   "env": [],
   "extensionPoints": [],

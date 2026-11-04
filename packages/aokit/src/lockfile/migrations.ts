@@ -28,7 +28,7 @@ function mapEntries(
   );
 }
 
-const lockfileV2SchemaUrl = "https://aokit.dev/schema/lockfile/v2.json";
+const lockfileV2SchemaUrl = "https://aokit.andryore.dev/schema/lockfile/v2.json";
 
 /**
  * `v1 -> v2`: every Module becomes `selected: true` (v1 did not distinguish) and every dependency

@@ -9,7 +9,7 @@ export const supportedManifestSchemaVersion = 1;
 /**
  * Public URL of the versioned JSON Schema of the manifest.
  */
-export const manifestSchemaUrl = "https://aokit.dev/schema/module/v1.json";
+export const manifestSchemaUrl = "https://aokit.andryore.dev/schema/module/v1.json";
 
 const kebabName = z.string().regex(/^[a-z][a-z0-9]*(-[a-z0-9]+)*$/, {
   message: "must be lowercase kebab-case",

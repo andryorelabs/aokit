@@ -1,5 +1,5 @@
 {
-  "$schema": "https://aokit.dev/schema/registry/v1.json",
+  "$schema": "https://aokit.andryore.dev/schema/registry/v1.json",
   "minCliVersion": "0.1.0",
   "modules": {
     "coolify": {
@@ -9,7 +9,7 @@
           "files": {
             "files/docker-compose.coolify.yaml": "sha256-caacafc18d5a2e32af00dba1e396efb7894ee95f1822ed038e82a6b78024ef49"
           },
-          "integrity": "sha256-062bbd98bc7623a2e397e084c29359db63c7b2f05f25cf988592d06c4de6ee6d",
+          "integrity": "sha256-6a487d05d584978c296e7460f6917fa60a2e1c4c1d770eebbd29380c036cf069",
           "manifest": "modules/coolify/1.0.0/module.json",
           "provides": ["deploy"],
           "schemaVersion": 1
@@ -24,7 +24,7 @@
             "files/Dockerfile": "sha256-1583e87fe6068db8ee47a91b182b361e57e0dad19a311d62b9cca7145f8318b8",
             "files/dockerignore": "sha256-03197980f549e8ba951fa6065b7071f2f1c89c0ceb8db6cc07608471a28690e9"
           },
-          "integrity": "sha256-7b3c5dd13ebcc0d36973a7765c5523b5d72b28185b28fb0cf2590784782a539d",
+          "integrity": "sha256-0f0c65d5d0289c9714cfee7dac838c8fb6b91714c1451df91434f889986cc416",
           "manifest": "modules/docker/1.0.0/module.json",
           "provides": ["deploy", "container"],
           "schemaVersion": 1
@@ -38,7 +38,7 @@
           "files": {
             "files/app.ts": "sha256-a576a83c1453eb9bb95005ffb9fef6f7d396639381a59f86031f0fc1ef8f4541"
           },
-          "integrity": "sha256-b18e2b245cf76072606c4b57f899e55348d1897d8203c67e84b45358fe33b838",
+          "integrity": "sha256-bf0dc4f738afa6b0cf6815b2575cff5ad9c2b18a338d46e16fa6cb76647e47cd",
           "manifest": "modules/hono/1.0.0/module.json",
           "provides": ["server", "api:http"],
           "schemaVersion": 1
@@ -52,7 +52,7 @@
           "files": {
             "files/knip.json": "sha256-0007d9d0dc2b69ab9338b08e4b294f76d8bb72c6118a3ead5f5b9b3aea42d590"
           },
-          "integrity": "sha256-e0033c7a432cf3efd4855684968c44879fe54de2a8c35719083575ecb913224d",
+          "integrity": "sha256-4f25edbb2c9144d233eb2f4c85fda93ad059c0769513f3987f439e9eb35f541c",
           "manifest": "modules/knip/1.0.0/module.json",
           "provides": ["unused-code"],
           "schemaVersion": 1
@@ -67,7 +67,7 @@
             "files/oxfmtrc.json": "sha256-7ca658c7bc0bc9c6349df4a082d763b08274f17e1a0f541c3adb65fc6ea93227",
             "files/oxlintrc.json": "sha256-41f0f5f70b133ff26d4dce08b73e817dd0c2306b41857371921e879b61ee221b"
           },
-          "integrity": "sha256-d0b874de4fbf9169f7b0f7190a711edb5a382092eabb3a19eeb34bd5a407e9aa",
+          "integrity": "sha256-9fcc4f9e5da12d85521da60a06cf4bc388dba059b14eb11abaa50b983ac07016",
           "manifest": "modules/oxc/1.0.0/module.json",
           "provides": ["lint", "format"],
           "schemaVersion": 1
@@ -77,7 +77,7 @@
             "files/oxfmtrc.json": "sha256-7ca658c7bc0bc9c6349df4a082d763b08274f17e1a0f541c3adb65fc6ea93227",
             "files/oxlintrc.json": "sha256-a01bad19483c7a5db936bbee2acd9145091ee5d5a47c139d62860c8e15e1afe6"
           },
-          "integrity": "sha256-facd513a0a7e168a7203125175e721b66b8634faec664b2734ec2678d8daabbc",
+          "integrity": "sha256-6f47df8a298466eef8abb972df16aa99606e466ad0b28ada90a3e86c15424e5a",
           "manifest": "modules/oxc/1.0.1/module.json",
           "provides": ["lint", "format"],
           "schemaVersion": 1
@@ -92,7 +92,7 @@
             "files/styles.css": "sha256-4650ea7cbc07104a2fc7e53d850b98eab8310ce4e0bae5a5f7d5da99b1dc8145",
             "files/tailwind-provider.tsx": "sha256-a9b3a5ec86c72a410c7e92cea8c5cf86f2e28b8da78333f4cfa9c9a3109ad6e6"
           },
-          "integrity": "sha256-30c231d69a0ea36453262aebe9707aaee8d62e7b819ee5f07bf9796cff769b8a",
+          "integrity": "sha256-f9f98577aedb35a538182ed723c06fd0d27b9c905122897154b2e631b1dc02da",
           "manifest": "modules/tailwind4/1.0.0/module.json",
           "provides": ["styling"],
           "schemaVersion": 1
@@ -111,7 +111,7 @@
             "files/tsconfig.json": "sha256-3af94e731aaad2740ee1bca5c2f91417ec878ea12f3a22fbbd3653fd47027b00",
             "files/vite.config.ts": "sha256-87859ede600d5b0bbc06ad9b4ca462e6cc6b479dfc420f7e643790e030923045"
           },
-          "integrity": "sha256-ed3029848740ead3b6b0598936931be8fc0cf3039041bb86502e3cb459ebe042",
+          "integrity": "sha256-a2e84131f184a7a34582cecfd0171170bd0d731b8ead2d36d3586d50d03e4be9",
           "manifest": "modules/vite-react/1.0.0/module.json",
           "provides": ["web", "web:spa"],
           "schemaVersion": 1
@@ -127,7 +127,7 @@
             "migrations/routes-to-router.after.js": "sha256-21686764f847f8d1635c362c02697b0a9a72ba66123d43082057e6e868b12659",
             "renames.json": "sha256-7d44a3900ddedea62e22ada0961f54908379c0e3cf195cf1f092412aa9cde67f"
           },
-          "integrity": "sha256-b2974c2d3e3a980983774ec31f890c92c863fab3953f23bc4f347ecc907a7202",
+          "integrity": "sha256-f8ed321cc390db19feb2207040d1a90f63d2cae9b21da669f6ae257c988f5a37",
           "manifest": "modules/vite-react/1.1.0/module.json",
           "provides": ["web", "web:spa"],
           "schemaVersion": 1
@@ -139,11 +139,11 @@
   "release": "2026.11.1",
   "releases": {
     "2026.11.0": {
-      "integrity": "sha256-2968f80b287097945747c596d7639c44e5df5075aff4e3f2f098dc90b92e3073",
+      "integrity": "sha256-311a21c45fe4c05a051c42696b855036cb52ee3bd83b435ff53c4c2461256730",
       "path": "catalog/2026.11.0.json"
     },
     "2026.11.1": {
-      "integrity": "sha256-934c599ceaeb8edf14bb6a992cc3a1bf4d80769cfea79f0e01d321118c6e7d5f",
+      "integrity": "sha256-7e88a3fbb9d6958cc184ad43cf7babe6ba5d4c10e1ff9aabed62e1ca94ff822c",
       "path": "catalog/2026.11.1.json"
     }
   },

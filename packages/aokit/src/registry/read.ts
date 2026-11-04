@@ -1,13 +1,7 @@
 import { readFile } from "node:fs/promises";
 import { join, resolve } from "node:path";
 import { z } from "zod";
-import {
-  type Catalog,
-  catalogSchema,
-  ManifestError,
-  type ModuleManifest,
-  parseManifest,
-} from "@aokit/module";
+import { catalogSchema, ManifestError, type ModuleManifest, parseManifest } from "@aokit/module";
 import { RegistryError } from "./errors.ts";
 import {
   computeIntegrity,
@@ -16,8 +10,11 @@ import {
   normalizeLineEndings,
 } from "./integrity.ts";
 import {
+  catalogFileSchema,
   type RegistryIndex,
   registryIndexSchema,
+  type ReleaseCatalog,
+  releaseModulesSchema,
   supportedRegistrySchemaVersion,
 } from "./schema.ts";
 
@@ -49,12 +46,12 @@ export interface LocalRegistry {
   name: string;
   /** The current Release, whose Catalog is `currentCatalog`. */
   release: string;
-  currentCatalog: Catalog;
+  currentCatalog: ReleaseCatalog;
   modules: Map<string, RegistryModule>;
   /** Every published Release, sorted. */
   releases(): string[];
   /** The Catalog of a published Release, or `undefined` when the Registry never published it. */
-  catalog(release: string): Catalog | undefined;
+  catalog(release: string): ReleaseCatalog | undefined;
   /** A published Module version, or `undefined` when the Registry does not hold it. */
   version(name: string, version: string): RegistryModule | undefined;
   /** Every published version of a Module in ascending semver order; empty for an unknown Module. */
@@ -188,7 +185,7 @@ async function readCatalog(
   registryName: string,
   release: string,
   pointer: RegistryIndex["releases"][string],
-): Promise<Catalog> {
+): Promise<ReleaseCatalog> {
   const subject = `Registry "${registryName}" Catalog ${pointer.path}`;
   const text = await readText(
     join(root, pointer.path),
@@ -200,21 +197,32 @@ async function readCatalog(
       ),
   );
   verifyIntegrity(computeIntegrity(text), pointer.integrity, subject);
-  const parsed = catalogSchema.safeParse(
-    parseJson(
-      text,
-      (reason) =>
-        new RegistryError(
-          "REGISTRY_CATALOG_INVALID",
-          `${subject} is not valid JSON: ${reason}`,
-          "Fix the Catalog source and rebuild the Registry.",
-        ),
-    ),
+  const raw = parseJson(
+    text,
+    (reason) =>
+      new RegistryError(
+        "REGISTRY_CATALOG_INVALID",
+        `${subject} is not valid JSON: ${reason}`,
+        "Fix the Catalog source and rebuild the Registry.",
+      ),
   );
-  if (!parsed.success) {
+  const file = catalogFileSchema.safeParse(raw);
+  const { modules: rawModules, ...rawCatalog } = file.success ? file.data : {};
+  const parsed = catalogSchema.safeParse(rawCatalog);
+  const parsedModules = releaseModulesSchema.safeParse(rawModules);
+  if (!parsed.success || !parsedModules.success) {
+    const issues = [
+      ...(parsed.success ? [] : parsed.error.issues),
+      ...(parsedModules.success
+        ? []
+        : parsedModules.error.issues.map((issue) => ({
+            ...issue,
+            message: `modules: ${issue.message}`,
+          }))),
+    ];
     throw new RegistryError(
       "REGISTRY_CATALOG_INVALID",
-      `${subject} is invalid: ${parsed.error.issues.map((issue) => issue.message).join("; ")}`,
+      `${subject} is invalid: ${issues.map((issue) => issue.message).join("; ")}`,
       "Fix the Catalog source and rebuild the Registry.",
     );
   }
@@ -225,7 +233,7 @@ async function readCatalog(
       `Point the index release ${release} at catalog/${release}.json, or set its "release" to ${release}, then rebuild.`,
     );
   }
-  return parsed.data;
+  return { ...parsed.data, modules: parsedModules.data };
 }
 
 function checkManifestMatchesEntry(
@@ -407,6 +415,17 @@ export async function readLocalRegistry(
       `Registry "${index.name}" has no Catalog for its current Release ${index.release}.`,
       "Rebuild the Registry with `bun run registry:build`.",
     );
+  }
+  for (const [release, catalog] of catalogs) {
+    for (const [name, version] of Object.entries(catalog?.modules ?? {})) {
+      if (index.modules[name]?.versions[version] === undefined) {
+        throw new RegistryError(
+          "REGISTRY_CATALOG_INVALID",
+          `Registry "${index.name}" Catalog of Release ${release} maps ${name} to ${version}, which the index does not list.`,
+          "Rebuild the Registry with `bun run registry:build`.",
+        );
+      }
+    }
   }
   const versions = Object.entries(index.modules)
     .toSorted(([left], [right]) => byCodepoint(left, right))

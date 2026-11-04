@@ -67,7 +67,7 @@
   "additionalProperties": false,
   "properties": {
     "$schema": {
-      "default": "https://aokit.dev/schema/module/v1.json",
+      "default": "https://aokit.andryore.dev/schema/module/v1.json",
       "type": "string"
     },
     "answers": {
