@@ -9,6 +9,7 @@ import { assertCleanTree } from "../../git/index.ts";
 import { LockfileError, readLockfile } from "../../lockfile/index.ts";
 import type { Lockfile } from "../../lockfile/schema.ts";
 import { renderFromLockfile } from "../../pipeline/index.ts";
+import { isRegionFile, spliceRegions } from "../../patchers/markdown/regions.ts";
 import { unifiedDiff } from "../../project/diff.ts";
 import { toAokitError } from "../../project/errors.ts";
 import { defineCommand } from "../command.ts";
@@ -159,7 +160,14 @@ function restoreChanges(
   current: FileContent | undefined,
 ): PlanChange[] {
   const file = rendered.vfs.get(path);
-  if (file === undefined || (current !== undefined && sameContent(current, file.content))) {
+  if (file === undefined) {
+    return [];
+  }
+  const content =
+    isRegionFile(path) && typeof current === "string" && typeof file.content === "string"
+      ? spliceRegions(current, file.content)
+      : file.content;
+  if (current !== undefined && sameContent(current, content)) {
     return [];
   }
   const provenance = rendered.changes.find((change) => change.path === path)?.provenance ?? [];
@@ -167,7 +175,7 @@ function restoreChanges(
     {
       type: current === undefined ? "create" : "update",
       path,
-      content: file.content,
+      content,
       ...(current === undefined ? {} : { previousContent: current }),
       ownership: file.ownership,
       mode: file.mode,
