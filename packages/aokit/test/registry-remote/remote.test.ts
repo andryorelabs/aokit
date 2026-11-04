@@ -260,6 +260,26 @@ test("a redirect to a host that is neither https nor loopback is refused before 
   expect(error.message).toContain("neither https nor a loopback host");
 });
 
+test("an https Registry that redirects to http, even on loopback, is a refused downgrade", async () => {
+  const requested: string[] = [];
+  const redirectingFetch: typeof fetch = Object.assign(
+    async (input: string | URL | Request) => {
+      requested.push(input instanceof Request ? input.url : input.toString());
+      return new Response(null, {
+        status: 302,
+        headers: { location: "http://127.0.0.1:9/index.json" },
+      });
+    },
+    { preconnect: fetch.preconnect },
+  );
+  const error = await captureError(() =>
+    openRegistry(urlSource("https://r.test/base"), { ...context, fetch: redirectingFetch }),
+  );
+  expect(error.code).toBe("REGISTRY_FETCH_FAILED");
+  expect(error.message).toContain("a downgrade");
+  expect(requested).toEqual(["https://r.test/base/index.json"]);
+});
+
 test("the injected fetch is the only way a URL Registry reads, and its failure is REGISTRY_FETCH_FAILED", async () => {
   const requested: string[] = [];
   const failingFetch: typeof fetch = Object.assign(

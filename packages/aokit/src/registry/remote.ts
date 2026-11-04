@@ -114,6 +114,13 @@ async function fetchFollowingSafeRedirects(
       response.status,
     );
   }
+  if (new URL(target).protocol === "https:" && next.protocol !== "https:") {
+    throw fetchFailed(
+      target,
+      `redirected from https to ${next.origin}, a downgrade`,
+      response.status,
+    );
+  }
   return fetchFollowingSafeRedirects(next.href, fetchImpl, redirectsLeft - 1);
 }
 
