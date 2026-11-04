@@ -97,6 +97,9 @@ Some results are neither a plain success nor an unexpected failure: `doctor` fou
 | `REGISTRY_UNTRUSTED` | `5` | The Registry and the exact `--trust` form. |
 | `REGISTRY_FETCH_FAILED` | `1` | The Registry, the URL and the cause. |
 | `REGISTRY_INTEGRITY_MISMATCH` | `1` | The Registry, the Module and both values. |
+| `REGISTRY_ITEM_UNSUPPORTED` | `1` | The shadcn item and its unsupported type. |
+| `REGISTRY_ITEM_CHANGED` | `1` | The item, the recorded integrity and the `aokit update` fix. |
+| `REGISTRY_ENV_UNSET` | `2` | The unset environment variable name, never a value. |
 | `MODULE_VERSION_UNAVAILABLE` | `1` | Module, version and the `aokit recopy` fix (`aokit remove <module>` for `update`). |
 | `MIGRATION_FAILED` | `1` | Module, script and the `from` to `to` jump. |
 | `PLAN_STALE` | `5` | The files whose hash changed since `update --plan`. |

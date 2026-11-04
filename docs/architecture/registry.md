@@ -22,7 +22,7 @@ A Module name is looked up in this order; the first Registry that has it wins:
 3. `remote` and `shadcn` Registries, in the order recorded in the Lockfile.
 4. `official`.
 
-A Module already in the [Lockfile](lockfile.md) is always fetched from the Registry recorded in its `registry` field, never re-resolved by name. That field points at a key of `registries`, whose `source` is `"bundled"` (the Registry shipped with the CLI), a path relative to the Project directory, or, in later phases, a URL or giget ref. Two Registries declaring the same name with different sources is an `INVALID_INPUT` error that names both sources. Two Registries offering the same Module name is not an error when the lookup is unambiguous by the order above; the Plan shows which Registry supplied each Module. Capability names are owned by the Registry that first uses them ([Capabilities](capabilities.md#naming)), and the Resolver reports a disagreement on [Cardinality](capabilities.md#cardinality) as a Registry warning.
+A Module already in the [Lockfile](lockfile.md) is always fetched from the Registry recorded in its `registry` field, never re-resolved by name. That field points at a key of `registries`, whose `source` is `"bundled"` (the Registry shipped with the CLI), a path relative to the Project directory, an `https://` URL or a `github:` ref, or a shadcn Registry URL or Namespace. Two Registries declaring the same name with different sources is an `INVALID_INPUT` error that names both sources. Two Registries offering the same Module name is not an error when the lookup is unambiguous by the order above; the Plan shows which Registry supplied each Module. Capability names are owned by the Registry that first uses them ([Capabilities](capabilities.md#naming)), and the Resolver reports a disagreement on [Cardinality](capabilities.md#cardinality) as a Registry warning.
 
 ## aokit manifest index
 
@@ -172,7 +172,7 @@ Placeholders in file content (imports) are rewritten to the import specifier tha
 | --- | --- | --- |
 | Bare name | `button` | The same shadcn registry as the item that lists it. |
 | Namespaced | `@acme/button` | The Registry configured under the namespace `@acme` (see [Namespaced registries](#namespaced-registries-and-auth)). |
-| `owner/repo/item#ref` | `acme/ui/button#v2` | A GitHub repository via giget; `#ref` is resolved to a commit SHA and pinned ([Pinning](#commit-sha-pinning)). |
+| `owner/repo/item#ref` | `acme/ui/button#v2` | A GitHub repository through the `github:` transport; `#ref` is resolved to a full commit SHA (sha40) and pinned ([Pinning](#commit-sha-pinning)). |
 | URL | `https://example.com/r/button.json` | The URL of one registry-item JSON file; treated as a `remote` source. |
 | Local path | `./registry/button.json` | A file on disk; treated as `local`. |
 
@@ -180,7 +180,7 @@ Each dependency is fetched and integrity-checked like any other Module. A depend
 
 ### Namespaced registries and auth
 
-Namespaces are configured in the aokit config:
+Namespaces are configured under `registries` in the user config (`$XDG_CONFIG_HOME/aokit/config.json`). They are always shadcn kind, `url` must contain `{name}`, and `@shadcn` (`https://ui.shadcn.com/r/{name}.json`) is built in and untrusted until trusted:
 
 ```json
 {
@@ -193,19 +193,21 @@ Namespaces are configured in the aokit config:
 }
 ```
 
-- `${VAR}` in `url`, `headers` and `params` is expanded from the process environment (and `.env`) at request time.
+- `${VAR}` in `url` and `headers` is expanded from the process environment (and `.env`) at request time.
 - Expanded values are never written to the Lockfile, to logs, or to `--json` output; an unset variable is an error that names it.
-- Headers are sent only to the host of that namespace, never on a redirect to another host.
+- Headers are sent only to the origin (scheme, host and port) of that namespace and are dropped on a redirect to another origin.
+- An unset variable fails with `REGISTRY_ENV_UNSET`.
 - The config stores the placeholder, not the secret.
 
 ### What shadcn lacks and aokit adds
 
 shadcn has no lockfile and no integrity hash: an item is fetched and written, and nothing records which version or bytes it was. The adapter adds, for adapted Modules:
 
-- A synthetic version: the commit SHA for git sources, otherwise the sha256 of the item JSON.
+- A synthetic semver version `0.0.0-shadcn.<12hex>`, where the hex is a prefix of the commit SHA for git sources, otherwise of the sha256 of the item JSON; the full integrity is stored beside it. The Module is named `@ns/item` (an un-namespaced Registry uses its Lockfile Registry key as scope).
 - `registry` and `integrity` entries in the [Lockfile](lockfile.md), as for any Module.
-- sha256 per file, per-file Ownership mode (`managed` by default, `seed` for starter files) and ownership of the CSS and `.env` regions the item touched, so `update`, `doctor` and `remove` work.
-- A fetch-time check against the recorded `integrity`: when the upstream item changed, the CLI reports it as an update, never silently re-applies it.
+- sha256 per file, per-file Ownership mode (`seed` for `page` and `file` items, `managed` otherwise) and ownership of the CSS and `.env` regions the item touched, so `update`, `doctor` and `remove` work.
+- A fetch-time check against the recorded `integrity`: when the upstream item changed, the CLI reports it as an update, never silently re-applies it. The integrity cache is mandatory for shadcn items; when the recorded integrity is neither cached nor served, `doctor` and `remove` fail with `REGISTRY_ITEM_CHANGED` and suggest `update`.
+- Deferred item types: `registry:base` and `registry:font` fail with `REGISTRY_ITEM_UNSUPPORTED` naming the item. See [ADR 0018](../adr/0018-shadcn-items-are-adapted-modules.md).
 
 ## Trust model
 

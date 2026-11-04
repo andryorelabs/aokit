@@ -44,6 +44,14 @@ _Avoid_: structure, topology
 A source of module manifests that is versioned and integrity-checked: official, local, remote, or shadcn-adapted.
 _Avoid_: store, marketplace
 
+**Adapted Module**:
+A Module synthesised from a shadcn Registry item, declarative only, named `@namespace/item` and versioned `0.0.0-shadcn.<12hex>`; it follows the same Plan, Lockfile and lifecycle as a native Module.
+_Avoid_: shadcn component, imported item
+
+**Namespace**:
+An `@name` configured under `registries` in the user config that addresses a shadcn Registry by a URL template and optional headers.
+_Avoid_: scope (a Namespace is configured, not published), alias
+
 **Trusted Registry**:
 A Registry whose content may run in a Project: the official and local Registries, and any other one the user allowed by the user config, `--trust` or the Project's Lockfile.
 _Avoid_: verified Registry, safe Registry

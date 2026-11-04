@@ -113,7 +113,7 @@ Exit criteria:
 
 #### 5b. shadcn adapter
 
-Scope: the shadcn adapter with item type mapping, alias placeholders and `registryDependencies`, and namespaced Registries with `${VAR}` auth ([Registry](architecture/registry.md#shadcn-adapter)).
+Scope: the shadcn adapter with item type mapping, alias placeholders and `registryDependencies`, and namespaced Registries with `${VAR}` auth ([Registry](architecture/registry.md#shadcn-adapter), [ADR 0018](adr/0018-shadcn-items-are-adapted-modules.md)). The `registry:base` and `registry:font` item types are deferred. The phase also wires `op` overrides in the Engine and adds the `addCssVariables` Op.
 
 Exit criteria:
 
