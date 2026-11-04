@@ -1,7 +1,6 @@
-import { createRequire } from "node:module";
 import type { Catalog, ModuleManifest } from "@aokit/module";
 import { format } from "oxfmt";
-import { z } from "zod";
+import oxfmtManifest from "oxfmt/package.json" with { type: "json" };
 import type { Formatter, Vfs } from "../engine/index.ts";
 import { optionsFor, readProjectConfigs } from "./config.ts";
 import { FormatError } from "./errors.ts";
@@ -12,16 +11,10 @@ const pinGroup = "oxc";
 const packageName = "oxfmt";
 const formatCapability = "format";
 const unsupportedPrefix = "Unsupported file type";
-const installedManifestSchema = z.object({ version: z.string().min(1) });
 
 /** Options of {@link createOxfmtFormatter}. */
 export interface OxfmtFormatterOptions {
   readonly catalog: Catalog;
-}
-
-function installedOxfmtVersion(): string {
-  const manifest: unknown = createRequire(import.meta.url)(`${packageName}/package.json`);
-  return installedManifestSchema.parse(manifest).version;
 }
 
 function assertPinnedVersion(catalog: Catalog): void {
@@ -33,7 +26,7 @@ function assertPinnedVersion(catalog: Catalog): void {
       `Add "${packageName}" to the Catalog dependencies and to pin group "${pinGroup}".`,
     );
   }
-  const installed = installedOxfmtVersion();
+  const installed = oxfmtManifest.version;
   if (pinned !== installed) {
     throw new FormatError(
       "format.version-mismatch",

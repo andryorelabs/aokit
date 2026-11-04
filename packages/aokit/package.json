@@ -1,29 +1,43 @@
 {
   "name": "aokit",
   "version": "0.1.0",
-  "private": true,
   "license": "MIT",
   "bin": {
-    "aokit": "./src/cli/main.ts"
+    "aokit": "./dist/cli.js"
   },
+  "files": [
+    "dist",
+    "registry"
+  ],
   "type": "module",
+  "exports": {
+    "./cli": {
+      "types": "./src/cli/run.ts",
+      "default": "./dist/run.js"
+    }
+  },
+  "publishConfig": {
+    "access": "public"
+  },
   "dependencies": {
+    "oxc-parser": "0.157.0",
+    "oxfmt": "0.75.0"
+  },
+  "devDependencies": {
     "@aokit/module": "workspace:*",
+    "@modelcontextprotocol/client": "^2.4.0",
     "@modelcontextprotocol/server": "^2.4.0",
-    "@oxc-parser/binding-wasm32-wasip1": "0.157.0",
     "diff": "^9.0.0",
     "jsonc-parser": "^3.3.1",
     "magic-string": "^1.4.5",
     "magicast": "^0.5.5",
     "node-diff3": "^3.2.1",
-    "oxc-parser": "0.157.0",
-    "oxfmt": "0.75.0",
     "postcss": "^8.5.32",
     "trpc-cli": "^0.17.1",
     "yaml": "^2.9.1",
     "zod": "^4.6.7"
   },
-  "devDependencies": {
-    "@modelcontextprotocol/client": "^2.4.0"
+  "engines": {
+    "bun": ">=1.4.4"
   }
 }
