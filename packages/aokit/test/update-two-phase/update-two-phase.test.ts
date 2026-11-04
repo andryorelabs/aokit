@@ -278,4 +278,27 @@ describe("aokit update --plan / --apply / --abort", () => {
     const text = await read(join(directory, ".git"), "aokit/plan.json");
     expect(planFileSchema.safeParse(JSON.parse(text)).success).toBe(true);
   });
+  test("--apply --json reports the keptDeps and migrations that --plan --json returned", async () => {
+    const { directory } = await project();
+    await commitAll(directory);
+    const planned = await run({ directory, plan: true, install: false });
+    if (!planned.ok) throw new Error(planned.error.message);
+    const plannedData = updateCommand.output.parse(planned.data);
+    expect(plannedData.keptDeps.length).toBeGreaterThan(0);
+    expect(plannedData.migrations.length).toBeGreaterThan(0);
+    const applied = await run({ directory, apply: true, yes: true, install: false });
+    if (!applied.ok) throw new Error(applied.error.message);
+    const appliedData = updateCommand.output.parse(applied.data);
+    expect(appliedData.keptDeps).toEqual(plannedData.keptDeps);
+    expect(appliedData.migrations).toEqual(plannedData.migrations);
+  });
+
+  test("the committed schema/plan/v1.json matches the plan file schema", async () => {
+    const { planJsonSchemaText } = await import("../../src/update/plan-file.ts");
+    const committed = await readFile(
+      join(import.meta.dir, "../../../../schema/plan/v1.json"),
+      "utf8",
+    );
+    expect(committed).toBe(planJsonSchemaText());
+  });
 });

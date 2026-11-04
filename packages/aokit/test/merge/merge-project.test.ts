@@ -311,4 +311,54 @@ describe("mergeProject", () => {
     });
     expect(result.reads.toSorted()).toEqual(["a.txt", "b.txt"]);
   });
+  describe("exec bit", () => {
+    const base = lines("a", "b", "c", "d", "e", "f");
+    const nextText = lines("a", "b", "c", "d", "e", "F");
+
+    async function runWithMode(user: string) {
+      const next = builtOf({ "run.sh": nextText });
+      next.plan.vfs.write("run.sh", nextText, { ownership: "managed", mode: "0755" });
+      const result = await mergeProject({
+        base: vfsOf({ "run.sh": base }),
+        next,
+        readUser: async () => user,
+        lockfile: lockfileOf({ "run.sh": base }),
+        merger: createMerger(),
+        driftOf,
+      });
+      return result;
+    }
+
+    test("pristine files keep the mode", async () => {
+      const result = await runWithMode(base);
+      expect(result.plan.changes[0]?.mode).toBe("0755");
+      expect(result.plan.vfs.get("run.sh")?.mode).toBe("0755");
+    });
+
+    test("both-sides-changed files keep the mode", async () => {
+      const result = await runWithMode(lines("A", "b", "c", "d", "e", "f"));
+      expect(result.conflicts).toEqual([]);
+      expect(result.plan.changes[0]?.content).toBe(lines("A", "b", "c", "d", "e", "F"));
+      expect(result.plan.changes[0]?.mode).toBe("0755");
+      expect(result.plan.vfs.get("run.sh")?.mode).toBe("0755");
+    });
+
+    test("user-modified files that next leaves unchanged keep the mode", async () => {
+      const next = builtOf({ "run.sh": base });
+      next.plan.vfs.write("run.sh", base, { ownership: "managed", mode: "0755" });
+      const edited = lines("A", "b", "c", "d", "e", "f");
+      const result = await mergeProject({
+        base: vfsOf({ "run.sh": base }),
+        next,
+        readUser: async () => edited,
+        lockfile: lockfileOf({ "run.sh": base }),
+        merger: createMerger(),
+        driftOf,
+      });
+      expect(result.conflicts).toEqual([]);
+      const change = result.plan.changes.find((c) => c.path === "run.sh");
+      expect(change === undefined || change.mode === "0755").toBe(true);
+      expect(result.plan.vfs.get("run.sh")?.mode).toBe("0755");
+    });
+  });
 });
