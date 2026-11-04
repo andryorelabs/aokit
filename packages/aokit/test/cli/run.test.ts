@@ -7,6 +7,7 @@ import { runCommand, type CommandContext } from "../../src/cli/command.ts";
 import { exposedCommands, hiddenCommands } from "../../src/cli/commands/registry.ts";
 import { schemaCommand } from "../../src/cli/commands/schema.ts";
 import { stringifySorted } from "../../src/cli/envelope.ts";
+import { createRunOptions } from "../../src/cli/run.ts";
 
 interface CapturedRun {
   exitCode: number;
@@ -86,6 +87,13 @@ async function runOnTerminal(
   });
   return { exitCode, stdout, stderr };
 }
+
+describe("aokit run options", () => {
+  test("the update notice is on for the aokit entry and off only when asked", () => {
+    expect(createRunOptions(["--version"]).updateNotice).toBe(true);
+    expect(createRunOptions(["--version"], { updateNotice: false }).updateNotice).toBe(false);
+  });
+});
 
 describe("aokit update notice", () => {
   test("prints a cached newer version after the output and keeps the exit code", async () => {
