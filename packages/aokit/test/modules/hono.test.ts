@@ -8,7 +8,13 @@ function packageJson(text: string | Uint8Array | undefined): Record<string, unkn
 
 test("hono alone on single writes the server base and its dependencies", async () => {
   const { plan } = expectBuilt(await buildSelection(["hono"]));
-  expect(plan.vfs.paths()).toEqual(["AGENTS.md", "CLAUDE.md", "package.json", "src/app.ts"]);
+  expect(plan.vfs.paths()).toEqual([
+    ".claude/skills/hono-add-route/SKILL.md",
+    "AGENTS.md",
+    "CLAUDE.md",
+    "package.json",
+    "src/app.ts",
+  ]);
 
   const manifest = packageJson(plan.vfs.read("package.json"));
   expect(manifest["dependencies"]).toEqual({ hono: "^4.13.16" });
@@ -18,6 +24,7 @@ test("hono alone on single writes the server base and its dependencies", async (
 test("hono alone on monorepo writes the server package", async () => {
   const { plan } = expectBuilt(await buildSelection(["hono"], { layout: "monorepo" }));
   expect(plan.vfs.paths()).toEqual([
+    ".claude/skills/hono-add-route/SKILL.md",
     "AGENTS.md",
     "CLAUDE.md",
     "apps/server/package.json",
@@ -61,6 +68,7 @@ test("hono records server and api:http in the Lockfile", async () => {
   const { lockfile } = expectBuilt(await buildSelection(["hono"]));
   expect(Object.keys(lockfile.modules)).toEqual(["hono"]);
   expect(Object.keys(lockfile.files)).toEqual([
+    ".claude/skills/hono-add-route/SKILL.md",
     "AGENTS.md",
     "CLAUDE.md",
     "package.json",
