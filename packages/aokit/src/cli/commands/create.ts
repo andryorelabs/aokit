@@ -134,13 +134,14 @@ export const createCommand = defineCommand({
       interactive: !isNonInteractive({
         yes: input.yes,
         env: context.env,
-        isTTY: process.stdin.isTTY,
+        isTTY: context.interactive ?? false,
       }),
       dryRun: input.dryRun,
       diff: input.diff,
       install: input.install,
       version: context.version,
       env: context.env,
+      ...(context.prompt === undefined ? {} : { adapters: { prompt: context.prompt } }),
     });
   },
 });

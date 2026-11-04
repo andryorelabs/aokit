@@ -1,3 +1,4 @@
+import { createInterface } from "node:readline/promises";
 import { createCli, t, type CommanderProgramLike } from "trpc-cli";
 import { z } from "zod";
 import { isColorEnabled } from "./color.ts";
@@ -26,6 +27,19 @@ export interface RunCliOptions {
   env: Readonly<Record<string, string | undefined>>;
   version: string;
   io: CliIo;
+  /** Whether prompts may be shown; the stdin TTY by default. */
+  interactive?: boolean;
+  /** Asks one question on the terminal; a readline prompt on stderr by default. */
+  prompt?: (question: string) => Promise<string>;
+}
+
+async function askOnTerminal(question: string): Promise<string> {
+  const terminal = createInterface({ input: process.stdin, output: process.stderr });
+  try {
+    return await terminal.question(question);
+  } finally {
+    terminal.close();
+  }
 }
 
 interface GlobalFlags {
@@ -134,6 +148,36 @@ function usageFailure(rawMessage: string): Envelope {
   });
 }
 
+interface ProcedureTree {
+  [segment: string]: unknown;
+}
+
+function isProcedureTree(value: unknown): value is ProcedureTree {
+  return typeof value === "object" && value !== null;
+}
+
+/**
+ * Mounts a procedure at its command path: a name with a space (`mcp init`) becomes a nested
+ * subcommand, so the first word is a router and the rest are its procedures.
+ */
+function mountProcedure(tree: ProcedureTree, path: readonly string[], procedure: unknown): void {
+  const [head, ...rest] = path;
+  if (head === undefined) return;
+  if (rest.length === 0) {
+    tree[head] = procedure;
+    return;
+  }
+  const existing = tree[head];
+  const branch: ProcedureTree = isProcedureTree(existing) ? existing : {};
+  tree[head] = branch;
+  mountProcedure(branch, rest, procedure);
+}
+
+function isHiddenTarget(command: AnyCommand, argv: readonly string[]): boolean {
+  const words = command.name.split(" ");
+  return words.every((word, index) => argv[index] === word);
+}
+
 async function dispatchThroughParser(
   options: RunCliOptions,
   context: CommandContext,
@@ -141,9 +185,11 @@ async function dispatchThroughParser(
 ): Promise<Envelope> {
   let captured: Envelope | undefined;
   const parserMessages: string[] = [];
-  const procedures = Object.fromEntries(
-    options.commands.map((command) => [
-      command.name,
+  const procedures: ProcedureTree = {};
+  for (const command of options.commands) {
+    mountProcedure(
+      procedures,
+      command.name.split(" "),
       t.procedure
         .input(toParserSchema(command.input))
         .meta({ description: command.description })
@@ -151,10 +197,11 @@ async function dispatchThroughParser(
           captured = await runCommand(command, context, input);
           return undefined;
         }),
-    ]),
-  );
+    );
+  }
   const cli = createCli({
-    router: t.router(procedures),
+    // oxlint-disable-next-line typescript/no-unsafe-type-assertion -- every leaf is a procedure built above
+    router: t.router(procedures as Parameters<typeof t.router>[0]),
     name: "aokit",
     version: options.version,
   });
@@ -230,6 +277,8 @@ export async function runCli(options: RunCliOptions): Promise<ExitCode> {
     version: options.version,
     env: options.env,
     commands: options.commands,
+    interactive: options.interactive ?? process.stdin.isTTY,
+    prompt: options.prompt ?? askOnTerminal,
   };
 
   let envelope: Envelope;
@@ -242,7 +291,9 @@ export async function runCli(options: RunCliOptions): Promise<ExitCode> {
     }
   } else {
     const parserArgv = flags.rest.length === 0 ? ["--help"] : flags.rest;
-    const hidden = (options.hiddenCommands ?? []).find((command) => command.name === parserArgv[0]);
+    const hidden = (options.hiddenCommands ?? []).find((command) =>
+      isHiddenTarget(command, parserArgv),
+    );
     const parserOptions = hidden === undefined ? options : { ...options, commands: [hidden] };
     envelope = await dispatchThroughParser(parserOptions, context, parserArgv);
   }

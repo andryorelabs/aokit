@@ -1,6 +1,6 @@
 import { resolve as resolvePath } from "node:path";
-import { createInterface } from "node:readline/promises";
 import { z } from "zod";
+import type { CommandContext } from "../command.ts";
 import { toAokitError } from "../../project/errors.ts";
 import { isNonInteractive } from "../../trust/gate.ts";
 import {
@@ -123,14 +123,13 @@ const updateOutput = z.object({
   warnings: z.array(z.string()),
 });
 
-async function askToConfirm(summary: string): Promise<boolean> {
-  const terminal = createInterface({ input: process.stdin, output: process.stderr });
-  try {
-    const answer = await terminal.question(`${summary}\nApply this update? [y/N] `);
-    return /^y(es)?$/i.test(answer.trim());
-  } finally {
-    terminal.close();
-  }
+function confirmerFor(
+  context: CommandContext,
+): ((summary: string) => Promise<boolean>) | undefined {
+  const { prompt } = context;
+  if (context.interactive !== true || prompt === undefined) return undefined;
+  return async (summary) =>
+    /^y(es)?$/i.test((await prompt(`${summary}\nApply this update? [y/N] `)).trim());
 }
 
 function describe(result: UpdateResult, planned: boolean): string {
@@ -223,6 +222,7 @@ export const updateCommand = defineCommand({
     try {
       assertSingleMode(input);
       if (input.abort) return await abortOutput(directory);
+      const confirm = confirmerFor(context);
       const request = {
         dir: directory,
         allowDirty: input.allowDirty,
@@ -235,12 +235,15 @@ export const updateCommand = defineCommand({
         interactive: !isNonInteractive({
           yes: input.yes,
           env: context.env,
-          isTTY: process.stdin.isTTY,
+          isTTY: context.interactive ?? false,
         }),
-        adapters: { env: context.env },
+        adapters: {
+          env: context.env,
+          ...(context.prompt === undefined ? {} : { prompt: context.prompt }),
+        },
         ...(input.registry === undefined ? {} : { registry: input.registry }),
         ...(input.to === undefined ? {} : { to: input.to }),
-        ...(process.stdin.isTTY ? { confirm: askToConfirm } : {}),
+        ...(confirm === undefined ? {} : { confirm }),
       };
       let planFile: string | undefined;
       let result: UpdateResult;

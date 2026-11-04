@@ -12,6 +12,10 @@ export interface CommandContext {
   version: string;
   env: Readonly<Record<string, string | undefined>>;
   commands: readonly AnyCommand[];
+  /** Whether the command may ask the user questions; absent or `false` for MCP and non-terminal runs. */
+  interactive?: boolean;
+  /** Asks one question and resolves with the raw answer; only used when {@link interactive}. */
+  prompt?: (question: string) => Promise<string>;
 }
 
 export interface Command<Input extends z.ZodType, Output extends z.ZodType> {
