@@ -10,6 +10,7 @@ import {
   shadcnRegistrySchema,
   type ShadcnItem,
 } from "../../src/registry/shadcn/schema.ts";
+import { parseRegions } from "../../src/patchers/markdown/regions.ts";
 import { resolve } from "../../src/resolver/resolve.ts";
 
 const context: EngineContext = { now: new Date(0), random: () => 0.5, env: {} };
@@ -121,7 +122,7 @@ test("S6 theme and style items become CSS Ops and require styling; style also br
     type: "registry:theme",
     cssVars: { light: { background: "white" } },
   });
-  expect(theme.manifest.ops).toEqual([
+  expect(theme.manifest.ops.slice(0, -1)).toEqual([
     {
       op: "addCssVariables",
       target: "web",
@@ -319,6 +320,7 @@ test("S8 cssVars, css, envVars, deps and embedded content map onto the manifest"
     "addCssVariables",
     "addCssAtRule",
     "addCssAtRule",
+    "appendRegion",
   ]);
   expect(manifest.ops[1]).toMatchObject({ group: "light", variables: { "--primary": "red" } });
   expect(manifest.ops[3]).toMatchObject({ rule: "plugin", params: '"@tailwindcss/typography"' });
@@ -367,7 +369,7 @@ test("S8 plain css rules map to nested at-rule Ops and are idempotent", async ()
     },
   });
   const rules = adapted.manifest.ops.map((op) => (op.op === "addCssAtRule" ? op.rule : op.op));
-  expect(rules).toEqual(["layer", "utility"]);
+  expect(rules).toEqual(["layer", "utility", "appendRegion"]);
   const base = Vfs.empty();
   base.write("src/styles.css", '@import "tailwindcss";\n');
   const once = String((await render(adapted, "single", base)).read("src/styles.css"));
@@ -463,4 +465,90 @@ test("scoped names are accepted only for Adapted Modules", () => {
   expect(lockfile("@shadcn/button", adapted.version)).toBe(true);
   expect(lockfile("@shadcn/button", "1.0.0")).toBe(false);
   expect(lockfile("button", "1.0.0")).toBe(true);
+});
+
+const registrySource = "https://ui.acme.dev/r/registry.json";
+
+function agentsRegionOp(adapted: AdaptedModule) {
+  const op = adapted.manifest.ops.find((entry) => entry.op === "appendRegion");
+  if (op === undefined) throw new Error("expected an appendRegion Op");
+  return op;
+}
+
+test("S6 an Adapted Module appends its agents Region with name, type, files and source", () => {
+  const adapted = adaptShadcnItem(
+    item({ type: "registry:ui", files: [file("registry/ui/button.tsx")] }),
+    { scope: "@acme", source: registrySource },
+  );
+  const op = agentsRegionOp(adapted);
+  expect(op).toMatchObject({ target: "root", file: "AGENTS.md", region: "agents" });
+  const content = op.op === "appendRegion" ? op.content : "";
+  expect(content).toContain("@acme/button");
+  expect(content).toContain("`ui`");
+  expect(content).toContain("`ui/button.tsx`");
+  expect(content).toContain(registrySource);
+});
+
+test("S6 the Region content depends on the Registry source", () => {
+  const without = adapt({ files: [file("ui/button.tsx")] });
+  const withSource = adaptShadcnItem(item({ files: [file("ui/button.tsx")] }), {
+    ...scope,
+    source: registrySource,
+  });
+  expect(withSource.integrity).not.toBe(without.integrity);
+});
+
+test("S6 adding then removing an item leaves AGENTS.md equal to a fresh Render without it", async () => {
+  const adapted = adaptShadcnItem(item({ files: [file("ui/button.tsx")] }), {
+    scope: "@acme",
+    source: registrySource,
+  });
+  const withoutPlan = await buildPlan({
+    modules: [stylingProvider],
+    layout: "single",
+    answers: {},
+    context,
+    base: Vfs.empty(),
+  });
+  const fresh = withoutPlan.vfs.read("AGENTS.md");
+  const added = String(
+    (
+      await buildPlan({
+        modules: [stylingProvider, engineModule(adapted)],
+        layout: "single",
+        answers: {},
+        context,
+        base: Vfs.empty(),
+      })
+    ).vfs.read("AGENTS.md"),
+  );
+  expect(added).toContain("<!-- aokit:begin @acme/button:agents -->");
+  expect(added).toContain("<!-- aokit:end @acme/button:agents -->");
+  const removed = await buildPlan({
+    modules: [stylingProvider],
+    layout: "single",
+    answers: {},
+    context,
+    base: Vfs.empty(),
+  });
+  expect(removed.vfs.read("AGENTS.md")).toEqual(fresh);
+});
+
+test("S6 a name with @ and / produces a Region that parses back to the same id", async () => {
+  const adapted = adaptShadcnItem(item({ files: [file("ui/button.tsx")] }), {
+    scope: "@acme",
+    source: registrySource,
+  });
+  const text = String(
+    (
+      await buildPlan({
+        modules: [stylingProvider, engineModule(adapted)],
+        layout: "single",
+        answers: {},
+        context,
+        base: Vfs.empty(),
+      })
+    ).vfs.read("AGENTS.md"),
+  );
+  expect(parseRegions(text).map((region) => region.id)).toContain("@acme/button:agents");
 });

@@ -30,6 +30,8 @@ export interface AdaptContext {
   scope: string;
   /** The full commit SHA for git sources; absent for URL Registries. */
   sourceSha?: string;
+  /** The Registry origin as the user spells it; named in the Module's `AGENTS.md` Region. */
+  source?: string;
 }
 
 type Target = "root" | "web" | "shared-ui";
@@ -269,6 +271,21 @@ function cssVariableOps(item: ShadcnItem): OpList {
   return ops;
 }
 
+function agentsRegionContent(
+  name: string,
+  type: string,
+  entries: NonNullable<ModuleManifestInput["files"]>,
+  origin: string | undefined,
+): string {
+  const lines = [`## ${name}`, "", `shadcn item of type \`${type}\`, adapted into this Project.`];
+  if (origin !== undefined) lines.push("", `Registry source: \`${origin}\`.`);
+  if (entries.length > 0) {
+    lines.push("", "Files:", "");
+    for (const entry of entries) lines.push(`- \`${entry.to}\` (${entry.target})`);
+  }
+  return `\n${lines.join("\n")}\n`;
+}
+
 function versionOf(item: ShadcnItem, sourceSha: string | undefined): string {
   const basis =
     sourceSha !== undefined && /^[0-9a-f]{40}$/.test(sourceSha)
@@ -306,8 +323,16 @@ export function adaptShadcnItem(item: ShadcnItem, context: AdaptContext): Adapte
   const devDependencies = dependencyMap(item.devDependencies);
   const version = versionOf(item, context.sourceSha);
   const scope = context.scope.startsWith("@") ? context.scope.slice(1) : context.scope;
+  const moduleName = `@${scope}/${item.name}`;
+  const agentsOp: OpList[number] = {
+    op: "appendRegion",
+    target: "root",
+    file: "AGENTS.md",
+    region: "agents",
+    content: agentsRegionContent(moduleName, type, fileEntries, context.source),
+  };
   const input: ModuleManifestInput = {
-    name: `@${scope}/${item.name}`,
+    name: moduleName,
     version,
     requires: needsStyling ? ["styling"] : [],
     files: fileEntries,
@@ -324,7 +349,7 @@ export function adaptShadcnItem(item: ShadcnItem, context: AdaptContext): Adapte
       scope: "web",
       example,
     })),
-    ops: [...variableOps, ...atRuleOps],
+    ops: [...variableOps, ...atRuleOps, agentsOp],
   };
   let manifest: ModuleManifest;
   try {
