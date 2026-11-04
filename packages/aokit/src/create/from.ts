@@ -216,6 +216,23 @@ function withTrust(
   );
 }
 
+function untrustedRemoteLockfile(lockfile: Lockfile): Lockfile {
+  const registries = Object.fromEntries(
+    Object.entries(lockfile.registries).map(([name, registry]) => {
+      if (registry.source !== "bundled" && !isRemoteSource(registry.source)) {
+        throw new AokitError(
+          "INVALID_INPUT",
+          `The Lockfile names the local Registry "${name}" (${registry.source}); a Lockfile fetched from a URL cannot choose a path on this machine.`,
+          "Create from a local copy of the Lockfile, or pass the Registry with `--registry`.",
+        );
+      }
+      const { trusted: _declared, ...rest } = registry;
+      return [name, rest];
+    }),
+  );
+  return { ...lockfile, registries };
+}
+
 async function openSourceRegistries(
   lockfile: Lockfile,
   sourceDir: string,
@@ -245,7 +262,8 @@ export async function renderFromSource(request: FromSourceRequest): Promise<From
   const sourceDir = isUrl(request.from)
     ? resolvePath(request.directory)
     : dirname(await lockfilePathOf(request.from));
-  const source = await readLockfileSource(request.from, { fetch: request.adapters?.fetch });
+  const fetched = await readLockfileSource(request.from, { fetch: request.adapters?.fetch });
+  const source = isUrl(request.from) ? untrustedRemoteLockfile(fetched) : fetched;
   const opened = await openSourceRegistries(source, sourceDir, request);
   const overridden = await withAnswerOverrides(source, request, sourceDir);
   const built = await renderFromLockfile(overridden, {

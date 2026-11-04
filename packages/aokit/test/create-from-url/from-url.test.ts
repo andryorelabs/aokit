@@ -174,3 +174,44 @@ test("--trust lets a served Lockfile replay and records trusted: true", async ()
     trusted: true,
   });
 });
+
+test("a served Lockfile cannot declare its own Registry trusted", async () => {
+  const registry = await builtRegistry();
+  const registryServer = serve(registry);
+  const project = await createProject(registry);
+  await editLockfile(project, (lockfile) => {
+    lockfile["registries"]["official"].source = registryServer.url;
+    lockfile["registries"]["official"].trusted = true;
+  });
+  const lockfileServer = serve(project);
+  const target = newDirectory();
+  const thrown = await renderFromSource({
+    from: `${lockfileServer.url}/aokit.lock.json`,
+    directory: target,
+    answers: [],
+    cliVersion,
+    adapters: { env: await isolatedEnvironment() },
+  }).catch((error: unknown) => error);
+  expect(thrown).toMatchObject({ code: "REGISTRY_UNTRUSTED" });
+  expect(registryServer.requests.filter((path) => path.startsWith("modules/"))).toEqual([]);
+  expect(existsSync(target)).toBe(false);
+});
+
+test("a served Lockfile cannot name a local Registry path", async () => {
+  const registry = await builtRegistry();
+  const project = await createProject(registry);
+  await editLockfile(project, (lockfile) => {
+    lockfile["registries"]["official"].source = registry;
+  });
+  const lockfileServer = serve(project);
+  const target = newDirectory();
+  const thrown = await renderFromSource({
+    from: `${lockfileServer.url}/aokit.lock.json`,
+    directory: target,
+    answers: [],
+    cliVersion,
+    adapters: { env: await isolatedEnvironment() },
+  }).catch((error: unknown) => error);
+  expect(thrown).toMatchObject({ code: "INVALID_INPUT" });
+  expect(existsSync(target)).toBe(false);
+});
