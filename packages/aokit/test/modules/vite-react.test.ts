@@ -38,6 +38,8 @@ describe("vite-react", () => {
     const built = await buildProject(input("single"));
     if (!built.ok) throw new Error(built.error.message);
     expect(built.plan.vfs.paths()).toEqual([
+      "AGENTS.md",
+      "CLAUDE.md",
       "index.html",
       "package.json",
       "src/main.tsx",
@@ -67,6 +69,8 @@ describe("vite-react", () => {
     const built = await buildProject(input("monorepo"));
     if (!built.ok) throw new Error(built.error.message);
     expect(built.plan.vfs.paths()).toEqual([
+      "AGENTS.md",
+      "CLAUDE.md",
       "apps/web/index.html",
       "apps/web/package.json",
       "apps/web/src/main.tsx",

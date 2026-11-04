@@ -1,4 +1,6 @@
+import { isRegionFile } from "../patchers/markdown/regions.ts";
 import { mergeJsonStructurally } from "./json.ts";
+import { mergeRegionFile } from "./regions.ts";
 import {
   MERGE_LABELS,
   mergeTextWithDiff3,
@@ -76,6 +78,13 @@ export function createMerger(options: MergerOptions = {}): Merger {
       const base = normalizeLineEndings(toText(input.base));
       const user = normalizeLineEndings(toText(input.user));
       const next = normalizeLineEndings(toText(input.next));
+      if (isRegionFile(input.path)) {
+        const merged = await mergeRegionFile({ base, user, next }, mergeText);
+        if (merged.unparseable === true) {
+          return { content: user, conflict: true, aokitNew: next };
+        }
+        return { content: merged.content, conflict: merged.conflict };
+      }
       if (input.path.endsWith(".json") && user !== next && base !== next && base !== user) {
         const structural = mergeJsonStructurally(base, user, next);
         if (structural !== undefined) return { content: structural, conflict: false };

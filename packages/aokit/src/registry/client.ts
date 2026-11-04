@@ -36,7 +36,7 @@ import {
 } from "./schema.ts";
 import { type AdaptedModule, adaptShadcnItem } from "./shadcn/adapt.ts";
 import { shadcnItemSchema, shadcnRegistrySchema } from "./shadcn/schema.ts";
-import type { RegistrySource } from "./source.ts";
+import { formatRegistrySource, type RegistrySource } from "./source.ts";
 
 /**
  * The verified content of one Module version as a {@link RegistryCache} stores it: the manifest
@@ -866,6 +866,7 @@ async function readItem(
   item: string,
   registryName: string,
   sourceSha: string | undefined,
+  origin: string,
 ): Promise<ItemRead> {
   const text = await location.transport.read(location.path);
   if (text === undefined) {
@@ -896,6 +897,7 @@ async function readItem(
       kind: "served",
       module: adaptShadcnItem(parsed.data, {
         scope: registryName,
+        source: origin,
         ...(sourceSha === undefined ? {} : { sourceSha }),
       }),
     };
@@ -1118,7 +1120,13 @@ async function openShadcnRegistry(
   const outcomes = await Promise.all(
     names.map(async (item): Promise<ItemRead> => {
       try {
-        return await readItem(origin.locate(item), item, registryName, context.sourceSha);
+        return await readItem(
+          origin.locate(item),
+          item,
+          registryName,
+          context.sourceSha,
+          formatRegistrySource(origin.source),
+        );
       } catch (error) {
         return { kind: "failed", error };
       }

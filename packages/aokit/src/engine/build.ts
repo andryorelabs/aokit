@@ -2,6 +2,7 @@ import { posix } from "node:path";
 import type { Catalog, ModuleManifest } from "@aokit/module";
 import { codeOpHandlers } from "../ops/code/index.ts";
 import { applyDeps, applyEnv, dataOpHandlers, wireWorkspaces } from "../ops/data/index.ts";
+import { coreOwner, writeAgentFiles } from "./agent-files.ts";
 import { EngineError } from "./errors.ts";
 import {
   type AnswerValue,
@@ -286,6 +287,19 @@ export async function buildPlan(options: BuildPlanOptions): Promise<BuiltPlan> {
     directories.get(target) ?? resolveTarget(layout, target);
   const resolvePath = (target: string, relativePath: string): string =>
     joinTargetPath(directoryOf(target), relativePath);
+
+  writeAgentFiles(
+    {
+      has: (path) => work.has(path),
+      paths: () => work.paths(),
+      read: (path) => work.read(path),
+      write: (path, content, writeOptions) => {
+        work.write(path, content, writeOptions);
+        log.add(normalizeProjectPath(path), coreOwner, { kind: "op", op: "agent-files" });
+      },
+    },
+    layout,
+  );
 
   for (const module of modules) {
     const { manifest } = module;

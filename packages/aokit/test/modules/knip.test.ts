@@ -73,7 +73,13 @@ describe("knip", () => {
       input("single", ["knip", "ignores-base"], [curated("knip", knip), ignoresBase]),
     );
     if (!built.ok) throw new Error(built.error.message);
-    expect(built.plan.vfs.paths()).toEqual([".oxlintrc.json", "knip.json", "package.json"]);
+    expect(built.plan.vfs.paths()).toEqual([
+      ".oxlintrc.json",
+      "AGENTS.md",
+      "CLAUDE.md",
+      "knip.json",
+      "package.json",
+    ]);
     expect(parsed(built.plan.vfs, "package.json")).toMatchObject({
       scripts: { knip: "knip" },
       devDependencies: { knip: "^6.44.1" },
