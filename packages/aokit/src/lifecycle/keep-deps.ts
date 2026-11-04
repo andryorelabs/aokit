@@ -1,4 +1,4 @@
-import { hashFileBytes } from "../drift/hash.ts";
+import { hashTrackedFile } from "../drift/hash.ts";
 import type { Vfs } from "../engine/vfs.ts";
 import type { Lockfile } from "../lockfile/schema.ts";
 import { serializeLockfile } from "../lockfile/serialize.ts";
@@ -116,7 +116,10 @@ export function keepProjectDeps(
     const entry = files[path];
     const content = next.plan.vfs.read(path);
     if (entry !== undefined && content !== undefined) {
-      files[path] = { ...entry, hash: hashFileBytes(new TextEncoder().encode(String(content))) };
+      files[path] = {
+        ...entry,
+        hash: hashTrackedFile(path, new TextEncoder().encode(String(content))),
+      };
     }
   }
   const lockfile: Lockfile = { ...next.lockfile, deps, files };

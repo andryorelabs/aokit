@@ -1,3 +1,11 @@
+/** The aokit commands a coding agent uses to extend a generated Project, with what each does. */
+export const aokitCommandLines = [
+  ["aokit add", "add Modules to the Project"],
+  ["aokit check", "check the Project against its Lockfile"],
+  ["aokit doctor", "report drift between the Project and its Lockfile"],
+  ["aokit mcp init", "register the aokit MCP server for this Project"],
+] as const;
+
 /** Bundled guidance markdown per topic, in GLOSSARY.md vocabulary. */
 export const staticGuidance = {
   overview: `# aokit overview
