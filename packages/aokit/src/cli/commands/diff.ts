@@ -9,6 +9,7 @@ import { modulesInOrder } from "../../update/run.ts";
 import { LockfileError, readLockfile } from "../../lockfile/index.ts";
 import type { Lockfile } from "../../lockfile/schema.ts";
 import { runMigrations } from "../../migrations/index.ts";
+import { isRegionFile, RegionSyntaxError, spliceRegions } from "../../patchers/markdown/regions.ts";
 import { renderFromLockfile } from "../../pipeline/index.ts";
 import { unifiedDiff } from "../../project/diff.ts";
 import { toAokitError } from "../../project/errors.ts";
@@ -102,6 +103,22 @@ function contentEquals(left: FileContent, right: FileContent): boolean {
   return Buffer.from(left).equals(Buffer.from(right));
 }
 
+/** The rendered file laid over the working file, so only aokit Regions can differ. */
+function regionView(path: string, actual: FileContent, expected: FileContent): FileContent {
+  if (!isRegionFile(path) || typeof actual !== "string" || typeof expected !== "string") {
+    return expected;
+  }
+  try {
+    const lineEnded = actual.includes("\r\n") ? expected.replaceAll(/\r?\n/g, "\r\n") : expected;
+    return spliceRegions(actual, lineEnded);
+  } catch (thrown) {
+    if (thrown instanceof RegionSyntaxError) {
+      return expected;
+    }
+    throw thrown;
+  }
+}
+
 function hunksOf(change: PlanChange): z.output<typeof hunkOutput>[] {
   const before = change.previousContent ?? "";
   if (
@@ -140,9 +157,13 @@ async function managedChanges(
   const working = await Promise.all(paths.map((path) => readWorkingFile(projectDir, path)));
   const changes: PlanChange[] = [];
   for (const [position, path] of paths.entries()) {
-    const expected = vfs.read(path);
+    const rendered = vfs.read(path);
     const actual = working[position];
-    if (expected === undefined || (actual !== undefined && contentEquals(expected, actual))) {
+    if (rendered === undefined) {
+      continue;
+    }
+    const expected = actual === undefined ? rendered : regionView(path, actual, rendered);
+    if (actual !== undefined && contentEquals(expected, actual)) {
       continue;
     }
     changes.push({
@@ -177,10 +198,14 @@ async function targetChanges(
   const changes: PlanChange[] = [];
   for (const [position, path] of paths.entries()) {
     const actual = working[position];
-    const expected = targetVfs.read(path);
-    if (expected === undefined && actual === undefined) {
+    const rendered = targetVfs.read(path);
+    if (rendered === undefined && actual === undefined) {
       continue;
     }
+    const expected =
+      rendered === undefined || actual === undefined
+        ? rendered
+        : regionView(path, actual, rendered);
     if (expected !== undefined && actual !== undefined && contentEquals(expected, actual)) {
       continue;
     }

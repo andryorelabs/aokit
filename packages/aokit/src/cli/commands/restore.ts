@@ -9,6 +9,13 @@ import { assertCleanTree } from "../../git/index.ts";
 import { LockfileError, readLockfile } from "../../lockfile/index.ts";
 import type { Lockfile } from "../../lockfile/schema.ts";
 import { renderFromLockfile } from "../../pipeline/index.ts";
+import {
+  RegionSyntaxError,
+  isRegionFile,
+  parseRegions,
+  removeRegion,
+  spliceRegions,
+} from "../../patchers/markdown/regions.ts";
 import { unifiedDiff } from "../../project/diff.ts";
 import { toAokitError } from "../../project/errors.ts";
 import { defineCommand } from "../command.ts";
@@ -153,13 +160,52 @@ function restoredLockfile(locked: LockedFile, rendered: LockedFile["entry"]): Lo
   };
 }
 
+/**
+ * Lays the rendered Regions over the user's file. When the Region ids or their order differ from
+ * the Render, every aokit Region is removed first and re-inserted in Render order, so the result
+ * hashes like a fresh Render while the text outside markers is kept.
+ */
+function restoreRegions(path: string, current: string, rendered: string): string {
+  try {
+    const renderedIds = parseRegions(rendered).map((span) => span.id);
+    const currentIds = parseRegions(current).map((span) => span.id);
+    const aligned =
+      currentIds.length === renderedIds.length &&
+      currentIds.every((id, index) => id === renderedIds[index]);
+    if (aligned) {
+      return spliceRegions(current, rendered);
+    }
+    const stripped = [...new Set([...currentIds, ...renderedIds])].reduce(
+      (text, id) => removeRegion(text, id),
+      current,
+    );
+    return spliceRegions(stripped, rendered);
+  } catch (thrown) {
+    if (thrown instanceof RegionSyntaxError) {
+      throw new AokitError(
+        "INVALID_INPUT",
+        `\`${path}\` has malformed aokit markers: ${thrown.message}`,
+        "fix or delete the broken marker lines by hand, then run `aokit restore` again",
+      );
+    }
+    throw thrown;
+  }
+}
+
 function restoreChanges(
   path: string,
   rendered: Plan,
   current: FileContent | undefined,
 ): PlanChange[] {
   const file = rendered.vfs.get(path);
-  if (file === undefined || (current !== undefined && sameContent(current, file.content))) {
+  if (file === undefined) {
+    return [];
+  }
+  const content =
+    isRegionFile(path) && typeof current === "string" && typeof file.content === "string"
+      ? restoreRegions(path, current, file.content)
+      : file.content;
+  if (current !== undefined && sameContent(current, content)) {
     return [];
   }
   const provenance = rendered.changes.find((change) => change.path === path)?.provenance ?? [];
@@ -167,7 +213,7 @@ function restoreChanges(
     {
       type: current === undefined ? "create" : "update",
       path,
-      content: file.content,
+      content,
       ...(current === undefined ? {} : { previousContent: current }),
       ownership: file.ownership,
       mode: file.mode,
