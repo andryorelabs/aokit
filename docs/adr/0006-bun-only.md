@@ -1,6 +1,7 @@
 # 0006. Bun-only
 
 Status: Accepted (2026-11-03)
+Revised: 2026-11-04 — no Bun adapter: the package is Bun-only and declares `engines.bun`
 Spec: S11, S8 (AO-2673)
 Architecture: [Distribution: Bun only](../architecture/distribution.md#bun-only), [Dependency versions: Bun catalogs](../architecture/versions.md#bun-catalogs-for-the-monorepo)
 
@@ -10,7 +11,7 @@ Andry's stack is Bun. Supporting several package managers multiplies the install
 
 ## Decision
 
-aokit and the Projects it generates are Bun-only: `bunx create-aokit`, `bunx aokit add auth`, `bun install` after apply, `bun.lock`, Bun catalogs for the `monorepo` Layout, and a standalone binary from `bun build --compile` for machines without Bun. There is no package-manager abstraction. Bun-specific APIs sit behind a small adapter as a hedge for Node 22 or later; that is not a supported install path.
+aokit and the Projects it generates are Bun-only: `bunx create-aokit`, `bunx aokit add auth`, `bun install` after apply, `bun.lock`, Bun catalogs for the `monorepo` Layout, and a standalone binary from `bun build --compile` for machines without Bun. There is no package-manager abstraction. The `aokit` package uses Bun APIs directly (`Bun.semver`, `Bun.spawn`, `Bun.CryptoHasher`, `Bun.file`), declares `engines.bun`, and starts with a `bun` shebang. The earlier plan to hide them behind an adapter as a hedge for Node 22 or later is dropped: nothing ran on it and the adapter would have been untested code.
 
 ## Consequences
 

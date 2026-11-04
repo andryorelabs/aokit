@@ -1,6 +1,6 @@
 # Roadmap
 
-Implementation phases for the next `/forge` runs, with the testing strategy for aokit itself. No code exists yet. The phases build the components of the [overview](architecture/overview.md#component-map) in dependency order. Decisions are in the [ADRs](adr/README.md); the [module catalog](architecture/module-catalog.md) is illustrative and this roadmap decides which Modules ship first. Terms follow [GLOSSARY.md](../GLOSSARY.md).
+Implementation phases for the next `/forge` runs, with the testing strategy for aokit itself. The phases build the components of the [overview](architecture/overview.md#component-map) in dependency order. Decisions are in the [ADRs](adr/README.md); the [module catalog](architecture/module-catalog.md) is illustrative and this roadmap decides which Modules ship first. Terms follow [GLOSSARY.md](../GLOSSARY.md).
 
 ## Phases
 
@@ -17,9 +17,10 @@ flowchart LR
   P5B --> P6A
   P4B --> P6B[6b Agent files]
   P5B --> P6B
-  P6A --> P7[7 Distribution]
-  P6B --> P7
-  P5B --> P7
+  P6A --> P7A[7a Distributable CLI]
+  P6B --> P7A
+  P5B --> P7A
+  P7A --> P7B[7b Release pipeline]
 ```
 
 | Phase | Depends on | Delivers |
@@ -33,7 +34,8 @@ flowchart LR
 | 5b. shadcn adapter | 5a | Adapter, namespaces, `registryDependencies`. |
 | 6a. MCP server | 4b, 5b | MCP server, `aokit schema`, `aokit mcp init`. |
 | 6b. Agent files | 4b, 5b | Agent files in generated Projects. |
-| 7. Distribution | 5b, 6a, 6b | Binary, publishing, releases. |
+| 7a. Distributable CLI | 5b, 6a, 6b | npm packages, standalone binary, update notices, binary tests. |
+| 7b. Release pipeline | 7a | Publishing, provenance, checksums, attestations, releases. |
 
 ### 1. Core + schema + VFS
 
@@ -55,7 +57,7 @@ Exit criteria:
 - Each Op has VFS tests, including idempotence and a deduplicated second application.
 - Two Modules inserting at the same offset produce the canonical order; overlapping edits fail naming both Modules.
 - `.env` patching never overwrites an existing key.
-- The locate step gives identical spans with the native and WASM oxc builds on a fixture set.
+- The locate step is covered by fixture-set span tests on the native oxc build; the npm package and the binary run the same parser ([ADR 0010](adr/0010-locate-and-splice-edit-engine.md)).
 
 ### 3. First modules
 
@@ -152,14 +154,28 @@ Exit criteria:
 
 ### 7. Distribution
 
-Scope: `create-aokit` and `aokit` packages, the `bun build --compile` binaries, npm trusted publishing with provenance, `SHA256SUMS` and attestations, the release workflow with bumpp and changelogithub ([Distribution](architecture/distribution.md)).
+Phase 7 is split into two specs that ship in order. Both build on [Distribution](architecture/distribution.md).
+
+#### 7a. Distributable CLI
+
+Scope: the `aokit` package built to `dist/` with the first-party Registry inside, the `create-aokit` package, the standalone binary (native oxc-parser and oxfmt embedded per target, Registry embedded and extracted, dotenv and bunfig autoload off), update notices, `--version --json` and the `minCliVersion` fix text, an `AOKIT_BIN` override for the process tests, a linux-x64 `Distribution` workflow, and SHA-pinned actions in every workflow.
 
 Exit criteria:
 
-- The binary passes the e2e suite and the determinism digest matches the npm build.
+- A tarball installed outside the repository runs `aokit create` and `create-aokit` with the same result as the source.
+- The linux-x64 binary passes the process tests (`AOKIT_BIN`) and the `create`, `add`, `remove` and `update` e2e with `--yes --json`, and its determinism digest equals the npm package's.
 - The binary does not load `.env` or `bunfig.toml` from the working directory.
+- Two parallel first runs of the binary leave one intact extracted Registry.
+
+#### 7b. Release pipeline
+
+Scope: the release workflow with bumpp and changelogithub, npm trusted publishing with provenance, the five-target build matrix, `SHA256SUMS` and attestations, e2e on native linux-x64, linux-arm64 and macOS arm64 runners, publishing the Registry release with the CLI. It starts after the repository is public and the first `0.1.0-next.0` publish by token is done.
+
+Exit criteria:
+
 - A release dry run publishes with provenance and attaches verifiable checksums and attestations.
 - `bunx create-aokit` and `bunx aokit add` work from a published pre-release.
+- Windows and darwin-x64 binaries are published without an e2e run, and the release notes say so.
 
 ## Testing strategy
 

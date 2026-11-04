@@ -1,6 +1,7 @@
 # 0010. Locate-and-splice edit engine, magicast only for config objects
 
 Status: Accepted (2026-11-03)
+Revised: 2026-11-04 — the binary embeds the native oxc-parser; the WASM build does not run on Bun
 Spec: S3 (AO-2673)
 Architecture: [Engine: locate and splice](../architecture/engine.md#code-edits-locate-and-splice)
 
@@ -16,7 +17,7 @@ Code edits locate a position with oxc-parser (AST and spans) or ast-grep (struct
 
 - Untouched source stays byte-identical; the Plan shows minimal diffs.
 - Overlapping edits fail loudly with both Modules named.
-- The binary uses the WASM oxc-parser or ast-grep, and a hash test must show both builds produce the same spans.
+- The binary embeds the native oxc-parser binding of its target, the same build as the npm package. The WASM build was the original plan, but it fails on Bun 1.4.4 (`wasi.initialize is not a function`), and oxfmt has no WASM build at all. Equal spans follow from the same parser; the npm-versus-binary determinism digest proves the generated output is identical.
 - Edits that need semantic information require the optional ts-morph path.
 
 ## Alternatives considered
