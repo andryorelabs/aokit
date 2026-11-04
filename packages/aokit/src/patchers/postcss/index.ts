@@ -14,6 +14,7 @@ export interface CssAtRulePatch {
   readonly name: string;
   readonly params?: string;
   readonly declarations?: Readonly<Record<string, string>>;
+  readonly block?: string;
 }
 
 const HEADER_RULES: readonly string[] = ["import", "plugin"];
@@ -66,6 +67,28 @@ function mergeBlockRule(root: Root, patch: CssAtRulePatch) {
   }
 }
 
+function mergeNestedRule(root: Root, patch: CssAtRulePatch) {
+  let block: AtRule | undefined;
+  root.walkAtRules(patch.name, (node) => {
+    if (node.parent === root && node.params === (patch.params ?? "")) block ??= node;
+  });
+  if (!block) {
+    block = atRule({ name: patch.name, params: patch.params ?? "" });
+    block.raws.before = root.nodes.length === 0 ? "" : "\n\n";
+    block.raws.between = " ";
+    root.append(block);
+  }
+  const present = new Set((block.nodes ?? []).map((node) => node.toString().trim()));
+  for (const node of parse(patch.block ?? "").nodes) {
+    const text = node.toString().trim();
+    if (present.has(text)) continue;
+    present.add(text);
+    const copy = node.clone();
+    copy.raws.before = "\n  ";
+    block.append(copy);
+  }
+}
+
 /**
  * Adds a Tailwind v4 at-rule to CSS text without duplicating it. `@import` and
  * `@plugin` join the header group; any other rule is a block whose declarations
@@ -80,6 +103,8 @@ export function addCssAtRule(css: string, patch: CssAtRulePatch): string {
     });
     if (exists) return css;
     insertHeaderRule(root, patch);
+  } else if (patch.block !== undefined) {
+    mergeNestedRule(root, patch);
   } else {
     mergeBlockRule(root, patch);
   }

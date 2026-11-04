@@ -229,17 +229,37 @@ for (const [layout, root] of [
   });
 }
 
-test("S7 an import across Targets is rejected rather than guessed", () => {
-  const error = failure(() =>
-    adapt({
-      name: "page-x",
-      type: "registry:page",
-      files: [file("p.tsx", 'import { Button } from "@ui/button";\n', "src/p.tsx")],
-    }),
-  );
-  expect(error.code).toBe("REGISTRY_ITEM_UNSUPPORTED");
-  expect(error.message).toContain('"page-x"');
-});
+const crossTargetItem = {
+  name: "page-x",
+  type: "registry:block",
+  files: [
+    file(
+      "p.tsx",
+      'import { Button } from "@ui/button";\nimport { cn } from "@lib/utils";\n',
+      "src/p.tsx",
+    ),
+    file("ui/button.tsx", "export const Button = 1;\n", "@ui/button.tsx"),
+    file("lib/utils.ts", "export const cn = 1;\n", "@lib/utils.ts"),
+  ],
+};
+
+for (const [layout, web, ui] of [
+  ["single", "src/p.tsx", "src/components"],
+  ["monorepo", "apps/web/src/p.tsx", "packages/ui"],
+] as const) {
+  test(`S7 an import across Targets resolves on the ${layout} Layout`, async () => {
+    const vfs = await render(adapt(crossTargetItem), layout, Vfs.empty());
+    const text = String(vfs.read(web));
+    expect(text).not.toContain("{{import:");
+    const specifiers = [...text.matchAll(/from "([^"]+)"/g)].map((match) => match[1] ?? "");
+    expect(specifiers).toHaveLength(2);
+    for (const specifier of specifiers) {
+      expect(specifier.startsWith(".")).toBe(true);
+      expect(resolvesTo(vfs, web, specifier)).toBe(true);
+    }
+    expect(vfs.has(`${ui}/ui/button.tsx`)).toBe(true);
+  });
+}
 
 for (const [label, path, target] of [
   ["a parent segment in the target", "a.ts", "../escape.ts"],
@@ -337,6 +357,28 @@ for (const [layout, stylesheet] of [
     expect(text).toContain('@plugin "x"');
   });
 }
+
+test("S8 plain css rules map to nested at-rule Ops and are idempotent", async () => {
+  const adapted = adapt({
+    type: "registry:style",
+    css: {
+      "@layer base": { "*": { "@apply border-border": {} }, body: { "@apply bg-background": {} } },
+      "@utility tab-4": { "tab-size": "4" },
+    },
+  });
+  const rules = adapted.manifest.ops.map((op) => (op.op === "addCssAtRule" ? op.rule : op.op));
+  expect(rules).toEqual(["layer", "utility"]);
+  const base = Vfs.empty();
+  base.write("src/styles.css", '@import "tailwindcss";\n');
+  const once = String((await render(adapted, "single", base)).read("src/styles.css"));
+  expect(once).toContain("@layer base");
+  expect(once).toContain("@apply border-border;");
+  expect(once).toContain("@utility tab-4");
+  expect(once).toContain("tab-size: 4");
+  const again = Vfs.empty();
+  again.write("src/styles.css", once);
+  expect(String((await render(adapted, "single", again)).read("src/styles.css"))).toBe(once);
+});
 
 test("S9 names, versions, integrity and ownership", () => {
   const first = adapt({ type: "registry:ui", files: [file("ui/button.tsx")] });

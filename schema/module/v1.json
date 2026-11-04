@@ -777,7 +777,11 @@
                     "enum": [
                       "import",
                       "plugin",
-                      "theme"
+                      "theme",
+                      "layer",
+                      "utility",
+                      "keyframes",
+                      "custom-variant"
                     ],
                     "type": "string"
                   },
@@ -827,7 +831,11 @@
                     "enum": [
                       "import",
                       "plugin",
-                      "theme"
+                      "theme",
+                      "layer",
+                      "utility",
+                      "keyframes",
+                      "custom-variant"
                     ],
                     "type": "string"
                   }

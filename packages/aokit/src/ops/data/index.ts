@@ -138,11 +138,17 @@ export const dataOpHandlers: OpHandlers = {
     if (op.op !== "addCssAtRule") {
       mismatch(context, "addCssAtRule", op.op);
     }
-    const declarations = parseDeclarations(op.body);
+    const nested =
+      op.rule === "layer" ||
+      op.rule === "utility" ||
+      op.rule === "keyframes" ||
+      op.rule === "custom-variant";
+    const declarations = nested ? {} : parseDeclarations(op.body);
     editFile(context, op, (text) =>
       addCssAtRule(text, {
         name: op.rule,
         params: op.params,
+        ...(nested ? { block: op.body ?? "" } : {}),
         ...(Object.keys(declarations).length > 0 ? { declarations } : {}),
       }),
     );

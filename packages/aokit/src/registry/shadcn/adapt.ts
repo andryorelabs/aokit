@@ -46,6 +46,16 @@ interface Placement {
 
 type OpList = NonNullable<ModuleManifestInput["ops"]>;
 
+const cssRuleNames = [
+  "import",
+  "plugin",
+  "theme",
+  "layer",
+  "utility",
+  "keyframes",
+  "custom-variant",
+] as const;
+type CssRuleName = (typeof cssRuleNames)[number];
 const stylesheet = { target: "web", file: "src/styles.css" } as const;
 
 const placements: Readonly<Record<string, Placement>> = {
@@ -159,6 +169,10 @@ function resolveDestination(
   };
 }
 
+function stripExtension(path: string): string {
+  return path.replace(/\.(?:[cm]?[jt]sx?)$/, "");
+}
+
 function rewriteImports(item: ShadcnItem, own: Destination, content: string): string {
   return content.replaceAll(
     importSpecifierPattern,
@@ -173,11 +187,7 @@ function rewriteImports(item: ShadcnItem, own: Destination, content: string): st
       const destination = resolvePlaceholder(item, specifier);
       if (destination === undefined) return `${prefix}${quote}${specifier}${quote}`;
       if (destination.target !== own.target) {
-        throw unsupported(
-          item,
-          `shadcn item "${item.name}" file "${own.to}" imports "${specifier}" across Targets (${own.target} to ${destination.target}), which has no Layout-independent specifier`,
-          "Ship the imported file in the same Target as the importer.",
-        );
+        return `${prefix}${quote}{{import:${destination.target}:${stripExtension(destination.to)}}}${quote}`;
       }
       const relative = posix.relative(posix.dirname(own.to), destination.to);
       const local = relative.startsWith(".") ? relative : `./${relative}`;
@@ -201,11 +211,21 @@ function dependencyMap(specs: readonly string[]): Record<string, { range: string
   return Object.fromEntries(entries);
 }
 
+function cssRuleName(name: string | undefined): CssRuleName {
+  const known = cssRuleNames.find((candidate) => candidate === name);
+  if (known === undefined) throw new Error(`unexpected css rule ${name ?? ""}`);
+  return known;
+}
+
 function cssBody(value: unknown): string | undefined {
   if (typeof value === "string") return value;
   if (typeof value !== "object" || value === null || Array.isArray(value)) return undefined;
   const lines = Object.entries(value).map(([key, entry]) =>
-    typeof entry === "string" ? `${key}: ${entry};` : `${key} { ${cssBody(entry) ?? ""} }`,
+    typeof entry === "string"
+      ? `${key}: ${entry};`
+      : cssBody(entry) === undefined
+        ? `${key};`
+        : `${key} { ${cssBody(entry)} }`,
   );
   return lines.length === 0 ? undefined : lines.join(" ");
 }
@@ -213,15 +233,17 @@ function cssBody(value: unknown): string | undefined {
 function cssOps(item: ShadcnItem): OpList {
   const ops: OpList = [];
   for (const [key, value] of Object.entries(item.css ?? {})) {
-    const match = /^@(import|plugin|theme)\b\s*(.*)$/s.exec(key.trim());
+    const match = /^@(import|plugin|theme|layer|utility|keyframes|custom-variant)\b\s*(.*)$/s.exec(
+      key.trim(),
+    );
     if (match === null) {
       throw unsupported(
         item,
         `shadcn item "${item.name}" has the css rule "${key}", which aokit cannot apply declaratively`,
-        "Only @import, @plugin and @theme rules are supported.",
+        "Only @import, @plugin, @theme, @layer, @utility, @keyframes and @custom-variant rules are supported.",
       );
     }
-    const rule = match[1] === "import" || match[1] === "plugin" ? match[1] : "theme";
+    const rule = cssRuleName(match[1]);
     const body = cssBody(value);
     ops.push({
       op: "addCssAtRule",

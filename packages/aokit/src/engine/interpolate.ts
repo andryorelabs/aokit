@@ -1,3 +1,5 @@
+import { posix } from "node:path";
+
 /** Answer values a Module can reference. */
 export type AnswerValue = string | number | boolean;
 
@@ -50,4 +52,22 @@ export function interpolateTargets(text: string, directoryOf: (target: string) =
 export function interpolateTargetsDeep<T>(value: T, directoryOf: (target: string) => string): T {
   const interpolated: T = JSON.parse(interpolateTargets(JSON.stringify(value), directoryOf));
   return interpolated;
+}
+
+const importVariable = /\{\{import:([a-z][a-z-]*):([^}\s]+)\}\}/g;
+
+/**
+ * Replaces `{{import:target:subpath}}` with the relative import specifier from the importing
+ * file's directory to that Target location, so a Module can import across Targets without knowing
+ * the Layout. `resolvePath` maps a Target and subpath to its Project path.
+ */
+export function interpolateImports(
+  text: string,
+  fromDirectory: string,
+  resolvePath: (target: string, subpath: string) => string,
+): string {
+  return text.replace(importVariable, (_match, target: string, subpath: string) => {
+    const relative = posix.relative(fromDirectory || ".", resolvePath(target, subpath));
+    return relative.startsWith(".") ? relative : `./${relative}`;
+  });
 }

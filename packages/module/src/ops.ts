@@ -25,7 +25,7 @@ const pathAddress = {
 };
 
 const cssAtRuleFields = {
-  rule: z.enum(["import", "plugin", "theme"]),
+  rule: z.enum(["import", "plugin", "theme", "layer", "utility", "keyframes", "custom-variant"]),
   params: z.string(),
   body: z.string().optional(),
 };
@@ -107,7 +107,7 @@ const addEnvOpSchema = z.union([
 ]);
 
 /**
- * Adds a Tailwind v4 at-rule through postcss.
+ * Adds a Tailwind v4 at-rule through postcss. For `layer`, `utility`, `keyframes` and `custom-variant` the `body` is raw CSS placed inside the rule; nested content already present is left untouched.
  */
 const addCssAtRuleOpSchema = z.union([
   z.strictObject({ op: z.literal("addCssAtRule"), ...pathAddress, ...cssAtRuleFields }),
