@@ -96,8 +96,16 @@ test("files land in Layout-resolved Targets for both Layouts", async () => {
   );
   const single = await build([module]);
   const monorepo = await build([module], { layout: "monorepo" });
-  expect(single.changes.map((change) => change.path)).toEqual(["src/db/schema.ts"]);
-  expect(monorepo.changes.map((change) => change.path)).toEqual(["packages/db/schema.ts"]);
+  expect(single.changes.map((change) => change.path)).toEqual([
+    "AGENTS.md",
+    "CLAUDE.md",
+    "src/db/schema.ts",
+  ]);
+  expect(monorepo.changes.map((change) => change.path)).toEqual([
+    "AGENTS.md",
+    "CLAUDE.md",
+    "packages/db/schema.ts",
+  ]);
 });
 
 test("interpolation replaces only {{var}} and __name__", async () => {
@@ -116,8 +124,8 @@ test("interpolation replaces only {{var}} and __name__", async () => {
     { f: "hello {{project}}\r\n" },
   );
   const plan = await build([module]);
-  expect(plan.changes[0]?.path).toBe("demo.txt");
-  expect(plan.changes[0]?.content).toBe("hello demo\n");
+  const demo = plan.changes.find((change) => change.path === "demo.txt");
+  expect(demo?.content).toBe("hello demo\n");
 });
 
 test("the Plan lists create, update, delete and rename with Provenance", async () => {
@@ -153,6 +161,8 @@ test("the Plan lists create, update, delete and rename with Provenance", async (
     });
     const summary = plan.changes.map((change) => `${change.type}:${change.path}`);
     expect(summary).toEqual([
+      "create:AGENTS.md",
+      "create:CLAUDE.md",
       "update:edit.txt",
       "delete:gone.txt",
       "rename:moved-new.txt",
@@ -193,8 +203,9 @@ test("a declared override wins, in either order, and two overrides fail", async 
   );
   const plans = await Promise.all([build([base, custom]), build([custom, base])]);
   for (const plan of plans) {
-    expect(plan.changes[0]?.content).toBe("custom");
-    expect(plan.changes[0]?.provenance.map((p) => p.module).toSorted()).toEqual(["base", "custom"]);
+    const overridden = plan.changes.find((change) => change.path === "a.txt");
+    expect(overridden?.content).toBe("custom");
+    expect(overridden?.provenance.map((p) => p.module).toSorted()).toEqual(["base", "custom"]);
   }
   const error = await capture(() => build([base, custom, rival]));
   expect(error.code).toBe("engine.override-conflict");
@@ -214,13 +225,15 @@ test("ownership modes are recorded and seed files do not overwrite disk", async 
   );
   const fresh = await build([module]);
   expect(fresh.changes.map((c) => [c.path, c.ownership])).toEqual([
+    ["AGENTS.md", "managed"],
+    ["CLAUDE.md", "managed"],
     ["managed.txt", "managed"],
     ["page.tsx", "seed"],
   ]);
   const base = Vfs.empty();
   base.write("page.tsx", "user edit");
   const existing = await build([module], { base });
-  expect(existing.changes.map((c) => c.path)).toEqual(["managed.txt"]);
+  expect(existing.changes.map((c) => c.path)).toEqual(["AGENTS.md", "CLAUDE.md", "managed.txt"]);
 });
 
 test("a Formatter runs after all Modules and is skipped when absent", async () => {
@@ -244,11 +257,12 @@ test("a Formatter runs after all Modules and is skipped when absent", async () =
     { f: "b  " },
   );
   const formatted = await build([one, two], { formatter });
-  expect(seen).toEqual(["a.txt,b.txt"]);
-  expect(formatted.changes[0]?.content).toBe("a\n");
-  expect(formatted.changes[0]?.provenance.map((p) => p.module)).toEqual(["one", "fake-fmt"]);
+  expect(seen).toEqual(["AGENTS.md,CLAUDE.md,a.txt,b.txt"]);
+  const formattedA = formatted.changes.find((change) => change.path === "a.txt");
+  expect(formattedA?.content).toBe("a\n");
+  expect(formattedA?.provenance.map((p) => p.module)).toEqual(["one", "fake-fmt"]);
   const unformatted = await build([one, two]);
-  expect(unformatted.changes[0]?.content).toBe("a  ");
+  expect(unformatted.changes.find((change) => change.path === "a.txt")?.content).toBe("a  ");
 });
 
 test("the Plan hash is stable, order-independent of emission and ignores volatile content", async () => {
@@ -305,10 +319,8 @@ test("Op handlers receive injected context and record Provenance", async () => {
   });
   const plan = await build([module], { opHandlers: createOpRegistry({ addEnv: handler }) });
   expect(received).toBe(context);
-  expect(plan.changes[0]?.path).toBe("marker.txt");
-  expect(plan.changes[0]?.provenance).toEqual([
-    { module: "hono", entry: { kind: "op", op: "addEnv" } },
-  ]);
+  const marker = plan.changes.find((change) => change.path === "marker.txt");
+  expect(marker?.provenance).toEqual([{ module: "hono", entry: { kind: "op", op: "addEnv" } }]);
 });
 
 test("an unknown Op name fails naming the Op and the Module", async () => {

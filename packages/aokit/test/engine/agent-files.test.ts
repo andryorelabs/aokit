@@ -28,7 +28,7 @@ test("writeAgentFiles puts aokit:header first in AGENTS.md and @AGENTS.md in CLA
     "aokit:header",
   ]);
   const claude = parseRegions(String(vfs.read("CLAUDE.md")));
-  expect(claude.map((span) => [span.id, span.body])).toEqual([["aokit:claude", "@AGENTS.md"]]);
+  expect(claude.map((span) => [span.id, span.body])).toEqual([["aokit:claude", "\n@AGENTS.md"]]);
 });
 
 test("buildPlan records Provenance aokit and the Lockfile owner aokit, managed", async () => {

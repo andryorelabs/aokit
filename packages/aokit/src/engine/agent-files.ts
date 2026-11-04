@@ -35,6 +35,7 @@ function commandList(): string {
 /** The body of the `aokit:header` Region for a Layout, authored in Oxfmt style. */
 export function renderHeader(layout: LayoutName): string {
   return [
+    "",
     "# Agent guide",
     "",
     "This Project was generated and is kept up to date by aokit. Extend it with aokit instead of editing generated files by hand.",
@@ -66,7 +67,7 @@ export function writeAgentFiles(vfs: OpVfs, layout: LayoutName): void {
   vfs.write(agentsPath, agents, { ownership: "managed" });
   const claude = upsertRegion(
     String(vfs.read(claudePath) ?? ""),
-    { id: claudeRegionId, content: "@AGENTS.md" },
+    { id: claudeRegionId, content: "\n@AGENTS.md" },
     "top",
   );
   vfs.write(claudePath, claude, { ownership: "managed" });

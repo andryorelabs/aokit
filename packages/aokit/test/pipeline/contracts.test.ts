@@ -17,14 +17,16 @@ test("a non-empty base without the previous Lockfile throws and is a type error"
   expect(String(failed)).toContain("previous");
 });
 
-test("no Lockfile path emits the aokit owner, and Modules record selected and integrity", async () => {
+test("only the Agent files carry the aokit owner, and Modules record selected and integrity", async () => {
   const built = await buildProject(input({ layout: "monorepo" }));
   if (!built.ok) throw new Error(built.error.message);
-  const owners = [
-    ...Object.values(built.lockfile.files).flatMap((entry) => entry.owners),
-    ...Object.values(built.lockfile.deps).flatMap((entry) => entry.owners),
-  ];
-  expect(owners).not.toContain("aokit");
+  const aokitFiles = Object.entries(built.lockfile.files)
+    .filter(([, entry]) => entry.owners.includes("aokit"))
+    .map(([path]) => path);
+  expect(aokitFiles).toEqual(["AGENTS.md", "CLAUDE.md"]);
+  expect(Object.values(built.lockfile.deps).flatMap((entry) => entry.owners)).not.toContain(
+    "aokit",
+  );
   expect(built.lockfile.modules["auth"]?.selected).toBe(true);
   expect(built.lockfile.modules["base"]?.selected).toBe(false);
   expect(built.lockfile.modules["base"]?.integrity).toMatch(/^sha256-[0-9a-f]{64}$/);

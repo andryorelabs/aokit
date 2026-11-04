@@ -5,7 +5,7 @@ test.each(["single", "monorepo"] as const)(
   "docker alone writes its root files (%s)",
   async (layout) => {
     const { plan } = expectBuilt(await buildSelection(["docker"], { layout }));
-    expect(plan.vfs.paths()).toEqual([".dockerignore", "Dockerfile"]);
+    expect(plan.vfs.paths()).toEqual([".dockerignore", "AGENTS.md", "CLAUDE.md", "Dockerfile"]);
     expect(String(plan.vfs.read("Dockerfile"))).toContain("FROM oven/bun");
     expect(String(plan.vfs.read(".dockerignore"))).toContain("node_modules");
   },
@@ -17,6 +17,8 @@ test.each(["single", "monorepo"] as const)(
     const { plan } = expectBuilt(await buildSelection(["docker", "coolify"], { layout }));
     expect(plan.vfs.paths()).toEqual([
       ".dockerignore",
+      "AGENTS.md",
+      "CLAUDE.md",
       "Dockerfile",
       "docker-compose.coolify.yaml",
     ]);

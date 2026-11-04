@@ -42,7 +42,13 @@ describe("oxc", () => {
   test("single writes both configs at the root with pinned deps and scripts", async () => {
     const built = await buildProject(input("single"));
     if (!built.ok) throw new Error(built.error.message);
-    expect(built.plan.vfs.paths()).toEqual([".oxfmtrc.json", ".oxlintrc.json", "package.json"]);
+    expect(built.plan.vfs.paths()).toEqual([
+      ".oxfmtrc.json",
+      ".oxlintrc.json",
+      "AGENTS.md",
+      "CLAUDE.md",
+      "package.json",
+    ]);
     expect(parsed(built.plan.vfs, "package.json")).toMatchObject({
       scripts: { format: "oxfmt", lint: "oxlint -c ./.oxlintrc.json" },
       devDependencies: { oxfmt: "0.75.0", oxlint: "1.90.0" },
@@ -56,6 +62,8 @@ describe("oxc", () => {
     if (!built.ok) throw new Error(built.error.message);
     expect(built.plan.vfs.paths()).toEqual([
       ".oxfmtrc.json",
+      "AGENTS.md",
+      "CLAUDE.md",
       "package.json",
       "packages/config/.oxlintrc.json",
     ]);
