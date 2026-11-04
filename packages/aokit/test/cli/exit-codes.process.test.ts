@@ -7,9 +7,9 @@ import {
   createProject as createFixtureProject,
   editLockfile,
 } from "../diff/support.ts";
+import { spawnAokit as spawnAokitProcess } from "../helpers/aokit-process.ts";
 import { commitAll, createProject, git, newWorkspace } from "../restore/helpers.ts";
 
-const cliEntry = join(import.meta.dir, "..", "..", "src", "cli", "main.ts");
 const workspace = newWorkspace();
 
 afterAll(async () => {
@@ -18,18 +18,8 @@ afterAll(async () => {
 
 afterEach(cleanTemporaryDirectories);
 
-async function spawnAokit(argv: string[]) {
-  const child = Bun.spawn(["bun", cliEntry, ...argv], {
-    stdout: "pipe",
-    stderr: "pipe",
-    env: { ...process.env, NO_COLOR: "1", FORCE_COLOR: "" },
-  });
-  const [stdout, stderr, exitCode] = await Promise.all([
-    new Response(child.stdout).text(),
-    new Response(child.stderr).text(),
-    child.exited,
-  ]);
-  return { stdout, stderr, exitCode };
+function spawnAokit(argv: string[]) {
+  return spawnAokitProcess(argv, { env: { NO_COLOR: "1", FORCE_COLOR: "" } });
 }
 
 async function committedProject(modules?: string): Promise<string> {
