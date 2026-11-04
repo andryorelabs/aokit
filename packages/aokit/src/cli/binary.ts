@@ -8,4 +8,7 @@ registerEmbeddedRegistry(embeddedRegistry);
 process.env["NAPI_RS_NATIVE_LIBRARY_PATH"] = parserLibrary;
 await import("oxc-parser");
 process.env["NAPI_RS_NATIVE_LIBRARY_PATH"] = oxfmtLibrary;
+const { format } = await import("oxfmt");
+await format("warmup.ts", "");
+delete process.env["NAPI_RS_NATIVE_LIBRARY_PATH"];
 await import("./main.ts");

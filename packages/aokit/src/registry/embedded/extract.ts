@@ -67,6 +67,14 @@ export async function extractRegistryTo(
   return target;
 }
 
+/** Where {@link extractBundledRegistry} puts the embedded Registry, whether or not it exists yet. */
+export function embeddedRegistryTarget(env: CacheEnvironment): string {
+  if (registeredRegistry === undefined) {
+    throw new Error("No Registry is embedded in this build of aokit.");
+  }
+  return join(xdgCacheDir(env), "bundled-registry", registeredRegistry.contentHash);
+}
+
 /** The on-disk copy of the embedded Registry under the aokit cache directory, extracted on first use. */
 export async function extractBundledRegistry(env: CacheEnvironment): Promise<string> {
   if (registeredRegistry === undefined) {

@@ -2,7 +2,7 @@ import { afterAll, beforeAll, describe, expect, setDefaultTimeout, test } from "
 import { mkdir, mkdtemp, readdir, readFile, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { spawnAokit } from "../../helpers/aokit-process.ts";
+import { aokitCommand, spawnAokit } from "../../helpers/aokit-process.ts";
 
 const describeWithBinary = (process.env["AOKIT_BIN"] ?? "") === "" ? describe.skip : describe;
 
@@ -55,23 +55,52 @@ describeWithBinary("the standalone binary", () => {
 
   test("ignores the working directory's bunfig.toml and .env", async () => {
     const workDirectory = await freshDirectory("autoload");
-    const cacheDirectory = await freshDirectory("autoload-cache");
+    const homeDirectory = await freshDirectory("autoload-home");
+    const leakDirectory = join(workDirectory, "leak");
     await writeFile(join(workDirectory, "bunfig.toml"), 'preload = ["./preload.ts"]\n');
     await writeFile(
       join(workDirectory, "preload.ts"),
       'await Bun.write("preload-marker.txt", "ran");\n',
     );
-    await writeFile(join(workDirectory, ".env"), "XDG_CACHE_HOME=./leak\n");
-    const result = await spawnAokit(["create", "my-app", "--modules", "oxc", "--yes", "--json"], {
-      cwd: workDirectory,
-      env: { XDG_CACHE_HOME: cacheDirectory },
-    });
-    expect(result.stderr).toBe("");
-    expect(result.exitCode).toBe(0);
+    await writeFile(join(workDirectory, ".env"), `XDG_CACHE_HOME=${leakDirectory}\n`);
+    const { XDG_CACHE_HOME: _inherited, ...inheritedEnv } = process.env;
+    const child = Bun.spawn(
+      [
+        ...aokitCommand(),
+        "create",
+        "my-app",
+        "--modules",
+        "oxc",
+        "--yes",
+        "--no-install",
+        "--json",
+      ],
+      {
+        cwd: workDirectory,
+        stdin: "ignore",
+        stdout: "pipe",
+        stderr: "pipe",
+        env: { ...inheritedEnv, HOME: homeDirectory },
+      },
+    );
+    const [stderr, exitCode] = await Promise.all([new Response(child.stderr).text(), child.exited]);
+    expect(stderr).toBe("");
+    expect(exitCode).toBe(0);
     expect(await Bun.file(join(workDirectory, "preload-marker.txt")).exists()).toBe(false);
-    expect(await Bun.file(join(workDirectory, "leak")).exists()).toBe(false);
     expect(await readdir(workDirectory)).not.toContain("leak");
     expect(await Bun.file(join(workDirectory, "my-app", "aokit.lock.json")).exists()).toBe(true);
+  });
+
+  test("starts when the cache directory is unwritable", async () => {
+    const workDirectory = await freshDirectory("unwritable");
+    const blocker = join(workDirectory, "not-a-directory");
+    await writeFile(blocker, "file");
+    const result = await spawnAokit(["--version", "--json"], {
+      cwd: workDirectory,
+      env: { XDG_CACHE_HOME: blocker },
+    });
+    expect(result.exitCode).toBe(0);
+    expect(JSON.parse(result.stdout)).toMatchObject({ ok: true });
   });
 
   test("creates a Project that formats and parses with the embedded native bindings", async () => {
