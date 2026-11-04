@@ -65,6 +65,7 @@ export interface CreateResult {
   readonly diff?: string;
   readonly warnings: string[];
   readonly reproduce: string;
+  readonly release: string;
 }
 
 function describeEntry(entry: PlanChange["provenance"][number]["entry"]): string {
@@ -179,6 +180,14 @@ async function plan(request: CreateRequest): Promise<PlannedProject> {
   };
 }
 
+/** The Releases a Project is resolved against, as sorted `registry@release` entries. */
+function releaseOf(lockfile: Lockfile): string {
+  return Object.entries(lockfile.registries)
+    .map(([name, registry]) => `${name}@${registry.release}`)
+    .toSorted()
+    .join(",");
+}
+
 /** A Project ready to apply, however it was selected. */
 interface PlannedProject {
   readonly plan: Plan;
@@ -244,6 +253,7 @@ export async function runCreate(request: CreateRequest): Promise<CreateResult> {
       plan: { hash: planned.plan.hash, changes },
       warnings: planned.warnings,
       reproduce: planned.reproduce,
+      release: releaseOf(planned.lockfile),
     };
     if (request.dryRun || request.diff) {
       return {
