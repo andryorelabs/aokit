@@ -7,15 +7,22 @@ import { cliVersion } from "./version.ts";
 
 installSignalHandlers();
 
-process.exitCode = await runCli({
-  argv: process.argv.slice(2),
-  commands: exposedCommands,
-  hiddenCommands,
-  env: process.env,
-  version: cliVersion,
-  io: {
-    stdout: (text) => process.stdout.write(text),
-    stderr: (text) => process.stderr.write(text),
-    isTTY: process.stdout.isTTY,
-  },
-});
+const argv = process.argv.slice(2);
+
+if (argv.length === 1 && argv[0] === "mcp") {
+  const { startMcpServer } = await import("../mcp/server.ts");
+  await startMcpServer();
+} else {
+  process.exitCode = await runCli({
+    argv,
+    commands: exposedCommands,
+    hiddenCommands,
+    env: process.env,
+    version: cliVersion,
+    io: {
+      stdout: (text) => process.stdout.write(text),
+      stderr: (text) => process.stderr.write(text),
+      isTTY: process.stdout.isTTY,
+    },
+  });
+}
