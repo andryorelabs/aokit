@@ -408,7 +408,7 @@ async function renderNext(
  * the cache and the trust gate, renders the next Project and applies it. `adapters` reach the
  * Registries; the real network, cache and prompt by default.
  */
-async function runAdd(
+export async function runAdd(
   context: Pick<CommandContext, "version" | "env">,
   input: AddInput,
   adapters: RegistryAdapters = {},

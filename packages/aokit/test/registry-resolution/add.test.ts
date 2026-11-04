@@ -7,6 +7,9 @@ import { diffCommand } from "../../src/cli/commands/diff.ts";
 import { doctorCommand } from "../../src/cli/commands/doctor.ts";
 import { removeCommand } from "../../src/cli/commands/remove.ts";
 import { exitCodeForEnvelope } from "../../src/cli/envelope.ts";
+import { createRegistryCache } from "../../src/registry/cache.ts";
+import { computeIntegrity, computeModuleIntegrity } from "../../src/registry/index.ts";
+import { editJson } from "../registry-remote/served-registry.ts";
 import {
   cleanUp,
   createBundledProject,
@@ -21,6 +24,16 @@ afterEach(cleanUp);
 
 const addDefaults = { yes: true, install: false, allowDirty: true };
 
+/** The object at `path` inside a parsed JSON document. */
+function childOf(value: object, path: readonly string[]): object {
+  let current: object = value;
+  for (const key of path) {
+    const next: unknown = Reflect.get(current, key);
+    if (typeof next !== "object" || next === null) throw new Error(`no object at ${key}`);
+    current = next;
+  }
+  return current;
+}
 test("an untrusted remote Registry fails with REGISTRY_UNTRUSTED (exit 5) and changes nothing", async () => {
   const context = await isolatedContext();
   const project = await createBundledProject(context);
@@ -160,6 +173,53 @@ test("diff and remove read a trusted remote Registry offline from the warm cache
   const lockfile = await readLockfileJson(project);
   expect(lockfile["modules"]["knip"]).toBeUndefined();
   expect(lockfile["registries"]["acme"]).toBeUndefined();
+});
+
+test("an edited kept index with a planted cache entry never authenticates a Module offline", async () => {
+  const context = await isolatedContext();
+  const project = await createBundledProject(context);
+  const server = served(await namedRegistryCopy("acme"));
+  const added = await runCommand(addCommand, context, {
+    ...addDefaults,
+    directory: project,
+    modules: ["knip"],
+    registry: server.url,
+    trust: [server.url],
+  });
+  expect(added).toMatchObject({ ok: true });
+  await server.stop();
+  const cacheRoot = join(context.env["XDG_CACHE_HOME"] ?? "", "aokit");
+  const cache = createRegistryCache({ dir: join(cacheRoot, "registry") });
+  const genuine = await cache.get(
+    (await readLockfileJson(project))["modules"]["knip"]["integrity"],
+  );
+  if (genuine === undefined) throw new Error("knip was not cached by add");
+  const forgedFile = '{ "entry": ["evil.ts"] }\n';
+  const files = new Map(genuine.files);
+  files.set("files/knip.json", forgedFile);
+  const forgedIntegrity = computeModuleIntegrity(genuine.manifest, files);
+  await cache.put(forgedIntegrity, { manifest: genuine.manifest, files });
+  const keptIndex = join(
+    cacheRoot,
+    "registry-index",
+    `${new Bun.CryptoHasher("sha256").update(`${server.url}/index.json`).digest("hex")}.json`,
+  );
+  await editJson(keptIndex, (index) => {
+    const entry = childOf(index, ["modules", "knip", "versions", "1.0.0"]);
+    Reflect.set(entry, "integrity", forgedIntegrity);
+    Reflect.set(childOf(entry, ["files"]), "files/knip.json", computeIntegrity(forgedFile));
+  });
+  const before = await snapshotTree(project);
+  const removed = await runCommand(removeCommand, context, {
+    directory: project,
+    module: "oxc",
+    yes: true,
+    allowDirty: true,
+  });
+  expect(removed).toMatchObject({ ok: false, error: { code: "REGISTRY_INTEGRITY_MISMATCH" } });
+  expect(await snapshotTree(project)).toEqual(before);
+  const doctor = await runCommand(doctorCommand, context, { directory: project });
+  expect(doctor).toMatchObject({ data: { problems: [{ kind: "integrity" }] } });
 });
 
 test("doctor reads a trusted remote Registry offline from the warm cache and reports drift", async () => {

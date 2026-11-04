@@ -270,6 +270,7 @@ async function prepare(input: UpdateInput): Promise<Prepared> {
   const lockfile = await readProjectLockfile(input.dir);
   const set = await openProjectRegistries(lockfile, {
     registryFlag: input.registry,
+    allowPinMove: true,
     trustFlags: input.trustFlags ?? [],
     interactive: input.interactive ?? false,
     projectDir: input.dir,

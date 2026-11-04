@@ -95,6 +95,11 @@ export interface LoadProjectRegistriesOptions {
   /** Overrides the shipped Registry for the `"bundled"` source. */
   readonly bundledRegistryPath?: string | undefined;
   readonly adapters?: RegistryAdapters | undefined;
+  /**
+   * Whether `--registry github:owner/repo#<ref>` may move the Pin of a Lockfile Registry; only
+   * `update` sets it. Otherwise a ref that resolves to another commit is `INVALID_INPUT`.
+   */
+  readonly allowPinMove?: boolean;
 }
 
 /** A `github:` Pin that `--registry` moved. */
@@ -118,7 +123,21 @@ export interface ProjectRegistries {
   readonly decisions: readonly TrustDecision[];
 }
 
-type LockfileRegistries = Pick<Lockfile, "registries">;
+type LockfileRegistries = Pick<Lockfile, "registries"> & {
+  /** The locked Modules, whose integrities authenticate a Registry read from a kept index. */
+  readonly modules?: Lockfile["modules"];
+};
+
+/** Module `name@version` to the integrity the Lockfile pins for it in one Registry. */
+type PinnedIntegrities = ReadonlyMap<string, string>;
+
+function pinnedIntegrities(lockfile: LockfileRegistries, key: string): PinnedIntegrities {
+  return new Map(
+    Object.entries(lockfile.modules ?? {})
+      .filter(([, entry]) => entry.registry === key)
+      .map(([name, entry]) => [`${name}@${entry.version}`, entry.integrity]),
+  );
+}
 
 function requiredRegistry<Entry>(registries: ReadonlyMap<string, Entry>, key: string): Entry {
   const registry = registries.get(key);
@@ -164,7 +183,11 @@ async function readKept(path: string): Promise<string | undefined> {
  * read-only command works offline. An HTTP error is never replaced; a kept Catalog is still
  * verified against the index, and every Module version against its integrity.
  */
-function keepingIndexDocuments(fetchImpl: typeof fetch, dir: string): typeof fetch {
+function keepingIndexDocuments(
+  fetchImpl: typeof fetch,
+  dir: string,
+  onKeptCopy: (url: string) => void,
+): typeof fetch {
   const keep = async (url: string, init?: RequestInit): Promise<Response> => {
     const path = join(dir, `${new Bun.CryptoHasher("sha256").update(url).digest("hex")}.json`);
     let response: Response;
@@ -173,6 +196,7 @@ function keepingIndexDocuments(fetchImpl: typeof fetch, dir: string): typeof fet
     } catch (error) {
       const kept = await readKept(path);
       if (kept === undefined) throw error;
+      onKeptCopy(url);
       return new Response(kept, { status: 200 });
     }
     if (response.status !== 200) return response;
@@ -192,19 +216,61 @@ function keepingIndexDocuments(fetchImpl: typeof fetch, dir: string): typeof fet
   return Object.assign(wrapped, { preconnect: fetchImpl.preconnect });
 }
 
-function openSource(
+/**
+ * A Registry whose index is the kept offline copy. That copy is not authenticated, so it may only
+ * serve the Module versions the Lockfile pins, and only when the index lists the integrity the
+ * Lockfile recorded: anything else would let an edited copy vouch for planted cache entries.
+ */
+function pinnedToLockfile(registry: Registry, pinned: PinnedIntegrities): Registry {
+  return {
+    ...registry,
+    version(name, version) {
+      const module = `${name}@${version}`;
+      const expected = pinned.get(module);
+      if (expected === undefined) {
+        return Promise.reject(
+          new RegistryError(
+            "REGISTRY_FETCH_FAILED",
+            `Registry "${registry.name}" is unreachable, and its kept offline index cannot vouch for ${module}, which aokit.lock.json does not pin.`,
+            "Reconnect to the network and run the command again.",
+            { registry: registry.name, module },
+          ),
+        );
+      }
+      const listed = registry.index.modules[name]?.versions[version]?.integrity;
+      if (listed !== undefined && listed !== expected) {
+        return Promise.reject(
+          new RegistryError(
+            "REGISTRY_INTEGRITY_MISMATCH",
+            `Registry "${registry.name}" kept offline index lists ${module} with integrity ${listed}, but aokit.lock.json pins ${expected}.`,
+            "Reconnect to the network so the index is read again, or delete the kept copies under $XDG_CACHE_HOME/aokit/registry-index.",
+            { registry: registry.name, module, expected, actual: listed },
+          ),
+        );
+      }
+      return registry.version(name, version);
+    },
+  };
+}
+
+async function openSource(
   source: RegistrySource,
   options: LoadProjectRegistriesOptions,
   cache: RegistryCache,
+  pinned: PinnedIntegrities = new Map(),
 ): Promise<Registry> {
   const { adapters } = options;
   const documents = join(xdgCacheDir(adapters?.env ?? process.env), "registry-index");
-  return openRegistry(source, {
+  let indexKept = false;
+  const registry = await openRegistry(source, {
     cliVersion: options.cliVersion,
     cache,
-    fetch: keepingIndexDocuments(adapters?.fetch ?? fetch, documents),
+    fetch: keepingIndexDocuments(adapters?.fetch ?? fetch, documents, (url) => {
+      if (url.endsWith("/index.json")) indexKept = true;
+    }),
     ...(adapters?.github === undefined ? {} : { github: { ...adapters.github } }),
   });
+  return indexKept ? pinnedToLockfile(registry, pinned) : registry;
 }
 
 function clash(name: string, first: string, second: string): AokitError {
@@ -248,7 +314,15 @@ async function openLocked(
   const opened = await Promise.all(
     Object.entries(lockfile.registries).map(
       async ([key, entry]) =>
-        [key, await openSource(parseSource(entry.source, context), options, cache)] as const,
+        [
+          key,
+          await openSource(
+            parseSource(entry.source, context),
+            options,
+            cache,
+            pinnedIntegrities(lockfile, key),
+          ),
+        ] as const,
     ),
   );
   return new Map(opened);
@@ -286,6 +360,14 @@ async function openFlag(
   const before = formatRegistrySource(known.source);
   const after = formatRegistrySource(registry.source);
   const moved = registry.source.kind === "github" && before !== after ? before : undefined;
+  if (moved !== undefined && options.allowPinMove !== true) {
+    throw new AokitError(
+      "INVALID_INPUT",
+      `--registry ${flag} resolves Registry "${registry.name}" to ${after}, but aokit.lock.json pins it at ${before}.`,
+      `Only \`aokit update --registry ${flag}\` moves a Pin. Pass --registry ${registry.name} to use the pinned commit.`,
+      { registry: registry.name, from: before, to: after },
+    );
+  }
   return { key: registry.name, registry, movedFrom: moved };
 }
 
@@ -522,7 +604,7 @@ export async function openProjectRegistry(
   let registries: Map<string, Registry>;
   try {
     registries = await loadProjectRegistries(
-      { registries: { [key]: entry } },
+      { registries: { [key]: entry }, modules: lockfile.modules },
       {
         trustFlags: options.trustFlags ?? [],
         interactive: options.interactive ?? false,

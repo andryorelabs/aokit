@@ -1,15 +1,18 @@
 import { afterEach, expect, test } from "bun:test";
 import { join } from "node:path";
+import { runAdd } from "../../src/cli/commands/add.ts";
 import { cliVersion } from "../../src/cli/version.ts";
 import { runCreate } from "../../src/create/index.ts";
 import type { RegistryAdapters } from "../../src/project/registry.ts";
 import { runUpdate } from "../../src/update/run.ts";
 import {
   cleanUp,
+  createBundledProject,
   isolatedContext,
   namedRegistryCopy,
   readLockfileJson,
   served,
+  snapshotTree,
   temporaryDirectory,
 } from "./support.ts";
 
@@ -107,4 +110,59 @@ test("a github: Pin is recorded, a plain update never re-resolves it, update --r
     source: `github:acme/mods#${v2}`,
     trusted: true,
   });
+});
+
+/** The parsed `add` input with every default. */
+function addInput(directory: string, modules: string[], registry: string) {
+  return {
+    modules,
+    directory,
+    answer: [],
+    registry,
+    trust: ["github:acme/mods"],
+    dryRun: false,
+    diff: false,
+    yes: true,
+    allowDirty: true,
+    install: false,
+  };
+}
+
+async function failureOf(run: Promise<unknown>): Promise<unknown> {
+  return run.then(
+    () => undefined,
+    (thrown: unknown) => thrown,
+  );
+}
+
+test("add --registry github:…#<other ref> never moves the Pin of the primary Registry", async () => {
+  const { adapters } = await githubFixture();
+  const { directory, context, result } = await createFromGithub(adapters, ["github:acme/mods"]);
+  await result;
+  const before = await snapshotTree(directory);
+  const error = await failureOf(
+    runAdd(context, addInput(directory, ["knip"], "github:acme/mods#v2"), adapters),
+  );
+  expect(error).toMatchObject({ code: "INVALID_INPUT" });
+  expect(error).toMatchObject({ fix: expect.stringContaining("update --registry") });
+  expect(await snapshotTree(directory)).toEqual(before);
+});
+
+test("add --registry github:…#<other ref> never moves the Pin of a secondary Registry", async () => {
+  const { adapters } = await githubFixture();
+  const context = await isolatedContext();
+  const project = await createBundledProject(context);
+  await runAdd(context, addInput(project, ["knip"], "github:acme/mods#v1"), adapters);
+  const pinned = await readLockfileJson(project);
+  expect(pinned["registries"]["acme"]["source"]).toBe(`github:acme/mods#${v1}`);
+  const before = await snapshotTree(project);
+  const error = await failureOf(
+    runAdd(context, addInput(project, ["docker"], "github:acme/mods#v2"), adapters),
+  );
+  expect(error).toMatchObject({ code: "INVALID_INPUT" });
+  expect(await snapshotTree(project)).toEqual(before);
+  await runAdd(context, addInput(project, ["docker"], "github:acme/mods#v1"), adapters);
+  const after = await readLockfileJson(project);
+  expect(after["registries"]["acme"]["source"]).toBe(`github:acme/mods#${v1}`);
+  expect(after["modules"]["docker"]["registry"]).toBe("acme");
 });
