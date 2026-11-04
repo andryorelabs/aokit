@@ -390,3 +390,15 @@ test.each(["AGENTS.md", "CLAUDE.md"])("a Module writing the root %s is rejected"
   expect(message).toContain("Module oxc");
   expect(message).toContain(path);
 });
+
+test.each([
+  ["web", "AGENTS.md"],
+  ["config", "CLAUDE.md"],
+  ["root", "./AGENTS.md"],
+])("a Module writing %s %s into the project root is rejected", async (target, path) => {
+  const source = await fixtureSource();
+  await addOxcFile(source, `{ from: "files/nested/notes.md", to: "${path}", target: "${target}" }`);
+  const message = await buildFailure(source);
+  expect(message).toContain("Module oxc");
+  expect(message).toContain(path);
+});

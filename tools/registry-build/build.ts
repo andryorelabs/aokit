@@ -1,7 +1,8 @@
 import { mkdir, readdir, readFile, stat, writeFile } from "node:fs/promises";
-import { dirname, join } from "node:path";
+import { dirname, join, posix } from "node:path";
 import { type ModuleManifest, catalogSchema, compileModule, stableStringify } from "@aokit/module";
 import { format } from "oxfmt";
+import { layoutTables } from "../../packages/aokit/src/engine/layout.ts";
 import {
   computeIntegrity,
   computeModuleIntegrity,
@@ -302,9 +303,13 @@ function validateRegionFileWrites(manifest: ModuleManifest): void {
     );
   }
   for (const file of manifest.files) {
-    if (file.target === "root" && regionFileNames.has(file.to)) {
+    const destination = posix.normalize(file.to);
+    const writesRegionFile = Object.values(layoutTables).some((table) =>
+      regionFileNames.has(posix.normalize(posix.join(table[file.target], destination))),
+    );
+    if (writesRegionFile) {
       throw new Error(
-        `registry:build: Module ${manifest.name} writes ${file.to} (target root); Modules contribute only Regions to it through appendRegion`,
+        `registry:build: Module ${manifest.name} writes ${file.to} (target ${file.target}) into the project root; Modules contribute only Regions to it through appendRegion`,
       );
     }
   }

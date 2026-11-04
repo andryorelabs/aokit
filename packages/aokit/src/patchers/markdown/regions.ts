@@ -36,19 +36,48 @@ function blockOf(id: string, content: string): string {
   return `${beginMarker(id)}\n${content}\n${endMarker(id)}`;
 }
 
-/** Parses every aokit Region; throws {@link RegionSyntaxError} on a missing end or a repeated id. */
+const fenceOpenPattern = /^ {0,3}(`{3,}|~{3,})/;
+
+/** Blanks the content of fenced code blocks, keeping every offset and line break in place. */
+function maskFencedCode(text: string): string {
+  let fenceCharacter: string | undefined;
+  let fenceLength = 0;
+  const masked: string[] = [];
+  for (const line of text.split("\n")) {
+    const bare = line.replace(/\r$/, "");
+    if (fenceCharacter === undefined) {
+      const marker = fenceOpenPattern.exec(bare)?.[1];
+      if (marker === undefined) {
+        masked.push(line);
+        continue;
+      }
+      fenceCharacter = marker.charAt(0);
+      fenceLength = marker.length;
+    } else if (new RegExp(`^ {0,3}${fenceCharacter}{${fenceLength},}\\s*$`).test(bare)) {
+      fenceCharacter = undefined;
+    }
+    masked.push(line.replaceAll(/[^\r]/g, " "));
+  }
+  return masked.join("\n");
+}
+
+/**
+ * Parses every aokit Region outside fenced code blocks; throws {@link RegionSyntaxError} on a
+ * missing end or a repeated id.
+ */
 export function parseRegions(text: string): readonly RegionSpan[] {
   const spans: RegionSpan[] = [];
   const seen = new Set<string>();
+  const scanned = maskFencedCode(text);
   const beginPattern = /<!-- aokit:begin (\S+) -->/g;
-  let match = beginPattern.exec(text);
+  let match = beginPattern.exec(scanned);
   while (match !== null) {
     const id = match[1] ?? "";
     if (seen.has(id)) throw new RegionSyntaxError(`Region "${id}" is declared more than once`);
     seen.add(id);
     const end = endMarker(id);
     const bodyStart = match.index + match[0].length;
-    const endIndex = text.indexOf(end, bodyStart);
+    const endIndex = scanned.indexOf(end, bodyStart);
     if (endIndex === -1) {
       throw new RegionSyntaxError(`Region "${id}" has a start marker but no end marker`);
     }
@@ -62,7 +91,7 @@ export function parseRegions(text: string): readonly RegionSpan[] {
         .replace(/\r?\n$/, ""),
     });
     beginPattern.lastIndex = endIndex + end.length;
-    match = beginPattern.exec(text);
+    match = beginPattern.exec(scanned);
   }
   return spans;
 }

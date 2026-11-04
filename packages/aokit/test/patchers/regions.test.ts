@@ -117,3 +117,33 @@ describe("isRegionFile / regionDigest", () => {
     expect(regionDigest(block("a", "1\n3"))).not.toBe(regionDigest(lf));
   });
 });
+
+describe("fenced code and unusual ids", () => {
+  const fenced = "```md\n<!-- aokit:begin example -->\nnot a region\n```";
+
+  test("markers inside a fenced code block are ignored", () => {
+    const text = `${fenced}\n\n${block("a", "one")}\n`;
+    expect(parseRegions(text).map((span) => span.id)).toEqual(["a"]);
+    expect(upsertRegion(text, { id: "b", content: "two" }, "afterLastRegion")).toContain(
+      block("b", "two"),
+    );
+  });
+
+  test("a complete fenced pair does not count in the digest", () => {
+    const fencedPair = `~~~\n${block("fake", "x")}\n~~~`;
+    expect(regionDigest(`${fencedPair}\n${block("a", "one")}`)).toBe(block("a", "one"));
+  });
+
+  test("an unclosed fence hides the rest of the file", () => {
+    expect(parseRegions(`${block("a", "one")}\n\`\`\`\n${block("b", "two")}\n`)).toHaveLength(1);
+  });
+
+  test("an id with @ and / round-trips through upsert and parse", () => {
+    const id = "shadcn:@acme/ui/button:agents";
+    const text = upsertRegion(block("a", "one"), { id, content: "button" }, "afterLastRegion");
+    expect(parseRegions(text).map((span) => [span.id, span.body])).toEqual([
+      ["a", "one"],
+      [id, "button"],
+    ]);
+  });
+});
