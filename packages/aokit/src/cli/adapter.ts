@@ -152,8 +152,10 @@ interface ProcedureTree {
   [segment: string]: unknown;
 }
 
+const branches = new WeakSet<object>();
+
 function isProcedureTree(value: unknown): value is ProcedureTree {
-  return typeof value === "object" && value !== null;
+  return typeof value === "object" && value !== null && branches.has(value);
 }
 
 /**
@@ -163,12 +165,19 @@ function isProcedureTree(value: unknown): value is ProcedureTree {
 function mountProcedure(tree: ProcedureTree, path: readonly string[], procedure: unknown): void {
   const [head, ...rest] = path;
   if (head === undefined) return;
+  const existing = tree[head];
   if (rest.length === 0) {
+    if (isProcedureTree(existing)) {
+      throw new Error(`command "${head}" collides with the nested commands under "${head}"`);
+    }
     tree[head] = procedure;
     return;
   }
-  const existing = tree[head];
+  if (existing !== undefined && !isProcedureTree(existing)) {
+    throw new Error(`nested command under "${head}" collides with the command "${head}"`);
+  }
   const branch: ProcedureTree = isProcedureTree(existing) ? existing : {};
+  branches.add(branch);
   tree[head] = branch;
   mountProcedure(branch, rest, procedure);
 }
@@ -291,9 +300,9 @@ export async function runCli(options: RunCliOptions): Promise<ExitCode> {
     }
   } else {
     const parserArgv = flags.rest.length === 0 ? ["--help"] : flags.rest;
-    const hidden = (options.hiddenCommands ?? []).find((command) =>
-      isHiddenTarget(command, parserArgv),
-    );
+    const hidden = (options.hiddenCommands ?? [])
+      .filter((command) => isHiddenTarget(command, parserArgv))
+      .toSorted((left, right) => right.name.split(" ").length - left.name.split(" ").length)[0];
     const parserOptions = hidden === undefined ? options : { ...options, commands: [hidden] };
     envelope = await dispatchThroughParser(parserOptions, context, parserArgv);
   }

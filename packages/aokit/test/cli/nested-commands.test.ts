@@ -18,6 +18,8 @@ const nestedCommand = defineCommand({
   run: (_context, input) => ({ client: input.client }),
 });
 
+const silentIo: CliIo = { stdout: () => undefined, stderr: () => undefined, isTTY: false };
+
 async function runAokit(
   argv: string[],
   hidden: boolean = false,
@@ -68,4 +70,44 @@ test("a hidden nested command is dispatched by its full name", async () => {
   const result = await runAokit(["mcp", "init", "--client", "vscode", "--json"], true);
   expect(result.exitCode).toBe(0);
   expect(JSON.parse(result.stdout).data.client).toBe("vscode");
+});
+
+const parentCommand = defineCommand({
+  name: "mcp",
+  description: "Parent command",
+  input: z.object({}),
+  output: z.object({ parent: z.boolean() }),
+  run: () => ({ parent: true }),
+});
+
+test("a command and a nested command under the same first word fail loudly in either order", async () => {
+  const failures = await Promise.all(
+    [
+      [parentCommand, nestedCommand],
+      [nestedCommand, parentCommand],
+    ].map((commands) =>
+      runCli({
+        argv: ["mcp", "init", "--help"],
+        commands,
+        env: {},
+        version: "9.9.9",
+        io: silentIo,
+      }).catch((error: unknown) => error),
+    ),
+  );
+  for (const failure of failures) {
+    expect(String(failure)).toMatch(/collides/);
+  }
+});
+
+test("a hidden nested command wins over a hidden parent with the same first word", async () => {
+  const result = await runCli({
+    argv: ["mcp", "init", "--client", "cursor", "--json"],
+    commands: exposedCommands,
+    hiddenCommands: [parentCommand, nestedCommand],
+    env: {},
+    version: "9.9.9",
+    io: silentIo,
+  });
+  expect(result).toBe(0);
 });

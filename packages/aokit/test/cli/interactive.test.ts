@@ -1,8 +1,10 @@
 import { afterEach, expect, test } from "bun:test";
 import { join } from "node:path";
+import { type CliIo, runCli } from "../../src/cli/adapter.ts";
 import { type CommandContext, runCommand } from "../../src/cli/command.ts";
 import { addCommand } from "../../src/cli/commands/add.ts";
 import { createCommand } from "../../src/cli/commands/create.ts";
+import { exposedCommands } from "../../src/cli/commands/registry.ts";
 import { removeShadcnFixtures } from "../registry-shadcn/served-shadcn-registry.ts";
 import { cleanUp, isolatedContext, temporaryDirectory } from "../registry-resolution/support.ts";
 import { type JourneyFixture, serveJourneyFixture } from "../shadcn-journey/fixture.ts";
@@ -82,4 +84,70 @@ test("add with interactive true asks the injected prompt for trust", async () =>
   expect(envelope).toMatchObject({ ok: true });
   expect(questions.length).toBeGreaterThan(0);
   expect(questions[0]).toContain("Trust it?");
+});
+
+async function runAddThroughCli(
+  context: CommandContext,
+  argv: string[],
+  options: { interactive: boolean; prompt: (question: string) => Promise<string> },
+): Promise<number> {
+  const io: CliIo = { stdout: () => undefined, stderr: () => undefined, isTTY: true };
+  return runCli({
+    argv,
+    commands: exposedCommands,
+    env: context.env,
+    version: context.version,
+    io,
+    ...options,
+  });
+}
+
+test("runCli puts interactive and the prompt into the context so the CLI trust prompt still appears", async () => {
+  const context = await isolatedContext();
+  const { project, url } = await projectAndRegistry(context);
+  const questions: string[] = [];
+  const argv = [
+    "add",
+    "@fixture/button",
+    "--directory",
+    project,
+    "--registry",
+    url,
+    "--allow-dirty",
+    "--json",
+  ];
+  const exitCode = await runAddThroughCli(context, argv, {
+    interactive: true,
+    prompt: async (question) => {
+      questions.push(question);
+      return "yes";
+    },
+  });
+  expect(questions[0]).toContain("Trust it?");
+  expect(exitCode).toBe(0);
+});
+
+test("runCli with interactive false never asks and fails with the --trust form", async () => {
+  const context = await isolatedContext();
+  const { project, url } = await projectAndRegistry(context);
+  let asked = 0;
+  const argv = [
+    "add",
+    "@fixture/button",
+    "--directory",
+    project,
+    "--registry",
+    url,
+    "--allow-dirty",
+    "--json",
+  ];
+  const exitCode = await runAddThroughCli(context, argv, {
+    interactive: false,
+    prompt: async () => {
+      asked += 1;
+      return "yes";
+    },
+  });
+  expect(asked).toBe(0);
+  expect(exitCode).not.toBe(0);
 });

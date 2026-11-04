@@ -5,7 +5,7 @@ import { createCommand } from "../../src/cli/commands/create.ts";
 import { removeCommand } from "../../src/cli/commands/remove.ts";
 import { updateCommand } from "../../src/cli/commands/update.ts";
 import { aokitMeta } from "../../src/cli/meta.ts";
-import { cliOnlyFields, toExplicitInput } from "../../src/mcp/explicit-input.ts";
+import { cliOnlyFields, fromExplicitInput, toExplicitInput } from "../../src/mcp/explicit-input.ts";
 
 const commands = [createCommand, addCommand, removeCommand, updateCommand];
 
@@ -37,12 +37,22 @@ describe("toExplicitInput", () => {
     expect(Object.keys(explicit.shape)).toEqual(["directory", "layout", "trust"]);
     expect(explicit.safeParse({}).success).toBe(false);
     expect(explicit.safeParse({ directory: "/a", layout: null, trust: [] }).success).toBe(true);
-    expect(explicit.safeParse({ directory: "/a", layout: null, trust: null }).success).toBe(false);
+    expect(explicit.safeParse({ directory: "/a", layout: null, trust: null }).success).toBe(true);
+    expect(explicit.safeParse({ directory: null, layout: null, trust: [] }).success).toBe(false);
     expect(z.toJSONSchema(explicit, { io: "input" }).required).toEqual([
       "directory",
       "layout",
       "trust",
     ]);
+  });
+
+  test("a list with a default is nullable and null falls back to the CLI default", () => {
+    const cli = z.object({ trust: z.array(z.string()).default([]), name: z.string().default("a") });
+    const explicit = toExplicitInput(cli);
+    const sent = { trust: null, name: "b" };
+    expect(explicit.safeParse(sent).success).toBe(true);
+    expect(explicit.safeParse({ trust: [], name: null }).success).toBe(false);
+    expect(cli.parse(fromExplicitInput(sent))).toEqual({ trust: [], name: "b" });
   });
 
   test("keeps the description and aokit meta of the CLI field", () => {
