@@ -13,6 +13,7 @@ import {
   buildPlan,
   createOpRegistry,
   interpolateContent,
+  interpolateImports,
   interpolatePath,
   layoutTables,
   interpolateTargets,
@@ -377,4 +378,34 @@ test("{{target:name}} resolves to the Layout directory, or . for the Project roo
     a: ["."],
     b: 1,
   });
+});
+
+function importLocation(target: string, subpath: string): string {
+  return target === "root" ? subpath : `packages/ui/${subpath}`;
+}
+
+test("interpolateImports resolves a relative specifier from the importing directory", () => {
+  expect(interpolateImports("from '{{import:root:x}}'", ".", importLocation)).toBe("from './x'");
+  expect(interpolateImports('from "{{import:ui:ui/button}}"', "apps/web/src", importLocation)).toBe(
+    'from "../../../packages/ui/ui/button"',
+  );
+  expect(interpolateImports("{{var}} {{target:web}}", "src", importLocation)).toBe(
+    "{{var}} {{target:web}}",
+  );
+});
+
+test("a {{import}} marker with an unresolvable Target fails the build", () => {
+  const module = moduleOf({
+    name: "bad",
+    files: [{ from: "a.ts", to: "a.ts", target: "web" }],
+  });
+  expect(() =>
+    buildPlan({
+      modules: [{ ...module, readFile: () => "import x from '{{import:nowhere:x}}';" }],
+      layout: "single",
+      answers: {},
+      context,
+      base: Vfs.empty(),
+    }),
+  ).toThrow(EngineError);
 });

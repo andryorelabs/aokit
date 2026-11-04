@@ -3,6 +3,10 @@ import { z } from "zod";
 export const currentLockfileVersion = 2;
 
 const semver = z.string().regex(/^\d+\.\d+\.\d+(?:-[0-9A-Za-z.-]+)?(?:\+[0-9A-Za-z.-]+)?$/);
+function isAdaptedModuleVersion(version: string): boolean {
+  return /^0\.0\.0-shadcn\.[0-9a-f]{12}$/.test(version);
+}
+
 const integrity = z.string().regex(/^sha256-[0-9a-f]{64}$/);
 
 const registrySchema = z.strictObject({
@@ -44,7 +48,17 @@ export const lockfileSchema = z.strictObject({
   protocolVersion: z.number().int().positive(),
   layout: z.enum(["single", "monorepo"]),
   registries: z.record(z.string(), registrySchema),
-  modules: z.record(z.string(), moduleEntrySchema),
+  modules: z.record(z.string(), moduleEntrySchema).superRefine((modules, context) => {
+    for (const [name, entry] of Object.entries(modules)) {
+      if (name.startsWith("@") && !isAdaptedModuleVersion(entry.version)) {
+        context.addIssue({
+          code: "custom",
+          path: [name, "version"],
+          message: `scoped Module "${name}" is only accepted for Adapted Modules, whose version is 0.0.0-shadcn.<12hex>`,
+        });
+      }
+    }
+  }),
   files: z.record(z.string(), fileEntrySchema),
   deps: z.record(z.string(), depEntrySchema),
 });

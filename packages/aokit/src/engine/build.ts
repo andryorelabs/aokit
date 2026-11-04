@@ -7,6 +7,7 @@ import {
   type AnswerValue,
   interpolateContent,
   interpolatePath,
+  interpolateImports,
   interpolateTargets,
   interpolateTargetsDeep,
 } from "./interpolate.ts";
@@ -305,7 +306,11 @@ export async function buildPlan(options: BuildPlanOptions): Promise<BuiltPlan> {
       const source = module.readFile(file.from);
       const content =
         typeof source === "string"
-          ? interpolateTargets(interpolateContent(source, answers), directoryOf)
+          ? interpolateImports(
+              interpolateTargets(interpolateContent(source, answers), directoryOf),
+              posix.dirname(path),
+              resolvePath,
+            )
           : source;
       const entry: ProvenanceEntry = { kind: "file", from: file.from };
 

@@ -33,3 +33,18 @@ test("addCssAtRule is idempotent for imports and plugins", () => {
   const once = addCssAtRule(source, rule);
   expect(addCssAtRule(once, rule)).toBe(once);
 });
+
+test("addCssAtRule nested rules stay idempotent after the file is reformatted", () => {
+  const patch = {
+    name: "layer",
+    params: "base",
+    block: "* { @apply border-border; } body { @apply bg-background; }",
+  };
+  const once = addCssAtRule(source, patch);
+  const reformatted = once.replace(
+    "* { @apply border-border; }",
+    "*\n  {\n    @apply border-border;\n  }",
+  );
+  expect(reformatted).not.toBe(once);
+  expect(addCssAtRule(reformatted, patch)).toBe(reformatted);
+});

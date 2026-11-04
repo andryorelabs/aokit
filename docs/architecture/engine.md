@@ -68,7 +68,7 @@ Further rules:
 | `tsconfig.json`, other JSONC | `jsonc-parser` | Edits preserve comments and formatting. |
 | `package.json` | structural JSON merge plus sorted keys | Dependencies merged by name; keys emitted sorted. |
 | YAML (workflows, compose) | `yaml` Document API | Edits keep comments and anchors. |
-| Tailwind v4 CSS | postcss | Edits `@import`, `@plugin`, `@theme` at-rules. |
+| Tailwind v4 CSS | postcss | Edits `@import`, `@plugin`, `@theme` at-rules and adds nested `@layer`, `@utility`, `@keyframes` and `@custom-variant` rules without duplicating existing content. |
 | `.env*` | line-based | Adds missing keys; **never overwrites** an existing key. |
 | Markdown (`AGENTS.md`, docs) | marker regions | A Module owns the lines between its own start and end markers and nothing else. |
 

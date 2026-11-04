@@ -50,7 +50,7 @@ The app Targets `web` and `server` are package roots, not source folders: a Modu
 | `db` | `./packages/db/` |
 | `shared-ui` | `./packages/ui/` |
 
-The Layout also decides cross-Target wiring that a Module should not care about: in `monorepo`, a dependency on another Target becomes a workspace dependency; in `single`, it becomes a relative import path. Modules express the intent (`target: "db"`) and the Layout produces the form.
+The Layout also decides cross-Target wiring that a Module should not care about: in `monorepo`, a dependency on another Target becomes a workspace dependency; in `single`, it becomes a relative import path. Modules express the intent (`target: "db"`) and the Layout produces the form. The one exception is `{{import:<target>:<subpath>}}` in file content: it always resolves to a relative specifier, also in `monorepo`, where it points into the other package's directory. Adapted Modules use it for imports across Targets; a workspace-package specifier is not generated.
 
 A Module that must name a Target's location (for example a root script that starts the `server` package) writes `{{target:<name>}}` in file content or in the string values of a data Op. The Engine replaces it with the directory the Layout resolves, or `.` for the Project root, so the Module never contains a Layout-specific path.
 

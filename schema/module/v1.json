@@ -384,7 +384,7 @@
       "type": "array"
     },
     "name": {
-      "pattern": "^[a-z][a-z0-9]*(-[a-z0-9]+)*$",
+      "pattern": "^(@[a-z][a-z0-9]*(-[a-z0-9]+)*\\/)?[a-z][a-z0-9]*(-[a-z0-9]+)*$",
       "type": "string"
     },
     "ops": {
@@ -777,7 +777,11 @@
                     "enum": [
                       "import",
                       "plugin",
-                      "theme"
+                      "theme",
+                      "layer",
+                      "utility",
+                      "keyframes",
+                      "custom-variant"
                     ],
                     "type": "string"
                   },
@@ -827,7 +831,11 @@
                     "enum": [
                       "import",
                       "plugin",
-                      "theme"
+                      "theme",
+                      "layer",
+                      "utility",
+                      "keyframes",
+                      "custom-variant"
                     ],
                     "type": "string"
                   }

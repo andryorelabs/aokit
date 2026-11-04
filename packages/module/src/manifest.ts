@@ -11,9 +11,18 @@ export const supportedManifestSchemaVersion = 1;
  */
 export const manifestSchemaUrl = "https://aokit.andryore.dev/schema/module/v1.json";
 
-const kebabName = z.string().regex(/^[a-z][a-z0-9]*(-[a-z0-9]+)*$/, {
-  message: "must be lowercase kebab-case",
-});
+const scopedKebabName = z
+  .string()
+  .regex(/^(@[a-z][a-z0-9]*(-[a-z0-9]+)*\/)?[a-z][a-z0-9]*(-[a-z0-9]+)*$/, {
+    message: "must be lowercase kebab-case, optionally scoped as @scope/name",
+  });
+
+/**
+ * Whether a version has the synthetic form `0.0.0-shadcn.<12hex>` of an Adapted Module.
+ */
+function isAdaptedModuleVersion(version: string): boolean {
+  return /^0\.0\.0-shadcn\.[0-9a-f]{12}$/.test(version);
+}
 
 const capabilityName = z.string().regex(/^[a-z][a-z0-9]*(-[a-z0-9]+)*(:[a-z0-9]+(-[a-z0-9]+)*)*$/, {
   message: "must be a lowercase kebab-case capability, optionally namespaced with ':'",
@@ -153,23 +162,35 @@ const migration = z.strictObject({
 /**
  * The single Zod source of truth for the Module manifest.
  */
-export const manifestSchema = z.strictObject({
-  $schema: z.string().default(manifestSchemaUrl),
-  schemaVersion: z.literal(supportedManifestSchemaVersion).default(supportedManifestSchemaVersion),
-  name: kebabName,
-  version: semver,
-  provides: z.array(provideEntry).default([]),
-  requires: z.array(requirement).default([]),
-  conflicts: z.array(capabilityName).default([]),
-  answers: z.record(z.string().min(1), answer).optional(),
-  files: z.array(fileEntry).default([]),
-  deps: deps.optional(),
-  env: z.array(envEntry).default([]),
-  ops: z.array(opSchema).default([]),
-  extensionPoints: z.array(extensionPoint).default([]),
-  override: z.array(overrideEntry).default([]),
-  migrations: z.array(migration).default([]),
-});
+export const manifestSchema = z
+  .strictObject({
+    $schema: z.string().default(manifestSchemaUrl),
+    schemaVersion: z
+      .literal(supportedManifestSchemaVersion)
+      .default(supportedManifestSchemaVersion),
+    name: scopedKebabName,
+    version: semver,
+    provides: z.array(provideEntry).default([]),
+    requires: z.array(requirement).default([]),
+    conflicts: z.array(capabilityName).default([]),
+    answers: z.record(z.string().min(1), answer).optional(),
+    files: z.array(fileEntry).default([]),
+    deps: deps.optional(),
+    env: z.array(envEntry).default([]),
+    ops: z.array(opSchema).default([]),
+    extensionPoints: z.array(extensionPoint).default([]),
+    override: z.array(overrideEntry).default([]),
+    migrations: z.array(migration).default([]),
+  })
+  .superRefine((manifest, context) => {
+    if (manifest.name.startsWith("@") && !isAdaptedModuleVersion(manifest.version)) {
+      context.addIssue({
+        code: "custom",
+        path: ["name"],
+        message: `scoped name "${manifest.name}" is only accepted for Adapted Modules, whose version is 0.0.0-shadcn.<12hex>`,
+      });
+    }
+  });
 
 /**
  * A validated, normalized manifest.
