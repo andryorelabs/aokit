@@ -123,7 +123,7 @@ test("a Module fetched once is read from the cache after the server stops", asyn
   const reopened = await openRegistry(source, { ...context, cache });
   await server.stop();
   const cached = await reopened.version("oxc", "1.0.0");
-  expect([...cached.files]).toEqual([...fetched.files]);
+  expect(Object.fromEntries(cached.files)).toEqual(Object.fromEntries(fetched.files));
   expect(cached.integrity).toBe(fetched.integrity);
 });
 
