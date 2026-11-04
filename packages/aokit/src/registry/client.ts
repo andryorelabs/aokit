@@ -35,6 +35,7 @@ import {
   releaseModulesSchema,
   supportedRegistrySchemaVersion,
 } from "./schema.ts";
+import { ensureEmbeddedRegistry } from "./embedded/extract.ts";
 import { type AdaptedModule, adaptShadcnItem } from "./shadcn/adapt.ts";
 import { shadcnItemSchema, shadcnRegistrySchema } from "./shadcn/schema.ts";
 import { formatRegistrySource, type RegistrySource } from "./source.ts";
@@ -228,6 +229,7 @@ async function transportFor(
       source: pinnedGithubSource(pin),
     };
   }
+  if (source.kind === "bundled") await ensureEmbeddedRegistry(process.env);
   return { transport: localTransport(source.path), source };
 }
 

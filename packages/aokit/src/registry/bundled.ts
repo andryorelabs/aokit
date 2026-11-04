@@ -1,23 +1,11 @@
 import { join } from "node:path";
-import {
-  embeddedRegistryTarget,
-  extractBundledRegistry,
-  hasEmbeddedRegistry,
-} from "./embedded/extract.ts";
+import { embeddedRegistryTarget, hasEmbeddedRegistry } from "./embedded/extract.ts";
 
 declare const AOKIT_BUNDLED_REGISTRY_RELATIVE: string | undefined;
 
-async function resolveEmbeddedRegistryPath(): Promise<string> {
-  try {
-    return await extractBundledRegistry(process.env);
-  } catch {
-    return embeddedRegistryTarget(process.env);
-  }
-}
-
-async function resolveBundledRegistryPath(): Promise<string> {
+function resolveBundledRegistryPath(): string {
   if (hasEmbeddedRegistry()) {
-    return resolveEmbeddedRegistryPath();
+    return embeddedRegistryTarget(process.env);
   }
   if (typeof AOKIT_BUNDLED_REGISTRY_RELATIVE === "string") {
     return join(import.meta.dir, AOKIT_BUNDLED_REGISTRY_RELATIVE);
@@ -27,7 +15,7 @@ async function resolveBundledRegistryPath(): Promise<string> {
 
 /**
  * The Registry that ships with the running CLI, the target of the `"bundled"` source. In the binary
- * an extraction failure (an unwritable cache directory) does not abort startup: the path still
- * names the intended directory, and only a command that reads the bundled Registry fails.
+ * this is the directory the embedded Registry is extracted to; the extraction itself runs lazily,
+ * when the Registry client opens the `"bundled"` source.
  */
-export const bundledRegistryPath = await resolveBundledRegistryPath();
+export const bundledRegistryPath = resolveBundledRegistryPath();
