@@ -1,12 +1,11 @@
 import { resolve as resolvePath } from "node:path";
 import type { ModuleManifest } from "@aokit/module";
 import { z } from "zod";
-import { hashFileBytes, volatileHash } from "../../drift/hash.ts";
+import { lockfileDriftOf } from "../../drift/drift-of.ts";
 import type { AnswerValue } from "../../engine/interpolate.ts";
 import type { PlanChange } from "../../engine/plan.ts";
 import { formatterForSelection } from "../../format/index.ts";
 import { runLifecycle } from "../../lifecycle/index.ts";
-import type { DriftOf } from "../../merge/index.ts";
 import type { Lockfile } from "../../lockfile/schema.ts";
 import type { BuiltProject } from "../../pipeline/build.ts";
 import { type PipelineModule, buildProject, renderFromLockfile } from "../../pipeline/index.ts";
@@ -146,14 +145,6 @@ interface AddEnvironment {
   readonly interactive: boolean;
   readonly adapters: RegistryAdapters;
 }
-
-const driftOf: DriftOf = ({ entry, user }) => {
-  if (entry === undefined) return user === undefined ? "deleted" : "unknown";
-  if (user === undefined) return "deleted";
-  if (entry.hash === volatileHash) return "volatile";
-  const bytes = typeof user === "string" ? new TextEncoder().encode(user) : user;
-  return hashFileBytes(bytes) === entry.hash ? "pristine" : "modified";
-};
 
 function describeEntry(entry: PlanChange["provenance"][number]["entry"]): string {
   if (entry.kind === "file") return `file ${entry.from}`;
@@ -512,7 +503,7 @@ export async function runAdd(
   try {
     const result = await runLifecycle({
       dir: directory,
-      driftOf,
+      driftOf: lockfileDriftOf,
       allowDirty: input.allowDirty,
       dryRun: input.dryRun,
       diff: input.diff,

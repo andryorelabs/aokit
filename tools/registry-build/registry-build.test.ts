@@ -1,7 +1,7 @@
 import { afterEach, expect, test } from "bun:test";
-import { cp, mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
+import { cp, mkdir, mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
-import { join } from "node:path";
+import { dirname, join } from "node:path";
 import { catalogSchema } from "@aokit/module";
 import { computeIntegrity } from "../../packages/aokit/src/registry/index.ts";
 import { buildRegistry, listFiles } from "./build.ts";
@@ -308,4 +308,97 @@ test("the 2026.11.0 Catalog lists every curated Module dependency with oxc pinne
   for (const member of catalog.pinGroups["oxc"] ?? []) {
     expect(catalog.dependencies[member]).toMatch(/^\d+\.\d+\.\d+$/);
   }
+});
+
+async function buildFailure(source: string): Promise<string> {
+  const failure = await buildRegistry(source, await temporaryDirectory()).then(
+    () => undefined,
+    (error: unknown) => error,
+  );
+  return String(failure);
+}
+
+async function addOxcFile(source: string, entry: string, extra?: [string, string]): Promise<void> {
+  if (extra !== undefined) {
+    await mkdir(dirname(join(source, "oxc", extra[0])), { recursive: true });
+    await writeFile(join(source, "oxc", extra[0]), extra[1], "utf8");
+  }
+  const modulePath = join(source, "oxc/module.ts");
+  const moduleText = await readFile(modulePath, "utf8");
+  await writeFile(
+    modulePath,
+    moduleText.replace("  ],\n  deps", `    ${entry},\n  ],\n  deps`),
+    "utf8",
+  );
+}
+
+async function withSkill(skillText: string): Promise<string> {
+  const source = await fixtureSource();
+  await addOxcFile(
+    source,
+    '{ from: "files/skill/SKILL.md", to: ".claude/skills/my-skill/SKILL.md", target: "root" }',
+    ["files/skill/SKILL.md", skillText],
+  );
+  return source;
+}
+
+test("a Module Skill with a valid name and description builds", async () => {
+  const source = await withSkill("---\nname: my-skill\ndescription: Does a thing.\n---\n\nBody\n");
+  const out = await temporaryDirectory();
+  await buildRegistry(source, out);
+  expect(await listFiles(out)).toContain("modules/oxc/1.0.0/files/skill/SKILL.md");
+});
+
+test("a Skill whose name differs from its directory fails naming the Module and path", async () => {
+  const message = await buildFailure(
+    await withSkill("---\nname: other\ndescription: Does a thing.\n---\n"),
+  );
+  expect(message).toContain(
+    'registry:build: Module oxc skill my-skill: name must equal "my-skill"',
+  );
+  expect(message).toContain(".claude/skills/my-skill/SKILL.md");
+});
+
+test("a Skill with an empty description fails naming the Module", async () => {
+  const message = await buildFailure(await withSkill("---\nname: my-skill\ndescription:\n---\n"));
+  expect(message).toContain("Module oxc skill my-skill: description must not be empty");
+});
+
+test("a Skill with no frontmatter fails naming the Module", async () => {
+  expect(await buildFailure(await withSkill("# no frontmatter\n"))).toContain(
+    "Module oxc skill my-skill",
+  );
+});
+
+test("a Module named aokit is rejected", async () => {
+  const source = await fixtureSource();
+  await mkdir(join(source, "aokit"), { recursive: true });
+  await writeFile(
+    join(source, "aokit/module.ts"),
+    'export default {\n  name: "aokit",\n  version: "1.0.0",\n  provides: ["core"],\n};\n',
+    "utf8",
+  );
+  const message = await buildFailure(source);
+  expect(message).toContain("Module aokit");
+  expect(message).toContain("reserved");
+});
+
+test.each(["AGENTS.md", "CLAUDE.md"])("a Module writing the root %s is rejected", async (path) => {
+  const source = await fixtureSource();
+  await addOxcFile(source, `{ from: "files/nested/notes.md", to: "${path}", target: "root" }`);
+  const message = await buildFailure(source);
+  expect(message).toContain("Module oxc");
+  expect(message).toContain(path);
+});
+
+test.each([
+  ["web", "AGENTS.md"],
+  ["config", "CLAUDE.md"],
+  ["root", "./AGENTS.md"],
+])("a Module writing %s %s into the project root is rejected", async (target, path) => {
+  const source = await fixtureSource();
+  await addOxcFile(source, `{ from: "files/nested/notes.md", to: "${path}", target: "${target}" }`);
+  const message = await buildFailure(source);
+  expect(message).toContain("Module oxc");
+  expect(message).toContain(path);
 });

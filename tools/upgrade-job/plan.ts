@@ -16,7 +16,7 @@ export interface LockedFile {
 
 /** A representative edit the job makes to a created Project before updating it. */
 export interface Edit {
-  readonly kind: "managed-text" | "managed-json" | "seed" | "user-import";
+  readonly kind: "managed-text" | "managed-json" | "seed" | "user-import" | "user-note";
   /** Project-relative POSIX path the edit is written to. */
   readonly path: string;
   /** Text the edit adds; it must survive the update, at its path or at a renamed one. */
@@ -40,23 +40,40 @@ export function releasePairs(releases: readonly string[]): [string, string][] {
     .map((release, position): [string, string] => [sorted[position] ?? "", release]);
 }
 
+/** The last consecutive pair of Releases, e.g. `["2026.11.1", "2026.11.2"]` for three Releases. */
+export function lastPair(releases: readonly string[]): [string, string] {
+  const pair = releasePairs(releases).at(-1);
+  if (pair === undefined) {
+    throw new Error(`The Upgrade job needs at least two Releases, found ${releases.length}.`);
+  }
+  return pair;
+}
+
 /**
- * The index as it stood at `release`: later Releases are dropped, and each Module that has older
- * versions steps back one version per dropped Release. The index does not record which Release
- * introduced a version, so this assumes a Module advances by one version per Release it changes.
+ * The index as it stood at `release`: later Releases are dropped, and each Module is cut back to
+ * the version `catalogModules` (the built Catalog's `modules` map of `release`) maps it to.
+ * Modules the Catalog does not list are dropped.
  */
-export function indexAtRelease(index: RegistryIndex, release: string): RegistryIndex {
+export function indexAtRelease(
+  index: RegistryIndex,
+  release: string,
+  catalogModules: Record<string, string>,
+): RegistryIndex {
   const copy = structuredClone(index);
-  const dropped = Object.keys(index.releases)
-    .filter((candidate) => bySemver(candidate, release) > 0)
-    .toSorted(bySemver);
-  for (const later of dropped) delete copy.releases[later];
+  for (const later of Object.keys(index.releases)) {
+    if (bySemver(later, release) > 0) delete copy.releases[later];
+  }
   copy.release = release;
-  for (const entry of Object.values(copy.modules)) {
-    const versions = Object.keys(entry.versions).toSorted(bySemver);
-    const keep = Math.max(1, versions.length - dropped.length);
-    for (const version of versions.slice(keep)) delete entry.versions[version];
-    entry.latest = versions.slice(0, keep).at(-1) ?? entry.latest;
+  for (const [name, entry] of Object.entries(copy.modules)) {
+    const pinned = catalogModules[name];
+    if (pinned === undefined || entry.versions[pinned] === undefined) {
+      delete copy.modules[name];
+      continue;
+    }
+    for (const version of Object.keys(entry.versions)) {
+      if (bySemver(version, pinned) > 0) delete entry.versions[version];
+    }
+    entry.latest = pinned;
   }
   return copy;
 }
@@ -101,7 +118,8 @@ function appendedLine(path: string, marker: string): string {
  * managed text file (the routes file when present, which a Release may rename), a key added to a
  * managed JSON file (the oxlint config when present), an edited seed, and, when `vite-react` is
  * selected, a user file importing `./routes` in its `web` Target. Edits with no candidate file
- * are left out.
+ * are left out. A note appended to the root `AGENTS.md` is always planned: the file is a Region
+ * file when the Release renders it and user-authored text to adopt otherwise.
  */
 export function planEdits(
   files: Readonly<Record<string, LockedFile>>,
@@ -137,6 +155,7 @@ export function planEdits(
       marker: "upgradeJobUserRoute",
     });
   }
+  edits.push({ kind: "user-note", path: "AGENTS.md", marker: "upgradeJobAgentsNote" });
   return edits;
 }
 
