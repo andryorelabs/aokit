@@ -87,7 +87,7 @@ test("bare-string provides normalizes to { max: 1 } and many is accepted", () =>
   ]);
 });
 
-test("the Op union covers all 8 Ops", () => {
+test("the Op union covers all 9 Ops", () => {
   const members: readonly z.ZodObject[] = opSchema.options.flatMap(
     (option): readonly z.ZodObject[] => ("options" in option ? option.options : [option]),
   );
@@ -95,6 +95,7 @@ test("the Op union covers all 8 Ops", () => {
     [...new Set(members.map((member) => String(member.shape.op.def.values[0])))].toSorted(),
   ).toEqual([
     "addCssAtRule",
+    "addCssVariables",
     "addEnv",
     "addImport",
     "addToArray",
