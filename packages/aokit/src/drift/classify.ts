@@ -2,7 +2,7 @@ import { readFile, stat } from "node:fs/promises";
 import { join } from "node:path";
 import type { Git } from "../git/git.ts";
 import type { Lockfile } from "../lockfile/schema.ts";
-import { hashFileBytes, volatileHash } from "./hash.ts";
+import { hashTrackedFile, volatileHash } from "./hash.ts";
 import { findUnknownFiles } from "./unknown.ts";
 
 /** How a file in the working tree relates to the Lockfile. */
@@ -49,7 +49,7 @@ async function classifyFile(
     throw error;
   }
   if (entry.hash === volatileHash) return "volatile";
-  return hashFileBytes(bytes) === entry.hash ? "pristine" : "modified";
+  return hashTrackedFile(path, bytes) === entry.hash ? "pristine" : "modified";
 }
 
 async function exists(path: string): Promise<boolean> {

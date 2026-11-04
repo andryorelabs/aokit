@@ -2,12 +2,11 @@ import { join, resolve as resolvePath } from "node:path";
 import type { ModuleManifest } from "@aokit/module";
 import { z } from "zod";
 import { lockfileName } from "../../apply/index.ts";
-import { hashFileBytes, volatileHash } from "../../drift/hash.ts";
+import { lockfileDriftOf } from "../../drift/drift-of.ts";
 import type { PlanChange } from "../../engine/plan.ts";
 import { LockfileError, readLockfile } from "../../lockfile/index.ts";
 import type { Lockfile } from "../../lockfile/schema.ts";
 import { runLifecycle } from "../../lifecycle/index.ts";
-import type { DriftOf } from "../../merge/index.ts";
 import { renderFromLockfile } from "../../pipeline/index.ts";
 import { bundledRegistryPath } from "../../registry/bundled.ts";
 import type { LocalRegistry } from "../../registry/index.ts";
@@ -250,15 +249,6 @@ function withoutModules(lockfile: Lockfile, removed: readonly string[]): Lockfil
   };
 }
 
-const driftOf: DriftOf = ({ entry, user }) => {
-  if (entry === undefined) return user === undefined ? "deleted" : "unknown";
-  if (entry.mode === "ejected") return "pristine";
-  if (user === undefined) return "deleted";
-  if (entry.hash === volatileHash) return "volatile";
-  const bytes = typeof user === "string" ? Buffer.from(user) : user;
-  return hashFileBytes(bytes) === entry.hash ? "pristine" : "modified";
-};
-
 export const removeCommand = defineCommand({
   name: "remove",
   description: "Remove a Module from a Project",
@@ -276,7 +266,7 @@ export const removeCommand = defineCommand({
       const options = { projectDir: directory, bundledRegistryPath, cliVersion: context.version };
       const result = await runLifecycle({
         dir: directory,
-        driftOf,
+        driftOf: lockfileDriftOf,
         allowDirty: input.allowDirty,
         dryRun: input.dryRun,
         diff: input.diff,
