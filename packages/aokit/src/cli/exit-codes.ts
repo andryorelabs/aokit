@@ -1,4 +1,4 @@
-/** Exit codes a command run can produce. `2` is the `UPDATE_AVAILABLE` outcome of `check`. */
+/** Exit codes a command run can produce. `2` is the `UPDATE_AVAILABLE` outcome of `check` and `REGISTRY_ENV_UNSET`. */
 export const exitCodes = {
   success: 0,
   failure: 1,
@@ -41,6 +41,7 @@ export const errorCodeExitCodes = {
   REGISTRY_UNTRUSTED: exitCodes.precondition,
   REGISTRY_FETCH_FAILED: exitCodes.failure,
   REGISTRY_INTEGRITY_MISMATCH: exitCodes.failure,
+  REGISTRY_ENV_UNSET: exitCodes.outcome,
 } as const satisfies Record<string, ExitCode>;
 
 export type ErrorCode = keyof typeof errorCodeExitCodes;

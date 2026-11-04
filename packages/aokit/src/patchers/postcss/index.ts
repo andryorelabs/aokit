@@ -1,4 +1,13 @@
-import { atRule, decl, parse, type AtRule, type Root } from "postcss";
+import {
+  atRule,
+  decl,
+  parse,
+  rule as cssRule,
+  type AtRule,
+  type Container,
+  type Declaration,
+  type Root,
+} from "postcss";
 
 /** A Tailwind v4 at-rule to add: `@import`, `@plugin` (with params) or `@theme` (with declarations). */
 export interface CssAtRulePatch {
@@ -73,6 +82,75 @@ export function addCssAtRule(css: string, patch: CssAtRulePatch): string {
     insertHeaderRule(root, patch);
   } else {
     mergeBlockRule(root, patch);
+  }
+  return root.toString();
+}
+
+/** The stylesheet group a custom property belongs to. */
+type CssVariableGroup = "theme" | "light" | "dark";
+
+/** Custom properties to set in one group; `overwrite` replaces values that already exist. */
+export interface CssVariablesPatch {
+  readonly group: CssVariableGroup;
+  readonly variables: Readonly<Record<string, string>>;
+  readonly overwrite?: boolean;
+}
+
+function findGroupBlock(root: Root, group: CssVariableGroup): Container | undefined {
+  let found: Container | undefined;
+  for (const node of root.nodes) {
+    if (found) break;
+    if (
+      group === "theme" &&
+      node.type === "atrule" &&
+      node.name === "theme" &&
+      node.params === ""
+    ) {
+      found = node;
+    } else if (node.type === "rule" && node.selector === (group === "light" ? ":root" : ".dark")) {
+      found = node;
+    }
+  }
+  return found;
+}
+
+function createGroupBlock(root: Root, group: CssVariableGroup): Container {
+  const block =
+    group === "theme"
+      ? atRule({ name: "theme", params: "" })
+      : cssRule({ selector: group === "light" ? ":root" : ".dark" });
+  block.raws.before = root.nodes.length === 0 ? "" : "\n\n";
+  block.raws.between = " ";
+  root.append(block);
+  return block;
+}
+
+function propertyName(name: string): string {
+  return name.startsWith("--") ? name : `--${name}`;
+}
+
+/**
+ * Sets custom properties in the `theme` (`@theme`), `light` (`:root`) or `dark` (`.dark`) group of
+ * CSS text. A variable already present keeps its value unless `overwrite` is set; a second run
+ * with the same patch returns the text unchanged.
+ */
+export function addCssVariables(css: string, patch: CssVariablesPatch): string {
+  const root = parse(css);
+  const entries = Object.entries(patch.variables);
+  const block = findGroupBlock(root, patch.group);
+  const target = block ?? (entries.length > 0 ? createGroupBlock(root, patch.group) : undefined);
+  if (!target) return css;
+  for (const [name, value] of entries) {
+    const prop = propertyName(name);
+    const existing: Declaration[] = [];
+    target.each((child) => {
+      if (child.type === "decl" && child.prop === prop) existing.push(child);
+    });
+    if (existing.length === 0) {
+      target.append(decl({ prop, value }));
+    } else if (patch.overwrite) {
+      for (const declaration of existing) declaration.value = value;
+    }
   }
   return root.toString();
 }

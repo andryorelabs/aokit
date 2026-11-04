@@ -12,16 +12,40 @@ const trustedRegistrySchema = z.strictObject({
   source: z.string().min(1),
 });
 
+const namespaceNamePattern = /^@[a-z0-9][a-z0-9._-]*$/;
+
+const namespaceConfigSchema = z.strictObject({
+  url: z
+    .string()
+    .min(1)
+    .refine((url) => url.includes("{name}"), { message: "a Namespace url must contain {name}" }),
+  headers: z.record(z.string().min(1), z.string()).optional(),
+});
+
 const userConfigSchema = z.looseObject({
   trustedRegistries: z.array(trustedRegistrySchema).default([]),
+  registries: z
+    .record(
+      z.string().regex(namespaceNamePattern, { message: "a Namespace is named like @acme" }),
+      namespaceConfigSchema,
+    )
+    .optional(),
 });
 
 /** A Registry the user allowed for every Project: its name and the source it was allowed for. */
 export type TrustedRegistryEntry = z.infer<typeof trustedRegistrySchema>;
 
+/**
+ * A Namespace as the user config declares it: a shadcn Registry URL template holding `{name}` and
+ * request headers. Both may hold `${VAR}` placeholders, which are stored and kept as written.
+ */
+export type NamespaceConfig = z.infer<typeof namespaceConfigSchema>;
+
 /** The parts of the user config aokit reads. */
 export interface UserConfig {
   readonly trustedRegistries: readonly TrustedRegistryEntry[];
+  /** Namespaces by name (`@acme`), present only when the file declares `registries`. */
+  readonly registries?: Readonly<Record<string, NamespaceConfig>>;
 }
 
 /** The user config file: `$XDG_CONFIG_HOME/aokit/config.json` (default `~/.config/aokit`). */
@@ -33,7 +57,7 @@ function invalidConfig(path: string, reason: string): AokitError {
   return new AokitError(
     "INVALID_INPUT",
     `The user config ${path} is invalid: ${reason}.`,
-    'Fix the file or remove it; `trustedRegistries` is a list of `{ "name", "source" }` objects.',
+    'Fix the file or remove it; `trustedRegistries` is a list of `{ "name", "source" }` objects and `registries` maps `@name` to `{ "url", "headers" }` with `{name}` in the url.',
     { path },
   );
 }
@@ -82,7 +106,9 @@ export async function loadUserConfig(
   env: UserConfigEnvironment = process.env,
 ): Promise<UserConfig> {
   const raw = await readRawConfig(userConfigPath(env));
-  return { trustedRegistries: raw.trustedRegistries };
+  return raw.registries === undefined
+    ? { trustedRegistries: raw.trustedRegistries }
+    : { trustedRegistries: raw.trustedRegistries, registries: raw.registries };
 }
 
 /**

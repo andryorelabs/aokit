@@ -4,13 +4,21 @@ import { join } from "node:path";
 import { buildRegistry } from "../../../../tools/registry-build/build.ts";
 import { writeRegistrySourceFixture } from "../../../../tools/registry-build/fixture.ts";
 
+/** One request a {@link ServedRegistry} received: its path and its headers, names lowercased. */
+interface ReceivedRequest {
+  readonly path: string;
+  readonly headers: Readonly<Record<string, string>>;
+}
+
 /**
  * A Registry directory served over HTTP on an ephemeral loopback port, recording every requested
- * path. `failPaths` answer 500 and `redirects` answer 302 to another URL.
+ * path in `requests` and every request with its headers in `received`. `failPaths` answer 500 and
+ * `redirects` answer 302 to another URL.
  */
 export interface ServedRegistry {
   readonly url: string;
   readonly requests: string[];
+  readonly received: ReceivedRequest[];
   readonly failPaths: Set<string>;
   readonly redirects: Map<string, string>;
   stop(): Promise<void>;
@@ -47,6 +55,7 @@ export async function editJson(
 /** Serves `root` with `Bun.serve` on an ephemeral port of 127.0.0.1. */
 export function serveRegistry(root: string): ServedRegistry {
   const requests: string[] = [];
+  const received: ReceivedRequest[] = [];
   const failPaths = new Set<string>();
   const redirects = new Map<string, string>();
   const server = Bun.serve({
@@ -55,6 +64,7 @@ export function serveRegistry(root: string): ServedRegistry {
     async fetch(request) {
       const path = decodeURIComponent(new URL(request.url).pathname).replace(/^\//, "");
       requests.push(path);
+      received.push({ path, headers: Object.fromEntries(request.headers.entries()) });
       if (failPaths.has(path)) {
         return new Response("boom", { status: 500 });
       }
@@ -69,6 +79,7 @@ export function serveRegistry(root: string): ServedRegistry {
   return {
     url: `http://127.0.0.1:${server.port}`,
     requests,
+    received,
     failPaths,
     redirects,
     stop: () => server.stop(true),

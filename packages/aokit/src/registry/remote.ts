@@ -91,14 +91,26 @@ function fetchFailed(url: string, reason: string, status?: number): RegistryErro
 const maximumRedirects = 5;
 const redirectStatuses = new Set([301, 302, 303, 307, 308]);
 
+/** Where a redirect chain sends the caller's headers: only to `origin`, until a hop leaves it. */
+interface HeaderScope {
+  readonly origin: string;
+  readonly headers: Readonly<Record<string, string>>;
+}
+
+function headersFor(target: string, scope: HeaderScope | undefined): Record<string, string> {
+  return scope !== undefined && new URL(target).origin === scope.origin ? { ...scope.headers } : {};
+}
+
 async function fetchFollowingSafeRedirects(
   target: string,
   fetchImpl: typeof fetch,
+  scope: HeaderScope | undefined,
   redirectsLeft: number = maximumRedirects,
 ): Promise<Response> {
   const response = await fetchImpl(target, {
     method: "GET",
     redirect: "manual",
+    headers: headersFor(target, scope),
     signal: AbortSignal.timeout(fetchTimeoutMilliseconds),
   });
   if (!redirectStatuses.has(response.status)) return response;
@@ -121,39 +133,95 @@ async function fetchFollowingSafeRedirects(
       response.status,
     );
   }
-  return fetchFollowingSafeRedirects(next.href, fetchImpl, redirectsLeft - 1);
+  const nextScope = scope !== undefined && next.origin === scope.origin ? scope : undefined;
+  return fetchFollowingSafeRedirects(next.href, fetchImpl, nextScope, redirectsLeft - 1);
+}
+
+/** Options of {@link urlTransport}. */
+export interface UrlTransportOptions {
+  /**
+   * Headers sent only to the origin (scheme, host and port) of `base`. A redirect to another
+   * origin drops them for the rest of the chain, even if a later hop returns to `base`'s origin.
+   */
+  readonly headers?: Readonly<Record<string, string>>;
+  /**
+   * The base as messages and `location` show it, such as a URL still holding `${VAR}`
+   * placeholders when `base` is its expansion. Defaults to `base`.
+   */
+  readonly displayBase?: string;
+}
+
+/** Header values shorter than this are not secrets worth blanking inside unrelated text. */
+const minimumRedactedLength = 8;
+
+function redactor(
+  base: string,
+  options: UrlTransportOptions | undefined,
+): (text: string) => string {
+  const secrets = new Set(
+    Object.values(options?.headers ?? {}).flatMap((value) => [
+      value,
+      value.split(/\s+/).at(-1) ?? "",
+    ]),
+  );
+  const replacements: [string, string][] = [...secrets]
+    .filter((value) => value.length >= minimumRedactedLength)
+    .toSorted((first, second) => second.length - first.length)
+    .map((value) => [value, "[redacted]"]);
+  if (options?.displayBase !== undefined && options.displayBase !== base) {
+    replacements.unshift([base, options.displayBase]);
+  }
+  return (text) =>
+    replacements.reduce((current, [secret, shown]) => current.replaceAll(secret, shown), text);
+}
+
+function redactedError(error: RegistryError, redact: (text: string) => string): RegistryError {
+  const data =
+    error.data.path === undefined ? error.data : { ...error.data, path: redact(error.data.path) };
+  return new RegistryError(error.code, redact(error.message), redact(error.fix), data);
+}
+
+async function readResponse(url: string, response: Response): Promise<string | undefined> {
+  if (response.status === 404) {
+    await response.body?.cancel();
+    return undefined;
+  }
+  if (!response.ok) {
+    await response.body?.cancel();
+    throw fetchFailed(url, `HTTP ${response.status}`, response.status);
+  }
+  return normalizeLineEndings(await response.text());
 }
 
 /**
  * A transport over a Registry served as static files under `base`, read with `fetchImpl` (native
  * `fetch` unless a test injects one). A 404 is a missing file; any other failure is
- * `REGISTRY_FETCH_FAILED`.
+ * `REGISTRY_FETCH_FAILED`, whose message never holds a header value or the expanded `base`.
  */
-export function urlTransport(base: string, fetchImpl: typeof fetch): RegistryTransport {
+export function urlTransport(
+  base: string,
+  fetchImpl: typeof fetch,
+  options?: UrlTransportOptions,
+): RegistryTransport {
+  const scope =
+    options?.headers === undefined
+      ? undefined
+      : { origin: new URL(base).origin, headers: options.headers };
+  const redact = redactor(base, options);
+  const location = options?.displayBase ?? base;
   return {
-    location: base,
+    location,
     async read(path) {
-      assertSafeRelativePath(path, `Registry at ${base}`, base);
+      assertSafeRelativePath(path, `Registry at ${location}`, location);
       const url = `${base}/${path.split("/").map(encodeURIComponent).join("/")}`;
-      let response: Response;
       try {
-        response = await fetchFollowingSafeRedirects(url, fetchImpl);
+        return await readResponse(url, await fetchFollowingSafeRedirects(url, fetchImpl, scope));
       } catch (error) {
-        if (error instanceof RegistryError) throw error;
-        throw fetchFailed(url, error instanceof Error ? error.message : String(error));
-      }
-      if (response.status === 404) {
-        await response.body?.cancel();
-        return undefined;
-      }
-      if (!response.ok) {
-        await response.body?.cancel();
-        throw fetchFailed(url, `HTTP ${response.status}`, response.status);
-      }
-      try {
-        return normalizeLineEndings(await response.text());
-      } catch (error) {
-        throw fetchFailed(url, error instanceof Error ? error.message : String(error));
+        const failure =
+          error instanceof RegistryError
+            ? error
+            : fetchFailed(url, error instanceof Error ? error.message : String(error));
+        throw redactedError(failure, redact);
       }
     },
   };

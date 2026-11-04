@@ -8,7 +8,7 @@ import type { Target } from "../../engine/layout.ts";
 /** The Ops that write a file and may address an Extension point instead of a path. */
 export type DataOp = Extract<
   Op,
-  { op: "mergeJson" | "mergeYaml" | "addEnv" | "addCssAtRule" | "appendRegion" }
+  { op: "mergeJson" | "mergeYaml" | "addEnv" | "addCssAtRule" | "addCssVariables" | "appendRegion" }
 >;
 
 /** Where a data Op writes: the Target, the file relative to it and, for `json` points, the node. */
@@ -23,6 +23,7 @@ const fileMatchers: Readonly<Record<DataOp["op"], RegExp>> = {
   mergeYaml: /\.ya?ml$/,
   addEnv: /(?:^|\/)\.env[^/]*$/,
   addCssAtRule: /\.css$/,
+  addCssVariables: /\.css$/,
   appendRegion: /\.md$/,
 };
 

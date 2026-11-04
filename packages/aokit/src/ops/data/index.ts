@@ -4,7 +4,7 @@ import type { OpHandler, OpHandlers } from "../../engine/ops.ts";
 import { addEnv } from "../../patchers/env/index.ts";
 import { type JsoncValue, mergeJsonc } from "../../patchers/jsonc/index.ts";
 import { appendRegion } from "../../patchers/markdown/index.ts";
-import { addCssAtRule } from "../../patchers/postcss/index.ts";
+import { addCssAtRule, addCssVariables } from "../../patchers/postcss/index.ts";
 import { mergeYaml } from "../../patchers/yaml/index.ts";
 import { DataOpError } from "./errors.ts";
 import { readText, writeIfChanged } from "./files.ts";
@@ -110,7 +110,7 @@ function parseDeclarations(body: string | undefined): Record<string, string> {
   return declarations;
 }
 
-/** Handlers for the data Ops (`mergeJson`, `mergeYaml`, `addEnv`, `addCssAtRule`, `appendRegion`). */
+/** Handlers for the data Ops (`mergeJson`, `mergeYaml`, `addEnv`, `addCssAtRule`, `addCssVariables`, `appendRegion`). */
 export const dataOpHandlers: OpHandlers = {
   mergeJson(context, op) {
     if (op.op !== "mergeJson") {
@@ -144,6 +144,18 @@ export const dataOpHandlers: OpHandlers = {
         name: op.rule,
         params: op.params,
         ...(Object.keys(declarations).length > 0 ? { declarations } : {}),
+      }),
+    );
+  },
+  addCssVariables(context, op) {
+    if (op.op !== "addCssVariables") {
+      mismatch(context, "addCssVariables", op.op);
+    }
+    editFile(context, op, (text) =>
+      addCssVariables(text, {
+        group: op.group,
+        variables: op.variables,
+        overwrite: context.overriding,
       }),
     );
   },

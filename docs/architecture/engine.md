@@ -94,6 +94,7 @@ An Op is a declarative edit applied at an Extension point or to a file. There ar
 | `mergeYaml` | Same for YAML through the Document API. |
 | `addEnv` | Adds env keys without overwriting (also used by `env`). |
 | `addCssAtRule` | Adds a Tailwind v4 at-rule through postcss. |
+| `addCssVariables` | Sets CSS custom properties in the `theme`, `light` or `dark` group of a stylesheet through postcss; an existing variable is kept unless the Module declares an `override`. |
 | `appendRegion` | Writes a marker region in a Markdown file. |
 
 Every Op names its `target` (see [Layouts](layouts.md#targets)) and, for code Ops, the Extension point and the version range it supports.
