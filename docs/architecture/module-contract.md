@@ -93,7 +93,7 @@ Declarative Ops cover the common edits. A Module may also ship an arbitrary tran
 
 ```json
 {
-  "$schema": "https://aokit.dev/schema/module/v1.json",
+  "$schema": "https://aokit.andryore.dev/schema/module/v1.json",
   "schemaVersion": 1,
   "name": "oxc",
   "version": "1.0.0",

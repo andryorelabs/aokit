@@ -44,6 +44,18 @@ _Avoid_: structure, topology
 A source of module manifests that is versioned and integrity-checked: official, local, remote, or shadcn-adapted.
 _Avoid_: store, marketplace
 
+**Trusted Registry**:
+A Registry whose content may run in a Project: the official and local Registries, and any other one the user allowed by the user config, `--trust` or the Project's Lockfile.
+_Avoid_: verified Registry, safe Registry
+
+**Yanked version**:
+A Module version that stays served and verified for Lockfiles that already pin it, but is never selected for a new `add`, `create` or `update`.
+_Avoid_: deprecated version, deleted version
+
+**Pin**:
+The full commit SHA a git-hosted Registry source is fixed to; only an explicit `update --registry` moves it.
+_Avoid_: lock, freeze
+
 **Lockfile**:
 `aokit.lock.json`, the recorded state of a project: CLI and protocol version, layout, modules with exact version, source and integrity, answers, per-file hash and ownership mode, dependency pins.
 _Avoid_: config, manifest (a manifest describes a module, not a project)
@@ -118,6 +130,7 @@ _Avoid_: app, workspace
 - A **Render** is built from a selection, or from the Lockfile, and compared with the working tree to give each file a **Drift state**.
 - The **Merger** combines the base Render, the user's file and the new Render; what it cannot reconcile is a **Conflict**.
 - A **Registry** publishes **Releases**; each Release has one **Catalog**; the **Toolchain pin group** is the part of the Catalog pinned exactly.
+- A command fetches only from a **Trusted Registry**; a git-hosted Registry is fetched at its **Pin**, and a **Yanked version** is served but never chosen.
 - A Module version may ship **Migrations** and a **Renames manifest**; `update` moves a Project from one Release to another and runs them.
 
 ## Flagged ambiguities

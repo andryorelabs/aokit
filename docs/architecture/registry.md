@@ -8,21 +8,21 @@ The Registry client (see the [overview](overview.md)) is the only component that
 
 | Kind | Source | Format | Trust by default |
 | --- | --- | --- | --- |
-| `official` | The first-party Registry, shipped with the CLI as the default. Until the Registry client and distribution phases, it lives in this repository as `registry/`, compiled from `registry-src/` and read as a local directory. The Lockfile records its source as `"bundled"`. | aokit index | Trusted. |
+| `official` | The first-party Registry, shipped with the CLI as the default. Until the distribution phase it lives in this repository as `registry/`, compiled from `registry-src/` and read as a local directory; its public host will be `https://registry-aokit.andryore.dev`. The Lockfile records its source as `"bundled"`. | aokit index | Trusted. |
 | `local` | A directory on disk (`./registry`, `file:` path). The Lockfile records a path relative to the Project directory, resolved from there. | aokit index | Trusted: it is code the user already has. |
-| `remote` | A URL or a giget source (`github:owner/repo#ref`). | aokit index | Not trusted. See [Trust model](#trust-model). |
+| `remote` | An `https://` URL that serves the layout below, or a `github:owner/repo#ref` source. | aokit index | Not trusted. See [Trust model](#trust-model). |
 | `shadcn` | A shadcn registry (URL or namespace) read through the [adapter](#shadcn-adapter). | shadcn registry items | Not trusted, and declarative-only. |
 
 ### Resolution order
 
 A Module name is looked up in this order; the first Registry that has it wins:
 
-1. A Registry named explicitly: `--registry <name>` or a `@ns/module` address.
-2. `local` Registries, in the order configured.
-3. `remote` and `shadcn` Registries, in the order configured.
+1. A Registry named explicitly: `--registry <name|source>` (on `create`, `add` and `update`) or a `@ns/module` address.
+2. `local` Registries, in the order recorded in the Lockfile.
+3. `remote` and `shadcn` Registries, in the order recorded in the Lockfile.
 4. `official`.
 
-A Module already in the [Lockfile](lockfile.md) is always fetched from the Registry recorded in its `registry` field, never re-resolved by name. That field points at a key of `registries`, whose `source` is `"bundled"` (the Registry shipped with the CLI), a path relative to the Project directory, or, in later phases, a URL or giget ref. Two Registries offering the same name is not an error when the lookup is unambiguous by the order above; the Plan shows which Registry supplied each Module. Capability names are owned by the Registry that first uses them ([Capabilities](capabilities.md#naming)), and the Resolver reports a disagreement on [Cardinality](capabilities.md#cardinality) as a Registry warning.
+A Module already in the [Lockfile](lockfile.md) is always fetched from the Registry recorded in its `registry` field, never re-resolved by name. That field points at a key of `registries`, whose `source` is `"bundled"` (the Registry shipped with the CLI), a path relative to the Project directory, or, in later phases, a URL or giget ref. Two Registries declaring the same name with different sources is an `INVALID_INPUT` error that names both sources. Two Registries offering the same Module name is not an error when the lookup is unambiguous by the order above; the Plan shows which Registry supplied each Module. Capability names are owned by the Registry that first uses them ([Capabilities](capabilities.md#naming)), and the Resolver reports a disagreement on [Cardinality](capabilities.md#cardinality) as a Registry warning.
 
 ## aokit manifest index
 
@@ -45,7 +45,7 @@ The migration scripts and `renames.json` are listed in the version's `files` has
 
 ```json
 {
-  "$schema": "https://aokit.dev/schema/registry/v1.json",
+  "$schema": "https://aokit.andryore.dev/schema/registry/v1.json",
   "schemaVersion": 1,
   "name": "aokit",
   "release": "2026.11.0",
@@ -87,7 +87,7 @@ The index lists first-party Capability names too, so errors can suggest provider
 
 ```json
 {
-  "$schema": "https://aokit.dev/schema/catalog/v1.json",
+  "$schema": "https://aokit.andryore.dev/schema/catalog/v1.json",
   "schemaVersion": 1,
   "release": "2026.11.0",
   "dependencies": {
@@ -107,7 +107,8 @@ A published `modules/<name>/<version>/` and its files never change. A fix is a n
 
 - A version entry's `integrity` is permanent; a Registry that serves different bytes for it is faulty or compromised and the client rejects them.
 - Old versions stay fetchable for as long as any Project may reference them. A Registry may yank a version (flagged in the index so `add` will not select it) but must keep serving it, because `update` renders the old version from the Lockfile ([Lockfile](lockfile.md)).
-- The client keeps an optional local cache of fetched versions keyed by `integrity`; a cache hit is verified again before use.
+- The client keeps a local cache of fetched versions at `$XDG_CACHE_HOME/aokit/registry/<integrity>/` (default `~/.cache/aokit/registry/<integrity>/`). A cache hit is verified again before use, a corrupted entry is discarded and fetched again, and nothing is evicted automatically.
+- A yanked version carries `yanked: true` in the index, set by the build from `registry-src/yanked.json` (a list of `<module>@<version>`). `add`, `create` and `update` never select it; it is still served and verified.
 - The `latest` pointer and the Catalog of a `release` are the only mutable-by-addition parts: a new release adds a new `catalog/<release>.json`, it never edits an old one.
 
 ## shadcn adapter
@@ -219,9 +220,9 @@ shadcn has no lockfile and no integrity hash: an item is fetched and written, an
 
 A remote source given as a mutable reference is resolved once and pinned:
 
-- **giget** sources (`github:owner/repo#ref`, `owner/repo/item#ref`): `ref` (branch, tag or none) is resolved to a full commit SHA on first use. The Lockfile `registry` field records the source with the SHA, never the moving ref.
-- **URL** sources: the URL is recorded with the sha256 of the fetched index or item; a raw URL with no way to pin by commit is allowed only with integrity recorded, and `update` shows a diff when the content changed.
-- `update` moves a pin only on explicit request (`update` resolves the ref again and shows the new SHA in the Plan).
+- **Git** sources (`github:owner/repo#ref`): `ref` (branch, tag or none) is resolved to a full 40-hex commit SHA with `git ls-remote` on first use, unless it already is one. Files are read from `https://raw.githubusercontent.com/<owner>/<repo>/<sha>/<path>`. The Lockfile `registries.<name>.source` records `github:owner/repo#<sha>`, never the moving ref.
+- **URL** sources: the URL is recorded as given. The index is append-only and changes with every new version, so it is not hashed; the pin is the per-Module `integrity` recorded in the Lockfile, which every fetch is compared against.
+- Only `update --registry github:owner/repo#<ref>` moves a Pin: it resolves the ref again and shows the new SHA in the Plan. A plain `update` never does.
 
 ### Trusted and untrusted Registries
 
@@ -229,9 +230,9 @@ A remote source given as a mutable reference is resolved once and pinned:
 
 **When a prompt appears.** The CLI asks for trust exactly once per Registry, at the first command that would fetch from a Registry that is not first-party and not in the allowlist: `create`, `add`, `update` or `create --from` with a new source. The prompt names the Registry (URL and pinned SHA), what it will fetch and what trusting it enables. It does not appear again for an allowlisted Registry or for one already recorded as trusted for this Project in the Lockfile. It also appears again if the Registry's source changes (a different host, or a different repository).
 
-**Allowlist.** A Registry is allowed non-interactively by the user config (`trustedRegistries`, by name and source) or by `--trust <registry>` on the command. The prompt's "always" answer writes to the user config.
+**Allowlist.** A Registry is allowed non-interactively by the user config (`$XDG_CONFIG_HOME/aokit/config.json`, default `~/.config/aokit/config.json`, key `trustedRegistries: [{ name, source }]`), by `--trust <name|source>` on the command (repeatable; a name must come with the source it was allowed for), or by `registries.<name>.trusted: true` in the Project's Lockfile. The prompt answers `yes`, `no` or `always`; `always` writes the user config, and `yes` records `trusted` in the Lockfile when the command applies.
 
-**Non-interactive runs.** `--yes` never grants trust. With no TTY, with `--yes`, or when a coding agent is detected, an untrusted, non-allowlisted Registry makes the command fail with an actionable error that shows the exact `--trust` form; nothing is fetched into the Plan.
+**Non-interactive runs.** `--yes` never grants trust. With no TTY, with `--yes`, or when a coding agent is detected (`CI`, `CLAUDECODE`, `CURSOR_AGENT`, `CODEX_SANDBOX`, `GEMINI_CLI` or `AOKIT_AGENT` is set), an untrusted, non-allowlisted Registry makes the command fail with `REGISTRY_UNTRUSTED` (exit `5`) and an actionable error that shows the exact `--trust` form; nothing beyond the index is fetched.
 
 **Blocked by default for untrusted Registries:**
 
@@ -246,7 +247,8 @@ Arbitrary transforms are honored only from a trusted Registry and are integrity-
 
 ### Failure and reporting
 
-- Integrity mismatch, unknown `schemaVersion`, and `minCliVersion` above the CLI version are hard errors that name the Registry, the Module and the expected versus actual value.
+- Integrity mismatch (`REGISTRY_INTEGRITY_MISMATCH`, exit `1`), unknown `schemaVersion`, and `minCliVersion` above the CLI version are hard errors that name the Registry, the Module and the expected versus actual value. A failed fetch is `REGISTRY_FETCH_FAILED` (exit `1`) and leaves the Project unchanged.
+- An index `files` entry that is absolute or escapes the Module directory is rejected before any fetch or cache write.
 - A fetch from an untrusted source is reported in the Plan with the Registry, pinned SHA and integrity, so the user can review it before apply.
 
 ## Dependencies on other docs

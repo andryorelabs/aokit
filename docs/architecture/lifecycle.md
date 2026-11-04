@@ -7,7 +7,7 @@
 | Command | Purpose | Writes |
 | --- | --- | --- |
 | `create [dir]` | Build a new Project from a selection. | Whole Project and Lockfile. |
-| `create --from <lockfile\|url>` | Same, replaying another Project's Lockfile. A local path in phase 4a; URLs follow with the remote Registry. | Whole Project and Lockfile. |
+| `create --from <lockfile\|url>` | Same, replaying another Project's Lockfile. A local path or a URL. | Whole Project and Lockfile. |
 | `add <module>` | Add a Module, plus any Modules it requires. | Plan changes, Lockfile. |
 | `remove <module>` | Remove a Module. | Plan changes, Lockfile. |
 | `update` | Move Modules to newer versions. | Plan changes, Lockfile. |
@@ -19,7 +19,7 @@
 | `check` | Say whether an update is available (CI). | Nothing. |
 | `recopy` | Re-render everything at the Lockfile versions, ignoring history. | Plan changes, Lockfile. |
 
-The commands ship in two phases. Phase 4a (foundations): `doctor`, `diff`, `check`, `eject`, `restore`, `add`, `remove`, `recopy` and `create --from <path>`. Phase 4b: `update` and its `--plan` / `--apply` / `--abort` flags, Module migrations, the renames manifest and the N-1 to N upgrade job. `layout migrate` stays deferred until `update` works ([roadmap](../roadmap.md#4a-lifecycle-foundations)). Sections below that describe `update`, [Migrations](#migrations) and [Renames manifest](#renames-manifest) are the design that phase 4b implements.
+The commands ship in two phases. Phase 4a (foundations): `doctor`, `diff`, `check`, `eject`, `restore`, `add`, `remove`, `recopy` and `create --from <path>`. Phase 4b: `update` and its `--plan` / `--apply` / `--abort` flags, Module migrations, the renames manifest and the N-1 to N upgrade job. Phase 5a: `create --from <url>` and remote Registries. `layout migrate` stays deferred until `update` works ([roadmap](../roadmap.md#4a-lifecycle-foundations)). Sections below that describe `update`, [Migrations](#migrations) and [Renames manifest](#renames-manifest) are the design that phase 4b implements.
 
 Every command that builds a Plan accepts `--dry-run` and `--diff` ([Engine](engine.md#vfs-and-plan-before-apply)). Flags, `--json`, `--yes` and the full exit-code table belong to the CLI UX design; this page names only the exit codes that carry lifecycle meaning.
 
@@ -38,7 +38,7 @@ Commands that write project files (`add`, `remove`, `update`, `recopy`, `restore
 
 ### `create --from <lockfile|url>`
 
-Replaces step 1 with the contents of an existing Lockfile: a local path, or a URL (including a raw file in a git repository). In phase 4a only a local path is accepted; a URL fails with a usage error (exit `3`) until the remote Registry phase. Layout, Module versions, answers and Registries are taken from it; Registry sources and integrity are re-verified. The user's Project becomes a replay of the source one and gets its own fresh Lockfile, equal to the source Lockfile when the source Project is pristine. There is no preset mechanism: reusable selections are the Lockfile of a real Project. Flags given alongside `--from` override single answers, not Module versions.
+Replaces step 1 with the contents of an existing Lockfile: a local path, or a URL (including a raw file in a git repository). A URL is fetched with the same trust rules as any remote Registry, and a failed fetch is `REGISTRY_FETCH_FAILED`. Layout, Module versions, answers and Registries are taken from it; Registry sources and integrity are re-verified. The user's Project becomes a replay of the source one and gets its own fresh Lockfile, equal to the source Lockfile when the source Project is pristine. There is no preset mechanism: reusable selections are the Lockfile of a real Project. Flags given alongside `--from` override single answers, not Module versions.
 
 ### Reproducible command
 

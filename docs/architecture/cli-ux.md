@@ -26,7 +26,7 @@ Rules for how the `aokit` CLI behaves in a terminal, in CI and under a coding ag
 
 ### `create` flags
 
-`create` adds `--layout <single|monorepo>`, `--modules a,b,c`, `--answer <module.key=value>` (repeatable), `--registry <path>` (a local Registry directory; the bundled first-party Registry is the default) and `--no-install`. A target directory that exists and is not empty fails with exit code `3` and a `fix` that suggests another directory; an empty existing directory is used. The target check runs before `--dry-run` and `--diff`. `create --from <path>` replays a local Lockfile; a URL fails with exit `3` until remote Registries exist.
+`create` adds `--layout <single|monorepo>`, `--modules a,b,c`, `--answer <module.key=value>` (repeatable), `--registry <name|source>` (a local directory, an `https://` URL or `github:owner/repo#ref`; the bundled first-party Registry is the default), `--trust <name|source>` (repeatable) and `--no-install`. `add` and `update` also take `--registry` and `--trust`. A target directory that exists and is not empty fails with exit code `3` and a `fix` that suggests another directory; an empty existing directory is used. The target check runs before `--dry-run` and `--diff`. `create --from <path|url>` replays a local or remote Lockfile.
 
 ### Lifecycle flags
 
@@ -74,7 +74,7 @@ One table for every command. Codes are stable; new conditions get new numbers, n
 | `0` | success | The command did what it was asked. For `check`: the Project is up to date. |
 | `1` | failure | Unexpected runtime error, I/O error, network or integrity failure, a Registry that cannot be read, a failed apply that was rolled back, or an error raised inside the Engine. Also the `DRIFT` outcome of `doctor`. The Project is unchanged. |
 | `2` | update available | **Only** `check`, as the `UPDATE_AVAILABLE` outcome: a newer Registry release or Module version exists. Used by CI as a gate. No other command exits `2`. |
-| `3` | usage error | Unknown flag, invalid value, missing required value in non-interactive mode, schema validation failure, a path that is not in the Lockfile (`NOT_IN_LOCKFILE`), removing a Module that was not selected (`NOT_SELECTED`), a URL source before remote Registries exist. |
+| `3` | usage error | Unknown flag, invalid value, missing required value in non-interactive mode, schema validation failure, a path that is not in the Lockfile (`NOT_IN_LOCKFILE`), removing a Module that was not selected (`NOT_SELECTED`), an `http://` URL given as a Registry source. |
 | `4` | resolution error | The Resolver rejected the selection (`requires` unmet, `conflicts`, [Cardinality](capabilities.md#cardinality) exceeded), or `remove` found remaining dependents (`DEPENDENTS_EXIST`). Nothing was built. |
 | `5` | precondition failed | Dirty working tree for any command that writes project files (`add`, `remove`, `recopy`, `restore`, `update`), missing or unreadable Lockfile, `minCliVersion` newer than the CLI (`MIN_CLI_VERSION`). |
 | `6` | merge conflicts | **Any** writing command (`add`, `remove`, `recopy`, `update`) completed the merge but left conflict markers or `.aokit-new` copies; the user must resolve them. A file kept with a warning (delete versus modify) is not a conflict. For `update`, resumable with `update --apply` or abandoned with `update --abort`. |
@@ -94,6 +94,9 @@ Some results are neither a plain success nor an unexpected failure: `doctor` fou
 | `LOCKFILE_MISSING` | `5` | None. |
 | `NOT_IN_LOCKFILE`, `NOT_SELECTED` | `3` | None. |
 | `DEPENDENTS_EXIST` | `4` | The dependents that block the removal. |
+| `REGISTRY_UNTRUSTED` | `5` | The Registry and the exact `--trust` form. |
+| `REGISTRY_FETCH_FAILED` | `1` | The Registry, the URL and the cause. |
+| `REGISTRY_INTEGRITY_MISMATCH` | `1` | The Registry, the Module and both values. |
 | `MODULE_VERSION_UNAVAILABLE` | `1` | Module, version and the `aokit recopy` fix (`aokit remove <module>` for `update`). |
 | `MIGRATION_FAILED` | `1` | Module, script and the `from` to `to` jump. |
 | `PLAN_STALE` | `5` | The files whose hash changed since `update --plan`. |
