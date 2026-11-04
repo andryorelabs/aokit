@@ -91,3 +91,56 @@ test("adding a trusted Registry creates the config and keeps other keys", async 
     ],
   });
 });
+
+const acmeRegistries = {
+  "@acme": {
+    url: "https://registry.acme.dev/r/{name}.json",
+    headers: { Authorization: "Bearer ${ACME_REGISTRY_TOKEN}" },
+  },
+};
+
+test("the user config reads registries Namespaces with their placeholders", async () => {
+  await writeConfig(JSON.stringify({ registries: acmeRegistries }));
+  expect(await loadUserConfig(env)).toEqual({
+    trustedRegistries: [],
+    registries: acmeRegistries,
+  });
+});
+
+test("a Namespace url without {name} is invalid", async () => {
+  await writeConfig(JSON.stringify({ registries: { "@acme": { url: "https://r.test/x.json" } } }));
+  const failure = await configFailure();
+  expect(failure.code).toBe("INVALID_INPUT");
+  expect(failure.message).toContain("{name}");
+});
+
+test("a Namespace not named like @acme is invalid", async () => {
+  await writeConfig(
+    JSON.stringify({ registries: { acme: { url: "https://r.test/{name}.json" } } }),
+  );
+  expect((await configFailure()).code).toBe("INVALID_INPUT");
+});
+
+test("a Namespace with an unknown key or a non-string header is invalid", async () => {
+  await writeConfig(
+    JSON.stringify({ registries: { "@acme": { url: "https://r.test/{name}.json", token: "x" } } }),
+  );
+  expect((await configFailure()).code).toBe("INVALID_INPUT");
+  await writeConfig(
+    JSON.stringify({
+      registries: { "@acme": { url: "https://r.test/{name}.json", headers: { A: 1 } } },
+    }),
+  );
+  expect((await configFailure()).code).toBe("INVALID_INPUT");
+});
+
+test("adding a trusted Registry keeps registries and unknown keys as written", async () => {
+  await writeConfig(JSON.stringify({ theme: "dark", registries: acmeRegistries }));
+  await addTrustedRegistry({ name: "@acme", source: "https://registry.acme.dev/r" }, env);
+  const written = JSON.parse(await readFile(userConfigPath(env), "utf8")) as unknown;
+  expect(written).toEqual({
+    theme: "dark",
+    registries: acmeRegistries,
+    trustedRegistries: [{ name: "@acme", source: "https://registry.acme.dev/r" }],
+  });
+});

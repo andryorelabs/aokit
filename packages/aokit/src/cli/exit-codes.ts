@@ -41,6 +41,7 @@ export const errorCodeExitCodes = {
   REGISTRY_UNTRUSTED: exitCodes.precondition,
   REGISTRY_FETCH_FAILED: exitCodes.failure,
   REGISTRY_INTEGRITY_MISMATCH: exitCodes.failure,
+  REGISTRY_ENV_UNSET: exitCodes.outcome,
 } as const satisfies Record<string, ExitCode>;
 
 export type ErrorCode = keyof typeof errorCodeExitCodes;
