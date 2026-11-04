@@ -14,7 +14,8 @@ type RegistryErrorCode =
   | "REGISTRY_PATH_UNSAFE"
   | "REGISTRY_MODULE_NOT_FOUND"
   | "REGISTRY_SOURCE_UNSUPPORTED"
-  | "REGISTRY_ENV_UNSET";
+  | "REGISTRY_ENV_UNSET"
+  | "REGISTRY_ITEM_UNSUPPORTED";
 
 /**
  * Structured detail of a Registry failure, carried into the command envelope's `error.data`.
