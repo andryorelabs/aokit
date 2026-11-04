@@ -3,7 +3,10 @@ import type { z } from "zod";
 import type { CommandContext } from "../../cli/command.ts";
 import type { Envelope } from "../../cli/envelope.ts";
 import type { PlanSession } from "../plan-id.ts";
+import { getGuidanceTool } from "./guidance.ts";
+import { addTool, planAddTool } from "./plan-add.ts";
 import { createTool, planTool } from "./plan-create.ts";
+import { getSchemaTool } from "./schema.ts";
 
 /**
  * One MCP tool: its input is derived from a command schema by `toExplicitInput`, and `run` goes
@@ -18,4 +21,11 @@ export interface McpToolDefinition {
 }
 
 /** Every tool the MCP server registers, in listing order. */
-export const mcpTools: McpToolDefinition[] = [planTool, createTool];
+export const mcpTools: McpToolDefinition[] = [
+  getGuidanceTool,
+  getSchemaTool,
+  planTool,
+  createTool,
+  planAddTool,
+  addTool,
+];
