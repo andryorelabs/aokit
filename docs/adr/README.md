@@ -22,6 +22,7 @@ Decisions that are hard to reverse, surprising without context, and the result o
 | 0014 | [Extension point anchors are identifier names](0014-extension-point-anchors-are-identifier-names.md) | Accepted | S12 (core spec) |
 | 0015 | [Lifecycle outcomes are error codes with data](0015-lifecycle-outcomes-are-error-codes-with-data.md) | Accepted | S3 (phase 4a spec) |
 | 0016 | [Update moves a Project between Releases](0016-update-moves-a-project-between-releases.md) | Accepted | S6, S7 (phase 4b spec) |
+| 0017 | [Remote Registries serve the local layout, trust is recorded per user and per Project](0017-remote-registries-over-the-local-layout.md) | Accepted | S6 to S13 (phase 5a spec) |
 
 ## Format
 

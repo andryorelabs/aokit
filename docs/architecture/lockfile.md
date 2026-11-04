@@ -46,7 +46,7 @@ The Lockfile is not a manifest: a manifest describes a Module, the Lockfile desc
   "layout": "monorepo",
   "registries": {
     "aokit": {
-      "source": "https://registry.aokit.dev",
+      "source": "bundled",
       "release": "2026.11.0",
       "minCliVersion": "0.1.0"
     }
@@ -151,7 +151,7 @@ Keys are sorted at every level and there is no creation or update time. `answers
 
 ## Integrity format
 
-There is one integrity format everywhere: `sha256-<lowercase hex>`, computed over the canonical manifest and the Module's files (each file as its sorted path plus its LF-normalized content). The [Registry index](registry.md#aokit-manifest-index) publishes it, and `modules.<name>.integrity` records the Registry's value verbatim, so the two can be compared by string equality. Per-file hashes in `files` use the same `sha256-<hex>` form. A Module whose files differ from its recorded integrity fails to read with an error naming the Registry, the Module and both values.
+There is one integrity format everywhere: `sha256-<lowercase hex>`, computed over the canonical manifest and the Module's files (each file as its sorted path plus its LF-normalized content). The [Registry index](registry.md#aokit-manifest-index) publishes it, and `modules.<name>.integrity` records the Registry's value verbatim, so the two can be compared by string equality. Per-file hashes in `files` use the same `sha256-<hex>` form. A Registry the user trusted may carry `registries.<name>.trusted: true`, an optional field that lets a clone skip the trust prompt ([Registry](registry.md#trusted-and-untrusted-registries)). A Module whose files differ from its recorded integrity fails to read with an error naming the Registry, the Module and both values.
 
 ## Lockfile versioning
 

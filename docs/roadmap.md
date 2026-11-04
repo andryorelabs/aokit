@@ -10,12 +10,13 @@ flowchart LR
   P2 --> P3[3 First modules]
   P3 --> P4A[4a Lifecycle foundations]
   P4A --> P4B[4b Updates and migrations]
-  P3 --> P5[5 Registry + shadcn adapter]
-  P4A --> P5
+  P3 --> P5A[5a Registry client]
+  P4A --> P5A
+  P5A --> P5B[5b shadcn adapter]
   P4B --> P6[6 MCP and agent files]
-  P5 --> P6
+  P5B --> P6
   P6 --> P7[7 Distribution]
-  P5 --> P7
+  P5B --> P7
 ```
 
 | Phase | Depends on | Delivers |
@@ -25,9 +26,10 @@ flowchart LR
 | 3. First modules | 1, 2 | A curated set of Modules and an end-to-end `create`. |
 | 4a. Lifecycle foundations | 3 | Merger, merge procedure, `add`, `remove`, `recopy`, `doctor`, `diff`, `check`, `eject`, `restore`, `create --from`. |
 | 4b. Updates and migrations | 4a | `update`, migrations, renames, upgrade job. |
-| 5. Registry + shadcn adapter | 3, 4a | Registry client, integrity, trust model, adapter. |
-| 6. MCP and agent files | 4b, 5 | MCP server, `aokit schema`, agent files in generated Projects. |
-| 7. Distribution | 5, 6 | Binary, publishing, releases. |
+| 5a. Registry client | 3, 4a | Remote and `github:` Registries, cache, Pins, trust, yank, `create --from <url>`. |
+| 5b. shadcn adapter | 5a | Adapter, namespaces, `registryDependencies`. |
+| 6. MCP and agent files | 4b, 5b | MCP server, `aokit schema`, agent files in generated Projects. |
+| 7. Distribution | 5b, 6 | Binary, publishing, releases. |
 
 ### 1. Core + schema + VFS
 
@@ -92,16 +94,31 @@ Exit criteria:
 
 `layout migrate` stays deferred until `update` works, since it reuses the merge procedure ([Deliberately deferred](#deliberately-deferred)).
 
-### 5. Registry + shadcn adapter
+### 5. Registry
 
-Scope: the Registry client for `official`, `local` and `remote` kinds, integrity checks, immutability and the optional cache, commit-SHA pinning, the trust prompt and allowlist, `minCliVersion`; the shadcn adapter with item type mapping, alias placeholders and `registryDependencies` ([Registry](architecture/registry.md)).
+Phase 5 is split into two specs that ship in order. Both build on the [Registry protocol](architecture/registry.md).
+
+#### 5a. Registry client
+
+Scope: one Registry client over `bundled`, local, `https://` URL and `github:owner/repo#ref` sources, read lazily with integrity checks; the optional cache keyed by integrity; Pins for git sources; the trust prompt, the user config allowlist, `--trust` and the Lockfile `trusted` field; `minCliVersion`; yanked versions; `--registry` on `create`, `add` and `update`; `create --from <url>`; a per-Release Module version map in the Catalog ([ADR 0017](adr/0017-remote-registries-over-the-local-layout.md)).
 
 Exit criteria:
 
 - An integrity mismatch is a hard error naming Registry, Module and values.
 - A non-interactive run against an untrusted Registry fails with the exact `--trust` form, and `--yes` never grants trust.
-- A shadcn item installs through the adapter and is covered by `update`, `doctor` and `remove`.
+- A Module is fetched from a remote Registry, cached, and a read-only command works offline from a warm cache.
 - An old Module version is fetched and verified from the Lockfile record.
+- A `github:` source is recorded at its Pin and only `update --registry` moves it.
+- A yanked version is never selected and still verifies for an existing Lockfile.
+
+#### 5b. shadcn adapter
+
+Scope: the shadcn adapter with item type mapping, alias placeholders and `registryDependencies`, and namespaced Registries with `${VAR}` auth ([Registry](architecture/registry.md#shadcn-adapter)).
+
+Exit criteria:
+
+- A shadcn item installs through the adapter and is covered by `update`, `doctor` and `remove`.
+- A namespaced Registry sends its headers only to its own host and never records expanded values.
 
 ### 6. MCP and agent files
 
