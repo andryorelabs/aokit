@@ -253,6 +253,16 @@ function withRegistries(lockfile: Lockfile, registries: Lockfile["registries"]):
   return { ...lockfile, registries: { ...lockfile.registries, ...registries } };
 }
 
+/** The newest Release a Registry publishes, the one a plain update moves to. */
+function newestRelease(registry: Registry): string {
+  return (
+    registry
+      .releases()
+      .toSorted((left, right) => Bun.semver.order(left, right))
+      .at(-1) ?? registry.release
+  );
+}
+
 /** Every version of the primary Registry's locked Modules an update may cross or land on. */
 function upgradeScope(lockfile: Lockfile, key: string, registry: Registry): [string, string][] {
   return Object.entries(lockfile.modules)
@@ -289,7 +299,12 @@ async function prepare(input: UpdateInput): Promise<Prepared> {
   }
   const registry = await snapshotRegistry(primary, key, {
     versions: upgradeScope(lockfile, key, primary),
-    releases: primary.releases(),
+    releases: [
+      ...new Set([
+        lockfile.registries[key]?.release ?? primary.release,
+        input.to ?? newestRelease(primary),
+      ]),
+    ],
   });
   const pins = set.movedPins;
   const resolved = resolveUpdateTarget(lockfile, registry, input.to);

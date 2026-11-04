@@ -219,11 +219,27 @@ function keepingIndexDocuments(
 /**
  * A Registry whose index is the kept offline copy. That copy is not authenticated, so it may only
  * serve the Module versions the Lockfile pins, and only when the index lists the integrity the
- * Lockfile recorded: anything else would let an edited copy vouch for planted cache entries.
+ * Lockfile recorded, and only the Catalog of the Release the Lockfile records: anything else would
+ * let an edited copy vouch for planted cache entries or move the Project to a forged Release.
  */
-function pinnedToLockfile(registry: Registry, pinned: PinnedIntegrities): Registry {
+function pinnedToLockfile(
+  registry: Registry,
+  pinned: PinnedIntegrities,
+  lockedRelease: string | undefined,
+): Registry {
   return {
     ...registry,
+    catalog(release) {
+      if (release === lockedRelease) return registry.catalog(release);
+      return Promise.reject(
+        new RegistryError(
+          "REGISTRY_INTEGRITY_MISMATCH",
+          `Registry "${registry.name}" is unreachable, and its kept offline index offers Release ${release}, but aokit.lock.json records ${lockedRelease ?? "no Release"}.`,
+          "Reconnect to the network so the index is read and verified again, or delete the kept copies under $XDG_CACHE_HOME/aokit/registry-index.",
+          { registry: registry.name, expected: lockedRelease ?? "", actual: release },
+        ),
+      );
+    },
     version(name, version) {
       const module = `${name}@${version}`;
       const expected = pinned.get(module);
@@ -258,6 +274,7 @@ async function openSource(
   options: LoadProjectRegistriesOptions,
   cache: RegistryCache,
   pinned: PinnedIntegrities = new Map(),
+  lockedRelease?: string,
 ): Promise<Registry> {
   const { adapters } = options;
   const documents = join(xdgCacheDir(adapters?.env ?? process.env), "registry-index");
@@ -271,7 +288,7 @@ async function openSource(
     ...(adapters?.github === undefined ? {} : { github: { ...adapters.github } }),
   });
   if (!indexKept) return registry;
-  const guarded = pinnedToLockfile(registry, pinned);
+  const guarded = pinnedToLockfile(registry, pinned, lockedRelease);
   keptIndexRegistries.add(guarded);
   return guarded;
 }
@@ -360,6 +377,7 @@ async function openLocked(
             options,
             cache,
             pinnedIntegrities(lockfile, key),
+            entry.release,
           ),
         ] as const,
     ),
@@ -583,9 +601,9 @@ export async function snapshotRegistry(
   const byVersion = new Map(
     loaded.map((version) => [`${version.name}@${version.version}`, toSnapshotModule(version)]),
   );
-  const catalogByRelease = new Map<string, ReleaseCatalog>([
-    [registry.release, registry.currentCatalog],
-  ]);
+  const catalogByRelease = new Map<string, ReleaseCatalog>(
+    keptIndexRegistries.has(registry) ? [] : [[registry.release, registry.currentCatalog]],
+  );
   for (const [position, release] of releases.entries()) {
     const catalog = catalogs[position];
     if (catalog !== undefined) catalogByRelease.set(release, catalog);
@@ -609,13 +627,24 @@ export async function snapshotRegistry(
   };
 }
 
-/** The Module versions and Release a Lockfile pins in one of its Registries. */
-function lockedScope(lockfile: Lockfile, key: string): SnapshotScope {
+/**
+ * The Module versions and Release a Lockfile pins in one of its Registries, plus the newest
+ * selectable version of each locked Module, which `recopy` renders when a locked version is gone.
+ * A Registry read from its kept offline index only gets the pinned ones, the only ones it serves.
+ */
+function lockedScope(lockfile: Lockfile, key: string, registry: Registry): SnapshotScope {
   const release = lockfile.registries[key]?.release;
+  const locked = Object.entries(lockfile.modules)
+    .filter(([, entry]) => entry.registry === key)
+    .map(([name, entry]) => [name, entry.version] as const);
+  const newest = keptIndexRegistries.has(registry)
+    ? []
+    : locked.flatMap(([name, version]) => {
+        const latest = registry.selectableVersions(name).at(-1);
+        return latest === undefined || latest === version ? [] : [[name, latest] as const];
+      });
   return {
-    versions: Object.entries(lockfile.modules)
-      .filter(([, entry]) => entry.registry === key)
-      .map(([name, entry]) => [name, entry.version] as const),
+    versions: [...locked, ...newest],
     releases: release === undefined ? [] : [release],
   };
 }
@@ -663,7 +692,7 @@ export async function openProjectRegistry(
   return snapshotRegistry(
     registry,
     key,
-    isFirstParty(registry) ? { everything: true } : lockedScope(lockfile, key),
+    isFirstParty(registry) ? { everything: true } : lockedScope(lockfile, key, registry),
   );
 }
 

@@ -263,16 +263,83 @@ function requestedPicks(
   return picks;
 }
 
+function newestOf(
+  set: ProjectRegistries,
+  name: string,
+  key: string,
+): Promise<PipelineModule> | undefined {
+  const registry = set.registries.get(key);
+  const newest = registry?.selectableVersions(name).at(-1);
+  return registry === undefined || newest === undefined
+    ? undefined
+    : registry.version(name, newest).then((version) => toPipelineModule(version, key));
+}
+
+/** The capability a `requires` entry names, without an extension point's version range. */
+function requiredCapability(requirement: string): string {
+  return requirement.split("@")[0] ?? requirement;
+}
+
+/**
+ * The Modules of a remote Registry that provide what the offered remote Modules require and no
+ * offered or locked Module provides, read until every such requirement is met or no Module of that
+ * Registry provides it; the Resolver reports whatever is still missing.
+ */
+async function remoteProviders(
+  lockfile: Lockfile,
+  set: ProjectRegistries,
+  known: readonly PipelineModule[],
+): Promise<PipelineModule[]> {
+  const found: PipelineModule[] = [];
+  let pending = known.filter((module) => isRemote(set.registries.get(module.registry ?? "")));
+  while (pending.length > 0) {
+    const everything = [...known, ...found];
+    const offered = new Set(everything.map((module) => module.manifest.name));
+    const provided = new Set(
+      everything.flatMap((module) => module.manifest.provides.map((entry) => entry.capability)),
+    );
+    const wanted = new Map<string, string>();
+    for (const module of pending) {
+      const key = module.registry ?? "";
+      const registry = set.registries.get(key);
+      for (const requirement of module.manifest.requires) {
+        const capability = requiredCapability(requirement);
+        if (registry === undefined || provided.has(capability)) continue;
+        const provider = Object.keys(registry.index.modules)
+          .toSorted()
+          .find((name) => {
+            const newest = registry.selectableVersions(name).at(-1);
+            const entry =
+              newest === undefined ? undefined : registry.index.modules[name]?.versions[newest];
+            return (
+              !offered.has(name) &&
+              lockfile.modules[name] === undefined &&
+              entry?.provides.includes(capability) === true
+            );
+          });
+        if (provider !== undefined) wanted.set(provider, key);
+      }
+    }
+    // oxlint-disable-next-line eslint/no-await-in-loop -- each round reads what the last one requires
+    pending = await Promise.all(
+      [...wanted].flatMap(([name, key]) => newestOf(set, name, key) ?? []),
+    );
+    found.push(...pending);
+  }
+  return found;
+}
+
 /**
  * The Modules `add` offers besides the locked ones, at their newest selectable version. A
  * requested Module comes from the first Registry in resolution order that publishes it; any other
- * Module from the first first-party Registry that has it, so a remote Registry is read only for
- * the Modules the user named.
+ * Module from the first first-party Registry that has it. A remote Registry is read only for the
+ * Modules the user named and the ones of that Registry that provide what they require.
  */
 async function offeredModules(
   lockfile: Lockfile,
   set: ProjectRegistries,
   requested: readonly string[],
+  locked: readonly PipelineModule[],
 ): Promise<PipelineModule[]> {
   const picks = requestedPicks(lockfile, set, requested);
   const chosen = new Map<string, string>(picks);
@@ -283,16 +350,12 @@ async function offeredModules(
       if (!chosen.has(name) && lockfile.modules[name] === undefined) chosen.set(name, key);
     }
   }
-  const reads = [...chosen]
-    .toSorted(([left], [right]) => (left < right ? -1 : 1))
-    .flatMap(([name, key]) => {
-      const registry = set.registries.get(key);
-      const newest = registry?.selectableVersions(name).at(-1);
-      return registry === undefined || newest === undefined
-        ? []
-        : [registry.version(name, newest).then((version) => toPipelineModule(version, key))];
-    });
-  return Promise.all(reads);
+  const offered = await Promise.all(
+    [...chosen]
+      .toSorted(([left], [right]) => (left < right ? -1 : 1))
+      .flatMap(([name, key]) => newestOf(set, name, key) ?? []),
+  );
+  return [...offered, ...(await remoteProviders(lockfile, set, [...locked, ...offered]))];
 }
 
 /** The Modules this run reads from a Registry that is not first-party, for the Plan. */
@@ -346,10 +409,8 @@ async function renderNext(
     );
   }
   const lockedNames = Object.keys(lockfile.modules).toSorted();
-  const [locked, offered] = await Promise.all([
-    lockedModules(lockfile, set),
-    offeredModules(lockfile, set, input.modules),
-  ]);
+  const locked = await lockedModules(lockfile, set);
+  const offered = await offeredModules(lockfile, set, input.modules, locked);
   const available = [...locked, ...offered];
   const selection = [
     ...lockedNames.filter((name) => lockfile.modules[name]?.selected === true),
