@@ -129,7 +129,8 @@ function moduleUpdates(
   for (const name of Object.keys(lockfile.modules).toSorted()) {
     const entry = lockfile.modules[name];
     const registry = registries.get(entry?.registry ?? "");
-    const available = registry === undefined ? undefined : newest(registry.versions(name));
+    const available =
+      registry === undefined ? undefined : newest(registry.selectableVersions(name));
     if (
       entry !== undefined &&
       registry !== undefined &&

@@ -1,6 +1,14 @@
 import { z } from "zod";
 import { catalogSchema, ManifestError, type ModuleManifest, parseManifest } from "@aokit/module";
 import { RegistryError } from "./errors.ts";
+import {
+  type GitLsRemote,
+  gitLsRemote,
+  githubRawBaseUrl,
+  githubTransport,
+  pinnedGithubSource,
+  resolveGithubPin,
+} from "./github.ts";
 import { computeIntegrity, computeModuleIntegrity, type Integrity } from "./integrity.ts";
 import {
   assertSafeRelativePath,
@@ -16,7 +24,7 @@ import {
   releaseModulesSchema,
   supportedRegistrySchemaVersion,
 } from "./schema.ts";
-import { formatRegistrySource, type RegistrySource } from "./source.ts";
+import type { RegistrySource } from "./source.ts";
 
 /**
  * The verified content of one Module version as a {@link RegistryCache} stores it: the manifest
@@ -77,6 +85,8 @@ export interface Registry {
   catalog(release: string): Promise<ReleaseCatalog | undefined>;
   /** Every published version of a Module in ascending semver order; empty for an unknown Module. */
   versions(name: string): string[];
+  /** Like `versions`, without Yanked versions: the ones `add`, `create` and `update` may select. */
+  selectableVersions(name: string): string[];
   /** A published Module version; throws `REGISTRY_MODULE_NOT_FOUND` when the index lacks it. */
   version(name: string, version: string): Promise<ModuleVersion>;
 }
@@ -89,8 +99,19 @@ interface OpenRegistryContext {
   cliVersion: string;
   /** The `fetch` a URL Registry is read with; native `fetch` by default. */
   fetch?: typeof fetch;
-  /** Where fetched Module versions are kept between runs. */
+  /** Where Module versions fetched from a URL or `github:` Registry are kept between runs. */
   cache?: RegistryCache;
+  /** The adapters a `github:` source is pinned and read with; the real ones by default. */
+  github?: GithubAdapters;
+}
+
+/**
+ * How a `github:` source reaches GitHub: `lsRemote` resolves a ref to a commit SHA and
+ * `rawBaseUrl` serves raw files as `<rawBaseUrl>/<owner>/<repo>/<sha>/<path>`.
+ */
+interface GithubAdapters {
+  lsRemote?: GitLsRemote;
+  rawBaseUrl?: string;
 }
 
 type VersionEntry = RegistryIndex["modules"][string]["versions"][string];
@@ -149,19 +170,28 @@ function parseJson(text: string, onInvalid: (reason: string) => RegistryError): 
   }
 }
 
-function transportFor(source: RegistrySource, fetchImpl: typeof fetch): RegistryTransport {
+/**
+ * The transport a source is read with, and the source the opened Registry reports: for `github:`
+ * that is the Pin, `github:owner/repo#<sha40>`, so the Lockfile never records a moving ref.
+ */
+async function transportFor(
+  source: RegistrySource,
+  context: OpenRegistryContext,
+): Promise<{ transport: RegistryTransport; source: RegistrySource }> {
+  const fetchImpl = context.fetch ?? fetch;
   if (source.kind === "url") {
-    return urlTransport(source.url, fetchImpl);
+    return { transport: urlTransport(source.url, fetchImpl), source };
   }
   if (source.kind === "github") {
-    throw new RegistryError(
-      "REGISTRY_SOURCE_UNSUPPORTED",
-      `Registry source "${formatRegistrySource(source)}" is a GitHub source, which this CLI cannot read yet.`,
-      "Use a local path, an https:// URL or the bundled Registry.",
-      { registry: formatRegistrySource(source) },
-    );
+    const pin = await resolveGithubPin(source, {
+      lsRemote: context.github?.lsRemote ?? gitLsRemote,
+    });
+    return {
+      transport: githubTransport(pin, context.github?.rawBaseUrl ?? githubRawBaseUrl, fetchImpl),
+      source: pinnedGithubSource(pin),
+    };
   }
-  return localTransport(source.path);
+  return { transport: localTransport(source.path), source };
 }
 
 /**
@@ -418,7 +448,7 @@ async function readVerifiedContent(
 ): Promise<CachedModuleVersion> {
   const subject = `Registry "${registryName}" Module ${name}@${version}`;
   const data = { registry: registryName, module: `${name}@${version}` };
-  const cached = await cache?.get(entry.integrity);
+  const cached = await cache?.get(entry.integrity).catch(() => undefined);
   if (cached !== undefined) {
     try {
       verifyModuleContent(cached, entry, subject, data);
@@ -431,7 +461,7 @@ async function readVerifiedContent(
   }
   const fetched = await fetchModuleContent(transport, name, version, entry, subject, registryName);
   verifyModuleContent(fetched, entry, subject, data);
-  await cache?.put(entry.integrity, fetched);
+  await cache?.put(entry.integrity, fetched).catch(() => undefined);
   return fetched;
 }
 
@@ -611,7 +641,9 @@ export async function openRegistry(
   source: RegistrySource,
   context: OpenRegistryContext,
 ): Promise<Registry> {
-  const transport = transportFor(source, context.fetch ?? fetch);
+  const opened = await transportFor(source, context);
+  const { transport } = opened;
+  const cache = source.kind === "url" || source.kind === "github" ? context.cache : undefined;
   const index = await readIndex(transport);
   checkCliVersion(index, context.cliVersion);
   const currentPointer = index.releases[index.release];
@@ -632,10 +664,13 @@ export async function openRegistry(
     Object.keys(index.modules[name]?.versions ?? {}).toSorted((left, right) =>
       Bun.semver.order(left, right),
     );
+  const selectableVersions = (name: string): string[] =>
+    versions(name).filter((version) => index.modules[name]?.versions[version]?.yanked !== true);
   return {
     name: index.name,
-    source,
+    source: opened.source,
     index,
+    selectableVersions,
     release: index.release,
     currentCatalog,
     releases: () => Object.keys(index.releases).toSorted(byCodepoint),
@@ -671,7 +706,7 @@ export async function openRegistry(
       if (known !== undefined) {
         return known;
       }
-      const loading = loadModuleVersion(transport, context.cache, index, name, version, entry);
+      const loading = loadModuleVersion(transport, cache, index, name, version, entry);
       loadedVersions.set(key, loading);
       loading.catch(() => loadedVersions.delete(key));
       return loading;

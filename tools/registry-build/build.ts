@@ -14,6 +14,7 @@ import {
   catalogFileSchema,
   registryIndexSchema,
   releaseModulesSchema,
+  yankedListSchema,
 } from "../../packages/aokit/src/registry/schema.ts";
 
 /**
@@ -356,6 +357,69 @@ async function buildModuleVersion(
   return { version: manifest.version, entry };
 }
 
+const yankedFile = "yanked.json";
+const yankedEntry = /^(.+)@(\d+\.\d+\.\d+.*)$/;
+
+/**
+ * Reads `yanked.json` (`["<module>@<version>"]`) from the source directory; empty when absent.
+ */
+async function readYanked(sourceDir: string): Promise<Map<string, Set<string>>> {
+  let text: string;
+  try {
+    text = await readFile(join(sourceDir, yankedFile), "utf8");
+  } catch (error) {
+    if (error instanceof Error && "code" in error && error.code === "ENOENT") {
+      return new Map();
+    }
+    throw error;
+  }
+  const parsed = yankedListSchema.parse(JSON.parse(text));
+  const yanked = new Map<string, Set<string>>();
+  for (const item of parsed) {
+    const match = yankedEntry.exec(item);
+    if (match?.[1] === undefined || match[2] === undefined) {
+      throw new Error(`registry:build: ${yankedFile} entry "${item}" is not <module>@<version>`);
+    }
+    yanked.set(match[1], (yanked.get(match[1]) ?? new Set()).add(match[2]));
+  }
+  return yanked;
+}
+
+/**
+ * Sets `yanked: true` on exactly the listed versions and points `latest` at the highest version
+ * that is not yanked. Fails naming an entry no Module version matches, or a Module left with no
+ * selectable version.
+ */
+function applyYanked(
+  modules: RegistryIndex["modules"],
+  yanked: ReadonlyMap<string, ReadonlySet<string>>,
+): RegistryIndex["modules"] {
+  for (const [name, versions] of yanked) {
+    for (const version of versions) {
+      if (modules[name]?.versions[version] === undefined) {
+        throw new Error(
+          `registry:build: ${yankedFile} lists ${name}@${version}, which is not built`,
+        );
+      }
+    }
+  }
+  return Object.fromEntries(
+    Object.entries(modules).map(([name, entry]) => {
+      const versions = Object.fromEntries(
+        Object.entries(entry.versions).map(([version, { yanked: _previous, ...rest }]) => [
+          version,
+          yanked.get(name)?.has(version) === true ? { ...rest, yanked: true as const } : rest,
+        ]),
+      );
+      const selectable = Object.keys(versions).filter((version) => !yanked.get(name)?.has(version));
+      if (selectable.length === 0) {
+        throw new Error(`registry:build: every version of ${name} is yanked`);
+      }
+      return [name, { latest: latestOf(selectable), versions }] as const;
+    }),
+  );
+}
+
 function latestOf(versions: readonly string[]): string {
   const sorted = versions.toSorted((left, right) => Bun.semver.order(left, right));
   const latest = sorted.at(-1);
@@ -392,7 +456,13 @@ export async function buildRegistry(sourceDir: string, outDir: string): Promise<
     const versions = { ...modules[name]?.versions, [version]: entry };
     modules[name] = { latest: latestOf(Object.keys(versions)), versions };
   }
-  const releases = await buildReleases(sourceDir, outDir, existing?.releases ?? {}, modules);
+  const publishedModules = applyYanked(modules, await readYanked(sourceDir));
+  const releases = await buildReleases(
+    sourceDir,
+    outDir,
+    existing?.releases ?? {},
+    publishedModules,
+  );
   const index: RegistryIndex = {
     $schema: registryIndexSchemaUrl,
     schemaVersion: supportedRegistrySchemaVersion,
@@ -400,7 +470,7 @@ export async function buildRegistry(sourceDir: string, outDir: string): Promise<
     release: latestOf(Object.keys(releases)),
     minCliVersion: officialMinCliVersion,
     releases,
-    modules,
+    modules: publishedModules,
   };
   await writeText(join(outDir, "index.json"), await formatJson("index.json", index));
 }

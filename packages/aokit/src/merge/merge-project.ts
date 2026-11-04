@@ -279,10 +279,15 @@ function keepEntry(
   if (chosen !== undefined) state.files[path] = chosen;
 }
 
+function writeKeptUser(context: PathContext, content: FileContent, state: Accumulator): void {
+  const mode = context.input.next.plan.vfs.get(context.path)?.mode;
+  state.vfs.write(context.path, content, mode === undefined ? {} : { mode });
+}
+
 function recordConflict(context: PathContext, write: ConflictWrite, state: Accumulator): void {
   const { input, path, user } = context;
   state.conflicts.push(write);
-  state.vfs.write(path, write.merged ?? user ?? write.next);
+  writeKeptUser(context, write.merged ?? user ?? write.next, state);
   const next = input.next.lockfile.files[path];
   const previous = input.lockfile.files[context.sourcePath];
   if (isRename(context) && user !== undefined && write.merged === undefined) {
@@ -317,7 +322,7 @@ function recordDecision(
     if (context.user !== undefined && isRename(context)) {
       recordKeptRename(context, context.user, state);
     } else if (context.user !== undefined) {
-      state.vfs.write(context.path, context.user);
+      writeKeptUser(context, context.user, state);
     }
     keepEntry(context, decision.entry, state);
     if (decision.warning !== undefined) state.warnings.push(decision.warning);

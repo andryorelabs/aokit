@@ -27,6 +27,28 @@ function lockedRelease(lockfile: Lockfile, registry: LocalRegistry): string {
   return (own ?? fallback)?.release ?? registry.release;
 }
 
+/**
+ * The version an update installs for a Module the Release Catalog maps to `target`. A Yanked
+ * `target` is never selected unless the Project already runs it; it falls back to the highest
+ * selectable version between `locked` and `target`, and otherwise keeps `locked`: an update never
+ * downgrades.
+ */
+function selectUnyanked(
+  registry: LocalRegistry,
+  name: string,
+  target: string,
+  locked: string,
+): string {
+  const selectable = registry.selectableVersions(name);
+  if (selectable.includes(target) || target === locked) {
+    return target;
+  }
+  const fallback = selectable
+    .toReversed()
+    .find((version) => Bun.semver.order(version, target) <= 0);
+  return fallback !== undefined && Bun.semver.order(fallback, locked) >= 0 ? fallback : locked;
+}
+
 function chooseRelease(
   lockfile: Lockfile,
   registry: LocalRegistry,
@@ -79,8 +101,9 @@ export function resolveUpdateTarget(
         { module: name, release, registry: registry.name },
       );
     }
-    versions[name] = target;
-    upToDate &&= target === entry.version;
+    const chosen = selectUnyanked(registry, name, target, entry.version);
+    versions[name] = chosen;
+    upToDate &&= chosen === entry.version;
   }
   return { release, versions, upToDate };
 }

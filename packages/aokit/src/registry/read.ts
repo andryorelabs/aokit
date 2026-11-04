@@ -40,7 +40,8 @@ interface RegistryModule {
 
 /**
  * A local Registry read from disk with every Module version, file and Catalog integrity-checked.
- * `modules` holds the `latest` version of each Module.
+ * `modules` holds the `latest` non-yanked version of each Module; a Yanked version is still served
+ * by `version`.
  */
 export interface LocalRegistry {
   name: string;
@@ -56,6 +57,8 @@ export interface LocalRegistry {
   version(name: string, version: string): RegistryModule | undefined;
   /** Every published version of a Module in ascending semver order; empty for an unknown Module. */
   versions(name: string): string[];
+  /** Like `versions`, without Yanked versions: the ones `add`, `create` and `update` may select. */
+  selectableVersions(name: string): string[];
 }
 
 /**
@@ -446,6 +449,11 @@ export async function readLocalRegistry(
   );
   const modules = new Map<string, RegistryModule>();
   const everyVersion = new Map<string, Map<string, RegistryModule>>();
+  const yankedVersions = new Set(
+    versions
+      .filter(({ versionEntry }) => versionEntry.yanked === true)
+      .map(({ name, version }) => `${name}@${version}`),
+  );
   for (const [position, { name, version, isLatest }] of versions.entries()) {
     const module = loaded[position];
     if (module === undefined) {
@@ -470,5 +478,9 @@ export async function readLocalRegistry(
       [...(everyVersion.get(name)?.keys() ?? [])].toSorted((left, right) =>
         Bun.semver.order(left, right),
       ),
+    selectableVersions: (name) =>
+      [...(everyVersion.get(name)?.keys() ?? [])]
+        .filter((version) => !yankedVersions.has(`${name}@${version}`))
+        .toSorted((left, right) => Bun.semver.order(left, right)),
   };
 }

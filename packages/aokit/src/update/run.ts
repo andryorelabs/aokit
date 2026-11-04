@@ -412,6 +412,8 @@ export async function planUpdate(input: UpdateInput): Promise<PlannedUpdate> {
     plan: result.plan,
     conflicts: result.conflicts,
     targetLockfile: result.lockfile,
+    keptDeps: result.keptDeps,
+    migrations: result.migrations,
   });
   return { result, planPath: await planFilePath(input.dir, git) };
 }
@@ -445,8 +447,8 @@ export async function applyUpdatePlan(input: UpdateInput): Promise<UpdateResult>
     conflicts: saved.conflicts,
     warnings: [],
     lockfile: saved.targetLockfile,
-    keptDeps: [],
-    migrations: [],
+    keptDeps: saved.keptDeps ?? [],
+    migrations: saved.migrations ?? [],
   } satisfies Partial<UpdateResult>;
   if (input.dryRun || input.diff) {
     return {

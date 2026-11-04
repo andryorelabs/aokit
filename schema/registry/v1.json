@@ -1,0 +1,133 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "additionalProperties": false,
+  "properties": {
+    "$schema": {
+      "default": "https://aokit.andryore.dev/schema/registry/v1.json",
+      "type": "string"
+    },
+    "minCliVersion": {
+      "pattern": "^\\d+\\.\\d+\\.\\d+(-[0-9A-Za-z.-]+)?(\\+[0-9A-Za-z.-]+)?$",
+      "type": "string"
+    },
+    "modules": {
+      "additionalProperties": {
+        "additionalProperties": false,
+        "properties": {
+          "latest": {
+            "pattern": "^\\d+\\.\\d+\\.\\d+(-[0-9A-Za-z.-]+)?(\\+[0-9A-Za-z.-]+)?$",
+            "type": "string"
+          },
+          "versions": {
+            "additionalProperties": {
+              "additionalProperties": false,
+              "properties": {
+                "files": {
+                  "additionalProperties": {
+                    "type": "string"
+                  },
+                  "default": {},
+                  "propertyNames": {
+                    "minLength": 1,
+                    "type": "string"
+                  },
+                  "type": "object"
+                },
+                "integrity": {
+                  "type": "string"
+                },
+                "manifest": {
+                  "minLength": 1,
+                  "type": "string"
+                },
+                "provides": {
+                  "items": {
+                    "minLength": 1,
+                    "type": "string"
+                  },
+                  "type": "array"
+                },
+                "schemaVersion": {
+                  "exclusiveMinimum": 0,
+                  "maximum": 9007199254740991,
+                  "type": "integer"
+                },
+                "yanked": {
+                  "const": true,
+                  "type": "boolean"
+                }
+              },
+              "required": [
+                "manifest",
+                "integrity",
+                "schemaVersion",
+                "provides"
+              ],
+              "type": "object"
+            },
+            "propertyNames": {
+              "pattern": "^\\d+\\.\\d+\\.\\d+(-[0-9A-Za-z.-]+)?(\\+[0-9A-Za-z.-]+)?$",
+              "type": "string"
+            },
+            "type": "object"
+          }
+        },
+        "required": [
+          "latest",
+          "versions"
+        ],
+        "type": "object"
+      },
+      "propertyNames": {
+        "minLength": 1,
+        "type": "string"
+      },
+      "type": "object"
+    },
+    "name": {
+      "minLength": 1,
+      "type": "string"
+    },
+    "release": {
+      "minLength": 1,
+      "type": "string"
+    },
+    "releases": {
+      "additionalProperties": {
+        "additionalProperties": false,
+        "properties": {
+          "integrity": {
+            "type": "string"
+          },
+          "path": {
+            "minLength": 1,
+            "type": "string"
+          }
+        },
+        "required": [
+          "path",
+          "integrity"
+        ],
+        "type": "object"
+      },
+      "propertyNames": {
+        "minLength": 1,
+        "type": "string"
+      },
+      "type": "object"
+    },
+    "schemaVersion": {
+      "const": 1,
+      "type": "number"
+    }
+  },
+  "required": [
+    "schemaVersion",
+    "name",
+    "release",
+    "minCliVersion",
+    "releases",
+    "modules"
+  ],
+  "type": "object"
+}
