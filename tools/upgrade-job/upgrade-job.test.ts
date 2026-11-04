@@ -108,10 +108,10 @@ describe("release pairs and historical indexes", () => {
     expect(await pairsOf(registry)).toEqual([["2026.11.1", "2026.11.2"]]);
   });
 
-  test("the committed Registry has the 2026.11.0 -> 2026.11.1 pair", async () => {
+  test("the committed Registry has the 2026.11.1 -> 2026.11.2 pair", async () => {
     expect(await pairsOf(join(workspaceRoot, "registry"))).toContainEqual([
-      "2026.11.0",
       "2026.11.1",
+      "2026.11.2",
     ]);
   });
 });
@@ -130,9 +130,26 @@ describe("representative edits", () => {
       { kind: "managed-text", path: "apps/web/src/routes.tsx", marker: "upgradeJobManagedEdit" },
       { kind: "managed-json", path: ".oxlintrc.json", marker: "upgradeJobJsonEdit" },
       { kind: "seed", path: "apps/web/src/styles.css", marker: "upgradeJobSeedEdit" },
-      { kind: "user-import", path: "apps/web/src/user-routes.ts", marker: "upgradeJobUserRoute" },
+      {
+        kind: "user-import",
+        path: "apps/web/src/user-routes.ts",
+        marker: "upgradeJobUserRoute",
+        importFrom: "./routes",
+      },
       { kind: "user-note", path: "AGENTS.md", marker: "upgradeJobAgentsNote" },
     ]);
+  });
+
+  test("the user importer targets ./router when the base Lockfile already holds src/router.tsx", () => {
+    const routerFiles = {
+      ...files,
+      "apps/web/src/router.tsx": { mode: "managed", owners: ["vite-react"] },
+    };
+    const importer = planEdits(routerFiles, ["vite-react"]).find(
+      (edit) => edit.kind === "user-import",
+    );
+    expect(importer?.importFrom).toBe("./router");
+    expect(importer === undefined ? "" : applyEdit(importer, "")).toContain('from "./router"');
   });
 
   test("the AGENTS.md edit appends a user note and keeps the existing text", () => {

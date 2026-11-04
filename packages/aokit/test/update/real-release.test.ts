@@ -35,6 +35,7 @@ function atFirstRelease(index: IndexShape): IndexShape {
   const copy = structuredClone(index);
   copy.release = "2026.11.0";
   delete copy.releases["2026.11.1"];
+  delete copy.releases["2026.11.2"];
   for (const [name, previous] of [
     ["vite-react", "1.0.0"],
     ["oxc", "1.0.0"],
@@ -88,7 +89,7 @@ describe("aokit update against the committed Registry", () => {
       `import { userRoute } from "./router";\n`,
     );
     const lockfile = JSON.parse(await readFile(join(directory, "aokit.lock.json"), "utf8"));
-    expect(lockfile.modules["vite-react"].version).toBe("1.1.0");
+    expect(lockfile.modules["vite-react"].version).toBe("1.2.0");
   });
 
   test("doctor verifies the integrity of the pinned version, not the latest", async () => {

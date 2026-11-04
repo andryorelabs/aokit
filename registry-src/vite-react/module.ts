@@ -2,7 +2,7 @@ import { defineModule } from "@aokit/module";
 
 export default defineModule({
   name: "vite-react",
-  version: "1.1.0",
+  version: "1.2.0",
   provides: [
     { capability: "web", cardinality: { max: 1 } },
     { capability: "web:spa", cardinality: { max: 1 } },
@@ -37,6 +37,14 @@ export default defineModule({
     },
   ],
   ops: [
+    {
+      op: "appendRegion",
+      target: "root",
+      file: "AGENTS.md",
+      region: "agents",
+      content:
+        "\n## vite-react\n\nVite and React provide the web Target as a single-page app.\n\nKey files:\n\n- `index.html`: the HTML entry of the web Target.\n- `vite.config.ts`: Vite configuration and plugins.\n- `src/main.tsx`: mounts the app.\n- `src/providers.tsx`: wraps the app in its providers.\n- `src/router.tsx`: the route table; other Modules register routes here.\n- `tsconfig.json`: TypeScript options for the web Target, yours to edit.\n",
+    },
     {
       op: "mergeJson",
       target: "root",

@@ -2,7 +2,7 @@ import { defineModule } from "@aokit/module";
 
 export default defineModule({
   name: "tailwind4",
-  version: "1.0.0",
+  version: "1.1.0",
   provides: [{ capability: "styling", cardinality: { max: 1 } }],
   requires: ["web", "ext:web.providers@^1", "ext:vite.plugins@^1"],
   files: [
@@ -23,6 +23,14 @@ export default defineModule({
     },
   },
   ops: [
+    {
+      op: "appendRegion",
+      target: "root",
+      file: "AGENTS.md",
+      region: "agents",
+      content:
+        "\n## tailwind4\n\nTailwind CSS v4 styles the web Target through the Vite plugin.\n\nKey files:\n\n- `src/styles.css`: imports Tailwind and holds the `@theme` tokens.\n- `src/tailwind-provider.tsx`: loads the stylesheet for the app.\n",
+    },
     {
       op: "addCssAtRule",
       target: "web",

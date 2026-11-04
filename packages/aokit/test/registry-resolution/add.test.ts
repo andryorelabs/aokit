@@ -135,7 +135,7 @@ test("a network failure midway through add leaves the Project and Lockfile byte-
   const context = await isolatedContext();
   const project = await createBundledProject(context);
   const server = served(await namedRegistryCopy("acme"));
-  server.failPaths.add("modules/knip/1.0.0/files/knip.json");
+  server.failPaths.add("modules/knip/1.1.0/files/knip.json");
   const before = await snapshotTree(project);
   const envelope = await runCommand(addCommand, context, {
     ...addDefaults,
@@ -146,7 +146,7 @@ test("a network failure midway through add leaves the Project and Lockfile byte-
   });
   expect(envelope).toMatchObject({ ok: false, error: { code: "REGISTRY_FETCH_FAILED" } });
   expect(exitCodeForEnvelope(envelope)).toBe(1);
-  expect(server.requests).toContain("modules/knip/1.0.0/files/knip.json");
+  expect(server.requests).toContain("modules/knip/1.1.0/files/knip.json");
   expect(await snapshotTree(project)).toEqual(before);
 });
 
@@ -207,7 +207,7 @@ test("an edited kept index with a planted cache entry never authenticates a Modu
     `${new Bun.CryptoHasher("sha256").update(`${server.url}/index.json`).digest("hex")}.json`,
   );
   await editJson(keptIndex, (index) => {
-    const entry = childOf(index, ["modules", "knip", "versions", "1.0.0"]);
+    const entry = childOf(index, ["modules", "knip", "versions", "1.1.0"]);
     Reflect.set(entry, "integrity", forgedIntegrity);
     Reflect.set(childOf(entry, ["files"]), "files/knip.json", computeIntegrity(forgedFile));
   });

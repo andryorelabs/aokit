@@ -2,7 +2,7 @@ import { defineModule } from "@aokit/module";
 
 export default defineModule({
   name: "coolify",
-  version: "1.0.0",
+  version: "1.1.0",
   provides: [{ capability: "deploy", cardinality: "many" }],
   requires: ["container"],
   files: [
@@ -11,6 +11,16 @@ export default defineModule({
       to: "docker-compose.coolify.yaml",
       target: "root",
       ownership: "managed",
+    },
+  ],
+  ops: [
+    {
+      op: "appendRegion",
+      target: "root",
+      file: "AGENTS.md",
+      region: "agents",
+      content:
+        "\n## coolify\n\nCoolify deploys the container image from a compose file.\n\nKey files:\n\n- `docker-compose.coolify.yaml`: the compose definition Coolify runs.\n",
     },
   ],
 });

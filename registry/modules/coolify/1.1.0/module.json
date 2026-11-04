@@ -1,0 +1,35 @@
+{
+  "$schema": "https://aokit.andryore.dev/schema/module/v1.json",
+  "conflicts": [],
+  "env": [],
+  "extensionPoints": [],
+  "files": [
+    {
+      "from": "files/docker-compose.coolify.yaml",
+      "ownership": "managed",
+      "target": "root",
+      "to": "docker-compose.coolify.yaml"
+    }
+  ],
+  "migrations": [],
+  "name": "coolify",
+  "ops": [
+    {
+      "content": "\n## coolify\n\nCoolify deploys the container image from a compose file.\n\nKey files:\n\n- `docker-compose.coolify.yaml`: the compose definition Coolify runs.\n",
+      "file": "AGENTS.md",
+      "op": "appendRegion",
+      "region": "agents",
+      "target": "root"
+    }
+  ],
+  "override": [],
+  "provides": [
+    {
+      "capability": "deploy",
+      "cardinality": "many"
+    }
+  ],
+  "requires": ["container"],
+  "schemaVersion": 1,
+  "version": "1.1.0"
+}
