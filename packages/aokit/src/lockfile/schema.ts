@@ -9,6 +9,8 @@ const registrySchema = z.strictObject({
   source: z.string().min(1),
   release: z.string().min(1),
   minCliVersion: semver,
+  /** Set when the user trusted this Registry for the Project; absent for first-party ones. */
+  trusted: z.boolean().optional(),
 });
 
 const moduleEntrySchema = z.strictObject({
