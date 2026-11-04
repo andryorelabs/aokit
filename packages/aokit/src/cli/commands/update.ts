@@ -2,6 +2,7 @@ import { resolve as resolvePath } from "node:path";
 import { createInterface } from "node:readline/promises";
 import { z } from "zod";
 import { toAokitError } from "../../project/errors.ts";
+import { isNonInteractive } from "../../trust/gate.ts";
 import {
   abortProjectUpdate,
   applyUpdatePlan,
@@ -24,6 +25,16 @@ const updateInput = z.object({
     .optional()
     .describe("Release to update to; defaults to the latest one the Registry lists")
     .register(aokitMeta, { flag: "to", examples: ["--to 2026.11.1"] }),
+  registry: z
+    .string()
+    .optional()
+    .describe("Lockfile Registry name or source; `github:owner/repo#<ref>` moves that Pin")
+    .register(aokitMeta, { flag: "registry", examples: ["--registry github:acme/mods#v2"] }),
+  trust: z
+    .array(z.string())
+    .default([])
+    .describe("Trust a Registry by name or source; repeatable. `--yes` never grants trust")
+    .register(aokitMeta, { flag: "trust", examples: ["--trust github:acme/mods"] }),
   dryRun: z
     .boolean()
     .default(false)
@@ -104,6 +115,7 @@ const updateOutput = z.object({
       script: z.string(),
     }),
   ),
+  pins: z.array(z.object({ registry: z.string(), from: z.string(), to: z.string() })),
   diff: z.string().optional(),
   planFile: z.string().optional(),
   aborted: z.boolean(),
@@ -158,6 +170,7 @@ function outputOf(
     conflicts: result.conflicts.map((conflict) => ({ path: conflict.path })),
     keptDeps: [...result.keptDeps],
     migrations: [...result.migrations],
+    pins: [...result.pins],
     ...(result.diff === undefined ? {} : { diff: result.diff }),
     warnings: [...result.warnings],
   };
@@ -180,6 +193,7 @@ async function abortOutput(directory: string): Promise<z.output<typeof updateOut
     conflicts: [],
     keptDeps: [],
     migrations: [],
+    pins: [],
     aborted: aborted !== null,
     restored: aborted?.restored ?? [],
     warnings: [],
@@ -217,6 +231,14 @@ export const updateCommand = defineCommand({
         yes: input.yes,
         install: input.install,
         cliVersion: context.version,
+        trustFlags: input.trust,
+        interactive: !isNonInteractive({
+          yes: input.yes,
+          env: context.env,
+          isTTY: process.stdin.isTTY,
+        }),
+        adapters: { env: context.env },
+        ...(input.registry === undefined ? {} : { registry: input.registry }),
         ...(input.to === undefined ? {} : { to: input.to }),
         ...(process.stdin.isTTY ? { confirm: askToConfirm } : {}),
       };

@@ -17,6 +17,8 @@ export interface RegistryInfo {
   readonly source: string;
   readonly release: string;
   readonly minCliVersion: string;
+  /** Set when the user trusted this Registry for the Project. */
+  readonly trusted?: boolean;
 }
 
 /** A resolved Module with the answers it ran with. */
@@ -27,6 +29,8 @@ export interface AssembledModule {
   readonly integrity: string;
   /** `true` for a Module the user named, `false` for one pulled in by `requires`. */
   readonly selected: boolean;
+  /** The key of the Registry it comes from; the primary `registry` when absent. */
+  readonly registry?: string | undefined;
 }
 
 /** Inputs of {@link assembleLockfile}. */
@@ -35,6 +39,8 @@ interface AssembleOptions {
   readonly modules: readonly AssembledModule[];
   readonly layout: LayoutName;
   readonly registry: RegistryInfo;
+  /** Other Registries by key; recorded when a Module comes from them. */
+  readonly registries?: Lockfile["registries"];
   readonly deps: Lockfile["deps"];
   /** Files recorded by the Lockfile on disk, whose owners carry over for unchanged files. */
   readonly previousFiles?: Lockfile["files"];
@@ -72,13 +78,33 @@ function fileEntries(plan: Plan, previous: Lockfile["files"]): Lockfile["files"]
   return files;
 }
 
+function registryEntries(
+  options: AssembleOptions,
+  modules: Lockfile["modules"],
+): Lockfile["registries"] {
+  const { registry } = options;
+  const used = new Set(Object.values(modules).map((entry) => entry.registry));
+  const entries: Lockfile["registries"] = {};
+  for (const [key, entry] of Object.entries(options.registries ?? {})) {
+    if (key !== registry.name && used.has(key)) entries[key] = entry;
+  }
+  const trusted = registry.trusted ?? options.registries?.[registry.name]?.trusted;
+  entries[registry.name] = {
+    source: registry.source,
+    release: registry.release,
+    minCliVersion: registry.minCliVersion,
+    ...(trusted === true ? { trusted } : {}),
+  };
+  return entries;
+}
+
 /** Builds the Lockfile for a Plan: Modules, files with owners/mode/hash, and recorded deps. */
 export function assembleLockfile(options: AssembleOptions): Lockfile {
   const modules: Lockfile["modules"] = {};
-  for (const { manifest, answers, integrity, selected } of options.modules) {
+  for (const { manifest, answers, integrity, selected, registry } of options.modules) {
     modules[manifest.name] = {
       version: manifest.version,
-      registry: options.registry.name,
+      registry: registry ?? options.registry.name,
       selected,
       integrity,
       answers: { ...answers },
@@ -90,13 +116,7 @@ export function assembleLockfile(options: AssembleOptions): Lockfile {
     cliVersion,
     protocolVersion,
     layout: options.layout,
-    registries: {
-      [options.registry.name]: {
-        source: options.registry.source,
-        release: options.registry.release,
-        minCliVersion: options.registry.minCliVersion,
-      },
-    },
+    registries: registryEntries(options, modules),
     modules,
     files: fileEntries(options.plan, options.previousFiles ?? {}),
     deps: options.deps,

@@ -1,4 +1,4 @@
-import { relative, resolve as resolvePath } from "node:path";
+import { resolve as resolvePath } from "node:path";
 import type { ModuleManifest } from "@aokit/module";
 import { apply } from "../apply/index.ts";
 import { AokitError } from "../cli/envelope.ts";
@@ -12,7 +12,7 @@ import { completeAnswers, parseAnswers } from "../project/answers.ts";
 import { unifiedDiff } from "../project/diff.ts";
 import { fromResolveError, toAokitError } from "../project/errors.ts";
 import { runInstall } from "../project/install.ts";
-import { loadRegistry } from "../project/registry.ts";
+import { loadRegistry, type RegistryAdapters } from "../project/registry.ts";
 import { reproduceCommand } from "../project/reproduce.ts";
 import { renderFromSource } from "./from.ts";
 import { checkTarget } from "./target.ts";
@@ -31,6 +31,12 @@ export interface CreateRequest {
   readonly from?: string | undefined;
   readonly version: string;
   readonly env: Readonly<Record<string, string | undefined>>;
+  /** Every `--trust <name|source>` value; none by default. */
+  readonly trust?: readonly string[];
+  /** Whether an untrusted Registry may be asked about; `false` by default. */
+  readonly interactive?: boolean;
+  /** How Registries are reached; the real network, cache and prompt by default. */
+  readonly adapters?: RegistryAdapters;
 }
 
 /** One change of the Plan with the Modules behind it. */
@@ -87,12 +93,13 @@ async function plan(request: CreateRequest): Promise<PlannedProject> {
       "pass `--modules a,b,c`, for example `--modules oxc,vite-react`",
     );
   }
-  const loaded = await loadRegistry(request.registry, request.version);
-  const { registry, available, minCliVersion } = loaded;
-  const source =
-    request.registry === undefined
-      ? loaded.source
-      : relative(resolvePath(request.directory), resolvePath(request.registry));
+  const loaded = await loadRegistry(request.registry, request.version, {
+    projectDir: request.directory,
+    trustFlags: request.trust ?? [],
+    interactive: request.interactive ?? false,
+    adapters: { env: request.env, ...request.adapters },
+  });
+  const { registry, available, minCliVersion, source } = loaded;
   const resolved = resolve(
     { modules: request.modules },
     available.map((module) => module.manifest),
@@ -115,6 +122,7 @@ async function plan(request: CreateRequest): Promise<PlannedProject> {
       source,
       release: registry.release,
       minCliVersion,
+      ...(loaded.trusted ? { trusted: true } : {}),
     },
     ...(formatter === undefined ? {} : { formatter }),
   });

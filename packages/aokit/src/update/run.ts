@@ -28,9 +28,15 @@ import { composeRenames, type DriftOf } from "../merge/index.ts";
 import { runMigrations, selectMigrations } from "../migrations/index.ts";
 import { renderFromLockfile } from "../pipeline/index.ts";
 import { fromResolveError } from "../project/errors.ts";
-import { openProjectRegistry, primaryRegistryName } from "../project/registry.ts";
+import {
+  openProjectRegistries,
+  primaryRegistryName,
+  type PinMove,
+  type RegistryAdapters,
+  snapshotRegistry,
+} from "../project/registry.ts";
 import { bundledRegistryPath as shippedRegistryPath } from "../registry/bundled.ts";
-import type { LocalRegistry } from "../registry/index.ts";
+import type { LocalRegistry, Registry } from "../registry/index.ts";
 import { resolve as resolveModules } from "../resolver/resolve.ts";
 import { resolveUpdateTarget, type UpdateTarget } from "./target.ts";
 
@@ -56,6 +62,17 @@ export interface UpdateInput {
   readonly confirm?: (summary: string) => Promise<boolean>;
   readonly bundledRegistryPath?: string;
   readonly installer?: (directory: string) => Promise<void>;
+  /**
+   * `--registry <name|source>`: a `github:owner/repo#<ref>` of a Lockfile Registry moves its Pin to
+   * the ref's commit; the only way a Pin moves.
+   */
+  readonly registry?: string;
+  /** Every `--trust <name|source>` value. */
+  readonly trustFlags?: readonly string[];
+  /** Whether an untrusted Registry may be asked about; `false` by default. */
+  readonly interactive?: boolean;
+  /** How Registries are reached; the real network, cache and prompt by default. */
+  readonly adapters?: RegistryAdapters;
 }
 
 /** One Migration an update ran. */
@@ -86,6 +103,8 @@ export interface UpdateResult {
   readonly stashKept: boolean;
   readonly keptDeps: readonly KeptDependency[];
   readonly migrations: readonly RanMigration[];
+  /** The `github:` Pins the update moves, with the source they move from and to. */
+  readonly pins: readonly PinMove[];
 }
 
 interface UpdateModule {
@@ -223,23 +242,76 @@ async function confirmPlan(input: UpdateInput, plan: Plan, release: string): Pro
 
 interface Prepared {
   readonly target: UpdateTarget;
+  readonly pins: readonly PinMove[];
   readonly fromRelease: string;
   readonly run: ((dryRun: boolean) => Promise<LifecycleResult>) | undefined;
   readonly state: UpdateState;
 }
 
+/** The Lockfile with its `registries` entries replaced, as the update records them. */
+function withRegistries(lockfile: Lockfile, registries: Lockfile["registries"]): Lockfile {
+  return { ...lockfile, registries: { ...lockfile.registries, ...registries } };
+}
+
+/** The newest Release a Registry publishes, the one a plain update moves to. */
+function newestRelease(registry: Registry): string {
+  return (
+    registry
+      .releases()
+      .toSorted((left, right) => Bun.semver.order(left, right))
+      .at(-1) ?? registry.release
+  );
+}
+
+/** Every version of the primary Registry's locked Modules an update may cross or land on. */
+function upgradeScope(lockfile: Lockfile, key: string, registry: Registry): [string, string][] {
+  return Object.entries(lockfile.modules)
+    .filter(([, entry]) => entry.registry === key)
+    .flatMap(([name, entry]) =>
+      registry
+        .versions(name)
+        .filter((version) => Bun.semver.order(version, entry.version) >= 0)
+        .map((version): [string, string] => [name, version]),
+    );
+}
+
 async function prepare(input: UpdateInput): Promise<Prepared> {
   const bundledRegistryPath = input.bundledRegistryPath ?? shippedRegistryPath;
   const lockfile = await readProjectLockfile(input.dir);
-  const registry = await openProjectRegistry(lockfile, {
+  const set = await openProjectRegistries(lockfile, {
+    registryFlag: input.registry,
+    allowPinMove: true,
+    trustFlags: input.trustFlags ?? [],
+    interactive: input.interactive ?? false,
     projectDir: input.dir,
     cliVersion: input.cliVersion,
     bundledRegistryPath,
+    adapters: input.adapters,
   });
-  const target = resolveUpdateTarget(lockfile, registry, input.to);
-  const fromRelease = lockfile.registries[primaryRegistryName(lockfile)]?.release ?? target.release;
+  const key = primaryRegistryName(lockfile);
+  const primary = set.registries.get(key);
+  if (primary === undefined) {
+    throw new AokitError(
+      "INVALID_INPUT",
+      "aokit.lock.json lists no Registry.",
+      "Restore aokit.lock.json from version control.",
+    );
+  }
+  const registry = await snapshotRegistry(primary, key, {
+    versions: upgradeScope(lockfile, key, primary),
+    releases: [
+      ...new Set([
+        lockfile.registries[key]?.release ?? primary.release,
+        input.to ?? newestRelease(primary),
+      ]),
+    ],
+  });
+  const pins = set.movedPins;
+  const resolved = resolveUpdateTarget(lockfile, registry, input.to);
+  const target = pins.length > 0 ? { ...resolved, upToDate: false } : resolved;
+  const fromRelease = lockfile.registries[key]?.release ?? target.release;
   const state: UpdateState = { keptDeps: [], migrations: [], answers: lockedAnswers(lockfile) };
-  if (target.upToDate) return { target, fromRelease, run: undefined, state };
+  if (target.upToDate) return { target, pins, fromRelease, run: undefined, state };
   const modules = modulesInOrder(lockfile, registry, target);
   const hasMigrations = modules.some((module) => crossesMigration(registry, module));
   const trees: { original?: Vfs; edited?: Vfs } = {};
@@ -248,6 +320,7 @@ async function prepare(input: UpdateInput): Promise<Prepared> {
     bundledRegistryPath,
     cliVersion: input.cliVersion,
   };
+  const recorded = (current: Lockfile): Lockfile => withRegistries(current, set.entries);
   const run = (dryRun: boolean): Promise<LifecycleResult> =>
     runLifecycle({
       dir: input.dir,
@@ -260,10 +333,12 @@ async function prepare(input: UpdateInput): Promise<Prepared> {
       keepStashOnConflict: true,
       ...(input.installer === undefined ? {} : { installer: input.installer }),
       render: {
-        base: (current) => renderFromLockfile(current, renderOptions),
+        base: (current) =>
+          renderFromLockfile(current, { ...renderOptions, registries: set.lockedRegistries }),
         next: async (current, base) => {
-          const rendered = await renderFromLockfile(current, {
+          const rendered = await renderFromLockfile(recorded(current), {
             ...renderOptions,
+            registries: set.registries,
             versionOverride: target.versions,
             release: target.release,
             answersOverride: state.answers,
@@ -318,7 +393,7 @@ async function prepare(input: UpdateInput): Promise<Prepared> {
         return result;
       },
     });
-  return { target, fromRelease, run, state };
+  return { target, pins, fromRelease, run, state };
 }
 
 function upToDateResult(prepared: Prepared): UpdateResult {
@@ -336,6 +411,7 @@ function upToDateResult(prepared: Prepared): UpdateResult {
     stashKept: false,
     keptDeps: [],
     migrations: [],
+    pins: [],
   };
 }
 
@@ -354,6 +430,7 @@ function resultOf(prepared: Prepared, outcome: LifecycleResult): UpdateResult {
     stashKept: outcome.stashKept,
     keptDeps: prepared.state.keptDeps,
     migrations: prepared.state.migrations,
+    pins: prepared.pins,
   };
 }
 
@@ -426,6 +503,16 @@ function changesPackageJson(plan: NonNullable<UpdateResult["plan"]>): boolean {
   );
 }
 
+/** The `github:` sources that differ between the Lockfile on disk and the saved target one. */
+function movedPins(before: Lockfile, after: Lockfile): PinMove[] {
+  return Object.entries(after.registries).flatMap(([registry, entry]) => {
+    const from = before.registries[registry]?.source;
+    return from !== undefined && from !== entry.source && entry.source.startsWith("github:")
+      ? [{ registry, from, to: entry.source }]
+      : [];
+  });
+}
+
 /**
  * Applies exactly the saved Plan: `PLAN_MISSING` without one, `PLAN_STALE` when the Lockfile or a
  * recorded user file changed. Conflicts keep the stash and write the update marker; a successful
@@ -449,6 +536,7 @@ export async function applyUpdatePlan(input: UpdateInput): Promise<UpdateResult>
     lockfile: saved.targetLockfile,
     keptDeps: saved.keptDeps ?? [],
     migrations: saved.migrations ?? [],
+    pins: movedPins(lockfile, saved.targetLockfile),
   } satisfies Partial<UpdateResult>;
   if (input.dryRun || input.diff) {
     return {

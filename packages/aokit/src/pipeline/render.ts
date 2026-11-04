@@ -1,10 +1,15 @@
 import { AokitError } from "../cli/envelope.ts";
-import { resolveRegistrySource } from "../project/registry.ts";
+import {
+  assertCatalogDepsAuthenticated,
+  loadProjectRegistries,
+  type RegistryAdapters,
+  toPipelineModule,
+} from "../project/registry.ts";
 import { fromResolveError, toAokitError } from "../project/errors.ts";
 import type { AnswerValue } from "../engine/interpolate.ts";
 import { formatterForSelection } from "../format/index.ts";
 import type { Lockfile } from "../lockfile/schema.ts";
-import { type LocalRegistry, readLocalRegistry } from "../registry/index.ts";
+import type { Registry } from "../registry/index.ts";
 import { type BuiltProject, type PipelineModule, buildProject } from "./build.ts";
 
 const fixedNow = new Date(0);
@@ -23,6 +28,14 @@ export interface RenderFromLockfileOptions {
   readonly release?: string;
   /** Module name to the answers to render with instead of the locked ones. */
   readonly answersOverride?: Readonly<Record<string, Readonly<Record<string, unknown>>>>;
+  /**
+   * The Lockfile's Registries, already opened and trusted by the command, by Lockfile key. When
+   * absent they are opened here, trusted only by the first-party rule, the Lockfile, `trustFlags`
+   * or the user config, never by a prompt.
+   */
+  readonly registries?: ReadonlyMap<string, Registry>;
+  readonly trustFlags?: readonly string[];
+  readonly adapters?: RegistryAdapters;
 }
 
 function assertCliIsNewEnough(lockfile: Lockfile, cliVersion: string): void {
@@ -40,22 +53,16 @@ function assertCliIsNewEnough(lockfile: Lockfile, cliVersion: string): void {
 async function readRegistries(
   lockfile: Lockfile,
   options: RenderFromLockfileOptions,
-): Promise<Map<string, LocalRegistry>> {
-  const entries = Object.entries(lockfile.registries).toSorted(([left], [right]) =>
-    left < right ? -1 : left > right ? 1 : 0,
-  );
-  const paths = entries.map(([, registry]) => resolveRegistrySource(registry.source, options));
-  const registries = await Promise.all(
-    paths.map((path) => readLocalRegistry(path, { cliVersion: options.cliVersion })),
-  );
-  const byName = new Map<string, LocalRegistry>();
-  for (const [position, [name]] of entries.entries()) {
-    const registry = registries[position];
-    if (registry !== undefined) {
-      byName.set(name, registry);
-    }
-  }
-  return byName;
+): Promise<ReadonlyMap<string, Registry>> {
+  if (options.registries !== undefined) return options.registries;
+  return loadProjectRegistries(lockfile, {
+    trustFlags: options.trustFlags ?? [],
+    interactive: false,
+    projectDir: options.projectDir,
+    cliVersion: options.cliVersion,
+    bundledRegistryPath: options.bundledRegistryPath,
+    adapters: options.adapters,
+  });
 }
 
 function answerValues(
@@ -76,12 +83,12 @@ function answerValues(
   return values;
 }
 
-function lockedModule(
+async function lockedModule(
   name: string,
   lockfile: Lockfile,
-  registries: ReadonlyMap<string, LocalRegistry>,
+  registries: ReadonlyMap<string, Registry>,
   options: RenderFromLockfileOptions,
-): PipelineModule {
+): Promise<PipelineModule> {
   const entry = lockfile.modules[name];
   const registry = registries.get(entry?.registry ?? "");
   if (entry === undefined || registry === undefined) {
@@ -92,8 +99,7 @@ function lockedModule(
     );
   }
   const version = options.versionOverride?.[name] ?? entry.version;
-  const found = registry.version(name, version);
-  if (found === undefined) {
+  if (!registry.versions(name).includes(version)) {
     throw new AokitError(
       "MODULE_VERSION_UNAVAILABLE",
       `Module ${name}@${version} is not available in Registry "${entry.registry}".`,
@@ -101,17 +107,7 @@ function lockedModule(
       { module: name, version, registry: entry.registry },
     );
   }
-  return {
-    manifest: found.manifest,
-    integrity: found.integrity,
-    readFile(from) {
-      const content = found.files.get(from);
-      if (content === undefined) {
-        throw new AokitError("INTERNAL", `Module ${name} has no file ${from}`, "report the issue");
-      }
-      return content;
-    },
-  };
+  return toPipelineModule(await registry.version(name, version), entry.registry);
 }
 
 async function render(
@@ -121,7 +117,9 @@ async function render(
   assertCliIsNewEnough(lockfile, options.cliVersion);
   const registries = await readRegistries(lockfile, options);
   const names = Object.keys(lockfile.modules).toSorted();
-  const available = names.map((name) => lockedModule(name, lockfile, registries, options));
+  const available = await Promise.all(
+    names.map((name) => lockedModule(name, lockfile, registries, options)),
+  );
   const registryName =
     lockfile.modules[names[0] ?? ""]?.registry ?? Object.keys(lockfile.registries)[0];
   const registryEntry = lockfile.registries[registryName ?? ""];
@@ -134,7 +132,7 @@ async function render(
     );
   }
   const release = options.release ?? registryEntry.release;
-  const catalog = registry.catalog(release);
+  const catalog = await registry.catalog(release);
   if (catalog === undefined) {
     throw new AokitError(
       "MODULE_VERSION_UNAVAILABLE",
@@ -169,11 +167,13 @@ async function render(
       release,
       minCliVersion: registryEntry.minCliVersion,
     },
+    registries: lockfile.registries,
     ...(formatter === undefined ? {} : { formatter }),
   });
   if (!built.ok) {
     throw fromResolveError(built.error);
   }
+  assertCatalogDepsAuthenticated(registry, lockfile, built.lockfile);
   return built;
 }
 

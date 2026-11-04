@@ -1,5 +1,6 @@
 import { z } from "zod";
 import { runCreate } from "../../create/index.ts";
+import { isNonInteractive } from "../../trust/gate.ts";
 import { AokitError } from "../envelope.ts";
 import { defineCommand } from "../command.ts";
 import { aokitMeta } from "../meta.ts";
@@ -35,8 +36,18 @@ const createInput = z.object({
   registry: z
     .string()
     .optional()
-    .describe("Local Registry directory; the bundled Registry by default")
-    .register(aokitMeta, { flag: "registry", examples: ["--registry ./registry"] }),
+    .describe(
+      "Registry source: a local directory, an https:// URL or github:owner/repo#ref; the bundled Registry by default",
+    )
+    .register(aokitMeta, {
+      flag: "registry",
+      examples: ["--registry ./registry", "--registry github:acme/mods#v1"],
+    }),
+  trust: z
+    .array(z.string())
+    .default([])
+    .describe("Trust a Registry by name or source; repeatable. `--yes` never grants trust")
+    .register(aokitMeta, { flag: "trust", examples: ["--trust github:acme/mods"] }),
   dryRun: z
     .boolean()
     .default(false)
@@ -119,6 +130,12 @@ export const createCommand = defineCommand({
       modules: splitModules(input.modules),
       answers: input.answer,
       registry: input.registry,
+      trust: input.trust,
+      interactive: !isNonInteractive({
+        yes: input.yes,
+        env: context.env,
+        isTTY: process.stdin.isTTY,
+      }),
       dryRun: input.dryRun,
       diff: input.diff,
       install: input.install,
