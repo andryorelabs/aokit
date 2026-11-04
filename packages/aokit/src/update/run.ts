@@ -28,12 +28,12 @@ import { composeRenames, type DriftOf } from "../merge/index.ts";
 import { runMigrations, selectMigrations } from "../migrations/index.ts";
 import { renderFromLockfile } from "../pipeline/index.ts";
 import { fromResolveError } from "../project/errors.ts";
-import { resolveRegistrySource } from "../project/registry.ts";
-import { type LocalRegistry, readLocalRegistry } from "../registry/index.ts";
+import { openProjectRegistry, primaryRegistryName } from "../project/registry.ts";
+import { bundledRegistryPath as shippedRegistryPath } from "../registry/bundled.ts";
+import type { LocalRegistry } from "../registry/index.ts";
 import { resolve as resolveModules } from "../resolver/resolve.ts";
 import { resolveUpdateTarget, type UpdateTarget } from "./target.ts";
 
-const bundledRegistry = join(import.meta.dir, "..", "..", "..", "..", "registry");
 const migrationContext = { now: new Date(0), random: () => 0, env: {} };
 
 /** Inputs of {@link runUpdate} and {@link buildUpdatePlan}. */
@@ -119,31 +119,6 @@ async function readProjectLockfile(dir: string): Promise<Lockfile> {
     );
   }
   return parsed.lockfile;
-}
-
-function registryNameOf(lockfile: Lockfile): string {
-  const first = Object.keys(lockfile.modules).toSorted()[0];
-  return lockfile.modules[first ?? ""]?.registry ?? Object.keys(lockfile.registries)[0] ?? "";
-}
-
-async function openRegistry(
-  lockfile: Lockfile,
-  input: UpdateInput,
-  bundledRegistryPath: string,
-): Promise<LocalRegistry> {
-  const entry = lockfile.registries[registryNameOf(lockfile)];
-  if (entry === undefined) {
-    throw new AokitError(
-      "INVALID_INPUT",
-      "aokit.lock.json lists no Registry.",
-      "Restore aokit.lock.json from version control.",
-    );
-  }
-  const path = resolveRegistrySource(entry.source, {
-    projectDir: input.dir,
-    bundledRegistryPath,
-  });
-  return readLocalRegistry(path, { cliVersion: input.cliVersion });
 }
 
 /** Locked Modules in canonical Resolver order, with the version they move from and to. */
@@ -254,11 +229,15 @@ interface Prepared {
 }
 
 async function prepare(input: UpdateInput): Promise<Prepared> {
-  const bundledRegistryPath = input.bundledRegistryPath ?? bundledRegistry;
+  const bundledRegistryPath = input.bundledRegistryPath ?? shippedRegistryPath;
   const lockfile = await readProjectLockfile(input.dir);
-  const registry = await openRegistry(lockfile, input, bundledRegistryPath);
+  const registry = await openProjectRegistry(lockfile, {
+    projectDir: input.dir,
+    cliVersion: input.cliVersion,
+    bundledRegistryPath,
+  });
   const target = resolveUpdateTarget(lockfile, registry, input.to);
-  const fromRelease = lockfile.registries[registryNameOf(lockfile)]?.release ?? target.release;
+  const fromRelease = lockfile.registries[primaryRegistryName(lockfile)]?.release ?? target.release;
   const state: UpdateState = { keptDeps: [], migrations: [], answers: lockedAnswers(lockfile) };
   if (target.upToDate) return { target, fromRelease, run: undefined, state };
   const modules = modulesInOrder(lockfile, registry, target);
@@ -456,7 +435,8 @@ export async function applyUpdatePlan(input: UpdateInput): Promise<UpdateResult>
   if (saved === null) throw planMissingError();
   await assertPlanFresh(input.dir, saved);
   const lockfile = await readProjectLockfile(input.dir);
-  const fromRelease = lockfile.registries[registryNameOf(lockfile)]?.release ?? saved.targetRelease;
+  const fromRelease =
+    lockfile.registries[primaryRegistryName(lockfile)]?.release ?? saved.targetRelease;
   const base = {
     upToDate: false,
     fromRelease,
