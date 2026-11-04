@@ -25,20 +25,24 @@ export function fromResolveError(error: ResolveError): AokitError {
   );
 }
 
-function registryErrorCode(error: RegistryError): ErrorCode {
-  if (error.code === "REGISTRY_NOT_FOUND") {
-    return "INVALID_INPUT";
-  }
-  return error.code === "REGISTRY_CLI_TOO_OLD" ? "MIN_CLI_VERSION" : "IO_ERROR";
-}
+const registryErrorCodes: Partial<Record<RegistryError["code"], ErrorCode>> = {
+  REGISTRY_NOT_FOUND: "INVALID_INPUT",
+  REGISTRY_SOURCE_UNSUPPORTED: "INVALID_INPUT",
+  REGISTRY_CLI_TOO_OLD: "MIN_CLI_VERSION",
+  REGISTRY_MODULE_NOT_FOUND: "MODULE_VERSION_UNAVAILABLE",
+  REGISTRY_UNTRUSTED: "REGISTRY_UNTRUSTED",
+  REGISTRY_FETCH_FAILED: "REGISTRY_FETCH_FAILED",
+  REGISTRY_INTEGRITY_MISMATCH: "REGISTRY_INTEGRITY_MISMATCH",
+};
 
 /** Turns the subsystem errors a create run can hit into coded command errors. */
 export function toAokitError(thrown: unknown): unknown {
   if (thrown instanceof RegistryError) {
     return new AokitError(
-      registryErrorCode(thrown),
+      registryErrorCodes[thrown.code] ?? "IO_ERROR",
       `[${thrown.code}] ${thrown.message}`,
       thrown.fix,
+      { registryCode: thrown.code, ...thrown.data },
     );
   }
   if (thrown instanceof FormatError) {

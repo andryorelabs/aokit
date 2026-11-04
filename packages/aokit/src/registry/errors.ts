@@ -8,20 +8,46 @@ type RegistryErrorCode =
   | "REGISTRY_MANIFEST_INVALID"
   | "REGISTRY_SUMMARY_MISMATCH"
   | "REGISTRY_FILE_MISSING"
-  | "REGISTRY_INTEGRITY_MISMATCH";
+  | "REGISTRY_INTEGRITY_MISMATCH"
+  | "REGISTRY_FETCH_FAILED"
+  | "REGISTRY_UNTRUSTED"
+  | "REGISTRY_PATH_UNSAFE"
+  | "REGISTRY_MODULE_NOT_FOUND"
+  | "REGISTRY_SOURCE_UNSUPPORTED";
+
+/**
+ * Structured detail of a Registry failure, carried into the command envelope's `error.data`.
+ */
+export interface RegistryErrorData {
+  /** The Registry name, or its source when the index was not read yet. */
+  registry?: string;
+  /** The Module, as `name@version`, when the failure concerns one. */
+  module?: string;
+  /** The path or URL that failed. */
+  path?: string;
+  /** The expected value, such as an integrity. */
+  expected?: string;
+  /** The actual value, such as an integrity. */
+  actual?: string;
+  /** The HTTP status of a failed fetch. */
+  status?: number;
+}
 
 /**
  * Failure while reading or verifying a Registry. `message` names the Registry, the Module and the
- * expected versus actual value where there is one; `fix` tells the user what to do.
+ * expected versus actual value where there is one; `fix` tells the user what to do; `data` holds
+ * the same facts as fields.
  */
 export class RegistryError extends Error {
   readonly code: RegistryErrorCode;
   readonly fix: string;
+  readonly data: RegistryErrorData;
 
-  constructor(code: RegistryErrorCode, message: string, fix: string) {
+  constructor(code: RegistryErrorCode, message: string, fix: string, data: RegistryErrorData = {}) {
     super(message);
     this.name = "RegistryError";
     this.code = code;
     this.fix = fix;
+    this.data = data;
   }
 }

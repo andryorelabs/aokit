@@ -38,6 +38,9 @@ export const errorCodeExitCodes = {
   MIGRATION_FAILED: exitCodes.failure,
   PLAN_STALE: exitCodes.precondition,
   PLAN_MISSING: exitCodes.precondition,
+  REGISTRY_UNTRUSTED: exitCodes.precondition,
+  REGISTRY_FETCH_FAILED: exitCodes.failure,
+  REGISTRY_INTEGRITY_MISMATCH: exitCodes.failure,
 } as const satisfies Record<string, ExitCode>;
 
 export type ErrorCode = keyof typeof errorCodeExitCodes;
