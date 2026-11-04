@@ -1,6 +1,6 @@
 import { mkdir, readdir, readFile, stat, writeFile } from "node:fs/promises";
 import { dirname, join } from "node:path";
-import { catalogSchema, compileModule, stableStringify } from "@aokit/module";
+import { type ModuleManifest, catalogSchema, compileModule, stableStringify } from "@aokit/module";
 import { format } from "oxfmt";
 import {
   computeIntegrity,
@@ -284,6 +284,47 @@ async function readRenamesText(moduleDir: string): Promise<string | undefined> {
   }
 }
 
+const reservedModuleName = "aokit";
+const regionFileNames = new Set(["AGENTS.md", "CLAUDE.md"]);
+const skillPathPattern = /(?:^|\/)\.claude\/skills\/([^/]+)\/SKILL\.md$/u;
+
+function frontmatterField(text: string, field: string): string | undefined {
+  const block = /^---\n([\s\S]*?)\n---(?:\n|$)/u.exec(text)?.[1];
+  const line = block?.split("\n").find((candidate) => candidate.startsWith(`${field}:`));
+  const raw = line?.slice(field.length + 1).trim();
+  return raw?.replace(/^(["'])(.*)\1$/u, "$2");
+}
+
+function validateRegionFileWrites(manifest: ModuleManifest): void {
+  if (manifest.name === reservedModuleName) {
+    throw new Error(
+      `registry:build: Module ${manifest.name} uses the reserved name "${reservedModuleName}", which belongs to the aokit core owner`,
+    );
+  }
+  for (const file of manifest.files) {
+    if (file.target === "root" && regionFileNames.has(file.to)) {
+      throw new Error(
+        `registry:build: Module ${manifest.name} writes ${file.to} (target root); Modules contribute only Regions to it through appendRegion`,
+      );
+    }
+  }
+}
+
+function validateSkills(manifest: ModuleManifest, texts: ReadonlyMap<string, string>): void {
+  for (const file of manifest.files) {
+    const directory = skillPathPattern.exec(file.to)?.[1];
+    if (directory === undefined) continue;
+    const text = texts.get(file.from) ?? "";
+    const prefix = `registry:build: Module ${manifest.name} skill ${directory}`;
+    if (frontmatterField(text, "name") !== directory) {
+      throw new Error(`${prefix}: name must equal "${directory}" (${file.to})`);
+    }
+    if ((frontmatterField(text, "description") ?? "") === "") {
+      throw new Error(`${prefix}: description must not be empty (${file.to})`);
+    }
+  }
+}
+
 async function buildModuleVersion(
   sourceDir: string,
   outDir: string,
@@ -315,6 +356,8 @@ async function buildModuleVersion(
       );
     }
   }
+  validateRegionFileWrites(manifest);
+  validateSkills(manifest, texts);
   for (const [path, text] of await readMigrationTexts(moduleDir)) {
     texts.set(path, text);
   }

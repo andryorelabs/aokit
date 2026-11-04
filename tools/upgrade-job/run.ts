@@ -7,8 +7,8 @@ import {
   type RegistryIndex,
   applyEdit,
   indexAtRelease,
+  lastPair,
   planEdits,
-  releasePairs,
 } from "./plan.ts";
 
 /** Outcome of one command. */
@@ -60,15 +60,22 @@ async function writeIndex(registry: string, index: RegistryIndex): Promise<void>
   await writeFile(join(registry, "index.json"), `${JSON.stringify(index, null, 2)}\n`, "utf8");
 }
 
-/** Every consecutive Release pair the Registry at `registry` lists. */
+/** The Release pair the job tests: the last N-1 to N pair the Registry at `registry` lists. */
 export async function pairsOf(registry: string): Promise<[string, string][]> {
-  const releases = Object.keys((await readIndex(registry)).releases);
-  if (releases.length > 2) {
-    throw new Error(
-      `The Registry lists ${releases.length} Releases, but the index does not record which Module versions each Release fixes, so the Upgrade job can only rebuild a two-Release index. Record per-Release Module versions before adding a third Release.`,
-    );
+  return [lastPair(Object.keys((await readIndex(registry)).releases))];
+}
+
+async function readCatalogModules(
+  registry: string,
+  index: RegistryIndex,
+  release: string,
+): Promise<Record<string, string>> {
+  const pointer = index.releases[release];
+  if (typeof pointer !== "object" || pointer === null || !("path" in pointer)) {
+    throw new Error(`The Registry index does not list Release ${release}.`);
   }
-  return releasePairs(releases);
+  const catalog = JSON.parse(await readFile(join(registry, String(pointer.path)), "utf8"));
+  return catalog.modules ?? {};
 }
 
 async function listFiles(root: string, relative = ""): Promise<string[]> {
@@ -202,11 +209,13 @@ async function runCase(
 ): Promise<CaseResult> {
   const label = caseLabel(entry);
   const fullIndex = await readIndex(registry);
-  await writeIndex(registry, indexAtRelease(fullIndex, entry.from));
+  const fromModules = await readCatalogModules(registry, fullIndex, entry.from);
+  const toModules = await readCatalogModules(registry, fullIndex, entry.to);
+  await writeIndex(registry, indexAtRelease(fullIndex, entry.from, fromModules));
   try {
     const prepared = await createAndEdit(entry, context, registry, directory);
     if ("failure" in prepared) return { label, ok: false, failures: [prepared.failure] };
-    await writeIndex(registry, indexAtRelease(fullIndex, entry.to));
+    await writeIndex(registry, indexAtRelease(fullIndex, entry.to, toModules));
     const updated = await context.exec(
       cliCommand(context, [
         "update",

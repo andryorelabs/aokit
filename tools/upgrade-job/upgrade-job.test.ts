@@ -4,7 +4,7 @@ import { rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { curatedCombinations } from "../real-build/plan.ts";
-import { applyEdit, indexAtRelease, planEdits, releasePairs } from "./plan.ts";
+import { applyEdit, indexAtRelease, lastPair, planEdits, releasePairs } from "./plan.ts";
 import { type Exec, buildCases, pairsOf, runJob } from "./run.ts";
 
 const workspaceRoot = join(import.meta.dir, "..", "..");
@@ -47,6 +47,13 @@ const firstSelection = curatedCombinations.filter(
   (combination) => combination.modules.includes("vite-react") && combination.layout === "monorepo",
 );
 
+function entry(latest: string, versions: string[]) {
+  return {
+    latest,
+    versions: Object.fromEntries(versions.map((version) => [version, {}])),
+  };
+}
+
 describe("release pairs and historical indexes", () => {
   test("pairs are consecutive and oldest first", () => {
     expect(releasePairs(["2026.11.1", "2026.11.0", "2026.12.0"])).toEqual([
@@ -57,13 +64,48 @@ describe("release pairs and historical indexes", () => {
 
   test("the index at the first Release drops later Releases and steps Modules back", async () => {
     const index = await Bun.file(join(workspaceRoot, "registry/index.json")).json();
-    const earlier = indexAtRelease(index, "2026.11.0");
+    const catalog = await Bun.file(join(workspaceRoot, "registry/catalog/2026.11.0.json")).json();
+    const earlier = indexAtRelease(index, "2026.11.0", catalog.modules);
     expect(earlier.release).toBe("2026.11.0");
     expect(Object.keys(earlier.releases)).toEqual(["2026.11.0"]);
     expect(earlier.modules["vite-react"]?.latest).toBe("1.0.0");
     expect(Object.keys(earlier.modules["vite-react"]?.versions ?? {})).toEqual(["1.0.0"]);
     expect(earlier.modules["oxc"]?.latest).toBe("1.0.0");
     expect(earlier.modules["hono"]?.latest).toBe("1.0.0");
+  });
+
+  test("the last pair of three Releases is the newest N-1 to N", () => {
+    expect(lastPair(["2026.11.2", "2026.11.0", "2026.11.1"])).toEqual(["2026.11.1", "2026.11.2"]);
+  });
+
+  test("a single Release has no pair", () => {
+    expect(() => lastPair(["2026.11.0"])).toThrow("at least two Releases");
+  });
+
+  test("the index at a Release follows the Catalog modules map, not a version count", () => {
+    const index = {
+      release: "2026.11.2",
+      releases: { "2026.11.0": {}, "2026.11.1": {}, "2026.11.2": {} },
+      modules: {
+        hono: entry("1.2.0", ["1.0.0", "1.1.0", "1.2.0"]),
+        oxc: entry("1.1.0", ["1.0.0", "1.1.0"]),
+        fresh: entry("1.0.0", ["1.0.0"]),
+      },
+    };
+    const atMiddle = indexAtRelease(index, "2026.11.1", { hono: "1.0.0", oxc: "1.1.0" });
+    expect(Object.keys(atMiddle.releases)).toEqual(["2026.11.0", "2026.11.1"]);
+    expect(atMiddle.release).toBe("2026.11.1");
+    expect(atMiddle.modules["hono"]?.latest).toBe("1.0.0");
+    expect(Object.keys(atMiddle.modules["hono"]?.versions ?? {})).toEqual(["1.0.0"]);
+    expect(atMiddle.modules["oxc"]?.latest).toBe("1.1.0");
+    expect(atMiddle.modules["fresh"]).toBeUndefined();
+  });
+
+  test("with three Releases in the index the job plans exactly the last pair", async () => {
+    const registry = scratchDirectory();
+    const releases = { "2026.11.0": {}, "2026.11.1": {}, "2026.11.2": {} };
+    await Bun.write(join(registry, "index.json"), JSON.stringify({ releases, modules: {} }));
+    expect(await pairsOf(registry)).toEqual([["2026.11.1", "2026.11.2"]]);
   });
 
   test("the committed Registry has the 2026.11.0 -> 2026.11.1 pair", async () => {
@@ -89,7 +131,19 @@ describe("representative edits", () => {
       { kind: "managed-json", path: ".oxlintrc.json", marker: "upgradeJobJsonEdit" },
       { kind: "seed", path: "apps/web/src/styles.css", marker: "upgradeJobSeedEdit" },
       { kind: "user-import", path: "apps/web/src/user-routes.ts", marker: "upgradeJobUserRoute" },
+      { kind: "user-note", path: "AGENTS.md", marker: "upgradeJobAgentsNote" },
     ]);
+  });
+
+  test("the AGENTS.md edit appends a user note and keeps the existing text", () => {
+    const note = { kind: "user-note", path: "AGENTS.md", marker: "upgradeJobAgentsNote" } as const;
+    const edited = applyEdit(
+      note,
+      "<!-- aokit:begin aokit:header -->\nx\n<!-- aokit:end aokit:header -->\n",
+    );
+    expect(edited.startsWith("<!-- aokit:begin aokit:header -->")).toBe(true);
+    expect(edited.endsWith("upgradeJobAgentsNote\n")).toBe(true);
+    expect(applyEdit(note, "")).toContain("upgradeJobAgentsNote");
   });
 
   test("leaves out the importer without vite-react", () => {
