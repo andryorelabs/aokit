@@ -189,7 +189,8 @@ Unknown commands suggest the closest match. `-h` never starts a prompt.
 
 ## Version and update notices
 
-- `aokit --version` prints only the version (`0.1.0`), so it is script-safe. `--version --json` adds the Lockfile `lockfileVersion` and the Registry protocol version the CLI supports.
+- `aokit --version` prints only the CLI version (`0.1.0`), so it is script-safe. `--version --json` returns `data: { version, lockfileVersion, registryProtocolVersion }`: the CLI version, the Lockfile `lockfileVersion` and the Registry protocol version the CLI supports.
+- When a Registry requires a newer CLI version (`MIN_CLI_VERSION`, exit `5`), the fix names `bunx aokit@<minCliVersion>` and the binary download page (`https://github.com/AndryOre/aokit/releases`).
 - **Update notices** tell the user a newer CLI exists. They are printed to stderr at most once per 24 hours, only on a TTY, never with `--json` or `--quiet`, in CI or in non-interactive mode, and never delay the command: the check reads a cached value and refreshes it in the background. `AOKIT_NO_UPDATE_NOTIFIER=1` disables them.
 - The notice is about the CLI. Project updates are `aokit check` (exit `2`) and `aokit update`.
 - There is no telemetry; see [Distribution](distribution.md#telemetry). The update check contacts only the npm registry for the `aokit` package and sends nothing beyond that request.

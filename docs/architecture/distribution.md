@@ -12,7 +12,7 @@ bunx aokit add auth
 ```
 
 - `create-aokit` is a thin package whose bin runs `aokit create`; it exists so `bun create aokit` and `bunx create-aokit` work.
-- The `aokit` package is developed and tested on Bun. It is published as a normal npm package built to plain JavaScript, so `bunx` runs it; Bun-specific APIs (file I/O, spawn, hashing) sit behind a small adapter so the package could also run on Node 22 or later without touching command code. That is a hedge, not a supported install path: generated Projects still require Bun.
+- The `aokit` package is developed and tested on Bun and published as a normal npm package: `bun build --target bun` bundles the CLI into `dist/` with `@aokit/module` inlined, and the first-party Registry travels in the same tarball. It uses Bun APIs directly (`Bun.semver`, `Bun.spawn`, `Bun.CryptoHasher`, `Bun.file`), declares `engines.bun` and starts with a `bun` shebang. There is no Node install path and no adapter hiding the Bun APIs ([ADR 0006](../adr/0006-bun-only.md)). `@aokit/module`, the SDK for Module authors, is not published in the first versions.
 - Dependency installation after apply is always `bun install` and runs outside the [deterministic phase](engine.md#determinism).
 
 ## Compiled binary
@@ -22,8 +22,9 @@ A standalone binary is built per platform with `bun build --compile` (linux-x64,
 Settings and constraints:
 
 - **`autoloadDotenv: false` and `autoloadBunfig: false`.** A compiled binary otherwise loads `.env` and `bunfig.toml` from the directory it is run in, which would leak the user's Project configuration into the CLI and break [determinism](engine.md#determinism). Both are disabled at compile time.
-- **Modules are static or assets.** Bun does not embed dynamic imports it cannot resolve at build time. The first-party Modules compiled into the binary are imported statically, or embedded as `assets` (their compiled JSON manifest and plain source files, read through Bun's embedded file API). Modules from other [Registries](module-contract.md#trusted-registries-and-arbitrary-code) are fetched at runtime as data, never imported as code from the binary's filesystem.
-- **No native oxc in the binary.** Native add-ons do not embed reliably. The binary uses the WASM build of oxc-parser for the locate step of the [edit engine](engine.md#code-edits-locate-and-splice), or ast-grep patterns, and the npm package may use the native oxc build when available. Both must produce the same spans; the determinism hash test runs against both builds.
+- **Modules are static or assets.** Bun does not embed dynamic imports it cannot resolve at build time. The first-party Registry (Module manifests, plain source files and Migration scripts) is embedded as assets. On first use the binary extracts it atomically (temporary directory, then rename) to `<cache>/bundled-registry/<content-hash>/` under the aokit cache directory and reads it from disk like every other local Registry, so there is one read path. Migrations are imported from that extracted copy. Modules from other [Registries](module-contract.md#trusted-registries-and-arbitrary-code) are fetched at runtime as data, never imported as code from the binary's filesystem.
+- **Native oxc and oxfmt, embedded per target.** The WASM build of oxc-parser does not run on Bun (`wasi.initialize is not a function` on Bun 1.4.4) and oxfmt has no WASM build. Each binary embeds the native bindings of its own target as files (`with { type: "file" }`); a binary-only entry sets `NAPI_RS_NATIVE_LIBRARY_PATH` to the embedded file before importing each package. Cross-compiling needs the target's bindings installed (`bun install --os <os> --cpu <cpu>`). The npm package and the binary therefore run the same parser, and the determinism digest runs against both ([CI](#ci-determinism-on-linux-and-macos)).
+- **Optional oxfmt imports are stubbed.** oxfmt imports `@astrojs/compiler-rs` and several prettier plugins that are not installed, so bundling fails. One build plugin, shared by the package bundle and the binary, replaces them with stubs that throw `<name> is not bundled with aokit` if called; no file type of the curated Modules reaches them.
 - **The binary is not an update channel.** `aokit update` of a Project uses the Registry; the binary only needs a newer CLI when the Lockfile's `minCliVersion` demands it, in which case the error says which download or `bunx` command to use ([exit code 5](cli-ux.md#exit-codes)).
 
 ## Publishing to npm
@@ -71,6 +72,6 @@ Generation must be byte-identical across machines ([Engine: determinism](engine.
 2. Hash every emitted file, excluding values marked volatile, and hash the sorted list of `path` and file hashes into one digest per Project.
 3. Fail if the two digests differ, and diff the trees to show why.
 4. Run the same job on a Linux runner and a macOS runner and fail if the digests differ **across** operating systems (this catches path separators, line endings, locale-dependent sorting and file-mode differences).
-5. Run it for both the npm build and the compiled binary, since they use different oxc builds.
+5. Run it for both the npm build and the compiled binary, and fail if their digests differ. Both embed the same native parser, so a difference points at bundling, asset embedding or the extraction path.
 
 The digests are stored as snapshots next to the capability-derived matrix, so an unintended change in generated output shows up as a reviewed snapshot diff.

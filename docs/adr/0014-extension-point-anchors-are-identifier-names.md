@@ -3,6 +3,7 @@
 Status: Accepted (2026-11-03)
 Revised: 2026-11-03 — `json` Extension points use JSON-pointer Anchors and data Ops can address an Extension point
 Revised: 2026-11-04 — `region` Extension points cover Markdown and CSS files, not Markdown only
+Revised: 2026-11-04 — the span parity test between native and WASM oxc-parser is dropped
 Spec: S12 (Spec: aokit core, schema, VFS and engine ops)
 Architecture: [Capabilities: extension points](../architecture/capabilities.md#extension-points), [Engine: locate and splice](../architecture/engine.md#code-edits-locate-and-splice)
 
@@ -20,7 +21,7 @@ For `json` Extension points the Anchor is a JSON pointer (`/ignorePatterns`), be
 
 - Base Module files stay plain, lintable TypeScript with no marker noise.
 - An Anchor survives reformatting and unrelated edits; renaming the declaration is a major change to the Extension point ([versioning rules](../architecture/capabilities.md#extension-points)).
-- One parsing dependency in the first version, which also keeps the native and WASM span parity test small.
+- One parsing dependency in the first version. The binary and the npm package use the same native oxc-parser, so no span parity test between builds is needed.
 - Anchors inside nested scopes are not supported; a base Module exposes the Extension point as a top-level declaration.
 
 ## Alternatives considered
