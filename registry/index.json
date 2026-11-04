@@ -3,7 +3,7 @@
   "minCliVersion": "0.1.0",
   "modules": {
     "coolify": {
-      "latest": "1.0.0",
+      "latest": "1.1.0",
       "versions": {
         "1.0.0": {
           "files": {
@@ -13,11 +13,20 @@
           "manifest": "modules/coolify/1.0.0/module.json",
           "provides": ["deploy"],
           "schemaVersion": 1
+        },
+        "1.1.0": {
+          "files": {
+            "files/docker-compose.coolify.yaml": "sha256-caacafc18d5a2e32af00dba1e396efb7894ee95f1822ed038e82a6b78024ef49"
+          },
+          "integrity": "sha256-ec00d7680f3f089acb86345d6c5bcb0372fca8c247291c4997c5ed58ae31c0b2",
+          "manifest": "modules/coolify/1.1.0/module.json",
+          "provides": ["deploy"],
+          "schemaVersion": 1
         }
       }
     },
     "docker": {
-      "latest": "1.0.0",
+      "latest": "1.1.0",
       "versions": {
         "1.0.0": {
           "files": {
@@ -28,11 +37,21 @@
           "manifest": "modules/docker/1.0.0/module.json",
           "provides": ["deploy", "container"],
           "schemaVersion": 1
+        },
+        "1.1.0": {
+          "files": {
+            "files/Dockerfile": "sha256-1583e87fe6068db8ee47a91b182b361e57e0dad19a311d62b9cca7145f8318b8",
+            "files/dockerignore": "sha256-03197980f549e8ba951fa6065b7071f2f1c89c0ceb8db6cc07608471a28690e9"
+          },
+          "integrity": "sha256-2d88d6281f8ef72c24c781b34c525127f0d8b38356cd181108ae4d2ea11d5073",
+          "manifest": "modules/docker/1.1.0/module.json",
+          "provides": ["deploy", "container"],
+          "schemaVersion": 1
         }
       }
     },
     "hono": {
-      "latest": "1.0.0",
+      "latest": "1.1.0",
       "versions": {
         "1.0.0": {
           "files": {
@@ -42,11 +61,21 @@
           "manifest": "modules/hono/1.0.0/module.json",
           "provides": ["server", "api:http"],
           "schemaVersion": 1
+        },
+        "1.1.0": {
+          "files": {
+            "files/app.ts": "sha256-a576a83c1453eb9bb95005ffb9fef6f7d396639381a59f86031f0fc1ef8f4541",
+            "files/hono-add-route.SKILL.md": "sha256-b97f57c7ee4f9247a736f485bc5fe3581335c5dffd14e7b5e3b91040e7f27b2d"
+          },
+          "integrity": "sha256-d29d5b5797538d12851bc5d22de0b28eeb41a6c69b80cee29b46bad893b76d0a",
+          "manifest": "modules/hono/1.1.0/module.json",
+          "provides": ["server", "api:http"],
+          "schemaVersion": 1
         }
       }
     },
     "knip": {
-      "latest": "1.0.0",
+      "latest": "1.1.0",
       "versions": {
         "1.0.0": {
           "files": {
@@ -56,11 +85,20 @@
           "manifest": "modules/knip/1.0.0/module.json",
           "provides": ["unused-code"],
           "schemaVersion": 1
+        },
+        "1.1.0": {
+          "files": {
+            "files/knip.json": "sha256-0007d9d0dc2b69ab9338b08e4b294f76d8bb72c6118a3ead5f5b9b3aea42d590"
+          },
+          "integrity": "sha256-0608fd7995c3642b637305ef589e45ca0f29d4313b6389dbc35d2e2a21e392b1",
+          "manifest": "modules/knip/1.1.0/module.json",
+          "provides": ["unused-code"],
+          "schemaVersion": 1
         }
       }
     },
     "oxc": {
-      "latest": "1.0.1",
+      "latest": "1.1.0",
       "versions": {
         "1.0.0": {
           "files": {
@@ -81,11 +119,21 @@
           "manifest": "modules/oxc/1.0.1/module.json",
           "provides": ["lint", "format"],
           "schemaVersion": 1
+        },
+        "1.1.0": {
+          "files": {
+            "files/oxfmtrc.json": "sha256-7ca658c7bc0bc9c6349df4a082d763b08274f17e1a0f541c3adb65fc6ea93227",
+            "files/oxlintrc.json": "sha256-a01bad19483c7a5db936bbee2acd9145091ee5d5a47c139d62860c8e15e1afe6"
+          },
+          "integrity": "sha256-e62dd7acaf2a3b7da84b33efe3c3698a1ddd28304a10a2ba24f9ada1470ea587",
+          "manifest": "modules/oxc/1.1.0/module.json",
+          "provides": ["lint", "format"],
+          "schemaVersion": 1
         }
       }
     },
     "tailwind4": {
-      "latest": "1.0.0",
+      "latest": "1.1.0",
       "versions": {
         "1.0.0": {
           "files": {
@@ -96,11 +144,21 @@
           "manifest": "modules/tailwind4/1.0.0/module.json",
           "provides": ["styling"],
           "schemaVersion": 1
+        },
+        "1.1.0": {
+          "files": {
+            "files/styles.css": "sha256-4650ea7cbc07104a2fc7e53d850b98eab8310ce4e0bae5a5f7d5da99b1dc8145",
+            "files/tailwind-provider.tsx": "sha256-a9b3a5ec86c72a410c7e92cea8c5cf86f2e28b8da78333f4cfa9c9a3109ad6e6"
+          },
+          "integrity": "sha256-1014680c9c247df6ee19774018a1aed71f5be12ed6d62c339ed822944ec0c781",
+          "manifest": "modules/tailwind4/1.1.0/module.json",
+          "provides": ["styling"],
+          "schemaVersion": 1
         }
       }
     },
     "vite-react": {
-      "latest": "1.1.0",
+      "latest": "1.2.0",
       "versions": {
         "1.0.0": {
           "files": {
@@ -131,12 +189,28 @@
           "manifest": "modules/vite-react/1.1.0/module.json",
           "provides": ["web", "web:spa"],
           "schemaVersion": 1
+        },
+        "1.2.0": {
+          "files": {
+            "files/index.html": "sha256-3dbcf875b7dfb41c393c51e420eeb0daa1801b8518a8aef92a38e2a11a587346",
+            "files/main.tsx": "sha256-9fcb27f638654da9306a3ec7870f0f426ed17f748dbc81ddcd0eda19aa5d317b",
+            "files/providers.tsx": "sha256-a5207472b22927d10554b10bb95a4c43f01f4880872c32c0956626e5ca7e15eb",
+            "files/router.tsx": "sha256-8f27867d153c38b0401dba9aefb5fc5c8e298e2a115d13bbbc138b5bb97b1a44",
+            "files/tsconfig.json": "sha256-3af94e731aaad2740ee1bca5c2f91417ec878ea12f3a22fbbd3653fd47027b00",
+            "files/vite.config.ts": "sha256-87859ede600d5b0bbc06ad9b4ca462e6cc6b479dfc420f7e643790e030923045",
+            "migrations/routes-to-router.after.js": "sha256-21686764f847f8d1635c362c02697b0a9a72ba66123d43082057e6e868b12659",
+            "renames.json": "sha256-7d44a3900ddedea62e22ada0961f54908379c0e3cf195cf1f092412aa9cde67f"
+          },
+          "integrity": "sha256-05ddec1082410dd57c6c5f64681b5f3518feafb9dcbba185c2121f5319dfe638",
+          "manifest": "modules/vite-react/1.2.0/module.json",
+          "provides": ["web", "web:spa"],
+          "schemaVersion": 1
         }
       }
     }
   },
   "name": "official",
-  "release": "2026.11.1",
+  "release": "2026.11.2",
   "releases": {
     "2026.11.0": {
       "integrity": "sha256-311a21c45fe4c05a051c42696b855036cb52ee3bd83b435ff53c4c2461256730",
@@ -145,6 +219,10 @@
     "2026.11.1": {
       "integrity": "sha256-7e88a3fbb9d6958cc184ad43cf7babe6ba5d4c10e1ff9aabed62e1ca94ff822c",
       "path": "catalog/2026.11.1.json"
+    },
+    "2026.11.2": {
+      "integrity": "sha256-f9602176cebdf435ab867b776bffe30d8a7a765699f970c2f2b9e3d0ebf110fc",
+      "path": "catalog/2026.11.2.json"
     }
   },
   "schemaVersion": 1

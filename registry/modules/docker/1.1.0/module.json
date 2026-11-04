@@ -1,0 +1,47 @@
+{
+  "$schema": "https://aokit.andryore.dev/schema/module/v1.json",
+  "conflicts": [],
+  "env": [],
+  "extensionPoints": [],
+  "files": [
+    {
+      "from": "files/Dockerfile",
+      "ownership": "managed",
+      "target": "root",
+      "to": "Dockerfile"
+    },
+    {
+      "from": "files/dockerignore",
+      "ownership": "managed",
+      "target": "root",
+      "to": ".dockerignore"
+    }
+  ],
+  "migrations": [],
+  "name": "docker",
+  "ops": [
+    {
+      "content": "\n## docker\n\nDocker containerizes the Project for deployment.\n\nKey files:\n\n- `Dockerfile`: the image build.\n- `.dockerignore`: files kept out of the build context.\n",
+      "file": "AGENTS.md",
+      "op": "appendRegion",
+      "region": "agents",
+      "target": "root"
+    }
+  ],
+  "override": [],
+  "provides": [
+    {
+      "capability": "deploy",
+      "cardinality": "many"
+    },
+    {
+      "capability": "container",
+      "cardinality": {
+        "max": 1
+      }
+    }
+  ],
+  "requires": [],
+  "schemaVersion": 1,
+  "version": "1.1.0"
+}
