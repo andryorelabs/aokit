@@ -1,4 +1,4 @@
-import { McpServer } from "@modelcontextprotocol/server";
+import { McpServer, type StandardSchemaWithJSON } from "@modelcontextprotocol/server";
 import { StdioServerTransport } from "@modelcontextprotocol/server/stdio";
 import type { CommandContext } from "../cli/command.ts";
 import { exposedCommands } from "../cli/commands/registry.ts";
@@ -9,6 +9,7 @@ import {
   type Envelope,
 } from "../cli/envelope.ts";
 import { cliVersion } from "../cli/version.ts";
+import { z } from "zod";
 import { createPlanSession } from "./plan-id.ts";
 import { toToolResult } from "./result.ts";
 import { mcpTools } from "./tools/index.ts";
@@ -31,6 +32,33 @@ function createCallQueue(): {
   };
 }
 
+/**
+ * Wraps a tool input so the SDK advertises the real JSON Schema but never rejects a call itself;
+ * validation happens in the handler, where a failure becomes an `INVALID_INPUT` envelope.
+ */
+function passThroughSchema(input: z.ZodObject): StandardSchemaWithJSON {
+  const advertised = input["~standard"];
+  return {
+    "~standard": {
+      version: 1,
+      vendor: "aokit",
+      validate: (value: unknown) => ({ value }),
+      jsonSchema: advertised.jsonSchema,
+    },
+  };
+}
+
+function invalidToolInput(toolName: string, error: z.ZodError): Envelope {
+  const issues = error.issues
+    .map((issue) => `${issue.path.join(".") || "input"}: ${issue.message}`)
+    .join("; ");
+  return failureEnvelope({
+    code: "INVALID_INPUT",
+    message: `invalid input for \`${toolName}\`: ${issues}`,
+    fix: `pass every field of the \`${toolName}\` input; use \`null\` for a field you do not set`,
+  });
+}
+
 const idleByServer = new WeakMap<McpServer, () => Promise<void>>();
 
 /**
@@ -45,11 +73,17 @@ export function createMcpServer(options: { context: CommandContext }): McpServer
   for (const tool of mcpTools) {
     server.registerTool(
       tool.name,
-      { description: tool.description, inputSchema: tool.input, annotations: tool.annotations },
+      {
+        description: tool.description,
+        inputSchema: passThroughSchema(tool.input),
+        annotations: tool.annotations,
+      },
       async (input: unknown) => {
         const envelope = await queue.run(async () => {
+          const parsed = tool.input.safeParse(input ?? {});
+          if (!parsed.success) return invalidToolInput(tool.name, parsed.error);
           try {
-            return await tool.run(session, input, context);
+            return await tool.run(session, parsed.data, context);
           } catch (thrown) {
             return failureEnvelope(errorPayloadFrom(thrown), errorDataFrom(thrown));
           }

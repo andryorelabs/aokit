@@ -228,3 +228,15 @@ describe("call queue", () => {
     expect(entriesOf(directory)).toContain("aokit.lock.json");
   }, 60_000);
 });
+
+describe("invalid tool input", () => {
+  test("a missing field is an INVALID_INPUT result with a fix, not a protocol error", async () => {
+    const client = await connectClient();
+    const result = await callTool(client, "plan", { directory: join(workspace, "partial") });
+    expect(result.ok).toBe(false);
+    expect(result.isError).toBe(true);
+    expect(result.error?.code).toBe("INVALID_INPUT");
+    expect(result.error?.fix).toContain("null");
+    expect(entriesOf(workspace)).not.toContain("partial");
+  });
+});
