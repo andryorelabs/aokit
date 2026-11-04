@@ -3,6 +3,7 @@ export { EngineError } from "./errors.ts";
 export {
   interpolateContent,
   interpolatePath,
+  interpolateImports,
   interpolateTargets,
   interpolateTargetsDeep,
 } from "./interpolate.ts";

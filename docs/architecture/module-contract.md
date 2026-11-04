@@ -34,7 +34,7 @@ export default defineModule({
 | `requires` | string[] | Capabilities that must be provided by another selected Module, and Extension points as `ext:<name>@<range>`. Never a Layout. |
 | `conflicts` | string[] | Module names or Capabilities that must not be selected together with this Module. |
 | `answers` | schema | Questions the Module asks (feeds `{{var}}` and the prompt schema). Optional. |
-| `files` | `{ from, to, target, mode?, ownership? }[]` | Plain source files copied into a [Target](layouts.md#targets). `to` is relative to the Target and may contain `__name__` and `{{var}}`. File content and data Op strings may also contain `{{target:<name>}}`, replaced by the directory the Layout resolves for that Target (`.` for the root). |
+| `files` | `{ from, to, target, mode?, ownership? }[]` | Plain source files copied into a [Target](layouts.md#targets). `to` is relative to the Target and may contain `__name__` and `{{var}}`. File content and data Op strings may also contain `{{target:<name>}}`, replaced by the directory the Layout resolves for that Target (`.` for the root). File content may also contain `{{import:<target>:<subpath>}}`, replaced by the relative import specifier from the importing file to that location in the Layout; an unresolvable Target or a path that leaves the Project fails the build. |
 | `deps` | see [deps](#deps) | npm dependencies, per dependency type, with optional `pinGroup`. |
 | `env` | `{ key, scope, example?, schema? }[]` | Environment variables the Module needs; written through the `env` patcher, never overwriting existing keys. |
 | `ops` | [Op](engine.md#ops-catalog)[] | Declarative edits at Extension points or files. |

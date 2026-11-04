@@ -4,6 +4,7 @@ import {
   parse,
   rule as cssRule,
   type AtRule,
+  type ChildNode,
   type Container,
   type Declaration,
   type Root,
@@ -67,6 +68,12 @@ function mergeBlockRule(root: Root, patch: CssAtRulePatch) {
   }
 }
 
+function formatInsensitiveKey(node: ChildNode): string {
+  const copy = node.clone();
+  copy.cleanRaws();
+  return copy.toString().trim();
+}
+
 function mergeNestedRule(root: Root, patch: CssAtRulePatch) {
   let block: AtRule | undefined;
   root.walkAtRules(patch.name, (node) => {
@@ -78,9 +85,9 @@ function mergeNestedRule(root: Root, patch: CssAtRulePatch) {
     block.raws.between = " ";
     root.append(block);
   }
-  const present = new Set((block.nodes ?? []).map((node) => node.toString().trim()));
+  const present = new Set((block.nodes ?? []).map(formatInsensitiveKey));
   for (const node of parse(patch.block ?? "").nodes) {
-    const text = node.toString().trim();
+    const text = formatInsensitiveKey(node);
     if (present.has(text)) continue;
     present.add(text);
     const copy = node.clone();
