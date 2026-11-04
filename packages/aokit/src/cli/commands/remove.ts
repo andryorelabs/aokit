@@ -1,4 +1,4 @@
-import { isAbsolute, join, resolve as resolvePath } from "node:path";
+import { join, resolve as resolvePath } from "node:path";
 import type { ModuleManifest } from "@aokit/module";
 import { z } from "zod";
 import { lockfileName } from "../../apply/index.ts";
@@ -9,14 +9,14 @@ import type { Lockfile } from "../../lockfile/schema.ts";
 import { runLifecycle } from "../../lifecycle/index.ts";
 import type { DriftOf } from "../../merge/index.ts";
 import { renderFromLockfile } from "../../pipeline/index.ts";
-import { type LocalRegistry, readLocalRegistry } from "../../registry/index.ts";
+import { bundledRegistryPath } from "../../registry/bundled.ts";
+import type { LocalRegistry } from "../../registry/index.ts";
 import { resolve as resolveModules } from "../../resolver/resolve.ts";
 import { fromResolveError, toAokitError } from "../../project/errors.ts";
+import { openProjectRegistry } from "../../project/registry.ts";
 import { defineCommand } from "../command.ts";
 import { AokitError } from "../envelope.ts";
 import { aokitMeta } from "../meta.ts";
-
-const bundledRegistryPath = join(import.meta.dir, "..", "..", "..", "..", "..", "registry");
 
 const removeInput = z.object({
   module: z
@@ -136,29 +136,22 @@ async function readProjectLockfile(directory: string): Promise<Lockfile> {
   return parsed.lockfile;
 }
 
-function registryPathOf(source: string, directory: string): string {
-  if (source === "bundled") return bundledRegistryPath;
-  if (/^[A-Za-z][A-Za-z0-9+.-]*:\/\//.test(source)) {
-    throw new AokitError(
-      "INVALID_INPUT",
-      `Registry source "${source}" is a URL, and remote Registries are not supported yet.`,
-      "use a local Registry path or the bundled Registry",
-    );
-  }
-  return isAbsolute(source) ? source : resolvePath(directory, source);
-}
-
 async function lockedManifests(
   lockfile: Lockfile,
   directory: string,
   cliVersion: string,
 ): Promise<ModuleManifest[]> {
   const loaded = await Promise.all(
-    Object.entries(lockfile.registries).map(
-      async ([name, entry]) =>
+    Object.keys(lockfile.registries).map(
+      async (name) =>
         [
           name,
-          await readLocalRegistry(registryPathOf(entry.source, directory), { cliVersion }),
+          await openProjectRegistry(lockfile, {
+            projectDir: directory,
+            cliVersion,
+            bundledRegistryPath,
+            registry: name,
+          }),
         ] as const,
     ),
   );

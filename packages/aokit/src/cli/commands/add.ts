@@ -1,4 +1,4 @@
-import { isAbsolute, join, resolve as resolvePath } from "node:path";
+import { resolve as resolvePath } from "node:path";
 import type { ModuleManifest } from "@aokit/module";
 import { z } from "zod";
 import { hashFileBytes, volatileHash } from "../../drift/hash.ts";
@@ -12,13 +12,13 @@ import type { BuiltProject } from "../../pipeline/build.ts";
 import { type PipelineModule, buildProject, renderFromLockfile } from "../../pipeline/index.ts";
 import { type AnswerMap, completeAnswers, parseAnswers } from "../../project/answers.ts";
 import { fromResolveError, toAokitError } from "../../project/errors.ts";
-import { loadRegistry } from "../../project/registry.ts";
+import { loadRegistry, resolveRegistrySource } from "../../project/registry.ts";
+import { bundledRegistryPath } from "../../registry/bundled.ts";
 import { resolve as resolveModules } from "../../resolver/resolve.ts";
 import { defineCommand } from "../command.ts";
 import { AokitError } from "../envelope.ts";
 import { aokitMeta } from "../meta.ts";
 
-const bundledRegistryPath = join(import.meta.dir, "..", "..", "..", "..", "..", "registry");
 const fixedNow = new Date(0);
 
 const addInput = z.object({
@@ -122,18 +122,6 @@ function provenanceOf(changes: readonly PlanChange[], path: string): Provenance 
   }));
 }
 
-function registrySource(source: string, projectDirectory: string): string {
-  if (source === "bundled") return bundledRegistryPath;
-  if (/^[A-Za-z][A-Za-z0-9+.-]*:\/\//.test(source)) {
-    throw new AokitError(
-      "INVALID_INPUT",
-      `Registry source "${source}" is a URL, and remote Registries are not supported yet.`,
-      "Use a local Registry path or the bundled Registry.",
-    );
-  }
-  return isAbsolute(source) ? source : resolvePath(projectDirectory, source);
-}
-
 function alreadySelected(lockfile: Lockfile, requested: readonly string[]): void {
   const present = requested.filter((name) => lockfile.modules[name]?.selected === true);
   if (present.length > 0) {
@@ -198,7 +186,10 @@ async function renderNext(
       "Restore aokit.lock.json from version control.",
     );
   }
-  const loaded = await loadRegistry(registrySource(registryEntry.source, directory), cliVersion);
+  const loaded = await loadRegistry(
+    resolveRegistrySource(registryEntry.source, { projectDir: directory, bundledRegistryPath }),
+    cliVersion,
+  );
   const { registry } = loaded;
   const catalog = registry.catalog(registryEntry.release);
   if (catalog === undefined) {

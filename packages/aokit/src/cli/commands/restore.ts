@@ -14,8 +14,7 @@ import { toAokitError } from "../../project/errors.ts";
 import { defineCommand } from "../command.ts";
 import { AokitError } from "../envelope.ts";
 import { aokitMeta } from "../meta.ts";
-
-const bundledRegistryPath = join(import.meta.dir, "..", "..", "..", "..", "..", "registry");
+import { bundledRegistryPath } from "../../registry/bundled.ts";
 
 /** A Lockfile entry of the Project's file, with the Lockfile that holds it. */
 export interface LockedFile {

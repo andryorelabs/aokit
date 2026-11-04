@@ -1,9 +1,11 @@
 import { readFile } from "node:fs/promises";
-import { isAbsolute, join, resolve as resolvePath } from "node:path";
+import { join } from "node:path";
 import type { ModuleManifest } from "@aokit/module";
+import { AokitError } from "../cli/envelope.ts";
 import type { Git } from "../git/git.ts";
 import type { Lockfile } from "../lockfile/schema.ts";
-import { RegistryError, readLocalRegistry, type LocalRegistry } from "../registry/index.ts";
+import { openProjectRegistry } from "../project/registry.ts";
+import { RegistryError, type LocalRegistry } from "../registry/index.ts";
 import { resolve } from "../resolver/resolve.ts";
 import { readUpdateMarker } from "../update/state.ts";
 
@@ -31,12 +33,6 @@ const dependencyFields = [
 ] as const;
 const lockedVersionPrefixes = ["catalog:", "workspace:"];
 
-function sourcePath(source: string, dir: string, options: CheckProjectOptions): string | null {
-  if (source === "bundled") return options.bundledRegistryPath;
-  if (/^[A-Za-z][A-Za-z0-9+.-]*:\/\//.test(source)) return null;
-  return isAbsolute(source) ? source : resolvePath(dir, source);
-}
-
 function checkMinCliVersion(lockfile: Lockfile, cliVersion: string): ProjectProblem[] {
   return Object.entries(lockfile.registries)
     .filter(([, registry]) => Bun.semver.order(cliVersion, registry.minCliVersion) < 0)
@@ -49,23 +45,29 @@ function checkMinCliVersion(lockfile: Lockfile, cliVersion: string): ProjectProb
 
 async function readOne(
   name: string,
-  source: string,
+  lockfile: Lockfile,
   dir: string,
   options: CheckProjectOptions,
 ): Promise<{ registry: LocalRegistry } | { problem: ProjectProblem }> {
-  const path = sourcePath(source, dir, options);
-  if (path === null) {
-    return {
-      problem: {
-        kind: "registry",
-        message: `Registry "${name}" has the URL source ${source}, which this CLI cannot read yet.`,
-        fix: "Point the Registry at a local path in aokit.lock.json.",
-      },
-    };
-  }
   try {
-    return { registry: await readLocalRegistry(path, { cliVersion: options.cliVersion }) };
+    return {
+      registry: await openProjectRegistry(lockfile, {
+        projectDir: dir,
+        cliVersion: options.cliVersion,
+        bundledRegistryPath: options.bundledRegistryPath,
+        registry: name,
+      }),
+    };
   } catch (error) {
+    if (error instanceof AokitError && error.code === "INVALID_INPUT") {
+      return {
+        problem: {
+          kind: "registry",
+          message: `Registry "${name}" has the URL source ${lockfile.registries[name]?.source ?? ""}, which this CLI cannot read yet.`,
+          fix: "Point the Registry at a local path in aokit.lock.json.",
+        },
+      };
+    }
     if (!(error instanceof RegistryError)) throw error;
     return {
       problem: {
@@ -88,7 +90,7 @@ async function readRegistries(
     a < b ? -1 : a > b ? 1 : 0,
   );
   const outcomes = await Promise.all(
-    entries.map(([name, entry]) => readOne(name, entry.source, dir, options)),
+    entries.map(([name]) => readOne(name, lockfile, dir, options)),
   );
   for (const [index, outcome] of outcomes.entries()) {
     if ("problem" in outcome) problems.push(outcome.problem);

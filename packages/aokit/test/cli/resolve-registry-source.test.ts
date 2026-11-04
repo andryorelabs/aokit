@@ -1,7 +1,9 @@
 import { expect, test } from "bun:test";
 import { join } from "node:path";
 import { AokitError } from "../../src/cli/envelope.ts";
-import { resolveRegistrySource } from "../../src/project/registry.ts";
+import type { Lockfile } from "../../src/lockfile/schema.ts";
+import { openProjectRegistry, resolveRegistrySource } from "../../src/project/registry.ts";
+import { bundledRegistryPath } from "../../src/registry/bundled.ts";
 
 const context = { projectDir: join("/work", "app"), bundledRegistryPath: join("/opt", "registry") };
 
@@ -24,6 +26,27 @@ test("a relative source resolves from the Project directory", () => {
 
 test("an absolute source is kept as is", () => {
   expect(resolveRegistrySource("/srv/registry", context)).toBe("/srv/registry");
+});
+
+test("the bundled Registry path is the shipped registry directory", () => {
+  expect(bundledRegistryPath.endsWith("registry")).toBe(true);
+});
+
+test("openProjectRegistry rejects a Lockfile that lists no Registry", async () => {
+  const lockfile: Lockfile = {
+    $schema: "",
+    lockfileVersion: 2,
+    cliVersion: "0.0.0",
+    protocolVersion: 1,
+    layout: "single",
+    registries: {},
+    modules: {},
+    files: {},
+    deps: {},
+  };
+  const options = { projectDir: context.projectDir, cliVersion: "0.0.0" };
+  const thrown = await openProjectRegistry(lockfile, options).catch((error: unknown) => error);
+  expect(thrown).toMatchObject({ code: "INVALID_INPUT" });
 });
 
 test("a URL source throws INVALID_INPUT with a fix", () => {
