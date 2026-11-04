@@ -8,7 +8,7 @@ interface Span {
   readonly end: number;
 }
 
-/** Parses one source; the native and WASM oxc-parser builds both satisfy it. */
+/** Parses one source; the native oxc-parser satisfies it. */
 export type ParseSource = (fileName: string, sourceText: string) => ParseResult;
 
 type AnchorValueKind = "array" | "object" | "other";
@@ -147,24 +147,4 @@ export function locateAnchor(parsed: ParsedSource, anchorName: string): LocatedA
     );
   }
   return found;
-}
-
-/** Flattens every located span into a comparable list; used by the parity test. */
-export function flattenSpans(parsed: ParsedSource): readonly string[] {
-  const lines: string[] = [];
-  for (const anchor of parsed.anchors) {
-    lines.push(`anchor ${anchor.name} ${anchor.declaration.start}-${anchor.declaration.end}`);
-    if (anchor.value) {
-      lines.push(
-        `value ${anchor.name} ${anchor.value.kind} ${anchor.value.start}-${anchor.value.end}`,
-      );
-      for (const entry of anchor.value.entries) {
-        lines.push(`entry ${anchor.name} ${entry.start}-${entry.end}`);
-      }
-    }
-  }
-  for (const located of parsed.imports) {
-    lines.push(`import ${located.source} ${located.span.start}-${located.span.end}`);
-  }
-  return lines;
 }

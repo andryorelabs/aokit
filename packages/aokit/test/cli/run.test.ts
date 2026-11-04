@@ -1,5 +1,5 @@
 import { describe, expect, test } from "bun:test";
-import { mkdtempSync, rmSync } from "node:fs";
+import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { runCli, type CliIo } from "../../src/cli/adapter.ts";
@@ -7,6 +7,7 @@ import { runCommand, type CommandContext } from "../../src/cli/command.ts";
 import { exposedCommands, hiddenCommands } from "../../src/cli/commands/registry.ts";
 import { schemaCommand } from "../../src/cli/commands/schema.ts";
 import { stringifySorted } from "../../src/cli/envelope.ts";
+import { createRunOptions } from "../../src/cli/run.ts";
 
 interface CapturedRun {
   exitCode: number;
@@ -51,9 +52,104 @@ describe("aokit --version", () => {
     const result = await runAokit(["--version", "--json"]);
     expect(JSON.parse(result.stdout)).toEqual({
       ok: true,
-      data: { version: "9.9.9" },
+      data: { version: "9.9.9", lockfileVersion: 2, registryProtocolVersion: 1 },
       error: null,
     });
+  });
+});
+
+async function runOnTerminal(
+  argv: string[],
+  cacheHome: string,
+  options: { isStderrTTY?: boolean; env?: Record<string, string> } = {},
+): Promise<CapturedRun> {
+  let stdout = "";
+  let stderr = "";
+  const exitCode = await runCli({
+    argv,
+    commands: exposedCommands,
+    hiddenCommands,
+    env: { XDG_CACHE_HOME: cacheHome, ...options.env },
+    version: "9.9.9",
+    io: {
+      stdout: (text) => {
+        stdout += text;
+      },
+      stderr: (text) => {
+        stderr += text;
+      },
+      isTTY: true,
+      ...(options.isStderrTTY === undefined ? {} : { isStderrTTY: options.isStderrTTY }),
+    },
+    interactive: true,
+    now: () => 1_800_000_000_000,
+    fetch: () => Promise.reject(new Error("offline")),
+  });
+  return { exitCode, stdout, stderr };
+}
+
+describe("aokit run options", () => {
+  test("the update notice is on for the aokit entry and off only when asked", () => {
+    expect(createRunOptions(["--version"]).updateNotice).toBe(true);
+    expect(createRunOptions(["--version"], { updateNotice: false }).updateNotice).toBe(false);
+  });
+});
+
+describe("aokit update notice", () => {
+  test("prints a cached newer version after the output and keeps the exit code", async () => {
+    const cacheHome = mkdtempSync(join(tmpdir(), "aokit-notice-"));
+    try {
+      mkdirSync(join(cacheHome, "aokit"));
+      writeFileSync(
+        join(cacheHome, "aokit", "update-check.json"),
+        JSON.stringify({ latest: "10.0.0", checkedAt: 1_800_000_000_000 }),
+      );
+      const plain = await runOnTerminal(["--version"], cacheHome);
+      expect(plain.stdout).toBe("9.9.9\n");
+      expect(plain.exitCode).toBe(0);
+      expect(plain.stderr).toContain("9.9.9");
+      expect(plain.stderr).toContain("10.0.0");
+      const json = await runOnTerminal(["--version", "--json"], cacheHome);
+      expect(json.stderr).toBe("");
+    } finally {
+      rmSync(cacheHome, { recursive: true, force: true });
+    }
+  });
+
+  test("prints nothing when stdout is a terminal but stderr is redirected", async () => {
+    const cacheHome = mkdtempSync(join(tmpdir(), "aokit-notice-"));
+    try {
+      mkdirSync(join(cacheHome, "aokit"));
+      writeFileSync(
+        join(cacheHome, "aokit", "update-check.json"),
+        JSON.stringify({ latest: "10.0.0", checkedAt: 1_800_000_000_000 }),
+      );
+      const redirected = await runOnTerminal(["--version"], cacheHome, { isStderrTTY: false });
+      expect(redirected.stderr).toBe("");
+    } finally {
+      rmSync(cacheHome, { recursive: true, force: true });
+    }
+  });
+
+  test("prints nothing in non-interactive runs: --yes and a detected coding agent", async () => {
+    const cacheHome = mkdtempSync(join(tmpdir(), "aokit-notice-"));
+    try {
+      mkdirSync(join(cacheHome, "aokit"));
+      writeFileSync(
+        join(cacheHome, "aokit", "update-check.json"),
+        JSON.stringify({ latest: "10.0.0", checkedAt: 1_800_000_000_000 }),
+      );
+      const withYes = await runOnTerminal(["--version", "--yes"], cacheHome);
+      expect(withYes.stderr).not.toContain("Update available");
+      const underAgent = await runOnTerminal(["--version"], cacheHome, {
+        env: { CLAUDECODE: "1" },
+      });
+      expect(underAgent.stderr).not.toContain("Update available");
+      const control = await runOnTerminal(["--version"], cacheHome);
+      expect(control.stderr).toContain("Update available");
+    } finally {
+      rmSync(cacheHome, { recursive: true, force: true });
+    }
   });
 });
 

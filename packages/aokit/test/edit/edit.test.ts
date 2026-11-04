@@ -1,10 +1,10 @@
 import { expect, test } from "bun:test";
-import { readFileSync, readdirSync } from "node:fs";
+import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { createEditBatch } from "../../src/edit/batch.ts";
 import { editDefineConfig } from "../../src/edit/config.ts";
 import { EditError } from "../../src/edit/errors.ts";
-import { flattenSpans, locateAnchor, parseSource } from "../../src/edit/locate.ts";
+import { locateAnchor, parseSource } from "../../src/edit/locate.ts";
 
 const fixtureDirectory = join(import.meta.dir, "fixtures");
 const moduleOrder = ["base", "auth", "db"];
@@ -145,53 +145,4 @@ test("editDefineConfig rejects files that are not defineConfig exports", () => {
   );
   expect(error.code).toBe("edit.config-shape");
   expect(error.message).toContain("x.config.ts");
-});
-
-const wasmSpansScript = `
-import { readFileSync } from "node:fs";
-import { pathToFileURL } from "node:url";
-const [, locateModule, wasmModule, fixtureDirectory, ...fixtureNames] = process.argv;
-const { parseSource, flattenSpans } = await import(pathToFileURL(locateModule).href);
-const { parseSync } = await import(pathToFileURL(wasmModule).href);
-const spansByFixture = Object.fromEntries(
-  fixtureNames.map((fixtureName) => {
-    const sourceText = readFileSync(fixtureDirectory + "/" + fixtureName, "utf8");
-    const parsed = parseSource(fixtureName, sourceText, (fileName, text) =>
-      parseSync(fileName, text, { lang: "ts" }),
-    );
-    return [fixtureName, flattenSpans(parsed)];
-  }),
-);
-process.stdout.write(JSON.stringify(spansByFixture));
-`;
-
-test("native and WASM oxc-parser produce identical spans on the fixture set", async () => {
-  const fixtureNames = readdirSync(fixtureDirectory).filter((name) => name.endsWith(".fixture"));
-  const locateModule = join(import.meta.dir, "../../src/edit/locate.ts");
-  const wasmModule = join(import.meta.dir, "../../node_modules/oxc-parser/src-js/wasm.js");
-  const wasmProcess = Bun.spawn(
-    [
-      "node",
-      "--no-warnings",
-      "--input-type=module",
-      "-e",
-      wasmSpansScript,
-      locateModule,
-      wasmModule,
-      fixtureDirectory,
-      ...fixtureNames,
-    ],
-    { stdout: "pipe", stderr: "pipe" },
-  );
-  const [standardOutput, standardError] = await Promise.all([
-    new Response(wasmProcess.stdout).text(),
-    new Response(wasmProcess.stderr).text(),
-  ]);
-  expect(await wasmProcess.exited, standardError).toBe(0);
-  const wasmSpans: Record<string, string[]> = JSON.parse(standardOutput);
-  for (const fixtureName of fixtureNames) {
-    const nativeSpans = flattenSpans(parseSource(fixtureName, readFixture(fixtureName)));
-    expect(nativeSpans.length).toBeGreaterThan(0);
-    expect(wasmSpans[fixtureName]).toEqual([...nativeSpans]);
-  }
 });

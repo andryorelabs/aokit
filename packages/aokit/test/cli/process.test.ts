@@ -3,21 +3,12 @@ import { mkdtempSync, readFileSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 
-const cliEntry = join(import.meta.dir, "..", "..", "src", "cli", "main.ts");
+import { spawnAokit as spawnAokitProcess } from "../helpers/aokit-process.ts";
+
 const shutdownModule = join(import.meta.dir, "..", "..", "src", "cli", "shutdown.ts");
 
-async function spawnAokit(argv: string[], env: Record<string, string> = {}) {
-  const cliProcess = Bun.spawn(["bun", cliEntry, ...argv], {
-    stdout: "pipe",
-    stderr: "pipe",
-    env: { ...process.env, NO_COLOR: "", FORCE_COLOR: "", ...env },
-  });
-  const [stdout, stderr, exitCode] = await Promise.all([
-    new Response(cliProcess.stdout).text(),
-    new Response(cliProcess.stderr).text(),
-    cliProcess.exited,
-  ]);
-  return { stdout, stderr, exitCode };
+function spawnAokit(argv: string[], env: Record<string, string> = {}) {
+  return spawnAokitProcess(argv, { env: { NO_COLOR: "", FORCE_COLOR: "", ...env } });
 }
 
 test("aokit --version prints only the version through the binary entry", async () => {

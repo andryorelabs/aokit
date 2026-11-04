@@ -11,8 +11,8 @@ import {
   type Transport,
 } from "@modelcontextprotocol/client";
 import { z } from "zod";
+import { aokitCommand } from "../helpers/aokit-process.ts";
 
-const mainPath = join(import.meta.dir, "..", "..", "src", "cli", "main.ts");
 const workspace = realpathSync(mkdtempSync(join(tmpdir(), "aokit-mcp-stdio-")));
 
 afterAll(() => {
@@ -30,7 +30,7 @@ function toJsonRpcMessage(value: unknown): JSONRPCMessage {
 /** A stdio client transport over a spawned `aokit mcp` that keeps every raw stdout line. */
 class RecordingTransport implements Transport {
   readonly lines: string[] = [];
-  readonly process = Bun.spawn(["bun", mainPath, "mcp"], {
+  readonly process = Bun.spawn([...aokitCommand(), "mcp"], {
     stdin: "pipe",
     stdout: "pipe",
     stderr: "pipe",
