@@ -109,7 +109,8 @@ function regionView(path: string, actual: FileContent, expected: FileContent): F
     return expected;
   }
   try {
-    return spliceRegions(actual, expected);
+    const lineEnded = actual.includes("\r\n") ? expected.replaceAll(/\r?\n/g, "\r\n") : expected;
+    return spliceRegions(actual, lineEnded);
   } catch (thrown) {
     if (thrown instanceof RegionSyntaxError) {
       return expected;

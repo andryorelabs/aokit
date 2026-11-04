@@ -2,6 +2,7 @@ import { afterAll, beforeAll, describe, expect, test } from "bun:test";
 import { runCommand } from "../../src/cli/command.ts";
 import { diffCommand } from "../../src/cli/commands/diff.ts";
 import { ejectCommand } from "../../src/cli/commands/eject.ts";
+import { removeCommand } from "../../src/cli/commands/remove.ts";
 import { restoreCommand } from "../../src/cli/commands/restore.ts";
 import {
   addModule,
@@ -112,6 +113,67 @@ describe("Agent files lifecycle", () => {
     });
     expect(envelope.ok).toBe(true);
     expect(await readText(directory, "AGENTS.md")).toBe(`${original}${notes}`);
+    expect(await driftStateOf(directory, "AGENTS.md")).toBe("pristine");
+  });
+
+  test("restore re-inserts a hand-deleted Region in Render order", async () => {
+    const directory = await createProject(registry, "oxc,knip");
+    const original = await readText(directory, "AGENTS.md");
+    const withoutOxc = original.replace(
+      /<!-- aokit:begin oxc:agents -->[\s\S]*?<!-- aokit:end oxc:agents -->\n\n/,
+      "",
+    );
+    expect(regionIds(withoutOxc)).toEqual(["aokit:header", "knip:agents"]);
+    await writeText(directory, "AGENTS.md", `${withoutOxc}${notes}`);
+    const envelope = await runCommand(restoreCommand, context, {
+      path: "AGENTS.md",
+      directory,
+      yes: true,
+      allowDirty: true,
+    });
+    expect(envelope.ok).toBe(true);
+    expect(await readText(directory, "AGENTS.md")).toBe(`${original}${notes}`);
+    expect(await driftStateOf(directory, "AGENTS.md")).toBe("pristine");
+  });
+
+  test("restore reports malformed markers instead of crashing", async () => {
+    const directory = await createProject(registry, "oxc");
+    const original = await readText(directory, "AGENTS.md");
+    await writeText(directory, "AGENTS.md", original.replace(oxcEnd, ""));
+    const envelope = await runCommand(restoreCommand, context, {
+      path: "AGENTS.md",
+      directory,
+      yes: true,
+      allowDirty: true,
+    });
+    expect(envelope).toMatchObject({ ok: false, error: { code: "INVALID_INPUT" } });
+  });
+
+  test("diff does not report Windows line endings around pristine Regions", async () => {
+    const directory = await createProject(registry, "oxc");
+    const original = await readText(directory, "AGENTS.md");
+    await writeText(directory, "AGENTS.md", `${original}${notes}`.replaceAll("\n", "\r\n"));
+    const clean = await runCommand(diffCommand, context, { directory });
+    expect(clean).toMatchObject({ ok: true, data: { files: [], diff: "" } });
+  });
+
+  test("a cascaded remove drops the Regions of every dependent Module at once", async () => {
+    const directory = await createProject(registry, "oxc,knip");
+    expect(regionIds(await readText(directory, "AGENTS.md"))).toEqual([
+      "aokit:header",
+      "oxc:agents",
+      "knip:agents",
+    ]);
+    const removed = await runCommand(removeCommand, context, {
+      module: "oxc",
+      directory,
+      yes: true,
+      install: false,
+      allowDirty: true,
+      cascade: true,
+    });
+    if (!removed.ok) throw new Error(removed.error.message);
+    expect(regionIds(await readText(directory, "AGENTS.md"))).toEqual(["aokit:header"]);
     expect(await driftStateOf(directory, "AGENTS.md")).toBe("pristine");
   });
 
