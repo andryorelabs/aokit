@@ -74,7 +74,23 @@ describe("Region merger", () => {
   test("unparseable markers give a Conflict", async () => {
     const user = "<!-- aokit:begin a:agents -->\nno end\n";
     const result = await mergeRegionFile({ base: "", user, next: file(header) }, mergeText);
-    expect(result).toEqual({ content: user, conflict: true });
+    expect(result).toEqual({ content: user, conflict: true, unparseable: true });
+  });
+
+  test("malformed markers keep the user file and hand back the next content as aokitNew", async () => {
+    const user = "<!-- aokit:begin a:agents -->\nno end\n";
+    const next = file(header);
+    const result = await mergeAgents("", user, next);
+    expect(result).toEqual({ content: user, conflict: true, aokitNew: next });
+  });
+
+  test("adopting a CLAUDE.md that already imports AGENTS.md does not import it twice", async () => {
+    const next = file(block("aokit:claude", "@AGENTS.md"));
+    const result = await mergeAgents("", "@AGENTS.md\n\nmy notes\n", next);
+    expect(result.conflict).toBe(false);
+    const content = String(result.content);
+    expect(content.match(/@AGENTS\.md/g)).toHaveLength(1);
+    expect(content).toContain("my notes");
   });
 
   test("a user file without markers is adopted, header first, no Conflict", async () => {

@@ -9,6 +9,11 @@ import type { TextMergeResult } from "./text.ts";
 /** A three-way text merge, injected so Region bodies use the same engine as every other file. */
 export type MergeText = (base: string, user: string, next: string) => Promise<TextMergeResult>;
 
+/** A Region merge result; `unparseable` marks a user file whose markers cannot be parsed. */
+export interface RegionMergeResult extends TextMergeResult {
+  readonly unparseable?: true;
+}
+
 /** The three sides of a Region file. */
 export interface RegionMergeInput {
   readonly base: string;
@@ -51,6 +56,19 @@ function insertRegion(
 }
 
 /**
+ * Drops lines of an adopted user file that repeat a one-line Region body (such as the `@AGENTS.md`
+ * import in `CLAUDE.md`), so the Region does not duplicate them.
+ */
+function withoutDuplicateImports(user: string, nextSpans: readonly RegionSpan[]): string {
+  const oneLiners = new Set(
+    nextSpans.map((span) => span.body.trim()).filter((body) => body !== "" && !body.includes("\n")),
+  );
+  if (oneLiners.size === 0) return user;
+  const kept = user.split("\n").filter((line) => !oneLiners.has(line.trim()));
+  return kept.join("\n").replace(/^\n+/, "");
+}
+
+/**
  * Merges a Region file Region by Region: unedited Regions take their next content, Regions absent
  * from next are removed, new Regions are inserted after their closest earlier neighbour, and an
  * edited Region is three-way merged alone. Text outside markers is never changed. Unparseable
@@ -59,14 +77,15 @@ function insertRegion(
 export async function mergeRegionFile(
   { base, user, next }: RegionMergeInput,
   mergeText: MergeText,
-): Promise<TextMergeResult> {
+): Promise<RegionMergeResult> {
   let userSpans: readonly RegionSpan[];
   try {
     userSpans = parseRegions(user);
   } catch {
-    return { content: user, conflict: true };
+    return { content: user, conflict: true, unparseable: true };
   }
   const nextSpans = parseRegions(next);
+  const adopted = userSpans.length === 0 ? withoutDuplicateImports(user, parseRegions(next)) : user;
   const baseBodies = bodiesById(parseOrEmpty(base));
   const nextIds = new Set(nextSpans.map((span) => span.id));
   const nextBodies = bodiesById(nextSpans);
@@ -87,7 +106,7 @@ export async function mergeRegionFile(
       userSpans.map(async (span): Promise<[string, string]> => [span.id, await mergeBody(span)]),
     ),
   );
-  let text = user;
+  let text = adopted;
   for (const span of userSpans) {
     if (nextIds.has(span.id)) continue;
     const baseBody = baseBodies.get(span.id);

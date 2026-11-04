@@ -80,6 +80,9 @@ export function createMerger(options: MergerOptions = {}): Merger {
       const next = normalizeLineEndings(toText(input.next));
       if (isRegionFile(input.path)) {
         const merged = await mergeRegionFile({ base, user, next }, mergeText);
+        if (merged.unparseable === true) {
+          return { content: user, conflict: true, aokitNew: next };
+        }
         return { content: merged.content, conflict: merged.conflict };
       }
       if (input.path.endsWith(".json") && user !== next && base !== next && base !== user) {
