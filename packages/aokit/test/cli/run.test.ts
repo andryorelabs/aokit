@@ -1,5 +1,5 @@
 import { describe, expect, test } from "bun:test";
-import { mkdtempSync, rmSync } from "node:fs";
+import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { runCli, type CliIo } from "../../src/cli/adapter.ts";
@@ -51,9 +51,56 @@ describe("aokit --version", () => {
     const result = await runAokit(["--version", "--json"]);
     expect(JSON.parse(result.stdout)).toEqual({
       ok: true,
-      data: { version: "9.9.9" },
+      data: { version: "9.9.9", lockfileVersion: 2, registryProtocolVersion: 1 },
       error: null,
     });
+  });
+});
+
+async function runOnTerminal(argv: string[], cacheHome: string): Promise<CapturedRun> {
+  let stdout = "";
+  let stderr = "";
+  const exitCode = await runCli({
+    argv,
+    commands: exposedCommands,
+    hiddenCommands,
+    env: { XDG_CACHE_HOME: cacheHome },
+    version: "9.9.9",
+    io: {
+      stdout: (text) => {
+        stdout += text;
+      },
+      stderr: (text) => {
+        stderr += text;
+      },
+      isTTY: true,
+    },
+    interactive: true,
+    now: () => 1_800_000_000_000,
+    fetch: () => Promise.reject(new Error("offline")),
+  });
+  return { exitCode, stdout, stderr };
+}
+
+describe("aokit update notice", () => {
+  test("prints a cached newer version after the output and keeps the exit code", async () => {
+    const cacheHome = mkdtempSync(join(tmpdir(), "aokit-notice-"));
+    try {
+      mkdirSync(join(cacheHome, "aokit"));
+      writeFileSync(
+        join(cacheHome, "aokit", "update-check.json"),
+        JSON.stringify({ latest: "10.0.0", checkedAt: 1_800_000_000_000 }),
+      );
+      const plain = await runOnTerminal(["--version"], cacheHome);
+      expect(plain.stdout).toBe("9.9.9\n");
+      expect(plain.exitCode).toBe(0);
+      expect(plain.stderr).toContain("9.9.9");
+      expect(plain.stderr).toContain("10.0.0");
+      const json = await runOnTerminal(["--version", "--json"], cacheHome);
+      expect(json.stderr).toBe("");
+    } finally {
+      rmSync(cacheHome, { recursive: true, force: true });
+    }
   });
 });
 

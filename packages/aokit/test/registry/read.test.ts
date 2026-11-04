@@ -131,6 +131,8 @@ test("a minCliVersion above the CLI version fails telling the user to update the
   expect(error.message).toContain('"official"');
   expect(error.message).toContain("expected >= 0.2.0, actual 0.1.0");
   expect(error.fix).toContain("Update the aokit CLI");
+  expect(error.fix).toContain("bunx aokit@0.2.0");
+  expect(error.fix).toContain("https://github.com/AndryOre/aokit/releases");
 });
 
 test("a CLI at or above minCliVersion reads the Registry", async () => {

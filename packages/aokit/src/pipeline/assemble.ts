@@ -9,7 +9,7 @@ import type { FileContent } from "../engine/vfs.ts";
 import { type Lockfile, currentLockfileVersion } from "../lockfile/schema.ts";
 
 const lockfileSchemaUrl = "https://aokit.andryore.dev/schema/lockfile/v2.json";
-const protocolVersion = 1;
+export const registryProtocolVersion = 1;
 const volatileMarker = "volatile";
 
 /** Where the selected Modules came from; recorded in the Lockfile `registries` map. */
@@ -120,7 +120,7 @@ export function assembleLockfile(options: AssembleOptions): Lockfile {
     $schema: lockfileSchemaUrl,
     lockfileVersion: currentLockfileVersion,
     cliVersion,
-    protocolVersion,
+    protocolVersion: registryProtocolVersion,
     layout: options.layout,
     registries: registryEntries(options, modules),
     modules,
