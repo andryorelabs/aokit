@@ -87,6 +87,20 @@ function planRequiredFailure(reason: string): Envelope {
   });
 }
 
+/** Rewrites the CLI-worded trust failure so it names the explicit `trust` field an MCP agent can set. */
+function withMcpTrustFix(envelope: Envelope): Envelope {
+  const error = envelope.error;
+  if (error?.code !== "REGISTRY_UNTRUSTED") return envelope;
+  return failureEnvelope(
+    {
+      code: error.code,
+      message: error.message.replace(/ Rerun with `[^`]*` to trust it\.$/, ""),
+      fix: "ask the user whether to trust this Registry; if they agree, call the tool again with its name or source in the `trust` field (a list of Registry names or sources). `trust` is never granted implicitly",
+    },
+    envelope.data,
+  );
+}
+
 /** The command input of an explicit tool input: `null` dropped, directory canonical, nothing installed. */
 function commandInputOf(
   explicit: Readonly<Record<string, unknown>>,
@@ -121,7 +135,7 @@ async function planAdd(
 > {
   const commandInput = commandInputOf(explicit, directory, true);
   const envelope = await runCommand(addCommand, context, commandInput);
-  if (!envelope.ok) return { ok: false, envelope };
+  if (!envelope.ok) return { ok: false, envelope: withMcpTrustFix(envelope) };
   const data = isRecord(envelope.data) ? envelope.data : {};
   const plan = isRecord(data["plan"]) ? data["plan"] : {};
   const vfsHash = typeof plan["hash"] === "string" ? plan["hash"] : "";

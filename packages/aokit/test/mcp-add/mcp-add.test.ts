@@ -1,3 +1,4 @@
+import { z } from "zod";
 import { afterAll, beforeAll, describe, expect, test } from "bun:test";
 import { readFileSync, rmSync, symlinkSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
@@ -141,6 +142,24 @@ describe("add", () => {
     expect(result.error?.code).toBe("PLAN_REQUIRED");
   });
 
+  test("a committed package.json change between plan_add and add is PLAN_REQUIRED", async () => {
+    const directory = await freshProject();
+    const client = await connectClient(home);
+    const planned = await callTool(client, "plan_add", addInput(directory));
+    const packagePath = join(directory, "package.json");
+    const manifest = z.looseObject({}).parse(JSON.parse(readFileSync(packagePath, "utf8")));
+    manifest["devDependencies"] = { left: "1.0.0" };
+    writeFileSync(packagePath, `${JSON.stringify(manifest, null, 2)}\n`);
+    await git(directory, "commit", "-q", "-am", "edit manifest");
+    const before = readFileSync(packagePath, "utf8");
+    const result = await callTool(client, "add", {
+      ...addInput(directory),
+      planId: planned.data?.["planId"],
+    });
+    expect(result.error?.code).toBe("PLAN_REQUIRED");
+    expect(readFileSync(packagePath, "utf8")).toBe(before);
+  });
+
   test("a dirty git tree fails with DIRTY_TREE and writes nothing", async () => {
     const directory = await freshProject();
     const client = await connectClient(home);
@@ -265,7 +284,9 @@ describe("untrusted Registry", () => {
     );
     expect(result.ok).toBe(false);
     expect(result.error?.code).toBe("REGISTRY_UNTRUSTED");
-    expect(result.error?.fix).toContain("trust");
+    expect(result.error?.fix).toContain("`trust` field");
+    expect(result.error?.fix).not.toContain("--trust");
+    expect(result.error?.message).not.toContain("--trust");
     expect(result.error?.message).toContain(served.url);
   });
 
