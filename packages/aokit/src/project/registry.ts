@@ -7,8 +7,18 @@ import type { UserConfig } from "../config/user-config.ts";
 import type { PipelineModule } from "../pipeline/index.ts";
 import type { Lockfile } from "../lockfile/schema.ts";
 import { bundledRegistryPath as shippedRegistryPath } from "../registry/bundled.ts";
+import type { ModuleManifest } from "@aokit/module";
 import { createRegistryCache } from "../registry/cache.ts";
-import type { GitLsRemote } from "../registry/github.ts";
+import {
+  type GitLsRemote,
+  githubRawBaseUrl,
+  gitLsRemote,
+  pinnedGithubSource,
+  resolveGithubPin,
+} from "../registry/github.ts";
+import { computeIntegrity, type Integrity } from "../registry/integrity.ts";
+import { adaptShadcnItem } from "../registry/shadcn/adapt.ts";
+import { type ShadcnItem, shadcnItemSchema } from "../registry/shadcn/schema.ts";
 import {
   formatRegistrySource,
   type LocalRegistry,
@@ -269,12 +279,346 @@ function pinnedToLockfile(
   };
 }
 
+/** What {@link openSource} passes on besides the source. */
+interface OpenSourceExtras {
+  /** Module `name@version` to the integrity the Lockfile pins for the Registry being opened. */
+  readonly pinned?: PinnedIntegrities;
+  readonly lockedRelease?: string | undefined;
+  /** The shadcn items to read at open; every item `registry.json` lists when absent. */
+  readonly items?: readonly string[];
+  /**
+   * Whether a shadcn `registry.json` the host does not serve reads as an empty index: for a
+   * Registry the Lockfile records or one opened for explicit items, never for a bare `--registry`.
+   */
+  readonly indexOptional?: boolean;
+  /** The source a shadcn Registry reports instead of its URL: the Pin of a `github:` source. */
+  readonly reportedSource?: RegistrySource;
+}
+
+const shadcnIndexPath = /\/registry\.json$/;
+const jsonPath = /\.json$/;
+
+/**
+ * Wraps `fetch` so every JSON document read while a Registry opens is kept in `captured`, which is
+ * how the raw shadcn items (and their `registryDependencies`, which the Adapted Module drops) are
+ * seen. With `synthesizeIndex`, a `registry.json` the host does not serve (404) reads as an empty
+ * index, so a single item URL opens without one: only requested and pinned items are read then.
+ */
+function capturingItems(
+  fetchImpl: typeof fetch,
+  captured: string[],
+  synthesizeIndex: boolean,
+): typeof fetch {
+  const wrapped = async (input: string | URL | Request, init?: RequestInit): Promise<Response> => {
+    const url = typeof input === "string" ? input : input instanceof URL ? input.href : input.url;
+    const response = await fetchImpl(input, init);
+    const { pathname } = new URL(url);
+    if (synthesizeIndex && response.status === 404 && shadcnIndexPath.test(pathname)) {
+      return new Response('{"items":[]}', { status: 200 });
+    }
+    if (response.status === 200 && jsonPath.test(pathname) && !shadcnIndexPath.test(pathname)) {
+      captured.push(await response.clone().text());
+    }
+    return response;
+  };
+  return Object.assign(wrapped, { preconnect: fetchImpl.preconnect });
+}
+
 async function openSource(
   source: RegistrySource,
   options: LoadProjectRegistriesOptions,
   cache: RegistryCache,
-  pinned: PinnedIntegrities = new Map(),
-  lockedRelease?: string,
+  extras: OpenSourceExtras = {},
+): Promise<Registry> {
+  const pinned = extras.pinned ?? new Map<string, string>();
+  if (source.kind === "github") {
+    return openGithubSource(source, options, cache, extras);
+  }
+  const { adapters } = options;
+  const documents = join(xdgCacheDir(adapters?.env ?? process.env), "registry-index");
+  let indexKept = false;
+  const captured: string[] = [];
+  const synthesizeIndex =
+    source.kind === "shadcn" &&
+    (extras.indexOptional === true || (extras.items?.length ?? 0) > 0 || pinned.size > 0);
+  const registry = await openRegistry(source, {
+    cliVersion: options.cliVersion,
+    cache,
+    fetch: keepingIndexDocuments(
+      capturingItems(adapters?.fetch ?? fetch, captured, synthesizeIndex),
+      documents,
+      (url) => {
+        if (url.endsWith("/index.json")) indexKept = true;
+      },
+    ),
+    ...(adapters?.github === undefined ? {} : { github: { ...adapters.github } }),
+    pinned,
+    ...(options.projectDir === undefined ? {} : { projectDir: options.projectDir }),
+    ...(adapters?.env === undefined ? {} : { env: adapters.env }),
+    ...(adapters?.userConfig === undefined ? {} : { userConfig: adapters.userConfig }),
+    ...(extras.items === undefined ? {} : { items: extras.items }),
+  });
+  if (registry.source.kind === "shadcn") {
+    const reported =
+      extras.reportedSource === undefined
+        ? registry
+        : { ...registry, source: extras.reportedSource };
+    return withRegistryDependencies(reported, captured, cache);
+  }
+  if (!indexKept) return registry;
+  const guarded = pinnedToLockfile(registry, pinned, extras.lockedRelease);
+  keptIndexRegistries.add(guarded);
+  return guarded;
+}
+
+/**
+ * Opens a `github:` source: an aokit Registry at the root of the pinned repository, or, when the
+ * repository serves no `index.json`, the shadcn items at its root, reported (and recorded) as the
+ * same `github:owner/repo#<sha40>` Pin so trust stays bound to the repository.
+ */
+async function openGithubSource(
+  source: Extract<RegistrySource, { kind: "github" }>,
+  options: LoadProjectRegistriesOptions,
+  cache: RegistryCache,
+  extras: OpenSourceExtras,
+): Promise<Registry> {
+  const github = options.adapters?.github;
+  const pin = await resolveGithubPin(source, { lsRemote: github?.lsRemote ?? gitLsRemote });
+  const pinnedSource = pinnedGithubSource(pin);
+  const opened = async (): Promise<Registry | undefined> => {
+    try {
+      return await openNonGithub(pinnedSource, options, cache, extras);
+    } catch (error) {
+      if (error instanceof RegistryError && error.code === "REGISTRY_NOT_FOUND") return undefined;
+      throw error;
+    }
+  };
+  const pinsAdaptedModules = [...(extras.pinned?.keys() ?? [])].some((key) => key.startsWith("@"));
+  const aokit = pinsAdaptedModules || extras.items !== undefined ? undefined : await opened();
+  if (aokit !== undefined) return aokit;
+  const rawBase = (github?.rawBaseUrl ?? githubRawBaseUrl).replace(/\/$/, "");
+  return openSource(
+    {
+      kind: "shadcn",
+      url: `${rawBase}/${encodeURIComponent(pin.owner)}/${encodeURIComponent(pin.repo)}/${pin.sha}`,
+    },
+    options,
+    cache,
+    { ...extras, items: extras.items ?? [], reportedSource: pinnedSource },
+  );
+}
+
+/** How one `registryDependencies` entry addresses the item it names. */
+type RegistryDependencyForm = "bare" | "namespaced" | "github" | "url" | "path";
+
+/**
+ * One parsed `registryDependencies` entry. `address` is the Module name for `bare` (scoped to the
+ * owner's Registry) and `namespaced`, `github:owner/repo/item#ref` for `github`, and the entry as
+ * written for `url` and `path`.
+ */
+export interface RegistryDependency {
+  readonly form: RegistryDependencyForm;
+  readonly address: string;
+}
+
+const itemNamePattern = /^[A-Za-z0-9][A-Za-z0-9._-]*$/;
+const namespacedPattern = /^@[a-z0-9][a-z0-9._-]*\/[A-Za-z0-9][A-Za-z0-9._-]*$/;
+const githubItemPattern =
+  /^([A-Za-z0-9_.-]+)\/([A-Za-z0-9_.-]+)\/([A-Za-z0-9][A-Za-z0-9._-]*)#([^\s#]+)$/;
+const githubAddressPattern = /^github:([^/]+)\/([^/]+)\/([^#]+)#(.+)$/;
+const urlEntryPattern = /^[A-Za-z][A-Za-z0-9+.-]*:\/\//;
+const pathEntryPattern = /^(?:\.{1,2}\/|\/)/;
+
+/**
+ * Parses a `registryDependencies` entry of an item served by the Registry `owner.registry` into
+ * one of the five address forms: a bare item name (same Registry), `@ns/item`,
+ * `owner/repo/item#ref` (the `github:` transport, pinned to a sha40), an item URL and a local
+ * path. Throws `REGISTRY_SOURCE_UNSUPPORTED` naming the entry for anything else.
+ */
+export function parseRegistryDependency(
+  entry: string,
+  owner: { registry: string },
+): RegistryDependency {
+  if (urlEntryPattern.test(entry)) {
+    return { form: "url", address: entry };
+  }
+  if (pathEntryPattern.test(entry)) {
+    return { form: "path", address: entry };
+  }
+  if (namespacedPattern.test(entry)) {
+    return { form: "namespaced", address: entry };
+  }
+  const github = githubItemPattern.exec(entry);
+  if (github !== null) {
+    const [, repoOwner = "", repo = "", item = "", ref = ""] = github;
+    return { form: "github", address: `github:${repoOwner}/${repo}/${item}#${ref}` };
+  }
+  if (itemNamePattern.test(entry)) {
+    return { form: "bare", address: `@${owner.registry.replace(/^@/, "")}/${entry}` };
+  }
+  throw new RegistryError(
+    "REGISTRY_SOURCE_UNSUPPORTED",
+    `Registry "${owner.registry}" lists the registryDependencies entry "${entry}", which is not an item name, @namespace/item, owner/repo/item#ref, an item URL or a local path.`,
+    "Report the item to its Registry maintainer.",
+    { registry: owner.registry, module: entry },
+  );
+}
+
+/** A capability segment: lowercase kebab-case, whatever the item or scope is spelled as. */
+function capabilitySegment(value: string): string {
+  const slug = value
+    .toLowerCase()
+    .replaceAll(/[^a-z0-9]+/g, "-")
+    .replaceAll(/^-+|-+$/g, "");
+  return slug === "" ? "x" : slug;
+}
+
+/** The capability an Adapted Module provides under its own name, `@scope/item`. */
+function nameCapability(moduleName: string): string {
+  const [scope = "", item = ""] = moduleName.replace(/^@/, "").split("/");
+  return `shadcn:${capabilitySegment(scope)}:${capabilitySegment(item)}`;
+}
+
+/** The capability an item provides at a location: its Registry's trust identity plus its name. */
+function locationCapability(identity: string, item: string): string {
+  const digest = new Bun.CryptoHasher("sha256").update(`${identity}/${item}`).digest("hex");
+  return `shadcn-at:${digest.slice(0, 16)}`;
+}
+
+/** Splits an item URL `<base>/<item>.json` into its shadcn Registry and item name. */
+function itemUrl(address: string): { source: RegistrySource; item: string } {
+  const url = new URL(address);
+  const cut = url.pathname.lastIndexOf("/");
+  const file = url.pathname.slice(cut + 1);
+  if (!file.endsWith(".json") || url.search !== "" || url.hash !== "") {
+    throw new RegistryError(
+      "REGISTRY_SOURCE_UNSUPPORTED",
+      `"${address}" is not the URL of a shadcn item JSON file.`,
+      "Use the URL of one item, such as https://example.com/r/button.json.",
+      { registry: address },
+    );
+  }
+  const base = `${url.origin}${url.pathname.slice(0, cut)}`;
+  const source = parseRegistrySource(`${base}/registry.json`, {
+    projectDir: "/",
+    bundledRegistryPath: "/",
+  });
+  return { source, item: decodeURIComponent(file.slice(0, -".json".length)) };
+}
+
+/** The capability a parsed dependency requires, the same its provider offers. */
+function dependencyCapability(dependency: RegistryDependency): string {
+  if (dependency.form === "bare" || dependency.form === "namespaced") {
+    return nameCapability(dependency.address);
+  }
+  if (dependency.form === "github") {
+    const [, owner = "", repo = "", item = ""] =
+      githubAddressPattern.exec(dependency.address) ?? [];
+    return locationCapability(sourceIdentity({ kind: "github", owner, repo, ref: "HEAD" }), item);
+  }
+  if (dependency.form === "url") {
+    const { source, item } = itemUrl(dependency.address);
+    return locationCapability(sourceIdentity(source), item);
+  }
+  return locationCapability(`path:${dependency.address}`, dependency.address);
+}
+
+/** The raw item of an Adapted Module and the `registryDependencies` it lists. */
+const itemDependencies = new WeakMap<ModuleVersion, readonly string[]>();
+
+/** Where the raw item JSON of an Adapted Module is kept in the integrity cache. */
+function itemRecordKey(moduleIntegrity: string): Integrity {
+  return computeIntegrity(`aokit-shadcn-item\n${moduleIntegrity}`);
+}
+
+/** The item `text` parses to when it adapts, under `scope`, to a Module of that integrity. */
+function verifiedItem(
+  text: string,
+  scope: string,
+): { integrity: string; item: ShadcnItem } | undefined {
+  try {
+    const parsed = shadcnItemSchema.safeParse(JSON.parse(text));
+    if (!parsed.success) return undefined;
+    return { integrity: adaptShadcnItem(parsed.data, { scope }).integrity, item: parsed.data };
+  } catch {
+    return undefined;
+  }
+}
+
+/**
+ * Wraps an opened shadcn Registry so each Adapted Module also provides its name (and location)
+ * capability and requires the ones of its `registryDependencies`, which the Resolver then orders,
+ * pulls in and checks for cycles. The raw item comes from this open's reads, else from its record
+ * in the integrity cache, verified by adapting it again to the Module's integrity; the integrity
+ * itself is never changed.
+ */
+async function withRegistryDependencies(
+  registry: Registry,
+  captured: readonly string[],
+  cache: RegistryCache,
+): Promise<Registry> {
+  const items = new Map<string, ShadcnItem>();
+  for (const text of captured) {
+    const verified = verifiedItem(text, registry.name);
+    if (verified === undefined) continue;
+    items.set(verified.integrity, verified.item);
+    // oxlint-disable-next-line eslint/no-await-in-loop -- a handful of records, written in order
+    await cache.put(itemRecordKey(verified.integrity), { manifest: text, files: new Map() });
+  }
+  const itemOf = async (version: ModuleVersion): Promise<ShadcnItem | undefined> => {
+    const known = items.get(version.integrity);
+    if (known !== undefined) return known;
+    const record = await cache.get(itemRecordKey(version.integrity)).catch(() => undefined);
+    const verified =
+      record === undefined ? undefined : verifiedItem(record.manifest, registry.name);
+    return verified?.integrity === version.integrity ? verified.item : undefined;
+  };
+  const isNamespace = registry.source.kind === "shadcn" && registry.source.namespace !== undefined;
+  const augmented = new Map<string, Promise<ModuleVersion>>();
+  const augment = async (name: string, version: string): Promise<ModuleVersion> => {
+    const loaded = await registry.version(name, version);
+    const item = await itemOf(loaded);
+    const dependencies = item?.registryDependencies ?? [];
+    const requires = dependencies.map((entry) =>
+      dependencyCapability(parseRegistryDependency(entry, { registry: registry.name })),
+    );
+    const itemName = name.slice(name.indexOf("/") + 1);
+    const provides = [
+      nameCapability(name),
+      ...(isNamespace ? [] : [locationCapability(sourceIdentity(registry.source), itemName)]),
+    ];
+    const manifest: ModuleManifest = {
+      ...loaded.manifest,
+      provides: [
+        ...loaded.manifest.provides,
+        ...provides.map((capability) => ({ capability, cardinality: { max: 1 } })),
+      ],
+      requires: [...new Set([...loaded.manifest.requires, ...requires])],
+    };
+    const wrapped: ModuleVersion = { ...loaded, manifest };
+    itemDependencies.set(wrapped, dependencies);
+    return wrapped;
+  };
+  return {
+    ...registry,
+    version(name, version) {
+      const key = `${name}@${version}`;
+      const known = augmented.get(key);
+      if (known !== undefined) return known;
+      const loading = augment(name, version);
+      augmented.set(key, loading);
+      loading.catch(() => augmented.delete(key));
+      return loading;
+    },
+  };
+}
+
+/** Opens a pinned `github:` source as an aokit Registry, through the kept-index path. */
+async function openNonGithub(
+  source: Extract<RegistrySource, { kind: "github" }>,
+  options: LoadProjectRegistriesOptions,
+  cache: RegistryCache,
+  extras: OpenSourceExtras,
 ): Promise<Registry> {
   const { adapters } = options;
   const documents = join(xdgCacheDir(adapters?.env ?? process.env), "registry-index");
@@ -288,7 +632,7 @@ async function openSource(
     ...(adapters?.github === undefined ? {} : { github: { ...adapters.github } }),
   });
   if (!indexKept) return registry;
-  const guarded = pinnedToLockfile(registry, pinned, lockedRelease);
+  const guarded = pinnedToLockfile(registry, extras.pinned ?? new Map(), extras.lockedRelease);
   keptIndexRegistries.add(guarded);
   return guarded;
 }
@@ -372,13 +716,11 @@ async function openLocked(
       async ([key, entry]) =>
         [
           key,
-          await openSource(
-            parseSource(entry.source, context),
-            options,
-            cache,
-            pinnedIntegrities(lockfile, key),
-            entry.release,
-          ),
+          await openSource(parseSource(entry.source, context), options, cache, {
+            pinned: pinnedIntegrities(lockfile, key),
+            lockedRelease: entry.release,
+            indexOptional: true,
+          }),
         ] as const,
     ),
   );
@@ -533,6 +875,202 @@ export function resolutionOrder(set: {
   return set.flagged === undefined ? ordered : [set.flagged, ...ordered];
 }
 
+/** A requested Module and the Registry key it is read from. */
+interface AddressedModule {
+  readonly key: string;
+  readonly version: ModuleVersion;
+}
+
+/** What {@link openShadcnAddresses} found: the grown Registry set, names and Adapted Modules. */
+export interface ShadcnAddressing {
+  /** The Registries of the run, with every shadcn Registry an address or dependency needed. */
+  readonly set: ProjectRegistries;
+  /** The requested entries as Module names: an item URL or `owner/repo/item#ref` becomes `@ns/item`. */
+  readonly names: readonly string[];
+  /** The requested Adapted Modules and their `registryDependencies`, transitively, newest versions. */
+  readonly modules: readonly AddressedModule[];
+}
+
+function scopeOf(registry: Pick<Registry, "name">): string {
+  return registry.name.replace(/^@/, "");
+}
+
+function isShadcnRegistry(registry: Registry): boolean {
+  return Object.values(registry.index.modules).every((entry) =>
+    Object.keys(entry.versions).every((version) => version.startsWith("0.0.0-shadcn.")),
+  );
+}
+
+function dependencyCycle(cycle: readonly string[]): AokitError {
+  return new AokitError(
+    "CAPABILITY_CONFLICT",
+    `shadcn items depend on each other through registryDependencies: ${cycle.join(" -> ")}.`,
+    `Ask the Registry maintainer to break the cycle between ${[...new Set(cycle)].join(" and ")}; aokit installs no item that depends on itself.`,
+    { modules: [...new Set(cycle)] },
+  );
+}
+
+function pathUnsupported(address: string): RegistryError {
+  return new RegistryError(
+    "REGISTRY_SOURCE_UNSUPPORTED",
+    `The local shadcn item "${address}" cannot be read: a local path is read only as an aokit Registry directory.`,
+    "Serve the item over http(s), or publish it under a Namespace, and depend on that address instead.",
+    { registry: address },
+  );
+}
+
+/**
+ * Resolves the shadcn addresses among `requested` (`@ns/item`, an item URL, `owner/repo/item#ref`)
+ * to Module names, opening the shadcn Registry each one needs, then walks the
+ * `registryDependencies` of every requested Adapted Module, opening each other Registry they name.
+ * Every Registry this opens goes through the trust gate on its own, and is added to `set` with its
+ * Lockfile entry; a Registry already in `set` is opened again to read the extra items. Plain names
+ * are kept as they are. A dependency cycle fails with `CAPABILITY_CONFLICT` naming the items.
+ */
+export async function openShadcnAddresses(
+  set: ProjectRegistries,
+  lockfile: LockfileRegistries,
+  requested: readonly string[],
+  options: LoadProjectRegistriesOptions,
+): Promise<ShadcnAddressing> {
+  const projectDir = options.projectDir ?? process.cwd();
+  const cache = cacheFor(options.adapters);
+  const registries = new Map(set.registries);
+  const entries: Lockfile["registries"] = { ...set.entries };
+  const opened: string[] = [];
+  const keyFor = (source: RegistrySource): string | undefined => {
+    const identity = sourceIdentity(source);
+    return [...registries.keys()].find((key) => {
+      const registry = requiredRegistry(registries, key);
+      if (source.kind === "shadcn" && source.namespace !== undefined) {
+        return registry.source.kind === "shadcn" && registry.source.namespace === source.namespace;
+      }
+      return sourceIdentity(registry.source) === identity;
+    });
+  };
+  const serve = async (source: RegistrySource, item: string): Promise<AddressedModuleName> => {
+    const known = keyFor(source);
+    if (known !== undefined) {
+      const registry = requiredRegistry(registries, known);
+      const name = `@${scopeOf(registry)}/${item}`;
+      if (registry.selectableVersions(name).length > 0) return { key: known, name };
+      const items = [
+        ...Object.keys(registry.index.modules).map((module) =>
+          module.slice(module.indexOf("/") + 1),
+        ),
+        item,
+      ];
+      registries.set(
+        known,
+        await openSource(registry.source, options, cache, {
+          pinned: pinnedIntegrities(lockfile, known),
+          items,
+        }),
+      );
+      return { key: known, name };
+    }
+    const registry = await openSource(source, options, cache, { items: [item] });
+    const rival = registries.get(registry.name);
+    if (rival !== undefined) {
+      throw clash(
+        registry.name,
+        formatRegistrySource(rival.source),
+        formatRegistrySource(registry.source),
+      );
+    }
+    registries.set(registry.name, registry);
+    opened.push(registry.name);
+    entries[registry.name] = {
+      source: recordedSource(registry, projectDir),
+      release: registry.release,
+      minCliVersion: registry.index.minCliVersion,
+    };
+    return { key: registry.name, name: `@${scopeOf(registry)}/${item}` };
+  };
+  const locate = async (dependency: RegistryDependency): Promise<AddressedModuleName> => {
+    if (dependency.form === "bare" || dependency.form === "namespaced") {
+      const [scope = "", item = ""] = dependency.address.slice(1).split("/");
+      const owner = [...registries.entries()].find(
+        ([, registry]) => scopeOf(registry) === scope && isShadcnRegistry(registry),
+      );
+      return serve(owner?.[1].source ?? { kind: "shadcn", namespace: `@${scope}`, url: "" }, item);
+    }
+    if (dependency.form === "url") {
+      const { source, item } = itemUrl(dependency.address);
+      return serve(source, item);
+    }
+    if (dependency.form === "github") {
+      const [, owner = "", repo = "", item = "", ref = ""] =
+        githubAddressPattern.exec(dependency.address) ?? [];
+      return serve({ kind: "github", owner, repo, ref }, item);
+    }
+    throw pathUnsupported(dependency.address);
+  };
+  const names: string[] = [];
+  const roots: AddressedModuleName[] = [];
+  for (const entry of requested) {
+    const shadcn =
+      urlEntryPattern.test(entry) || namespacedPattern.test(entry) || githubItemPattern.test(entry);
+    if (!shadcn) {
+      names.push(entry);
+      continue;
+    }
+    // oxlint-disable-next-line eslint/no-await-in-loop -- Registries open one at a time, in order
+    const target = await locate(parseRegistryDependency(entry, { registry: "" }));
+    names.push(target.name);
+    roots.push(target);
+  }
+  const modules = new Map<string, AddressedModule>();
+  const visit = async (target: AddressedModuleName, path: readonly string[]): Promise<void> => {
+    if (path.includes(target.name)) throw dependencyCycle([...path, target.name]);
+    if (modules.has(target.name) || lockfile.modules?.[target.name] !== undefined) return;
+    const registry = requiredRegistry(registries, target.key);
+    const newest = registry.selectableVersions(target.name).at(-1);
+    if (newest === undefined) return;
+    const version = await registry.version(target.name, newest);
+    modules.set(target.name, { key: target.key, version });
+    for (const entry of itemDependencies.get(version) ?? []) {
+      // oxlint-disable-next-line eslint/no-await-in-loop -- a depth-first walk, in item order
+      const dependency = await locate(parseRegistryDependency(entry, { registry: registry.name }));
+      // oxlint-disable-next-line eslint/no-await-in-loop -- a depth-first walk, in item order
+      await visit(dependency, [...path, target.name]);
+    }
+  };
+  for (const root of roots) {
+    // oxlint-disable-next-line eslint/no-await-in-loop -- a depth-first walk, in request order
+    await visit(root, []);
+  }
+  const decisions = await ensureTrusted(
+    opened.map((key) => requiredRegistry(registries, key)),
+    {
+      trustFlags: options.trustFlags,
+      lockfile,
+      interactive: options.interactive,
+      ...(options.adapters?.prompt === undefined ? {} : { prompt: options.adapters.prompt }),
+      ...(options.adapters?.userConfig === undefined
+        ? {}
+        : { userConfig: options.adapters.userConfig }),
+      ...(options.adapters?.env === undefined ? {} : { env: options.adapters.env }),
+    },
+  );
+  for (const [position, decision] of decisions.entries()) {
+    const key = opened[position] ?? "";
+    const entry = entries[key];
+    if (entry !== undefined && decision.lockfileTrusted) entries[key] = { ...entry, trusted: true };
+  }
+  return {
+    set: { ...set, registries, entries, decisions: [...set.decisions, ...decisions] },
+    names,
+    modules: [...modules.values()],
+  };
+}
+
+/** A Module name and the Registry key it is read from, before it is read. */
+interface AddressedModuleName {
+  readonly key: string;
+  readonly name: string;
+}
+
 /** Inputs of {@link openProjectRegistry}. */
 export interface OpenProjectRegistryOptions {
   /** The Project directory relative sources resolve against. */
@@ -556,7 +1094,8 @@ export interface OpenProjectRegistryOptions {
 
 /** The name of the Lockfile Registry the locked Modules come from. */
 export function primaryRegistryName(lockfile: Lockfile): string {
-  const first = Object.keys(lockfile.modules).toSorted()[0];
+  const names = Object.keys(lockfile.modules).toSorted();
+  const first = names.find((name) => !name.startsWith("@")) ?? names[0];
   return lockfile.modules[first ?? ""]?.registry ?? Object.keys(lockfile.registries)[0] ?? "";
 }
 

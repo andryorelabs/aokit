@@ -15,6 +15,7 @@ import { fromResolveError, toAokitError } from "../../project/errors.ts";
 import {
   assertCatalogDepsAuthenticated,
   openProjectRegistries,
+  openShadcnAddresses,
   primaryRegistryName,
   type ProjectRegistries,
   type RegistryAdapters,
@@ -212,7 +213,11 @@ function reproduceAdd(input: AddInput, directory: string, answers: AnswerMap): s
 }
 
 function isRemote(registry: Registry | undefined): boolean {
-  return registry?.source.kind === "url" || registry?.source.kind === "github";
+  return (
+    registry?.source.kind === "url" ||
+    registry?.source.kind === "github" ||
+    registry?.source.kind === "shadcn"
+  );
 }
 
 function unavailable(name: string, version: string | undefined, registry: string): AokitError {
@@ -391,7 +396,7 @@ async function renderNext(
       "Restore aokit.lock.json from version control.",
     );
   }
-  const set = await openProjectRegistries(lockfile, {
+  const registryOptions = {
     registryFlag: input.registry,
     trustFlags: input.trust,
     interactive: environment.interactive,
@@ -399,7 +404,15 @@ async function renderNext(
     cliVersion: environment.cliVersion,
     bundledRegistryPath,
     adapters: environment.adapters,
-  });
+  };
+  const addressed = await openShadcnAddresses(
+    await openProjectRegistries(lockfile, registryOptions),
+    lockfile,
+    input.modules,
+    registryOptions,
+  );
+  const { set, names: requested } = addressed;
+  alreadySelected(lockfile, requested);
   const catalog = await set.registries.get(registryName)?.catalog(registryEntry.release);
   if (catalog === undefined) {
     throw new AokitError(
@@ -410,11 +423,15 @@ async function renderNext(
   }
   const lockedNames = Object.keys(lockfile.modules).toSorted();
   const locked = await lockedModules(lockfile, set);
-  const offered = await offeredModules(lockfile, set, input.modules, locked);
-  const available = [...locked, ...offered];
+  const offered = await offeredModules(lockfile, set, requested, locked);
+  const offeredNames = new Set(offered.map((module) => module.manifest.name));
+  const dependencies = addressed.modules
+    .filter(({ version }) => !offeredNames.has(version.name))
+    .map(({ key, version }) => toPipelineModule(version, key));
+  const available = [...locked, ...offered, ...dependencies];
   const selection = [
     ...lockedNames.filter((name) => lockfile.modules[name]?.selected === true),
-    ...input.modules,
+    ...requested,
   ];
   const resolved = resolveModules(
     { modules: selection, locked: lockedNames },
@@ -456,10 +473,10 @@ async function renderNext(
   });
   if (!built.ok) throw fromResolveError(built.error);
   assertCatalogDepsAuthenticated(set.registries.get(registryName), lockfile, built.lockfile);
-  state.added = input.modules.toSorted();
+  state.added = requested.toSorted();
   state.pulledIn = fresh
     .map((manifest) => manifest.name)
-    .filter((name) => !input.modules.includes(name));
+    .filter((name) => !requested.includes(name));
   state.answers = freshAnswers;
   state.next = built;
   state.fetched = fetchedFrom(built, lockfile, set);
