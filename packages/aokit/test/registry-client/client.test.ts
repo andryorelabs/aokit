@@ -213,14 +213,10 @@ test("a tampered cache entry is never used: the version is fetched, verified and
   }
 });
 
-test("a github: source parses but cannot be opened until GitHub support lands", async () => {
+test("a github: source parses and formats back to the same string", () => {
   const source: RegistrySource = parseRegistrySource("github:acme/mods#main", sourceContext);
   expect(source).toEqual({ kind: "github", owner: "acme", repo: "mods", ref: "main" });
   expect(formatRegistrySource(source)).toBe("github:acme/mods#main");
-  const error = await captureError(() => openRegistry(source, context));
-  expect(error.code).toBe("REGISTRY_SOURCE_UNSUPPORTED");
-  const mapped = toAokitError(error);
-  expect(mapped instanceof AokitError && mapped.code).toBe("INVALID_INPUT");
 });
 
 test("parseRegistrySource accepts bundled, paths, file: and https: sources", () => {
