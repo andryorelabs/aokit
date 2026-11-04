@@ -4,7 +4,9 @@ import { join } from "node:path";
 import { type CommandContext, runCommand } from "../../src/cli/command.ts";
 import { addCommand } from "../../src/cli/commands/add.ts";
 import { createCommand } from "../../src/cli/commands/create.ts";
+import { doctorCommand } from "../../src/cli/commands/doctor.ts";
 import { recopyCommand } from "../../src/cli/commands/recopy.ts";
+import { removeCommand } from "../../src/cli/commands/remove.ts";
 import { updateCommand } from "../../src/cli/commands/update.ts";
 import { computeIntegrity } from "../../src/registry/index.ts";
 import { editJson, type ServedRegistry } from "../registry-remote/served-registry.ts";
@@ -80,6 +82,42 @@ test("recopy renders the newest version of a remote Module whose locked version 
     version: "1.0.0",
     registry: "acme",
   });
+});
+
+test("a broken newer version of a locked remote Module never fails doctor or remove", async () => {
+  const context = await isolatedContext();
+  const project = await createBundledProject(context);
+  const root = await namedRegistryCopy("acme");
+  const server = served(root);
+  const added = await runCommand(addCommand, context, {
+    ...lifecycleDefaults,
+    directory: project,
+    modules: ["knip"],
+    registry: server.url,
+    trust: [server.url],
+  });
+  expect(added).toMatchObject({ ok: true });
+  await editJson(join(root, "index.json"), (index) => {
+    const knip: unknown = Reflect.get(Reflect.get(index, "modules") ?? {}, "knip");
+    if (typeof knip !== "object" || knip === null) throw new Error("index lacks knip");
+    const versions: unknown = Reflect.get(knip, "versions");
+    if (typeof versions !== "object" || versions === null) throw new Error("knip lacks versions");
+    Reflect.set(versions, "1.1.0", {
+      ...Reflect.get(versions, "1.0.0"),
+      manifest: "modules/knip/1.1.0/module.json",
+      files: { "files/knip.json": computeIntegrity("missing\n") },
+    });
+    Reflect.set(knip, "latest", "1.1.0");
+  });
+  const doctor = await runCommand(doctorCommand, context, { directory: project });
+  expect(doctor).toMatchObject({ ok: true, data: { clean: true, problems: [] } });
+  expect(server.requests.some((path) => path.startsWith("modules/knip/1.1.0/"))).toBe(false);
+  const removed = await runCommand(removeCommand, context, {
+    ...lifecycleDefaults,
+    directory: project,
+    module: "knip",
+  });
+  expect(removed).toMatchObject({ ok: true });
 });
 
 test("add resolves a remote Module's requires from the same remote Registry", async () => {

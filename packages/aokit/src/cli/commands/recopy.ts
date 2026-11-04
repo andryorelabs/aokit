@@ -116,6 +116,7 @@ async function latestVersion(
     cliVersion,
     bundledRegistryPath,
     registry: unavailable.registry,
+    includeNewest: true,
   });
   return registry.modules.get(unavailable.module)?.manifest.version;
 }

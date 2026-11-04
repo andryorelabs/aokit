@@ -546,6 +546,12 @@ export interface OpenProjectRegistryOptions {
   readonly trustFlags?: readonly string[];
   readonly interactive?: boolean;
   readonly adapters?: RegistryAdapters | undefined;
+  /**
+   * Also read the newest selectable version of each locked Module of a remote Registry, which
+   * `recopy` renders when a locked version is gone. Off by default, so a broken newer version never
+   * fails a command that only needs the pinned ones.
+   */
+  readonly includeNewest?: boolean;
 }
 
 /** The name of the Lockfile Registry the locked Modules come from. */
@@ -628,21 +634,27 @@ export async function snapshotRegistry(
 }
 
 /**
- * The Module versions and Release a Lockfile pins in one of its Registries, plus the newest
- * selectable version of each locked Module, which `recopy` renders when a locked version is gone.
- * A Registry read from its kept offline index only gets the pinned ones, the only ones it serves.
+ * The Module versions and Release a Lockfile pins in one of its Registries and, with
+ * `includeNewest`, the newest selectable version of each locked Module. A Registry read from its
+ * kept offline index only gets the pinned ones, the only ones it serves.
  */
-function lockedScope(lockfile: Lockfile, key: string, registry: Registry): SnapshotScope {
+function lockedScope(
+  lockfile: Lockfile,
+  key: string,
+  registry: Registry,
+  includeNewest: boolean,
+): SnapshotScope {
   const release = lockfile.registries[key]?.release;
   const locked = Object.entries(lockfile.modules)
     .filter(([, entry]) => entry.registry === key)
     .map(([name, entry]) => [name, entry.version] as const);
-  const newest = keptIndexRegistries.has(registry)
-    ? []
-    : locked.flatMap(([name, version]) => {
-        const latest = registry.selectableVersions(name).at(-1);
-        return latest === undefined || latest === version ? [] : [[name, latest] as const];
-      });
+  const newest =
+    !includeNewest || keptIndexRegistries.has(registry)
+      ? []
+      : locked.flatMap(([name, version]) => {
+          const latest = registry.selectableVersions(name).at(-1);
+          return latest === undefined || latest === version ? [] : [[name, latest] as const];
+        });
   return {
     versions: [...locked, ...newest],
     releases: release === undefined ? [] : [release],
@@ -652,8 +664,9 @@ function lockedScope(lockfile: Lockfile, key: string, registry: Registry): Snaps
 /**
  * Opens a Registry the Lockfile lists through {@link loadProjectRegistries} (client, cache and
  * trust gate) and returns a synchronous snapshot of it. A first-party Registry is read whole; a
- * remote one only for the Module versions and Release the Lockfile pins, so a warm cache serves
- * it offline. An untrusted Registry fails as a coded `REGISTRY_UNTRUSTED` command error, so no
+ * remote one only for the Module versions and Release the Lockfile pins (plus the newest selectable
+ * version of each locked Module with `includeNewest`), so a warm cache serves it offline. An
+ * untrusted Registry fails as a coded `REGISTRY_UNTRUSTED` command error, so no
  * caller reports it as a mere Registry problem.
  */
 export async function openProjectRegistry(
@@ -692,7 +705,9 @@ export async function openProjectRegistry(
   return snapshotRegistry(
     registry,
     key,
-    isFirstParty(registry) ? { everything: true } : lockedScope(lockfile, key, registry),
+    isFirstParty(registry)
+      ? { everything: true }
+      : lockedScope(lockfile, key, registry, options.includeNewest === true),
   );
 }
 
