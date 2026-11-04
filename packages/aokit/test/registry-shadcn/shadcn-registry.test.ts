@@ -490,3 +490,15 @@ test("shadcn sources parse back from their formatted form and bind trust to the 
     RegistryError,
   );
 });
+
+test("S6 a served item carries an agents Region naming its Registry source", async () => {
+  const fixture = await served();
+  const registry = await openServed(fixture.url);
+  const [version] = registry.versions("@fixture/button");
+  const button = await registry.version("@fixture/button", version ?? "");
+  const region = button.manifest.ops.find((op) => op.op === "appendRegion");
+  expect(region).toMatchObject({ file: "AGENTS.md", region: "agents" });
+  const content = region?.op === "appendRegion" ? region.content : "";
+  expect(content).toContain("@fixture/button");
+  expect(content).toContain(`${fixture.url}/registry.json`);
+});

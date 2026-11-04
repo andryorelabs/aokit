@@ -366,7 +366,13 @@ async function openSource(
       extras.reportedSource === undefined
         ? registry
         : { ...registry, source: extras.reportedSource };
-    return withRegistryDependencies(reported, captured, cache, extras.sourceSha);
+    return withRegistryDependencies(
+      reported,
+      captured,
+      cache,
+      formatRegistrySource(registry.source),
+      extras.sourceSha,
+    );
   }
   if (!indexKept) return registry;
   const guarded = pinnedToLockfile(registry, pinned, extras.lockedRelease);
@@ -541,12 +547,14 @@ function itemRecordKey(moduleIntegrity: string): Integrity {
 function verifiedItem(
   text: string,
   scope: string,
+  origin: string,
   sourceSha: string | undefined,
 ): { integrity: string; item: ShadcnItem } | undefined {
   try {
     const parsed = shadcnItemSchema.safeParse(JSON.parse(text));
     if (!parsed.success) return undefined;
-    const context = sourceSha === undefined ? { scope } : { scope, sourceSha };
+    const context =
+      sourceSha === undefined ? { scope, source: origin } : { scope, source: origin, sourceSha };
     return { integrity: adaptShadcnItem(parsed.data, context).integrity, item: parsed.data };
   } catch {
     return undefined;
@@ -564,11 +572,12 @@ async function withRegistryDependencies(
   registry: Registry,
   captured: readonly string[],
   cache: RegistryCache,
+  origin: string,
   sourceSha: string | undefined,
 ): Promise<Registry> {
   const items = new Map<string, ShadcnItem>();
   for (const text of captured) {
-    const verified = verifiedItem(text, registry.name, sourceSha);
+    const verified = verifiedItem(text, registry.name, origin, sourceSha);
     if (verified === undefined) continue;
     items.set(verified.integrity, verified.item);
     // oxlint-disable-next-line eslint/no-await-in-loop -- a handful of records, written in order
@@ -579,7 +588,9 @@ async function withRegistryDependencies(
     if (known !== undefined) return known;
     const record = await cache.get(itemRecordKey(version.integrity)).catch(() => undefined);
     const verified =
-      record === undefined ? undefined : verifiedItem(record.manifest, registry.name, sourceSha);
+      record === undefined
+        ? undefined
+        : verifiedItem(record.manifest, registry.name, origin, sourceSha);
     return verified?.integrity === version.integrity ? verified.item : undefined;
   };
   const isNamespace = registry.source.kind === "shadcn" && registry.source.namespace !== undefined;
