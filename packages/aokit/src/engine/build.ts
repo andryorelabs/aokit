@@ -178,9 +178,45 @@ class ProvenanceLog {
     this.byPath.set(path, list);
   }
 
+  addOverridden(path: string, module: string, entry: ProvenanceEntry): void {
+    const list = this.byPath.get(path) ?? [];
+    if (!list.some((p) => p.module === module && p.overridden === true)) {
+      list.push({ module, entry, overridden: true });
+    }
+    this.byPath.set(path, list);
+  }
+
   get(path: string): readonly Provenance[] {
     return this.byPath.get(path) ?? [];
   }
+}
+
+function opOverrideKeys(manifest: ModuleManifest): ReadonlySet<string> {
+  return new Set(manifest.override.flatMap((entry) => ("op" in entry ? [entry.op] : [])));
+}
+
+function opKeysOf(op: ModuleManifest["ops"][number]): string[] {
+  const location = "extensionPoint" in op ? op.extensionPoint : "file" in op ? op.file : "";
+  return [op.op, `${op.op}:${"target" in op ? (op.target ?? "") : ""}:${location ?? ""}`];
+}
+
+/** Maps every overridden Op key to the single Module that overrides it; two overriders fail. */
+function opOverriders(modules: readonly EngineModule[]): Map<string, string> {
+  const overriders = new Map<string, string>();
+  for (const { manifest } of modules) {
+    for (const key of opOverrideKeys(manifest)) {
+      const existing = overriders.get(key);
+      if (existing !== undefined && existing !== manifest.name) {
+        throw new EngineError(
+          "engine.override-conflict",
+          `Modules "${existing}" and "${manifest.name}" both override Op "${key}". Only one Module may override an item.`,
+          [existing, manifest.name],
+        );
+      }
+      overriders.set(key, manifest.name);
+    }
+  }
+  return overriders;
 }
 
 function collide(path: string, existing: Producer, incoming: Producer): never {
@@ -221,6 +257,7 @@ export async function buildPlan(options: BuildPlanOptions): Promise<BuiltPlan> {
     }
   }
 
+  const overriders = opOverriders(modules);
   const work = base.clone();
   const log = new ProvenanceLog();
   const producers = new Map<string, Producer>();
@@ -284,15 +321,27 @@ export async function buildPlan(options: BuildPlanOptions): Promise<BuiltPlan> {
       });
     }
 
+    const ownOverrides = opOverrideKeys(manifest);
     for (const declaredOp of manifest.ops) {
       const op = interpolateTargetsDeep(declaredOp, directoryOf);
+      const keys = opKeysOf(declaredOp);
+      const overridden = keys.some((key) => {
+        const overrider = overriders.get(key);
+        return overrider !== undefined && overrider !== manifest.name;
+      });
+      const scratch = overridden ? work.clone() : work;
       const opVfs: OpVfs = {
-        has: (path) => work.has(path),
-        paths: () => work.paths(),
-        read: (path) => work.read(path),
+        has: (path) => scratch.has(path),
+        paths: () => scratch.paths(),
+        read: (path) => scratch.read(path),
         write: (path, content, writeOptions) => {
-          work.write(path, content, writeOptions);
-          log.add(normalizeProjectPath(path), manifest.name, { kind: "op", op: op.op });
+          scratch.write(path, content, writeOptions);
+          const normalized = normalizeProjectPath(path);
+          if (overridden) {
+            log.addOverridden(normalized, manifest.name, { kind: "op", op: op.op });
+          } else {
+            log.add(normalized, manifest.name, { kind: "op", op: op.op });
+          }
         },
       };
       const handler = handlers.get(op.op);
@@ -304,6 +353,7 @@ export async function buildPlan(options: BuildPlanOptions): Promise<BuiltPlan> {
           context,
           answers,
           vfs: opVfs,
+          overriding: keys.some((key) => ownOverrides.has(key)),
           extensionPoints,
           modulesOf: (path) => [
             ...new Set(

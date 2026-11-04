@@ -115,6 +115,16 @@ const addCssAtRuleOpSchema = z.union([
 ]);
 
 /**
+ * Sets CSS custom properties in the `theme` (`@theme`), `light` (`:root`) or `dark` (`.dark`) group of a stylesheet through postcss; an existing variable keeps its value unless the declaring Module overrides the Op.
+ */
+const addCssVariablesOpSchema = z.strictObject({
+  op: z.literal("addCssVariables"),
+  ...pathAddress,
+  group: z.enum(["theme", "light", "dark"]),
+  variables: z.record(z.string().min(1), z.string()),
+});
+
+/**
  * Writes a marker region in a Markdown file that only the declaring Module owns.
  */
 const appendRegionOpSchema = z.union([
@@ -123,7 +133,7 @@ const appendRegionOpSchema = z.union([
 ]);
 
 /**
- * The 8 Ops of the Ops catalog; each is told apart by `op`, and data Ops by their address.
+ * The 9 Ops of the Ops catalog; each is told apart by `op`, and data Ops by their address.
  */
 export const opSchema = z.union([
   addImportOpSchema,
@@ -133,6 +143,7 @@ export const opSchema = z.union([
   mergeYamlOpSchema,
   addEnvOpSchema,
   addCssAtRuleOpSchema,
+  addCssVariablesOpSchema,
   appendRegionOpSchema,
 ]);
 

@@ -44,6 +44,8 @@ export interface OpContext {
   readonly context: EngineContext;
   readonly answers: Readonly<Record<string, AnswerValue>>;
   readonly vfs: OpVfs;
+  /** Whether the Module declares an `override` that covers this Op. */
+  readonly overriding: boolean;
   readonly extensionPoints: ReadonlyMap<string, DeclaredExtensionPoint>;
   /** Names of the Modules whose Ops have written `path` so far in this run. */
   modulesOf(path: string): readonly string[];

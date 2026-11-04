@@ -844,6 +844,56 @@
             ]
           },
           {
+            "additionalProperties": false,
+            "properties": {
+              "file": {
+                "minLength": 1,
+                "type": "string"
+              },
+              "group": {
+                "enum": [
+                  "theme",
+                  "light",
+                  "dark"
+                ],
+                "type": "string"
+              },
+              "op": {
+                "const": "addCssVariables",
+                "type": "string"
+              },
+              "target": {
+                "enum": [
+                  "root",
+                  "config",
+                  "web",
+                  "server",
+                  "db",
+                  "shared-ui"
+                ],
+                "type": "string"
+              },
+              "variables": {
+                "additionalProperties": {
+                  "type": "string"
+                },
+                "propertyNames": {
+                  "minLength": 1,
+                  "type": "string"
+                },
+                "type": "object"
+              }
+            },
+            "required": [
+              "op",
+              "target",
+              "file",
+              "group",
+              "variables"
+            ],
+            "type": "object"
+          },
+          {
             "anyOf": [
               {
                 "additionalProperties": false,
