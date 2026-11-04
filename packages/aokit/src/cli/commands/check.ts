@@ -1,15 +1,15 @@
 import { join, resolve as resolvePath } from "node:path";
 import { z } from "zod";
 import { selectMigrations } from "../../migrations/index.ts";
-import { resolveRegistrySource } from "../../project/registry.ts";
+import { openProjectRegistry } from "../../project/registry.ts";
+import { bundledRegistryPath } from "../../registry/bundled.ts";
 import { LockfileError, readLockfile } from "../../lockfile/index.ts";
 import type { Lockfile } from "../../lockfile/schema.ts";
-import { type LocalRegistry, readLocalRegistry, RegistryError } from "../../registry/index.ts";
+import { type LocalRegistry, RegistryError } from "../../registry/index.ts";
 import { defineCommand } from "../command.ts";
 import { AokitError } from "../envelope.ts";
 import { aokitMeta } from "../meta.ts";
 
-const bundledRegistryPath = join(import.meta.dir, "..", "..", "..", "..", "..", "registry");
 const lockfileFileName = "aokit.lock.json";
 
 const checkInput = z.object({
@@ -60,15 +60,17 @@ async function loadLockfile(projectDir: string): Promise<Lockfile> {
 
 async function readRegistry(
   name: string,
-  source: string,
+  lockfile: Lockfile,
   projectDir: string,
   cliVersion: string,
 ): Promise<LocalRegistry> {
   try {
-    return await readLocalRegistry(
-      resolveRegistrySource(source, { projectDir, bundledRegistryPath }),
-      { cliVersion },
-    );
+    return await openProjectRegistry(lockfile, {
+      projectDir,
+      cliVersion,
+      bundledRegistryPath,
+      registry: name,
+    });
   } catch (thrown) {
     if (thrown instanceof RegistryError) {
       if (thrown.code === "REGISTRY_CLI_TOO_OLD") {
@@ -76,7 +78,7 @@ async function readRegistry(
       }
       throw new AokitError(
         "IO_ERROR",
-        `Cannot read Registry "${name}" (${source}): ${thrown.message}`,
+        `Cannot read Registry "${name}" (${lockfile.registries[name]?.source ?? ""}): ${thrown.message}`,
         thrown.fix,
       );
     }
@@ -93,7 +95,7 @@ async function readRegistries(
     left < right ? -1 : left > right ? 1 : 0,
   );
   const loaded = await Promise.all(
-    entries.map(([name, registry]) => readRegistry(name, registry.source, projectDir, cliVersion)),
+    entries.map(([name]) => readRegistry(name, lockfile, projectDir, cliVersion)),
   );
   const byName = new Map<string, LocalRegistry>();
   for (const [position, [name]] of entries.entries()) {

@@ -16,8 +16,8 @@ import { readUpdateMarker } from "../../update/state.ts";
 import { defineCommand } from "../command.ts";
 import { AokitError } from "../envelope.ts";
 import { aokitMeta } from "../meta.ts";
+import { bundledRegistryPath } from "../../registry/bundled.ts";
 
-const bundledRegistryPath = join(import.meta.dir, "..", "..", "..", "..", "..", "registry");
 const lockfileName = "aokit.lock.json";
 
 const doctorInput = z.object({

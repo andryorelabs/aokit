@@ -68,6 +68,16 @@ test("the target is the latest Release with the version it fixes per Module", as
   expect(target.upToDate).toBe(false);
 });
 
+test("--to the locked Release picks that Release's versions, not the latest", async () => {
+  const { registryPath, lockfile } = await twoReleaseProject();
+  const registry = await readLocalRegistry(registryPath, { cliVersion });
+  expect(registry.modules.get("oxc")?.manifest.version).toBe("1.1.0");
+  const target = resolveUpdateTarget(lockfile, registry, "2026.11.0");
+  expect(target.release).toBe("2026.11.0");
+  expect(target.versions).toEqual({ oxc: "1.0.0" });
+  expect(target.upToDate).toBe(true);
+});
+
 test("an older target is INVALID_INPUT", async () => {
   const { registryPath, lockfile } = await twoReleaseProject();
   const registry = await readLocalRegistry(registryPath, { cliVersion });

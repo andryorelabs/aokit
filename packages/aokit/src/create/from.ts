@@ -1,5 +1,5 @@
 import { readFile, stat } from "node:fs/promises";
-import { dirname, isAbsolute, join, relative, resolve as resolvePath } from "node:path";
+import { dirname, join, relative, resolve as resolvePath } from "node:path";
 import type { ModuleManifest } from "@aokit/module";
 import { lockfileName } from "../apply/index.ts";
 import { AokitError } from "../cli/envelope.ts";
@@ -8,9 +8,8 @@ import type { Lockfile } from "../lockfile/schema.ts";
 import type { BuiltProject } from "../pipeline/build.ts";
 import { renderFromLockfile } from "../pipeline/index.ts";
 import { parseAnswers } from "../project/answers.ts";
-import { readLocalRegistry } from "../registry/index.ts";
-
-const bundledRegistryPath = join(import.meta.dir, "..", "..", "..", "..", "registry");
+import { openProjectRegistry, resolveRegistrySource } from "../project/registry.ts";
+import { bundledRegistryPath } from "../registry/bundled.ts";
 
 /** Inputs of {@link renderFromSource}. */
 export interface FromSourceRequest {
@@ -61,20 +60,18 @@ async function readSourceLockfile(path: string): Promise<Lockfile> {
   }
 }
 
-function registryPath(source: string, sourceDir: string): string {
-  if (source === "bundled") return bundledRegistryPath;
-  return isAbsolute(source) ? source : resolvePath(sourceDir, source);
-}
-
 async function lockedManifests(
   lockfile: Lockfile,
   sourceDir: string,
   cliVersion: string,
 ): Promise<ModuleManifest[]> {
   const perRegistry = await Promise.all(
-    Object.entries(lockfile.registries).map(async ([registryName, registry]) => {
-      const local = await readLocalRegistry(registryPath(registry.source, sourceDir), {
+    Object.keys(lockfile.registries).map(async (registryName) => {
+      const local = await openProjectRegistry(lockfile, {
+        projectDir: sourceDir,
         cliVersion,
+        bundledRegistryPath,
+        registry: registryName,
       });
       return Object.entries(lockfile.modules)
         .filter(([, entry]) => entry.registry === registryName)
@@ -106,8 +103,8 @@ function assertIntegrity(source: Lockfile, rendered: Lockfile): void {
     const actual = rendered.modules[name]?.integrity;
     if (actual !== entry.integrity) {
       throw new AokitError(
-        "IO_ERROR",
-        `[REGISTRY_INTEGRITY_MISMATCH] Module ${name}@${entry.version} in Registry "${entry.registry}": the Lockfile records ${entry.integrity}, the Registry holds ${actual}.`,
+        "REGISTRY_INTEGRITY_MISMATCH",
+        `Module ${name}@${entry.version} in Registry "${entry.registry}": the Lockfile records ${entry.integrity}, the Registry holds ${actual}.`,
         "Restore the Registry the Lockfile was created from, or recreate the Project with `aokit create`.",
       );
     }
@@ -122,7 +119,10 @@ function relocateRegistries(
   return Object.fromEntries(
     Object.entries(lockfile.registries).map(([name, registry]) => {
       if (registry.source === "bundled") return [name, registry];
-      const absolute = registryPath(registry.source, sourceDir);
+      const absolute = resolveRegistrySource(registry.source, {
+        projectDir: sourceDir,
+        bundledRegistryPath,
+      });
       return [name, { ...registry, source: relative(directory, absolute) || "." }];
     }),
   );

@@ -13,7 +13,7 @@ import {
 import oxcModule from "./fixtures/oxc.module";
 
 const oxcWorkedExample = {
-  $schema: "https://aokit.dev/schema/module/v1.json",
+  $schema: "https://aokit.andryore.dev/schema/module/v1.json",
   schemaVersion: 1,
   name: "oxc",
   version: "1.0.0",

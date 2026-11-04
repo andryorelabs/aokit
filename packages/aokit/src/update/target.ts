@@ -53,7 +53,7 @@ function chooseRelease(
 
 /**
  * Chooses the Release an update moves to, the latest one the Registry index lists or `to`, and
- * the Module versions it fixes. A `to` that is not published, or is older than the Lockfile's
+ * the Module versions that Release's Catalog map fixes, never the latest Module version. A `to` that is not published, or is older than the Lockfile's
  * Release, is `INVALID_INPUT`. A locked Module the Registry no longer offers is
  * `MODULE_VERSION_UNAVAILABLE`, and the fix suggests removing it.
  */
@@ -63,13 +63,14 @@ export function resolveUpdateTarget(
   to?: string,
 ): UpdateTarget {
   const { release, locked } = chooseRelease(lockfile, registry, to);
+  const releaseModules = registry.catalog(release)?.modules ?? {};
   const versions: Record<string, string> = {};
   let upToDate = release === locked;
   const entries = Object.entries(lockfile.modules).toSorted(([left], [right]) =>
     byCodepoint(left, right),
   );
   for (const [name, entry] of entries) {
-    const target = registry.modules.get(name)?.manifest.version;
+    const target = releaseModules[name];
     if (target === undefined) {
       throw new AokitError(
         "MODULE_VERSION_UNAVAILABLE",

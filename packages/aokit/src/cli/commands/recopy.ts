@@ -1,4 +1,4 @@
-import { isAbsolute, join, resolve as resolvePath } from "node:path";
+import { join, resolve as resolvePath } from "node:path";
 import { z } from "zod";
 import { lockfileName } from "../../apply/index.ts";
 import { toPlanChange } from "../../create/index.ts";
@@ -11,12 +11,11 @@ import type { DriftOf } from "../../merge/index.ts";
 import type { BuiltProject } from "../../pipeline/build.ts";
 import { renderFromLockfile } from "../../pipeline/index.ts";
 import { toAokitError } from "../../project/errors.ts";
-import { readLocalRegistry } from "../../registry/index.ts";
+import { openProjectRegistry } from "../../project/registry.ts";
+import { bundledRegistryPath } from "../../registry/bundled.ts";
 import { defineCommand } from "../command.ts";
 import { AokitError } from "../envelope.ts";
 import { aokitMeta } from "../meta.ts";
-
-const bundledRegistryPath = join(import.meta.dir, "..", "..", "..", "..", "..", "registry");
 
 const recopyInput = z.object({
   directory: z
@@ -111,15 +110,13 @@ async function latestVersion(
   directory: string,
   cliVersion: string,
 ): Promise<string | undefined> {
-  const source = lockfile.registries[unavailable.registry]?.source;
-  if (source === undefined) return undefined;
-  const path =
-    source === "bundled"
-      ? bundledRegistryPath
-      : isAbsolute(source)
-        ? source
-        : resolvePath(directory, source);
-  const registry = await readLocalRegistry(path, { cliVersion });
+  if (lockfile.registries[unavailable.registry] === undefined) return undefined;
+  const registry = await openProjectRegistry(lockfile, {
+    projectDir: directory,
+    cliVersion,
+    bundledRegistryPath,
+    registry: unavailable.registry,
+  });
   return registry.modules.get(unavailable.module)?.manifest.version;
 }
 

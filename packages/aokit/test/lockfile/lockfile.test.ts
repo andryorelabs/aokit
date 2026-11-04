@@ -172,7 +172,9 @@ test("a v1 Lockfile parses as v2 with upgradedFrom 1 and reading leaves the file
   expect(lockfile.lockfileVersion).toBe(2);
   expect(Object.values(lockfile.modules).every((entry) => entry.selected)).toBe(true);
   expect(lockfile.deps.oxlint?.owners).toEqual(["next", "oxc"]);
-  expect(serializeLockfile(lockfile)).toContain('"aokit.dev/schema/lockfile/v2.json"'.slice(1, -1));
+  expect(serializeLockfile(lockfile)).toContain(
+    '"aokit.andryore.dev/schema/lockfile/v2.json"'.slice(1, -1),
+  );
   expect(serializeLockfile(lockfile).includes('"aokit"]')).toBe(false);
 
   const directory = await mkdtemp(join(tmpdir(), "aokit-lockfile-"));

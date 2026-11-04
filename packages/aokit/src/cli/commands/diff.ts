@@ -12,14 +12,13 @@ import { runMigrations } from "../../migrations/index.ts";
 import { renderFromLockfile } from "../../pipeline/index.ts";
 import { unifiedDiff } from "../../project/diff.ts";
 import { toAokitError } from "../../project/errors.ts";
-import { resolveRegistrySource } from "../../project/registry.ts";
-import { readLocalRegistry } from "../../registry/index.ts";
+import { openProjectRegistry } from "../../project/registry.ts";
+import { bundledRegistryPath } from "../../registry/bundled.ts";
 import { resolveUpdateTarget } from "../../update/target.ts";
 import { defineCommand } from "../command.ts";
 import { AokitError } from "../envelope.ts";
 import { aokitMeta } from "../meta.ts";
 
-const bundledRegistryPath = join(import.meta.dir, "..", "..", "..", "..", "..", "registry");
 const lockfileFileName = "aokit.lock.json";
 const contextLines = 3;
 
@@ -212,17 +211,15 @@ async function renderTarget(
   cliVersion: string,
 ): Promise<Vfs> {
   const options = { projectDir, bundledRegistryPath, cliVersion };
-  const registryEntry = Object.values(lockfile.registries)[0];
-  if (registryEntry === undefined) {
+  const registryName = Object.keys(lockfile.registries)[0];
+  if (registryName === undefined) {
     throw new AokitError(
       "INVALID_INPUT",
       `${lockfileFileName} lists no Registry.`,
       "Restore aokit.lock.json from version control.",
     );
   }
-  const registry = await readLocalRegistry(resolveRegistrySource(registryEntry.source, options), {
-    cliVersion,
-  });
+  const registry = await openProjectRegistry(lockfile, { ...options, registry: registryName });
   const target = resolveUpdateTarget(lockfile, registry, to);
   const userVfs = await loadUserTree(projectDir);
   const migrated = await runMigrations({

@@ -39,7 +39,7 @@ The Lockfile is not a manifest: a manifest describes a Module, the Lockfile desc
 
 ```json
 {
-  "$schema": "https://aokit.dev/schema/lockfile/v1.json",
+  "$schema": "https://aokit.andryore.dev/schema/lockfile/v1.json",
   "lockfileVersion": 1,
   "cliVersion": "0.1.0",
   "protocolVersion": 1,
@@ -95,7 +95,7 @@ This block is the v1 shape that the current implementation reads and that a test
 
 ```json
 {
-  "$schema": "https://aokit.dev/schema/lockfile/v2.json",
+  "$schema": "https://aokit.andryore.dev/schema/lockfile/v2.json",
   "lockfileVersion": 2,
   "cliVersion": "0.1.0",
   "protocolVersion": 1,

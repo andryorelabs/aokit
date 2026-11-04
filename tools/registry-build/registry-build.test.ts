@@ -146,6 +146,63 @@ test("a new Release adds its own Catalog and an edited published Catalog fails",
   expect(String(failure)).toContain("Release 2026.11.0");
 });
 
+test("each built Catalog carries the Module versions of its Release and a published one keeps them", async () => {
+  const out = await temporaryDirectory();
+  await buildRegistry(await fixtureSource(), out);
+  const first = JSON.parse(await readFile(join(out, "catalog/2026.11.0.json"), "utf8"));
+  expect(first.modules).toEqual({ knip: "2.1.0", oxc: "1.0.0" });
+
+  const next = await fixtureSource();
+  const modulePath = join(next, "oxc/module.ts");
+  await writeFile(
+    modulePath,
+    (await readFile(modulePath, "utf8")).replace('version: "1.0.0"', 'version: "1.1.0"'),
+    "utf8",
+  );
+  await writeFile(
+    join(next, "catalog/2026.12.0.json"),
+    `${JSON.stringify({ release: "2026.12.0", dependencies: {} })}\n`,
+    "utf8",
+  );
+  await buildRegistry(next, out);
+  const kept = JSON.parse(await readFile(join(out, "catalog/2026.11.0.json"), "utf8"));
+  const added = JSON.parse(await readFile(join(out, "catalog/2026.12.0.json"), "utf8"));
+  expect(kept.modules).toEqual({ knip: "2.1.0", oxc: "1.0.0" });
+  expect(added.modules).toEqual({ knip: "2.1.0", oxc: "1.1.0" });
+});
+
+test("a Catalog source mapping a Module to a version no source builds fails the build", async () => {
+  const source = await fixtureSource();
+  await writeFile(
+    join(source, "catalog/2026.11.0.json"),
+    `${JSON.stringify({ release: "2026.11.0", dependencies: {}, modules: { oxc: "9.9.9" } })}\n`,
+    "utf8",
+  );
+  const failure = await buildRegistry(source, await temporaryDirectory()).then(
+    () => undefined,
+    (error: unknown) => error,
+  );
+  expect(String(failure)).toContain("oxc to 9.9.9");
+});
+
+test("the old schema domain appears nowhere in the tree", async () => {
+  const retiredDomain = ["aokit", "dev"].join("\\.");
+  const result = Bun.spawnSync(["git", "grep", "-n", retiredDomain], { cwd: repoRoot });
+  expect(result.stdout.toString()).toBe("");
+  expect(result.exitCode).toBe(1);
+});
+
+test("tsconfig.json typechecks Registry source files and Migration scripts", async () => {
+  const listed = Bun.spawnSync(
+    ["node_modules/typescript7/bin/tsc", "--project", "tsconfig.json", "--listFilesOnly"],
+    { cwd: repoRoot },
+  );
+  const files = listed.stdout.toString();
+  expect(listed.exitCode).toBe(0);
+  expect(files).toContain("registry-src/vite-react/migrations/routes-to-router.after.ts");
+  expect(files).toMatch(/registry-src\/vite-react\/files\/.*\.tsx?\n/);
+});
+
 test("registry:build refuses a manifest file missing from files/", async () => {
   const source = await fixtureSource();
   await rm(join(source, "oxc/files/nested/notes.md"));
