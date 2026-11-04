@@ -1,4 +1,5 @@
 import { AokitError } from "../cli/envelope.ts";
+import { minCliVersionFix } from "../cli/min-cli-version.ts";
 import {
   assertCatalogDepsAuthenticated,
   loadProjectRegistries,
@@ -45,7 +46,7 @@ function assertCliIsNewEnough(lockfile: Lockfile, cliVersion: string): void {
       throw new AokitError(
         "MIN_CLI_VERSION",
         `Registry "${name}" in aokit.lock.json needs aokit ${registry.minCliVersion} or newer, but this is ${cliVersion}.`,
-        "Update the aokit CLI.",
+        minCliVersionFix(registry.minCliVersion),
       );
     }
   }

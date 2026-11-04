@@ -2,6 +2,7 @@ import { readFile } from "node:fs/promises";
 import { join, resolve } from "node:path";
 import { z } from "zod";
 import { catalogSchema, ManifestError, type ModuleManifest, parseManifest } from "@aokit/module";
+import { minCliVersionFix } from "../cli/min-cli-version.ts";
 import { RegistryError } from "./errors.ts";
 import {
   computeIntegrity,
@@ -136,7 +137,7 @@ function checkCliVersion(index: RegistryIndex, cliVersion: string): void {
     throw new RegistryError(
       "REGISTRY_CLI_TOO_OLD",
       `Registry "${index.name}" release ${index.release} requires CLI ${index.minCliVersion} or newer: expected >= ${index.minCliVersion}, actual ${cliVersion}.`,
-      `Update the aokit CLI to ${index.minCliVersion} or newer, then run the command again.`,
+      minCliVersionFix(index.minCliVersion),
     );
   }
 }

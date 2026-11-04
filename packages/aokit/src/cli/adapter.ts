@@ -13,6 +13,9 @@ import {
 } from "./envelope.ts";
 import { exitCodes, type ExitCode } from "./exit-codes.ts";
 import { aokitMeta } from "./meta.ts";
+import { currentLockfileVersion } from "../lockfile/schema.ts";
+import { registryProtocolVersion } from "../pipeline/assemble.ts";
+import { maybeNotifyUpdate, type UpdateFetch } from "./update-notice/index.ts";
 
 export interface CliIo {
   stdout(text: string): void;
@@ -31,6 +34,10 @@ export interface RunCliOptions {
   interactive?: boolean;
   /** Asks one question on the terminal; a readline prompt on stderr by default. */
   prompt?: (question: string) => Promise<string>;
+  /** Clock for the update notice; `Date.now` by default. */
+  now?: () => number;
+  /** Fetch for the update check; the global `fetch` by default. */
+  fetch?: UpdateFetch;
 }
 
 async function askOnTerminal(question: string): Promise<string> {
@@ -271,6 +278,24 @@ function renderEnvelope(envelope: Envelope, json: boolean, color: boolean, io: C
   io.stderr(`${label}: ${envelope.error.message}\n  fix:  ${envelope.error.fix}\n`);
 }
 
+function notifyAboutUpdate(
+  options: RunCliOptions,
+  flags: GlobalFlags,
+  context: CommandContext,
+): void {
+  maybeNotifyUpdate({
+    version: options.version,
+    env: options.env,
+    isTTY: options.io.isTTY,
+    json: flags.json,
+    quiet: flags.rest.some((argument) => argument === "--quiet" || argument === "-q"),
+    interactive: context.interactive === true,
+    now: options.now ?? Date.now,
+    fetch: options.fetch ?? fetch,
+    stderr: (text) => options.io.stderr(text),
+  });
+}
+
 /**
  * Runs the CLI for one argv: binds the commands to trpc-cli, prints the
  * result and returns the exit code. It never calls `process.exit`.
@@ -293,9 +318,18 @@ export async function runCli(options: RunCliOptions): Promise<ExitCode> {
   let envelope: Envelope;
   if (flags.version && flags.rest.length === 0) {
     if (flags.json) {
-      envelope = { ok: true, data: { version: options.version }, error: null };
+      envelope = {
+        ok: true,
+        data: {
+          version: options.version,
+          lockfileVersion: currentLockfileVersion,
+          registryProtocolVersion,
+        },
+        error: null,
+      };
     } else {
       options.io.stdout(`${options.version}\n`);
+      notifyAboutUpdate(options, flags, context);
       return exitCodes.success;
     }
   } else {
@@ -308,5 +342,6 @@ export async function runCli(options: RunCliOptions): Promise<ExitCode> {
   }
 
   renderEnvelope(envelope, flags.json, color, options.io);
+  notifyAboutUpdate(options, flags, context);
   return exitCodeForEnvelope(envelope);
 }
