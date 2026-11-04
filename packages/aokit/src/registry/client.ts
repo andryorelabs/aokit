@@ -134,6 +134,11 @@ interface OpenRegistryContext {
    * lists none); a failure reading one of them fails the open.
    */
   items?: readonly string[];
+  /**
+   * The full commit SHA a shadcn Registry read from a git source is pinned to; its Adapted Modules
+   * are then versioned from it instead of from the item JSON.
+   */
+  sourceSha?: string;
 }
 
 /**
@@ -860,6 +865,7 @@ async function readItem(
   location: ItemLocation,
   item: string,
   registryName: string,
+  sourceSha: string | undefined,
 ): Promise<ItemRead> {
   const text = await location.transport.read(location.path);
   if (text === undefined) {
@@ -886,7 +892,13 @@ async function readItem(
     );
   }
   try {
-    return { kind: "served", module: adaptShadcnItem(parsed.data, { scope: registryName }) };
+    return {
+      kind: "served",
+      module: adaptShadcnItem(parsed.data, {
+        scope: registryName,
+        ...(sourceSha === undefined ? {} : { sourceSha }),
+      }),
+    };
   } catch (error) {
     if (error instanceof RegistryError) {
       throw new RegistryError(error.code, error.message, error.fix, {
@@ -1106,7 +1118,7 @@ async function openShadcnRegistry(
   const outcomes = await Promise.all(
     names.map(async (item): Promise<ItemRead> => {
       try {
-        return await readItem(origin.locate(item), item, registryName);
+        return await readItem(origin.locate(item), item, registryName, context.sourceSha);
       } catch (error) {
         return { kind: "failed", error };
       }

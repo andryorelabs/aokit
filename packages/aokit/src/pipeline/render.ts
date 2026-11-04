@@ -2,6 +2,7 @@ import { AokitError } from "../cli/envelope.ts";
 import {
   assertCatalogDepsAuthenticated,
   loadProjectRegistries,
+  primaryRegistryName,
   type RegistryAdapters,
   toPipelineModule,
 } from "../project/registry.ts";
@@ -120,11 +121,10 @@ async function render(
   const available = await Promise.all(
     names.map((name) => lockedModule(name, lockfile, registries, options)),
   );
-  const registryName =
-    lockfile.modules[names[0] ?? ""]?.registry ?? Object.keys(lockfile.registries)[0];
-  const registryEntry = lockfile.registries[registryName ?? ""];
-  const registry = registries.get(registryName ?? "");
-  if (registryEntry === undefined || registry === undefined || registryName === undefined) {
+  const registryName = primaryRegistryName(lockfile);
+  const registryEntry = lockfile.registries[registryName];
+  const registry = registries.get(registryName);
+  if (registryEntry === undefined || registry === undefined) {
     throw new AokitError(
       "INVALID_INPUT",
       "aokit.lock.json lists no Registry.",

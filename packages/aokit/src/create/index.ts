@@ -12,7 +12,13 @@ import { completeAnswers, parseAnswers } from "../project/answers.ts";
 import { unifiedDiff } from "../project/diff.ts";
 import { fromResolveError, toAokitError } from "../project/errors.ts";
 import { runInstall } from "../project/install.ts";
-import { loadRegistry, type RegistryAdapters } from "../project/registry.ts";
+import type { RegistryInfo } from "../pipeline/assemble.ts";
+import {
+  type CreateRegistries,
+  loadCreateRegistries,
+  type RegistryAdapters,
+} from "../project/registry.ts";
+import type { Registry } from "../registry/index.ts";
 import { reproduceCommand } from "../project/reproduce.ts";
 import { renderFromSource } from "./from.ts";
 import { checkTarget } from "./target.ts";
@@ -85,6 +91,34 @@ function warningTexts(warnings: readonly { readonly message: string }[]): string
   return warnings.map((warning) => warning.message);
 }
 
+/**
+ * The Registry a new Project records as its own: the native one when a resolved Module comes from
+ * it, else the shadcn Registry of the first resolved Adapted Module, as a Project of only Adapted
+ * Modules has always recorded it.
+ */
+function primaryRegistry(
+  opened: CreateRegistries,
+  manifests: readonly ModuleManifest[],
+): { readonly info: RegistryInfo; readonly catalog: Registry["currentCatalog"] } {
+  const origin = new Map(
+    opened.available.map((module) => [module.manifest.name, module.registry ?? opened.native.key]),
+  );
+  const keys = manifests.map((manifest) => origin.get(manifest.name) ?? opened.native.key);
+  const key = keys.includes(opened.native.key) ? opened.native.key : (keys[0] ?? opened.native.key);
+  const registry = opened.registries.get(key) ?? opened.native.registry;
+  const entry = opened.entries[key];
+  return {
+    info: {
+      name: key,
+      source: key === opened.native.key ? opened.native.source : (entry?.source ?? ""),
+      release: registry.release,
+      minCliVersion: registry.index.minCliVersion,
+      ...(entry?.trusted === true ? { trusted: true } : {}),
+    },
+    catalog: registry.currentCatalog,
+  };
+}
+
 async function plan(request: CreateRequest): Promise<PlannedProject> {
   if (request.modules.length === 0) {
     throw new AokitError(
@@ -93,37 +127,36 @@ async function plan(request: CreateRequest): Promise<PlannedProject> {
       "pass `--modules a,b,c`, for example `--modules oxc,vite-react`",
     );
   }
-  const loaded = await loadRegistry(request.registry, request.version, {
+  const opened = await loadCreateRegistries(request.registry, request.modules, request.version, {
     projectDir: request.directory,
     trustFlags: request.trust ?? [],
     interactive: request.interactive ?? false,
     adapters: { env: request.env, ...request.adapters },
   });
-  const { registry, available, minCliVersion, source } = loaded;
+  const selection = [...opened.names];
+  const { available } = opened;
+  const pulledIn = [...opened.pulledIn];
   const resolved = resolve(
-    { modules: request.modules },
+    { modules: selection, locked: pulledIn },
     available.map((module) => module.manifest),
   );
   if (!resolved.ok) {
     throw fromResolveError(resolved.error);
   }
   const manifests: ModuleManifest[] = resolved.modules.map((module) => module.manifest);
+  const primary = primaryRegistry(opened, manifests);
   const answers = completeAnswers(parseAnswers(request.answers, manifests), manifests);
-  const formatter = formatterForSelection({ catalog: registry.currentCatalog, modules: manifests });
+  const formatter = formatterForSelection({ catalog: primary.catalog, modules: manifests });
   const built = await buildProject({
-    selection: request.modules,
+    selection,
+    locked: pulledIn,
     available,
     answers,
     layout: request.layout,
-    catalog: registry.currentCatalog,
+    catalog: primary.catalog,
     context: { now: new Date(), random: Math.random, env: request.env },
-    registry: {
-      name: registry.name,
-      source,
-      release: registry.release,
-      minCliVersion,
-      ...(loaded.trusted ? { trusted: true } : {}),
-    },
+    registry: primary.info,
+    registries: opened.entries,
     ...(formatter === undefined ? {} : { formatter }),
   });
   if (!built.ok) {

@@ -111,7 +111,7 @@ function buildReport(
 ): DoctorReport {
   const files = entries.map((entry) => ({ ...entry, fix: fixFor(entry) }));
   const problems: DoctorReport["problems"] = [
-    ...projectProblems,
+    ...projectProblems.map(({ kind, message, fix }) => ({ kind, message, fix })),
     ...removedStashes.map((path) => ({
       kind: "stash" as const,
       message: `An interrupted apply left a stash at ${path}; doctor removed it.`,
@@ -156,6 +156,10 @@ export const doctorCommand = defineCommand({
       projectProblems,
       removedStashes,
     );
+    const changedItem = projectProblems.find((problem) => problem.code === "REGISTRY_ITEM_CHANGED");
+    if (changedItem !== undefined) {
+      throw new AokitError("REGISTRY_ITEM_CHANGED", changedItem.message, changedItem.fix, report);
+    }
     if (!report.clean) {
       throw new AokitError(
         "DRIFT",
