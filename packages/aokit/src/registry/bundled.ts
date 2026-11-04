@@ -1,8 +1,12 @@
 import { join } from "node:path";
+import { extractBundledRegistry, hasEmbeddedRegistry } from "./embedded/extract.ts";
 
 declare const AOKIT_BUNDLED_REGISTRY_RELATIVE: string | undefined;
 
-function resolveBundledRegistryPath(): string {
+async function resolveBundledRegistryPath(): Promise<string> {
+  if (hasEmbeddedRegistry()) {
+    return extractBundledRegistry(process.env);
+  }
   if (typeof AOKIT_BUNDLED_REGISTRY_RELATIVE === "string") {
     return join(import.meta.dir, AOKIT_BUNDLED_REGISTRY_RELATIVE);
   }
@@ -10,4 +14,4 @@ function resolveBundledRegistryPath(): string {
 }
 
 /** The Registry that ships with the running CLI, the target of the `"bundled"` source. */
-export const bundledRegistryPath = resolveBundledRegistryPath();
+export const bundledRegistryPath = await resolveBundledRegistryPath();
