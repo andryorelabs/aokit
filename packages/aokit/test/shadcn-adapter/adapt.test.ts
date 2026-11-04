@@ -249,6 +249,9 @@ for (const [label, path, target] of [
   ["a backslash", "a.ts", "src\\..\\escape.ts"],
   ["a parent segment in the path", "../../a.ts", undefined],
   ["an absolute path", "/etc/passwd", undefined],
+  ["a .git segment after ~/", "a.ts", "~/.git/config"],
+  ["a .git hooks directory", "a.ts", "~/.git/hooks/pre-commit"],
+  ["a node_modules segment", "a.ts", "~/node_modules/x/index.js"],
 ] as const) {
   test(`item paths that escape their Target are rejected: ${label}`, () => {
     const error = failure(() => adapt({ type: "registry:file", files: [file(path, "x", target)] }));
@@ -256,6 +259,18 @@ for (const [label, path, target] of [
     expect(error.data.module).toBe("button");
   });
 }
+
+test("an unknown @/ placeholder in file content fails naming the item and placeholder", () => {
+  const error = failure(() =>
+    adapt({
+      type: "registry:ui",
+      files: [file("ui/button.tsx", 'import { cn } from "@/lib/utils";\n')],
+    }),
+  );
+  expect(error.code).toBe("REGISTRY_ITEM_UNSUPPORTED");
+  expect(error.message).toContain('"button"');
+  expect(error.message).toContain('"@/"');
+});
 
 test("S8 cssVars, css, envVars, deps and embedded content map onto the manifest", () => {
   const adapted = adapt({

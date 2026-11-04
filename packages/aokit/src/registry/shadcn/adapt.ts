@@ -65,10 +65,11 @@ const deferredTypes = new Set(["base", "font"]);
 const seededTypes = new Set(["page", "file"]);
 const stylingTypes = new Set(["theme", "style"]);
 
+const reservedSegments = new Set(["..", "", ".", ".git", "node_modules"]);
 const aliasPattern = /^@(components|ui|lib|hooks)\/(.*)$/;
 const unknownPlaceholderPattern = /^(@[^/\s]+)\//;
 const importSpecifierPattern =
-  /(\bfrom\s*|\bimport\s*\(?\s*|\brequire\s*\(\s*)(["'])((?:@(?:components|ui|lib|hooks)|~)\/[^"'\n]*)\2/g;
+  /(\bfrom\s*|\bimport\s*\(?\s*|\brequire\s*\(\s*)(["'])((?:@(?:components|ui|lib|hooks)?|~)\/[^"'\n]*)\2/g;
 
 function unsupported(item: ShadcnItem, message: string, fix: string): RegistryError {
   return new RegistryError("REGISTRY_ITEM_UNSUPPORTED", message, fix, { module: item.name });
@@ -113,7 +114,7 @@ function cleanRelativePath(item: ShadcnItem, path: string): string {
     stripped.startsWith("/") ||
     stripped.includes("\\") ||
     /^[A-Za-z]:/.test(stripped) ||
-    segments.some((segment) => segment === ".." || segment === "" || segment === ".");
+    segments.some((segment) => reservedSegments.has(segment));
   if (escapes) throw unsafePath(item, path);
   return stripped;
 }
@@ -162,6 +163,13 @@ function rewriteImports(item: ShadcnItem, own: Destination, content: string): st
   return content.replaceAll(
     importSpecifierPattern,
     (_match, prefix: string, quote: string, specifier: string) => {
+      if (specifier.startsWith("@/")) {
+        throw unsupported(
+          item,
+          `shadcn item "${item.name}" uses the unknown placeholder "@/" in "${specifier}"`,
+          "Use one of the supported placeholders: @components/, @ui/, @lib/, @hooks/, ~/.",
+        );
+      }
       const destination = resolvePlaceholder(item, specifier);
       if (destination === undefined) return `${prefix}${quote}${specifier}${quote}`;
       if (destination.target !== own.target) {
