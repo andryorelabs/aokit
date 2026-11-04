@@ -766,9 +766,15 @@ function declareNamespace(
   }
 }
 
-function splitParent(url: string): { base: string; file: string } {
-  const cut = url.lastIndexOf("/");
-  return { base: url.slice(0, cut), file: url.slice(cut + 1) };
+function splitParent(url: string): { base: string; file: string; suffix: string } {
+  const queryStart = url.search(/[?#]/);
+  const pathPart = queryStart === -1 ? url : url.slice(0, queryStart);
+  const cut = pathPart.lastIndexOf("/");
+  return {
+    base: pathPart.slice(0, cut),
+    file: pathPart.slice(cut + 1),
+    suffix: queryStart === -1 ? "" : url.slice(queryStart),
+  };
 }
 
 /** Where a Namespace item is read: its expanded URL, with headers only for the Namespace origin. */
@@ -785,10 +791,13 @@ function namespaceItemLocation(
     env,
   );
   const expanded = splitParent(request.url);
+  const shown = splitParent(urlTemplate);
   return {
     transport: urlTransport(expanded.base, fetchImpl, {
       headers: request.headers,
-      displayBase: splitParent(urlTemplate).base,
+      displayBase: shown.base,
+      suffix: expanded.suffix,
+      displaySuffix: shown.suffix,
     }),
     path: decodeURIComponent(expanded.file),
   };

@@ -42,7 +42,7 @@ function invalidSource(source: string, reason: string): RegistryError {
   return new RegistryError(
     "REGISTRY_SOURCE_UNSUPPORTED",
     `Registry source "${source}" is not supported: ${reason}.`,
-    "Use `bundled`, a local path, a `file:` URL, an `https://` URL, `github:owner/repo#ref` or a Namespace such as `@shadcn`.",
+    "Use `bundled`, a local path (write `./@name` for a path that starts with `@`), a `file:` URL, an `https://` URL, `github:owner/repo#ref` or a Namespace such as `@shadcn`.",
     { registry: source },
   );
 }

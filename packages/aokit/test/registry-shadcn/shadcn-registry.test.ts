@@ -396,6 +396,12 @@ test("a Namespace name pointed at another host is not trusted by the Lockfile or
   );
   expect(bare.code).toBe("REGISTRY_UNTRUSTED");
 
+  const exactFlag = await ensureTrusted([registry], {
+    ...options,
+    trustFlags: [formatRegistrySource(registry.source)],
+  });
+  expect(exactFlag[0]?.via).toBe("flag");
+
   const sameHost = {
     registries: {
       "@acme": { ...lockfile.registries["@acme"], source: formatRegistrySource(registry.source) },
@@ -407,6 +413,49 @@ test("a Namespace name pointed at another host is not trusted by the Lockfile or
     trustFlags: [],
   });
   expect(decisions[0]?.via).toBe("lockfile");
+});
+
+test("a Namespace url with a variable in its query keeps the query and never shows the expanded value", async () => {
+  const fixture = await served();
+  const options = {
+    cliVersion: "0.1.0",
+    cache: memoryCache(),
+    userConfig: {
+      trustedRegistries: [],
+      registries: { "@acme": { url: `${fixture.url}/{name}.json?key=\${ACME_KEY}` } },
+    } satisfies UserConfig,
+    env: { ACME_KEY: "supersecretvalue123" },
+    items: ["button"],
+  };
+  const registry = await openRegistry(parseRegistrySource("@acme", sourceContext), options);
+  const version = registry.versions("@acme/button")[0] ?? "";
+  expect((await registry.version("@acme/button", version)).manifest.name).toBe("@acme/button");
+  expect(formatRegistrySource(registry.source)).toContain("${ACME_KEY}");
+
+  const down = await captureError(() =>
+    openRegistry(parseRegistrySource("@acme", sourceContext), {
+      ...options,
+      cache: memoryCache(),
+      userConfig: {
+        trustedRegistries: [],
+        registries: { "@acme": { url: "http://127.0.0.1:1/{name}.json?key=${ACME_KEY}" } },
+      },
+    }),
+  );
+  expect(JSON.stringify([down.message, down.fix, down.data])).not.toContain("supersecretvalue123");
+});
+
+test("a path starting with @ is rejected with a hint to prefix it with ./", () => {
+  const failure = (() => {
+    try {
+      parseRegistrySource("@company/registry", sourceContext);
+    } catch (error) {
+      return error;
+    }
+    return undefined;
+  })();
+  expect(failure).toBeInstanceOf(RegistryError);
+  expect(failure instanceof RegistryError ? failure.fix : "").toContain("./@name");
 });
 
 test("shadcn sources parse back from their formatted form and bind trust to the host", () => {
