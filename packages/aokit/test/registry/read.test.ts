@@ -7,7 +7,9 @@ import {
   addMigrationToFixtureSource,
   writeRegistrySourceFixture,
 } from "../../../../tools/registry-build/fixture.ts";
+import { stableStringify } from "@aokit/module";
 import { z } from "zod";
+import { registryIndexSchema } from "../../src/registry/schema.ts";
 import {
   computeIntegrity,
   type LocalRegistry,
@@ -342,4 +344,77 @@ test("a Catalog mapping a Module to a version the index does not list is invalid
   expect(error.code).toBe("REGISTRY_CATALOG_INVALID");
   expect(error.message).toContain("oxc");
   expect(error.message).toContain("9.9.9");
+});
+
+async function yankedRegistry(yanked: string[]): Promise<string> {
+  const root = await bumpedRegistry();
+  const source = await writeRegistrySourceFixture();
+  temporaryDirectories.push(source);
+  const modulePath = join(source, "oxc/module.ts");
+  await writeFile(
+    modulePath,
+    (await readFile(modulePath, "utf8")).replace('version: "1.0.0"', 'version: "1.1.0"'),
+    "utf8",
+  );
+  await writeFile(join(source, "yanked.json"), JSON.stringify(yanked), "utf8");
+  await writeFile(
+    join(source, "catalog/2026.12.0.json"),
+    `${JSON.stringify({ release: "2026.12.0", dependencies: { oxfmt: "0.76.0", oxlint: "1.91.0" } })}\n`,
+    "utf8",
+  );
+  await buildRegistry(source, root);
+  return root;
+}
+
+test("a Yanked version is never latest, never selectable, but is still served and verified", async () => {
+  const root = await yankedRegistry(["oxc@1.1.0"]);
+  const registry = await readLocalRegistry(root, options);
+  const index = registryIndexShape.parse(
+    JSON.parse(await readFile(join(root, "index.json"), "utf8")),
+  );
+  expect(index.modules["oxc"]?.versions["1.1.0"]?.["yanked"]).toBe(true);
+  expect(index.modules["oxc"]?.versions["1.0.0"]?.["yanked"]).toBeUndefined();
+  expect(registry.modules.get("oxc")?.manifest.version).toBe("1.0.0");
+  expect(registry.selectableVersions("oxc")).toEqual(["1.0.0"]);
+  expect(registry.versions("oxc")).toEqual(["1.0.0", "1.1.0"]);
+  expect(registry.version("oxc", "1.1.0")?.manifest.version).toBe("1.1.0");
+});
+
+test("a Yanked version still fails integrity when its file is tampered", async () => {
+  const root = await yankedRegistry(["oxc@1.1.0"]);
+  await writeFile(join(root, "modules/oxc/1.1.0/files/.oxlintrc.json"), "{}\n", "utf8");
+  const error = await captureError(() => readLocalRegistry(root, options));
+  expect(error.code).toBe("REGISTRY_INTEGRITY_MISMATCH");
+});
+
+test("removing a version from yanked.json restores it as latest", async () => {
+  const root = await yankedRegistry([]);
+  const registry = await readLocalRegistry(root, options);
+  expect(registry.modules.get("oxc")?.manifest.version).toBe("1.1.0");
+  expect(registry.selectableVersions("oxc")).toEqual(["1.0.0", "1.1.0"]);
+});
+
+test("yanked.json naming an unbuilt version fails the build", async () => {
+  const failure = await yankedRegistry(["oxc@9.9.9"]).then(
+    () => undefined,
+    (error: unknown) => error,
+  );
+  expect(String(failure)).toContain("oxc@9.9.9");
+});
+
+test("the index schema accepts yanked: true only", async () => {
+  const root = await yankedRegistry(["oxc@1.1.0"]);
+  const indexPath = join(root, "index.json");
+  const text = await readFile(indexPath, "utf8");
+  await writeFile(indexPath, text.replace('"yanked": true', '"yanked": false'), "utf8");
+  const error = await captureError(() => readLocalRegistry(root, options));
+  expect(error.code).toBe("REGISTRY_INDEX_INVALID");
+});
+
+test("the committed Registry JSON Schema matches the Zod index schema", async () => {
+  const committed = await readFile(
+    join(import.meta.dir, "../../../../schema/registry/v1.json"),
+    "utf8",
+  );
+  expect(committed).toBe(stableStringify(z.toJSONSchema(registryIndexSchema, { io: "input" })));
 });

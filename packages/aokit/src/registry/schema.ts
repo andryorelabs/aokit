@@ -39,6 +39,7 @@ const versionEntry = z.strictObject({
   schemaVersion: z.number().int().positive(),
   provides: z.array(z.string().min(1)),
   files: z.record(relativePath, integrity).default({}),
+  yanked: z.literal(true).optional(),
 });
 
 const moduleEntry = z
@@ -53,12 +54,19 @@ const moduleEntry = z
         path: ["latest"],
         message: `latest "${entry.latest}" is not one of the listed versions`,
       });
+    } else if (entry.versions[entry.latest]?.yanked === true) {
+      context.addIssue({
+        code: "custom",
+        path: ["latest"],
+        message: `latest "${entry.latest}" is a Yanked version`,
+      });
     }
   });
 
 /**
  * The Registry index (`index.json`): current Release, minimum CLI version, a Catalog pointer for
- * every published Release, and every Module version with its integrity. A version entry's
+ * every published Release, and every Module version with its integrity. A version with `yanked: true` is a Yanked version: never
+ * `latest`, still served for Lockfiles that pin it. A version entry's
  * `integrity` covers its manifest and all its files; `files` maps each Module file path (relative
  * to `modules/<name>/<version>/`) to that file's own integrity.
  */
@@ -98,3 +106,8 @@ export type ReleaseCatalog = Catalog & { modules: Record<string, string> };
  * The shape of a Catalog file before its `modules` map is split from the dependency Catalog.
  */
 export const catalogFileSchema = z.record(z.string(), z.unknown());
+
+/**
+ * The Registry source `yanked.json`: `<module>@<version>` of every Yanked version.
+ */
+export const yankedListSchema = z.array(z.string().min(1));
