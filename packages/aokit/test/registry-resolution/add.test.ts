@@ -1,8 +1,9 @@
 import { afterEach, expect, test } from "bun:test";
-import { writeFile } from "node:fs/promises";
+import { readFile, writeFile } from "node:fs/promises";
 import { join } from "node:path";
 import { runCommand } from "../../src/cli/command.ts";
 import { addCommand } from "../../src/cli/commands/add.ts";
+import { createCommand } from "../../src/cli/commands/create.ts";
 import { diffCommand } from "../../src/cli/commands/diff.ts";
 import { doctorCommand } from "../../src/cli/commands/doctor.ts";
 import { removeCommand } from "../../src/cli/commands/remove.ts";
@@ -18,6 +19,7 @@ import {
   readLockfileJson,
   served,
   snapshotTree,
+  temporaryDirectory,
 } from "./support.ts";
 
 afterEach(cleanUp);
@@ -220,6 +222,55 @@ test("an edited kept index with a planted cache entry never authenticates a Modu
   expect(await snapshotTree(project)).toEqual(before);
   const doctor = await runCommand(doctorCommand, context, { directory: project });
   expect(doctor).toMatchObject({ data: { problems: [{ kind: "integrity" }] } });
+});
+
+test("an edited kept index and Catalog never write forged dependency versions offline", async () => {
+  const context = await isolatedContext();
+  const server = served(await namedRegistryCopy("acme"));
+  const project = join(await temporaryDirectory(), "app");
+  const created = await runCommand(createCommand, context, {
+    directory: project,
+    modules: "oxc",
+    registry: server.url,
+    trust: [server.url],
+    yes: true,
+    install: false,
+  });
+  expect(created).toMatchObject({ ok: true });
+  const lockfile = await readLockfileJson(project);
+  expect(lockfile["deps"]["oxlint"]).toMatchObject({ source: "catalog" });
+  await server.stop();
+  const keptCopy = (url: string): string =>
+    join(
+      context.env["XDG_CACHE_HOME"] ?? "",
+      "aokit",
+      "registry-index",
+      `${new Bun.CryptoHasher("sha256").update(url).digest("hex")}.json`,
+    );
+  const release: string = lockfile["registries"]["acme"]["release"];
+  const catalogPath = `catalog/${release}.json`;
+  let forgedCatalog = "";
+  await editJson(keptCopy(`${server.url}/${catalogPath}`), (catalog) => {
+    Reflect.set(childOf(catalog, ["dependencies"]), "oxlint", "6.6.6");
+  });
+  forgedCatalog = await readFile(keptCopy(`${server.url}/${catalogPath}`), "utf8");
+  await editJson(keptCopy(`${server.url}/index.json`), (index) => {
+    Reflect.set(
+      childOf(index, ["releases", release]),
+      "integrity",
+      computeIntegrity(forgedCatalog),
+    );
+  });
+  const before = await snapshotTree(project);
+  const removed = await runCommand(removeCommand, context, {
+    directory: project,
+    module: "oxc",
+    yes: true,
+    allowDirty: true,
+  });
+  expect(removed).toMatchObject({ ok: false, error: { code: "REGISTRY_INTEGRITY_MISMATCH" } });
+  expect(JSON.stringify(removed)).toContain("6.6.6");
+  expect(await snapshotTree(project)).toEqual(before);
 });
 
 test("doctor reads a trusted remote Registry offline from the warm cache and reports drift", async () => {

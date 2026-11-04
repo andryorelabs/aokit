@@ -1,5 +1,6 @@
 import { AokitError } from "../cli/envelope.ts";
 import {
+  assertCatalogDepsAuthenticated,
   loadProjectRegistries,
   type RegistryAdapters,
   toPipelineModule,
@@ -172,6 +173,7 @@ async function render(
   if (!built.ok) {
     throw fromResolveError(built.error);
   }
+  assertCatalogDepsAuthenticated(registry, lockfile, built.lockfile);
   return built;
 }
 

@@ -270,7 +270,46 @@ async function openSource(
     }),
     ...(adapters?.github === undefined ? {} : { github: { ...adapters.github } }),
   });
-  return indexKept ? pinnedToLockfile(registry, pinned) : registry;
+  if (!indexKept) return registry;
+  const guarded = pinnedToLockfile(registry, pinned);
+  keptIndexRegistries.add(guarded);
+  return guarded;
+}
+
+/** The Registries opened from a kept offline index, whose Catalogs nothing authenticates. */
+const keptIndexRegistries = new WeakSet<Registry>();
+
+/**
+ * Checks a Render whose Catalog came from `registry` against the Lockfile it started from. When the
+ * Registry was opened from its kept offline index, its Catalog is unauthenticated, so every
+ * Catalog dependency the Render records must already be in the Lockfile with the same version;
+ * anything else is `REGISTRY_INTEGRITY_MISMATCH`. Online Catalogs are verified by the index.
+ */
+export function assertCatalogDepsAuthenticated(
+  registry: Registry | undefined,
+  previous: Pick<Lockfile, "deps">,
+  next: Pick<Lockfile, "deps">,
+): void {
+  if (registry === undefined || !keptIndexRegistries.has(registry)) return;
+  for (const [name, entry] of Object.entries(next.deps).toSorted(([left], [right]) =>
+    left < right ? -1 : left > right ? 1 : 0,
+  )) {
+    if (entry.source !== "catalog") continue;
+    const locked = previous.deps[name];
+    const recorded = locked?.source === "catalog" ? locked.version : undefined;
+    if (recorded === entry.version && locked?.pinned === entry.pinned) continue;
+    throw new RegistryError(
+      "REGISTRY_INTEGRITY_MISMATCH",
+      `Registry "${registry.name}" is unreachable, and its kept offline Catalog sets ${name} to ${entry.version}, but aokit.lock.json records ${recorded ?? "no Catalog version"}.`,
+      "Reconnect to the network so the Catalog is read and verified again, or delete the kept copies under $XDG_CACHE_HOME/aokit/registry-index.",
+      {
+        registry: registry.name,
+        path: `deps.${name}`,
+        expected: recorded ?? "",
+        actual: entry.version,
+      },
+    );
+  }
 }
 
 function clash(name: string, first: string, second: string): AokitError {

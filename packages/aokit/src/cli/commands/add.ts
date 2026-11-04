@@ -13,6 +13,7 @@ import { type PipelineModule, buildProject, renderFromLockfile } from "../../pip
 import { type AnswerMap, completeAnswers, parseAnswers } from "../../project/answers.ts";
 import { fromResolveError, toAokitError } from "../../project/errors.ts";
 import {
+  assertCatalogDepsAuthenticated,
   openProjectRegistries,
   primaryRegistryName,
   type ProjectRegistries,
@@ -393,6 +394,7 @@ async function renderNext(
     ...(formatter === undefined ? {} : { formatter }),
   });
   if (!built.ok) throw fromResolveError(built.error);
+  assertCatalogDepsAuthenticated(set.registries.get(registryName), lockfile, built.lockfile);
   state.added = input.modules.toSorted();
   state.pulledIn = fresh
     .map((manifest) => manifest.name)
