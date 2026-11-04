@@ -174,6 +174,87 @@ test("create --registry <shadcn-url> installs Adapted Modules and records the Re
   expect(doctor).toMatchObject({ ok: true, data: { clean: true } });
 });
 
+test("create --registry <shadcn-url> follows registryDependencies and keeps the native Registry", async () => {
+  const context = await isolatedContext();
+  const cards = await serveItemHost([cardItem()]);
+  stoppable.push(cards);
+  const fixture = await shadcnRegistry(journeyItems(cards.itemUrl("card")));
+  const project = join(await temporaryDirectory(), "app");
+  const created = await runCommand(createCommand, context, {
+    directory: project,
+    modules: "oxc,vite-react,tailwind4,@fixture/button",
+    registry: fixture.url,
+    trust: [fixture.url, cards.trustSource],
+    yes: true,
+    install: false,
+  });
+  expect(created).toMatchObject({ ok: true });
+  const lockfile = await readLockfileJson(project);
+  const cardModule = Object.keys(lockfile["modules"]).find((name) => name.endsWith("/card"));
+  expect(cardModule).toBeDefined();
+  expect(lockfile["modules"]["@fixture/button"]).toMatchObject({ registry: "fixture" });
+  expect(lockfile["modules"]["@fixture/utils"]).toMatchObject({
+    registry: "fixture",
+    selected: false,
+  });
+  const nativeKey: string = lockfile["modules"]["tailwind4"]["registry"];
+  expect(nativeKey).not.toBe("fixture");
+  expect(lockfile["registries"][nativeKey]).toMatchObject({ source: "bundled" });
+  expect(lockfile["registries"]["fixture"]).toMatchObject({ trusted: true });
+  const cardKey: string = lockfile["modules"][cardModule ?? ""]["registry"];
+  expect(lockfile["registries"][cardKey]).toMatchObject({
+    source: `${cards.trustSource}/registry.json`,
+    trusted: true,
+  });
+  const doctor = await runCommand(doctorCommand, context, { directory: project });
+  expect(doctor).toMatchObject({ ok: true, data: { clean: true, problems: [] } });
+});
+
+test("create --registry <shadcn-url> asks each dependency Registry for its own trust", async () => {
+  const context = await isolatedContext();
+  const cards = await serveItemHost([cardItem()]);
+  stoppable.push(cards);
+  const fixture = await shadcnRegistry(journeyItems(cards.itemUrl("card")));
+  const project = join(await temporaryDirectory(), "app");
+  const created = await runCommand(createCommand, context, {
+    directory: project,
+    modules: "oxc,vite-react,tailwind4,@fixture/button",
+    registry: fixture.url,
+    trust: [fixture.url],
+    yes: true,
+    install: false,
+  });
+  expect(created).toMatchObject({ ok: false, error: { code: "REGISTRY_UNTRUSTED" } });
+  expect(JSON.stringify(created)).toContain(cards.trustSource);
+});
+
+test("create --modules @ns/item reaches a Namespace of the user config", async () => {
+  const context = await isolatedContext();
+  const root = await temporaryDirectory("aokit-shadcn-create-namespace-");
+  await mkdir(join(root, "a"), { recursive: true });
+  await writeFile(join(root, "a", "alpha.json"), JSON.stringify(item("alpha")));
+  const host = served(root);
+  const configDir = join(context.env["XDG_CONFIG_HOME"] ?? "", "aokit");
+  await mkdir(configDir, { recursive: true });
+  const template = `${host.url}/a/{name}.json`;
+  await writeFile(
+    join(configDir, "config.json"),
+    JSON.stringify({ trustedRegistries: [], registries: { "@alpha": { url: template } } }),
+  );
+  const project = join(await temporaryDirectory(), "app");
+  const created = await runCommand(createCommand, context, {
+    directory: project,
+    modules: "oxc,@alpha/alpha",
+    trust: [`@alpha=${template}`],
+    yes: true,
+    install: false,
+  });
+  expect(created).toMatchObject({ ok: true });
+  const lockfile = await readLockfileJson(project);
+  expect(lockfile["modules"]["@alpha/alpha"]).toMatchObject({ selected: true });
+  expect(lockfile["modules"]["oxc"]).toMatchObject({ selected: true });
+});
+
 test("update --registry <shadcn-url> reads the shadcn Registry of the Lockfile", async () => {
   const context = await isolatedContext();
   const { project, fixture, trust } = await projectWithButton(context);
@@ -225,9 +306,12 @@ test("a locked shadcn version keeps resolving after the item changes upstream", 
     directory: project,
     module: "@fixture/button",
   });
-  expect(removed).toMatchObject({ ok: false });
-  expect(JSON.stringify(removed)).toContain("REGISTRY_ITEM_CHANGED");
+  expect(removed).toMatchObject({ ok: false, error: { code: "REGISTRY_ITEM_CHANGED" } });
   expect(exitCodeForEnvelope(removed)).toBe(1);
+  const changedDoctor = await runCommand(doctorCommand, context, { directory: project });
+  expect(changedDoctor).toMatchObject({ ok: false, error: { code: "DRIFT" } });
+  expect(JSON.stringify(changedDoctor)).toContain("[REGISTRY_ITEM_CHANGED]");
+  expect(exitCodeForEnvelope(changedDoctor)).toBe(1);
   expect(await snapshotTree(project)).toEqual(before);
 });
 
@@ -392,4 +476,62 @@ test("an owner/repo/item#ref dependency is read through the github: transport, p
     source: `github:acme/ui#${sha}`,
     trusted: true,
   });
+});
+
+test("an untrusted item's own URL dependency host receives no request", async () => {
+  const context = await isolatedContext();
+  const project = await styledProject(context);
+  const dependencyHost = await serveItemHost([cardItem()]);
+  stoppable.push(dependencyHost);
+  const rootHost = await serveItemHost([item("panel", [dependencyHost.itemUrl("card")])]);
+  stoppable.push(rootHost);
+  const before = await snapshotTree(project);
+  const envelope = await runCommand(addCommand, context, {
+    ...lifecycle,
+    directory: project,
+    modules: [rootHost.itemUrl("panel")],
+  });
+  expect(envelope).toMatchObject({ ok: false, error: { code: "REGISTRY_UNTRUSTED" } });
+  expect(JSON.stringify(envelope)).toContain(rootHost.trustSource);
+  expect(dependencyHost.requests).toEqual([]);
+  expect(await snapshotTree(project)).toEqual(before);
+});
+
+test("a registryDependencies item its host does not serve fails naming it and its dependent", async () => {
+  const context = await isolatedContext();
+  const project = await styledProject(context);
+  const emptyHost = await serveItemHost([]);
+  stoppable.push(emptyHost);
+  const missingUrl = emptyHost.itemUrl("ghost");
+  const fixture = await shadcnRegistry([item("haunted", [missingUrl])]);
+  const before = await snapshotTree(project);
+  const envelope = await runCommand(addCommand, context, {
+    ...lifecycle,
+    directory: project,
+    modules: ["@fixture/haunted"],
+    registry: fixture.url,
+    trust: [fixture.url, emptyHost.trustSource],
+  });
+  expect(envelope).toMatchObject({ ok: false, error: { code: "MODULE_VERSION_UNAVAILABLE" } });
+  const message = envelope.ok ? "" : envelope.error.message;
+  expect(message).toContain(missingUrl);
+  expect(message).toContain("@fixture/haunted");
+  expect(await snapshotTree(project)).toEqual(before);
+});
+
+test("a bare registryDependencies name its Registry does not list fails naming it and its dependent", async () => {
+  const context = await isolatedContext();
+  const project = await styledProject(context);
+  const fixture = await shadcnRegistry([item("lonely", ["absent"])]);
+  const envelope = await runCommand(addCommand, context, {
+    ...lifecycle,
+    directory: project,
+    modules: ["@fixture/lonely"],
+    registry: fixture.url,
+    trust: [fixture.url],
+  });
+  expect(envelope).toMatchObject({ ok: false, error: { code: "MODULE_VERSION_UNAVAILABLE" } });
+  const message = envelope.ok ? "" : envelope.error.message;
+  expect(message).toContain("@fixture/absent");
+  expect(message).toContain("@fixture/lonely");
 });

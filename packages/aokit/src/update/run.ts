@@ -42,6 +42,9 @@ import { resolveUpdateTarget, type UpdateTarget } from "./target.ts";
 
 const migrationContext = { now: new Date(0), random: () => 0, env: {} };
 
+/** The Release every shadcn Registry reports: its items are versioned by content, not Release. */
+const adaptedRelease = "shadcn";
+
 /** Inputs of {@link runUpdate} and {@link buildUpdatePlan}. */
 export interface UpdateInput {
   readonly dir: string;
@@ -269,7 +272,7 @@ function newestRelease(registry: Registry): string {
  * content hashes, not ordered.
  */
 function upgradeScope(lockfile: Lockfile, key: string, registry: Registry): [string, string][] {
-  const adapted = registry.source.kind === "shadcn";
+  const adapted = registry.source.kind === "shadcn" || registry.release === adaptedRelease;
   return Object.entries(lockfile.modules)
     .filter(([, entry]) => entry.registry === key)
     .flatMap(([name, entry]) =>
@@ -278,6 +281,67 @@ function upgradeScope(lockfile: Lockfile, key: string, registry: Registry): [str
         : registry.versions(name).filter((version) => Bun.semver.order(version, entry.version) >= 0)
       ).map((version): [string, string] => [name, version]),
     );
+}
+
+/** The snapshots of every shadcn Registry of the Lockfile besides `primaryKey`, named by key. */
+async function adaptedSnapshots(
+  lockfile: Lockfile,
+  primaryKey: string,
+  registries: ReadonlyMap<string, Registry>,
+): Promise<LocalRegistry[]> {
+  const adapted = Object.keys(lockfile.registries).flatMap((key) => {
+    const registry = registries.get(key);
+    return key === primaryKey || registry?.release !== adaptedRelease ? [] : [{ key, registry }];
+  });
+  return Promise.all(
+    adapted.map(({ key, registry }) =>
+      snapshotRegistry(registry, key, {
+        versions: upgradeScope(lockfile, key, registry),
+        releases: [adaptedRelease],
+      }),
+    ),
+  );
+}
+
+/**
+ * The primary Registry's target with each other shadcn Registry's Adapted Modules moved to the
+ * item it serves now, so an added item's upstream change is an update too.
+ */
+function withAdaptedTargets(
+  lockfile: Lockfile,
+  primary: UpdateTarget,
+  adapted: readonly LocalRegistry[],
+): UpdateTarget {
+  const versions = { ...primary.versions };
+  let upToDate = primary.upToDate;
+  for (const registry of adapted) {
+    const own = resolveUpdateTarget(lockfile, registry);
+    for (const [name, entry] of Object.entries(lockfile.modules)) {
+      const served = own.versions[name];
+      if (entry.registry !== registry.name || served === undefined) continue;
+      versions[name] = served;
+      upToDate &&= served === entry.version;
+    }
+  }
+  return { ...primary, versions, upToDate };
+}
+
+/** One synchronous view of the primary snapshot and the shadcn ones, primary first. */
+function combinedRegistry(
+  primary: LocalRegistry,
+  adapted: readonly LocalRegistry[],
+): LocalRegistry {
+  if (adapted.length === 0) return primary;
+  const all = [primary, ...adapted];
+  const owner = (name: string): LocalRegistry =>
+    all.find((registry) => registry.versions(name).length > 0) ?? primary;
+  return {
+    ...primary,
+    version: (name, version) =>
+      all.map((registry) => registry.version(name, version)).find((found) => found !== undefined),
+    versions: (name) => owner(name).versions(name),
+    selectableVersions: (name) => owner(name).selectableVersions(name),
+  };
 }
 
 async function prepare(input: UpdateInput): Promise<Prepared> {
@@ -302,17 +366,25 @@ async function prepare(input: UpdateInput): Promise<Prepared> {
       "Restore aokit.lock.json from version control.",
     );
   }
-  const registry = await snapshotRegistry(primary, key, {
-    versions: upgradeScope(lockfile, key, primary),
-    releases: [
-      ...new Set([
-        lockfile.registries[key]?.release ?? primary.release,
-        input.to ?? newestRelease(primary),
-      ]),
-    ],
-  });
+  const [primarySnapshot, adapted] = await Promise.all([
+    snapshotRegistry(primary, key, {
+      versions: upgradeScope(lockfile, key, primary),
+      releases: [
+        ...new Set([
+          lockfile.registries[key]?.release ?? primary.release,
+          input.to ?? newestRelease(primary),
+        ]),
+      ],
+    }),
+    adaptedSnapshots(lockfile, key, set.registries),
+  ]);
   const pins = set.movedPins;
-  const resolved = resolveUpdateTarget(lockfile, registry, input.to);
+  const resolved = withAdaptedTargets(
+    lockfile,
+    resolveUpdateTarget(lockfile, primarySnapshot, input.to),
+    adapted,
+  );
+  const registry = combinedRegistry(primarySnapshot, adapted);
   const target = pins.length > 0 ? { ...resolved, upToDate: false } : resolved;
   const fromRelease = lockfile.registries[key]?.release ?? target.release;
   const state: UpdateState = { keptDeps: [], migrations: [], answers: lockedAnswers(lockfile) };

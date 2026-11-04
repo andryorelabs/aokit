@@ -2,6 +2,7 @@ import { afterEach, describe, expect, test } from "bun:test";
 import { readFile, writeFile } from "node:fs/promises";
 import { join } from "node:path";
 import { runCommand } from "../../src/cli/command.ts";
+import { addCommand } from "../../src/cli/commands/add.ts";
 import { createCommand } from "../../src/cli/commands/create.ts";
 import { updateCommand } from "../../src/cli/commands/update.ts";
 import { cleanTemporaryDirectories, commandContext, temporaryDirectory } from "../diff/support.ts";
@@ -73,6 +74,34 @@ async function project(): Promise<{ directory: string; served: ServedShadcnRegis
   return { directory, served };
 }
 
+/** A Project created with native Modules, then given `@fixture/button` by `add`. */
+async function mixedProject(): Promise<{ directory: string; served: ServedShadcnRegistry }> {
+  const served = await serveShadcnRegistry();
+  servers.push(served);
+  const directory = join(await temporaryDirectory(), "app");
+  const created = await runCommand(createCommand, commandContext, {
+    directory,
+    modules: "oxc,vite-react",
+    yes: true,
+    install: false,
+  });
+  if (!created.ok) throw new Error(created.error.message);
+  const added = await runCommand(addCommand, commandContext, {
+    directory,
+    modules: ["@fixture/button"],
+    registry: served.url,
+    trust: [served.url],
+    yes: true,
+    install: false,
+    allowDirty: true,
+  });
+  if (!added.ok) throw new Error(added.error.message);
+  await gitIn(directory, "init", "-q");
+  await gitIn(directory, "add", "-A");
+  await gitIn(directory, "commit", "-q", "-m", "init");
+  return { directory, served };
+}
+
 async function lockedVersion(directory: string): Promise<string> {
   const lockfile = JSON.parse(await read(directory, "aokit.lock.json"));
   return lockfile.modules["@fixture/button"].version;
@@ -134,6 +163,43 @@ describe("update for Adapted Modules", () => {
     const applied = await run({ directory, yes: true, install: false });
     if (!applied.ok) throw new Error(applied.error.message);
     expect(updateCommand.output.parse(applied.data).upToDate).toBe(true);
+  });
+
+  test("in a Project of native Modules, an added item's upstream change is an update", async () => {
+    const { directory, served } = await mixedProject();
+    const nativeVersion = JSON.parse(await read(directory, "aokit.lock.json")).modules["oxc"]
+      .version;
+    const oldVersion = await lockedVersion(directory);
+    const edited = `// my note\n${originalButton}`;
+    await writeFile(join(directory, buttonPath), edited);
+    await gitIn(directory, "commit", "-aq", "-m", "edit");
+    await served.writeItem(buttonItem(changedButton));
+
+    const planned = await run({ directory, plan: true, install: false });
+    if (!planned.ok) throw new Error(planned.error.message);
+    const data = updateCommand.output.parse(planned.data);
+    expect(data.upToDate).toBe(false);
+    expect(data.plan.changes.map((change) => change.path)).toContain(buttonPath);
+    const saved = JSON.parse(await read(join(directory, ".git"), "aokit/plan.json"));
+    const newVersion: string = saved.targetLockfile.modules["@fixture/button"].version;
+    expect(newVersion).toMatch(/^0\.0\.0-shadcn\.[0-9a-f]{12}$/);
+    expect(newVersion).not.toBe(oldVersion);
+
+    const applied = await run({ directory, apply: true, yes: true, install: false });
+    if (!applied.ok) throw new Error(applied.error.message);
+    const merged = await read(directory, buttonPath);
+    expect(merged).toContain("// my note");
+    expect(merged).toContain("upstreamAddition");
+    const lockfile = JSON.parse(await read(directory, "aokit.lock.json"));
+    expect(lockfile.modules["@fixture/button"].version).toBe(newVersion);
+    expect(lockfile.modules["oxc"].version).toBe(nativeVersion);
+  });
+
+  test("in a Project of native Modules, an unchanged added item yields no update", async () => {
+    const { directory } = await mixedProject();
+    const planned = await run({ directory, plan: true, install: false });
+    if (!planned.ok) throw new Error(planned.error.message);
+    expect(updateCommand.output.parse(planned.data).upToDate).toBe(true);
   });
 
   test("--abort after a plan restores the pre-update state", async () => {

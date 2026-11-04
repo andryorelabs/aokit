@@ -910,6 +910,20 @@ function dependencyCycle(cycle: readonly string[]): AokitError {
   );
 }
 
+function dependencyNotServed(
+  dependency: RegistryDependency,
+  target: AddressedModuleName,
+  dependent: string,
+): RegistryError {
+  const served = dependency.address === target.name ? "" : ` (Module "${target.name}")`;
+  return new RegistryError(
+    "REGISTRY_MODULE_NOT_FOUND",
+    `"${dependent}" lists the registryDependencies item "${dependency.address}"${served}, which its Registry does not serve.`,
+    `Ask the maintainer of "${dependent}" to publish "${dependency.address}" or drop it from registryDependencies.`,
+    { registry: target.key, module: target.name, path: dependency.address },
+  );
+}
+
 function pathUnsupported(address: string): RegistryError {
   return new RegistryError(
     "REGISTRY_SOURCE_UNSUPPORTED",
@@ -937,7 +951,23 @@ export async function openShadcnAddresses(
   const cache = cacheFor(options.adapters);
   const registries = new Map(set.registries);
   const entries: Lockfile["registries"] = { ...set.entries };
-  const opened: string[] = [];
+  const decisions: TrustDecision[] = [];
+  const trustOpened = async (key: string): Promise<void> => {
+    const [decision] = await ensureTrusted([requiredRegistry(registries, key)], {
+      trustFlags: options.trustFlags,
+      lockfile,
+      interactive: options.interactive,
+      ...(options.adapters?.prompt === undefined ? {} : { prompt: options.adapters.prompt }),
+      ...(options.adapters?.userConfig === undefined
+        ? {}
+        : { userConfig: options.adapters.userConfig }),
+      ...(options.adapters?.env === undefined ? {} : { env: options.adapters.env }),
+    });
+    if (decision === undefined) return;
+    decisions.push(decision);
+    const entry = entries[key];
+    if (entry !== undefined && decision.lockfileTrusted) entries[key] = { ...entry, trusted: true };
+  };
   const keyFor = (source: RegistrySource): string | undefined => {
     const identity = sourceIdentity(source);
     return [...registries.keys()].find((key) => {
@@ -979,12 +1009,12 @@ export async function openShadcnAddresses(
       );
     }
     registries.set(registry.name, registry);
-    opened.push(registry.name);
     entries[registry.name] = {
       source: recordedSource(registry, projectDir),
       release: registry.release,
       minCliVersion: registry.index.minCliVersion,
     };
+    await trustOpened(registry.name);
     return { key: registry.name, name: `@${scopeOf(registry)}/${item}` };
   };
   const locate = async (dependency: RegistryDependency): Promise<AddressedModuleName> => {
@@ -1021,42 +1051,33 @@ export async function openShadcnAddresses(
     roots.push(target);
   }
   const modules = new Map<string, AddressedModule>();
-  const visit = async (target: AddressedModuleName, path: readonly string[]): Promise<void> => {
+  const visit = async (
+    target: AddressedModuleName,
+    path: readonly string[],
+    dependency?: RegistryDependency,
+  ): Promise<void> => {
     if (path.includes(target.name)) throw dependencyCycle([...path, target.name]);
     if (modules.has(target.name) || lockfile.modules?.[target.name] !== undefined) return;
     const registry = requiredRegistry(registries, target.key);
     const newest = registry.selectableVersions(target.name).at(-1);
-    if (newest === undefined) return;
+    if (newest === undefined) {
+      const dependent = path.at(-1);
+      if (dependency === undefined || dependent === undefined) return;
+      throw dependencyNotServed(dependency, target, dependent);
+    }
     const version = await registry.version(target.name, newest);
     modules.set(target.name, { key: target.key, version });
     for (const entry of itemDependencies.get(version) ?? []) {
+      const parsed = parseRegistryDependency(entry, { registry: registry.name });
       // oxlint-disable-next-line eslint/no-await-in-loop -- a depth-first walk, in item order
-      const dependency = await locate(parseRegistryDependency(entry, { registry: registry.name }));
+      const located = await locate(parsed);
       // oxlint-disable-next-line eslint/no-await-in-loop -- a depth-first walk, in item order
-      await visit(dependency, [...path, target.name]);
+      await visit(located, [...path, target.name], parsed);
     }
   };
   for (const root of roots) {
     // oxlint-disable-next-line eslint/no-await-in-loop -- a depth-first walk, in request order
     await visit(root, []);
-  }
-  const decisions = await ensureTrusted(
-    opened.map((key) => requiredRegistry(registries, key)),
-    {
-      trustFlags: options.trustFlags,
-      lockfile,
-      interactive: options.interactive,
-      ...(options.adapters?.prompt === undefined ? {} : { prompt: options.adapters.prompt }),
-      ...(options.adapters?.userConfig === undefined
-        ? {}
-        : { userConfig: options.adapters.userConfig }),
-      ...(options.adapters?.env === undefined ? {} : { env: options.adapters.env }),
-    },
-  );
-  for (const [position, decision] of decisions.entries()) {
-    const key = opened[position] ?? "";
-    const entry = entries[key];
-    if (entry !== undefined && decision.lockfileTrusted) entries[key] = { ...entry, trusted: true };
   }
   return {
     set: { ...set, registries, entries, decisions: [...set.decisions, ...decisions] },
@@ -1283,7 +1304,7 @@ async function newestModules(registry: Registry, key?: string): Promise<Pipeline
 }
 
 /** A Registry opened for `create`, with every Module wrapped for the Engine. */
-export interface LoadedRegistry {
+interface LoadedRegistry {
   readonly registry: Registry;
   /** The source the Lockfile records: `bundled`, a path relative to the Project, a URL or a Pin. */
   readonly source: string;
@@ -1293,7 +1314,7 @@ export interface LoadedRegistry {
   readonly available: readonly PipelineModule[];
 }
 
-/** Inputs of {@link loadRegistry} besides the flag and CLI version. */
+/** Inputs of {@link loadCreateRegistries} besides the flag, the request and the CLI version. */
 export interface LoadRegistryOptions {
   /** The new Project's directory; a local Registry path is recorded relative to it. */
   readonly projectDir?: string;
@@ -1302,35 +1323,112 @@ export interface LoadRegistryOptions {
   readonly adapters?: RegistryAdapters | undefined;
 }
 
+/** The Release every shadcn Registry reports. */
+const shadcnRelease = "shadcn";
+
+/** What {@link loadCreateRegistries} opened for a new Project. */
+export interface CreateRegistries {
+  /** The Registry the native Modules come from: the `--registry` one, else the bundled one. */
+  readonly native: LoadedRegistry & { readonly key: string };
+  /** Every Registry of the run by key, as the Lockfile would record it. */
+  readonly entries: Lockfile["registries"];
+  /** Every opened Registry of the run by key. */
+  readonly registries: ReadonlyMap<string, Registry>;
+  /** The requested entries as Module names: an item URL or `owner/repo/item#ref` becomes `@ns/item`. */
+  readonly names: readonly string[];
+  /** The Adapted Modules the requested ones pull in through `registryDependencies`, unrequested. */
+  readonly pulledIn: readonly string[];
+  /** The native Modules and the Adapted Modules the request and their dependencies need. */
+  readonly available: readonly PipelineModule[];
+}
+
 /**
- * Opens the Registry `registryFlag` names (a source, resolved from the working directory), or the
- * bundled one, through the trust gate, and wraps the newest selectable version of each Module.
+ * Opens the Registries of a new Project: the `--registry` one, or the bundled one, for the native
+ * Modules, and, through {@link openShadcnAddresses}, every shadcn Registry a requested address or
+ * its `registryDependencies` name. A `--registry` that is a shadcn Registry is added beside the
+ * bundled one, which still serves the native Modules. Every Registry goes through the trust gate on
+ * its own.
  */
-export async function loadRegistry(
+export async function loadCreateRegistries(
   registryFlag: string | undefined,
+  requested: readonly string[],
   cliVersion: string,
   options: LoadRegistryOptions = {},
-): Promise<LoadedRegistry> {
-  const set = await openProjectRegistries(undefined, {
-    registryFlag: registryFlag ?? "bundled",
+): Promise<CreateRegistries> {
+  const openOptions = {
     trustFlags: options.trustFlags ?? [],
     interactive: options.interactive ?? false,
     projectDir: process.cwd(),
     cliVersion,
     adapters: options.adapters,
+  };
+  const flaggedSet = await openProjectRegistries(undefined, {
+    ...openOptions,
+    registryFlag: registryFlag ?? "bundled",
   });
-  const key = set.flagged ?? "";
-  const registry = requiredRegistry(set.registries, key);
-  const entry = set.entries[key];
+  const flaggedKey = flaggedSet.flagged ?? "";
+  const flagged = requiredRegistry(flaggedSet.registries, flaggedKey);
+  const set =
+    flagged.release === shadcnRelease
+      ? await withNativeRegistry(flaggedSet, flaggedKey, openOptions)
+      : { ...flaggedSet, native: flaggedKey };
+  const addressed = await openShadcnAddresses(set, { registries: {} }, requested, openOptions);
+  const registry = requiredRegistry(addressed.set.registries, set.native);
   const source =
     registry.source.kind === "local"
       ? relative(resolvePath(options.projectDir ?? "."), registry.source.path) || "."
       : formatRegistrySource(registry.source);
+  const nativeEntry = addressed.set.entries[set.native];
+  const entries = {
+    ...addressed.set.entries,
+    ...(nativeEntry === undefined ? {} : { [set.native]: { ...nativeEntry, source } }),
+  };
+  const adapted = addressed.modules.map(({ key, version }) => toPipelineModule(version, key));
+  const adaptedNames = new Set(adapted.map((module) => module.manifest.name));
+  const nativeModules = (await newestModules(registry, set.native)).filter(
+    (module) => !adaptedNames.has(module.manifest.name),
+  );
   return {
-    registry,
-    source,
-    minCliVersion: registry.index.minCliVersion,
-    trusted: entry?.trusted === true,
-    available: await newestModules(registry),
+    native: {
+      key: set.native,
+      registry,
+      source,
+      minCliVersion: registry.index.minCliVersion,
+      trusted: nativeEntry?.trusted === true,
+      available: nativeModules,
+    },
+    entries,
+    registries: addressed.set.registries,
+    names: addressed.names,
+    pulledIn: [...adaptedNames].filter((name) => !addressed.names.includes(name)),
+    available: [...nativeModules, ...adapted],
+  };
+}
+
+/** `set` with the bundled Registry opened beside its shadcn `--registry` one, as `native`. */
+async function withNativeRegistry(
+  set: ProjectRegistries,
+  flaggedKey: string,
+  options: LoadProjectRegistriesOptions,
+): Promise<ProjectRegistries & { readonly native: string }> {
+  const bundled = await openProjectRegistries(undefined, { ...options, registryFlag: "bundled" });
+  const native = bundled.flagged ?? "";
+  const nativeRegistry = requiredRegistry(bundled.registries, native);
+  const rival = set.registries.get(native);
+  if (rival !== undefined) {
+    throw clash(
+      native,
+      formatRegistrySource(nativeRegistry.source),
+      formatRegistrySource(rival.source),
+    );
+  }
+  return {
+    registries: new Map([...bundled.registries, ...set.registries]),
+    lockedRegistries: new Map(),
+    flagged: flaggedKey,
+    entries: { ...bundled.entries, ...set.entries },
+    movedPins: [],
+    decisions: [...bundled.decisions, ...set.decisions],
+    native,
   };
 }
