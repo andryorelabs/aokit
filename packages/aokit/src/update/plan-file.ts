@@ -1,12 +1,14 @@
 import { createHash } from "node:crypto";
 import { readFile, rm } from "node:fs/promises";
 import { isAbsolute, join } from "node:path";
+import { stableStringify } from "@aokit/module";
 import { z } from "zod";
 import { conflictFile, type ConflictWrite } from "../apply/conflicts.ts";
 import { AokitError } from "../cli/envelope.ts";
 import { Vfs, type FileContent } from "../engine/vfs.ts";
 import type { Plan, PlanChange } from "../engine/plan.ts";
 import type { Git } from "../git/git.ts";
+import type { KeptDependency } from "../lifecycle/keep-deps.ts";
 import { lockfileSchema, type Lockfile } from "../lockfile/schema.ts";
 import { planFilePath, writeFileAtomically } from "./state.ts";
 
@@ -59,6 +61,24 @@ const conflictSchema = z.strictObject({
   user: z.string(),
 });
 
+const keptDependencySchema = z.strictObject({
+  name: z.string(),
+  kept: z.string(),
+  available: z.string(),
+  reason: z.enum(["pinned", "user"]),
+});
+
+const migrationSchema = z.strictObject({
+  module: z.string(),
+  stage: z.enum(["before", "after"]),
+  from: z.string(),
+  to: z.string(),
+  script: z.string(),
+});
+
+/** A Migration the update ran while building the Plan. */
+type PlanMigration = z.infer<typeof migrationSchema>;
+
 /** The on-disk shape of `<git-dir>/aokit/plan.json`; binary content is base64. */
 export const planFileSchema = z.strictObject({
   cliVersion: z.string().min(1),
@@ -69,7 +89,14 @@ export const planFileSchema = z.strictObject({
   changes: z.array(changeSchema),
   conflicts: z.array(conflictSchema),
   targetLockfile: lockfileSchema,
+  keptDeps: z.array(keptDependencySchema).default([]),
+  migrations: z.array(migrationSchema).default([]),
 });
+
+/** The text committed as `schema/plan/v1.json`, generated from {@link planFileSchema}. */
+export function planJsonSchemaText(): string {
+  return stableStringify(z.toJSONSchema(planFileSchema, { io: "input" }));
+}
 
 /** A reviewed update: what `update --plan` saves and `update --apply` writes. */
 export interface UpdatePlanFile {
@@ -82,6 +109,10 @@ export interface UpdatePlanFile {
   readonly plan: Plan;
   readonly conflicts: readonly ConflictWrite[];
   readonly targetLockfile: Lockfile;
+  /** Dependencies the update kept; absent means none. */
+  readonly keptDeps?: readonly KeptDependency[];
+  /** Migrations the update ran; absent means none. */
+  readonly migrations?: readonly PlanMigration[];
 }
 
 type EncodedContent = z.infer<typeof encodedContentSchema>;
@@ -215,6 +246,8 @@ export async function writePlanFile(
     changes: plan.plan.changes.map(encodeChange),
     conflicts: plan.conflicts.map(encodeConflict),
     targetLockfile: plan.targetLockfile,
+    keptDeps: plan.keptDeps ?? [],
+    migrations: plan.migrations ?? [],
   });
   await writeFileAtomically(
     await planFilePath(projectDirectory, git),
@@ -256,6 +289,8 @@ export async function readPlanFile(
     plan: { changes, hash: encoded.planHash, vfs: vfsOfChanges(changes) },
     conflicts: encoded.conflicts.map(decodeConflict),
     targetLockfile: encoded.targetLockfile,
+    keptDeps: encoded.keptDeps,
+    migrations: encoded.migrations,
   };
 }
 

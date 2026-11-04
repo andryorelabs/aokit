@@ -1,0 +1,618 @@
+{
+  "$defs": {
+    "__schema0": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "number"
+        },
+        {
+          "type": "boolean"
+        },
+        {
+          "type": "null"
+        },
+        {
+          "items": {
+            "$ref": "#/$defs/__schema0"
+          },
+          "type": "array"
+        },
+        {
+          "additionalProperties": {
+            "$ref": "#/$defs/__schema0"
+          },
+          "propertyNames": {
+            "type": "string"
+          },
+          "type": "object"
+        }
+      ]
+    }
+  },
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "additionalProperties": false,
+  "properties": {
+    "changes": {
+      "items": {
+        "additionalProperties": false,
+        "properties": {
+          "content": {
+            "oneOf": [
+              {
+                "additionalProperties": false,
+                "properties": {
+                  "data": {
+                    "type": "string"
+                  },
+                  "encoding": {
+                    "const": "utf8",
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "encoding",
+                  "data"
+                ],
+                "type": "object"
+              },
+              {
+                "additionalProperties": false,
+                "properties": {
+                  "data": {
+                    "type": "string"
+                  },
+                  "encoding": {
+                    "const": "base64",
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "encoding",
+                  "data"
+                ],
+                "type": "object"
+              }
+            ]
+          },
+          "mode": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "ownership": {
+            "enum": [
+              "managed",
+              "seed",
+              "ejected"
+            ],
+            "type": "string"
+          },
+          "path": {
+            "type": "string"
+          },
+          "previousContent": {
+            "oneOf": [
+              {
+                "additionalProperties": false,
+                "properties": {
+                  "data": {
+                    "type": "string"
+                  },
+                  "encoding": {
+                    "const": "utf8",
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "encoding",
+                  "data"
+                ],
+                "type": "object"
+              },
+              {
+                "additionalProperties": false,
+                "properties": {
+                  "data": {
+                    "type": "string"
+                  },
+                  "encoding": {
+                    "const": "base64",
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "encoding",
+                  "data"
+                ],
+                "type": "object"
+              }
+            ]
+          },
+          "provenance": {
+            "items": {
+              "additionalProperties": false,
+              "properties": {
+                "entry": {
+                  "oneOf": [
+                    {
+                      "additionalProperties": false,
+                      "properties": {
+                        "from": {
+                          "type": "string"
+                        },
+                        "kind": {
+                          "const": "file",
+                          "type": "string"
+                        }
+                      },
+                      "required": [
+                        "kind",
+                        "from"
+                      ],
+                      "type": "object"
+                    },
+                    {
+                      "additionalProperties": false,
+                      "properties": {
+                        "kind": {
+                          "const": "op",
+                          "type": "string"
+                        },
+                        "op": {
+                          "type": "string"
+                        }
+                      },
+                      "required": [
+                        "kind",
+                        "op"
+                      ],
+                      "type": "object"
+                    },
+                    {
+                      "additionalProperties": false,
+                      "properties": {
+                        "kind": {
+                          "const": "remove",
+                          "type": "string"
+                        }
+                      },
+                      "required": [
+                        "kind"
+                      ],
+                      "type": "object"
+                    },
+                    {
+                      "additionalProperties": false,
+                      "properties": {
+                        "kind": {
+                          "const": "formatter",
+                          "type": "string"
+                        }
+                      },
+                      "required": [
+                        "kind"
+                      ],
+                      "type": "object"
+                    }
+                  ]
+                },
+                "module": {
+                  "type": "string"
+                },
+                "overridden": {
+                  "const": true,
+                  "type": "boolean"
+                }
+              },
+              "required": [
+                "module",
+                "entry"
+              ],
+              "type": "object"
+            },
+            "type": "array"
+          },
+          "renamedFrom": {
+            "type": "string"
+          },
+          "type": {
+            "enum": [
+              "create",
+              "update",
+              "delete",
+              "rename"
+            ],
+            "type": "string"
+          }
+        },
+        "required": [
+          "type",
+          "path",
+          "ownership",
+          "mode",
+          "provenance"
+        ],
+        "type": "object"
+      },
+      "type": "array"
+    },
+    "cliVersion": {
+      "minLength": 1,
+      "type": "string"
+    },
+    "conflicts": {
+      "items": {
+        "additionalProperties": false,
+        "properties": {
+          "base": {
+            "type": "string"
+          },
+          "merged": {
+            "type": "string"
+          },
+          "next": {
+            "oneOf": [
+              {
+                "additionalProperties": false,
+                "properties": {
+                  "data": {
+                    "type": "string"
+                  },
+                  "encoding": {
+                    "const": "utf8",
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "encoding",
+                  "data"
+                ],
+                "type": "object"
+              },
+              {
+                "additionalProperties": false,
+                "properties": {
+                  "data": {
+                    "type": "string"
+                  },
+                  "encoding": {
+                    "const": "base64",
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "encoding",
+                  "data"
+                ],
+                "type": "object"
+              }
+            ]
+          },
+          "path": {
+            "type": "string"
+          },
+          "user": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "path",
+          "next",
+          "base",
+          "user"
+        ],
+        "type": "object"
+      },
+      "type": "array"
+    },
+    "keptDeps": {
+      "default": [],
+      "items": {
+        "additionalProperties": false,
+        "properties": {
+          "available": {
+            "type": "string"
+          },
+          "kept": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "reason": {
+            "enum": [
+              "pinned",
+              "user"
+            ],
+            "type": "string"
+          }
+        },
+        "required": [
+          "name",
+          "kept",
+          "available",
+          "reason"
+        ],
+        "type": "object"
+      },
+      "type": "array"
+    },
+    "lockfileHash": {
+      "anyOf": [
+        {
+          "pattern": "^sha256-[0-9a-f]{64}$",
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "migrations": {
+      "default": [],
+      "items": {
+        "additionalProperties": false,
+        "properties": {
+          "from": {
+            "type": "string"
+          },
+          "module": {
+            "type": "string"
+          },
+          "script": {
+            "type": "string"
+          },
+          "stage": {
+            "enum": [
+              "before",
+              "after"
+            ],
+            "type": "string"
+          },
+          "to": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "module",
+          "stage",
+          "from",
+          "to",
+          "script"
+        ],
+        "type": "object"
+      },
+      "type": "array"
+    },
+    "planHash": {
+      "minLength": 1,
+      "type": "string"
+    },
+    "targetLockfile": {
+      "additionalProperties": false,
+      "properties": {
+        "$schema": {
+          "minLength": 1,
+          "type": "string"
+        },
+        "cliVersion": {
+          "pattern": "^\\d+\\.\\d+\\.\\d+(?:-[0-9A-Za-z.-]+)?(?:\\+[0-9A-Za-z.-]+)?$",
+          "type": "string"
+        },
+        "deps": {
+          "additionalProperties": {
+            "additionalProperties": false,
+            "properties": {
+              "owners": {
+                "items": {
+                  "minLength": 1,
+                  "type": "string"
+                },
+                "type": "array"
+              },
+              "pinned": {
+                "type": "boolean"
+              },
+              "source": {
+                "enum": [
+                  "catalog",
+                  "module",
+                  "user"
+                ],
+                "type": "string"
+              },
+              "version": {
+                "minLength": 1,
+                "type": "string"
+              }
+            },
+            "required": [
+              "version",
+              "owners",
+              "pinned",
+              "source"
+            ],
+            "type": "object"
+          },
+          "propertyNames": {
+            "type": "string"
+          },
+          "type": "object"
+        },
+        "files": {
+          "additionalProperties": {
+            "additionalProperties": false,
+            "properties": {
+              "hash": {
+                "pattern": "^sha256-[0-9a-f]{64}$",
+                "type": "string"
+              },
+              "mode": {
+                "enum": [
+                  "managed",
+                  "seed",
+                  "ejected"
+                ],
+                "type": "string"
+              },
+              "owners": {
+                "items": {
+                  "minLength": 1,
+                  "type": "string"
+                },
+                "minItems": 1,
+                "type": "array"
+              }
+            },
+            "required": [
+              "owners",
+              "mode",
+              "hash"
+            ],
+            "type": "object"
+          },
+          "propertyNames": {
+            "type": "string"
+          },
+          "type": "object"
+        },
+        "layout": {
+          "enum": [
+            "single",
+            "monorepo"
+          ],
+          "type": "string"
+        },
+        "lockfileVersion": {
+          "const": 2,
+          "type": "number"
+        },
+        "modules": {
+          "additionalProperties": {
+            "additionalProperties": false,
+            "properties": {
+              "answers": {
+                "additionalProperties": {
+                  "$ref": "#/$defs/__schema0"
+                },
+                "propertyNames": {
+                  "type": "string"
+                },
+                "type": "object"
+              },
+              "integrity": {
+                "pattern": "^sha256-[0-9a-f]{64}$",
+                "type": "string"
+              },
+              "registry": {
+                "minLength": 1,
+                "type": "string"
+              },
+              "selected": {
+                "type": "boolean"
+              },
+              "version": {
+                "pattern": "^\\d+\\.\\d+\\.\\d+(?:-[0-9A-Za-z.-]+)?(?:\\+[0-9A-Za-z.-]+)?$",
+                "type": "string"
+              }
+            },
+            "required": [
+              "version",
+              "registry",
+              "selected",
+              "integrity",
+              "answers"
+            ],
+            "type": "object"
+          },
+          "propertyNames": {
+            "type": "string"
+          },
+          "type": "object"
+        },
+        "protocolVersion": {
+          "exclusiveMinimum": 0,
+          "maximum": 9007199254740991,
+          "type": "integer"
+        },
+        "registries": {
+          "additionalProperties": {
+            "additionalProperties": false,
+            "properties": {
+              "minCliVersion": {
+                "pattern": "^\\d+\\.\\d+\\.\\d+(?:-[0-9A-Za-z.-]+)?(?:\\+[0-9A-Za-z.-]+)?$",
+                "type": "string"
+              },
+              "release": {
+                "minLength": 1,
+                "type": "string"
+              },
+              "source": {
+                "minLength": 1,
+                "type": "string"
+              }
+            },
+            "required": [
+              "source",
+              "release",
+              "minCliVersion"
+            ],
+            "type": "object"
+          },
+          "propertyNames": {
+            "type": "string"
+          },
+          "type": "object"
+        }
+      },
+      "required": [
+        "$schema",
+        "lockfileVersion",
+        "cliVersion",
+        "protocolVersion",
+        "layout",
+        "registries",
+        "modules",
+        "files",
+        "deps"
+      ],
+      "type": "object"
+    },
+    "targetRelease": {
+      "minLength": 1,
+      "type": "string"
+    },
+    "userFileHashes": {
+      "additionalProperties": {
+        "anyOf": [
+          {
+            "pattern": "^sha256-[0-9a-f]{64}$",
+            "type": "string"
+          },
+          {
+            "type": "null"
+          }
+        ]
+      },
+      "propertyNames": {
+        "type": "string"
+      },
+      "type": "object"
+    }
+  },
+  "required": [
+    "cliVersion",
+    "targetRelease",
+    "lockfileHash",
+    "userFileHashes",
+    "planHash",
+    "changes",
+    "conflicts",
+    "targetLockfile"
+  ],
+  "type": "object"
+}
