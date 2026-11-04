@@ -10,7 +10,11 @@ import {
   registryIndexSchemaUrl,
   supportedRegistrySchemaVersion,
 } from "../../packages/aokit/src/registry/index.ts";
-import { registryIndexSchema } from "../../packages/aokit/src/registry/schema.ts";
+import {
+  catalogFileSchema,
+  registryIndexSchema,
+  releaseModulesSchema,
+} from "../../packages/aokit/src/registry/schema.ts";
 
 /**
  * Name of the first-party Registry, recorded in the Lockfile `registry` field.
@@ -107,10 +111,61 @@ async function readExistingIndex(outDir: string): Promise<RegistryIndex | undefi
   return parsed.data;
 }
 
+function modulesField(raw: unknown): unknown {
+  const file = catalogFileSchema.safeParse(raw);
+  return file.success ? file.data["modules"] : undefined;
+}
+
+async function readPublishedModules(
+  outDir: string,
+  pointer: RegistryIndex["releases"][string],
+): Promise<Record<string, string> | undefined> {
+  const raw: unknown = JSON.parse(await readFile(join(outDir, pointer.path), "utf8"));
+  const parsed = releaseModulesSchema.safeParse(modulesField(raw));
+  return parsed.success ? parsed.data : undefined;
+}
+
+function latestVersions(modules: RegistryIndex["modules"]): Record<string, string> {
+  return Object.fromEntries(
+    Object.entries(modules)
+      .toSorted(([left], [right]) => byCodepoint(left, right))
+      .map(([name, entry]) => [name, entry.latest] as const),
+  );
+}
+
+/**
+ * Resolves the Module version map a Release Catalog carries: the source's `modules`, else the map
+ * the already published Catalog holds, else the latest version of every Module. Every mapped
+ * version must be one the index lists.
+ */
+async function resolveReleaseModules(
+  outDir: string,
+  release: string,
+  declared: Record<string, string> | undefined,
+  published: RegistryIndex["releases"][string] | undefined,
+  modules: RegistryIndex["modules"],
+): Promise<Record<string, string>> {
+  const resolved =
+    declared ??
+    (published === undefined ? undefined : await readPublishedModules(outDir, published)) ??
+    latestVersions(modules);
+  for (const [name, version] of Object.entries(resolved)) {
+    if (modules[name]?.versions[version] === undefined) {
+      throw new Error(
+        `registry:build: Release ${release} maps ${name} to ${version}, which no Module source builds.`,
+      );
+    }
+  }
+  return Object.fromEntries(
+    Object.entries(resolved).toSorted(([left], [right]) => byCodepoint(left, right)),
+  );
+}
+
 async function buildReleases(
   sourceDir: string,
   outDir: string,
   existing: RegistryIndex["releases"],
+  moduleIndex: RegistryIndex["modules"],
 ): Promise<RegistryIndex["releases"]> {
   const catalogSourceDir = join(sourceDir, catalogDirectory);
   const sourcePaths = (await listFiles(catalogSourceDir)).filter((path) => path.endsWith(".json"));
@@ -119,23 +174,37 @@ async function buildReleases(
     sourcePaths.map(async (sourcePath) => {
       const release = sourcePath.slice(0, -".json".length);
       const text = normalizeLineEndings(await readFile(join(catalogSourceDir, sourcePath), "utf8"));
-      const catalog = catalogSchema.parse(JSON.parse(text));
+      const rawCatalog: unknown = JSON.parse(text);
+      const declaredModules = releaseModulesSchema.optional().parse(modulesField(rawCatalog));
+      const { modules: _declared, ...catalogSource } = catalogFileSchema.parse(rawCatalog);
+      const catalog = catalogSchema.parse(catalogSource);
       if (catalog.release !== release) {
         throw new Error(
           `registry:build: ${join(catalogSourceDir, sourcePath)} has release ${catalog.release ?? "(none)"}, expected ${release}`,
         );
       }
+      const published = existing[release];
+      const releaseModules = await resolveReleaseModules(
+        outDir,
+        release,
+        declaredModules,
+        published,
+        moduleIndex,
+      );
+      const catalogText = await formatJson(`${catalogDirectory}/${sourcePath}`, {
+        ...catalogSource,
+        modules: releaseModules,
+      });
       const pointer = {
         path: `${catalogDirectory}/${sourcePath}`,
-        integrity: computeIntegrity(text),
+        integrity: computeIntegrity(catalogText),
       };
-      const published = existing[release];
       if (published !== undefined && published.integrity !== pointer.integrity) {
         throw new Error(
           `registry:build: Release ${release} is already published with a different Catalog (published ${published.integrity}, source ${pointer.integrity}). Publish a new Release instead of editing ${release}.`,
         );
       }
-      return { release, text, pointer };
+      return { release, text: catalogText, pointer };
     }),
   );
   await Promise.all(
@@ -312,7 +381,6 @@ export async function buildRegistry(sourceDir: string, outDir: string): Promise<
     .toSorted(byCodepoint);
 
   const existing = await readExistingIndex(outDir);
-  const releases = await buildReleases(sourceDir, outDir, existing?.releases ?? {});
   const built = await Promise.all(
     moduleNames.map(
       async (name) =>
@@ -324,6 +392,7 @@ export async function buildRegistry(sourceDir: string, outDir: string): Promise<
     const versions = { ...modules[name]?.versions, [version]: entry };
     modules[name] = { latest: latestOf(Object.keys(versions)), versions };
   }
+  const releases = await buildReleases(sourceDir, outDir, existing?.releases ?? {}, modules);
   const index: RegistryIndex = {
     $schema: registryIndexSchemaUrl,
     schemaVersion: supportedRegistrySchemaVersion,

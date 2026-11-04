@@ -62,7 +62,7 @@ export function lockfileOf(files: FixtureFiles, mode?: Record<string, "ejected">
     };
   }
   return {
-    $schema: "https://aokit.dev/schema/lockfile/v2.json",
+    $schema: "https://aokit.andryore.dev/schema/lockfile/v2.json",
     lockfileVersion: 2,
     cliVersion: "0.0.0",
     protocolVersion: 1,

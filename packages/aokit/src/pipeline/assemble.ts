@@ -7,7 +7,7 @@ import type { Plan } from "../engine/plan.ts";
 import type { FileContent } from "../engine/vfs.ts";
 import { type Lockfile, currentLockfileVersion } from "../lockfile/schema.ts";
 
-const lockfileSchemaUrl = "https://aokit.dev/schema/lockfile/v2.json";
+const lockfileSchemaUrl = "https://aokit.andryore.dev/schema/lockfile/v2.json";
 const protocolVersion = 1;
 const volatileMarker = "volatile";
 

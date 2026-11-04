@@ -1,5 +1,5 @@
 {
-  "$schema": "https://aokit.dev/schema/lockfile/v2.json",
+  "$schema": "https://aokit.andryore.dev/schema/lockfile/v2.json",
   "cliVersion": "0.1.0",
   "deps": {
     "next": {

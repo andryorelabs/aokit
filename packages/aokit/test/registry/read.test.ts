@@ -312,3 +312,34 @@ test("a hand-edited file of an older version fails integrity naming Registry, Mo
   expect(error.message).toContain(`expected ${expected}`);
   expect(error.message).toContain(`actual ${computeIntegrity("edited\n")}`);
 });
+
+test("each Release Catalog carries the Module versions that Release ships", async () => {
+  const registry = await readLocalRegistry(await bumpedRegistry(), options);
+  expect(registry.catalog("2026.11.0")?.modules).toEqual({ knip: "2.1.0", oxc: "1.0.0" });
+  expect(registry.catalog("2026.12.0")?.modules).toEqual({ knip: "2.1.0", oxc: "1.1.0" });
+  expect(registry.currentCatalog.modules).toEqual({ knip: "2.1.0", oxc: "1.1.0" });
+});
+
+test("a Catalog mapping a Module to a version the index does not list is invalid", async () => {
+  const root = await builtRegistry();
+  const catalogPath = join(root, "catalog/2026.11.0.json");
+  await editJson(catalogPath, (value) => {
+    value["modules"] = { oxc: "9.9.9" };
+  });
+  const text = await readFile(catalogPath, "utf8");
+  await editJson(join(root, "index.json"), (value) => {
+    const releases = z
+      .record(z.string(), z.looseObject({ integrity: z.string() }))
+      .parse(value["releases"]);
+    const pointer = releases["2026.11.0"];
+    if (pointer === undefined) throw new Error("release missing");
+    value["releases"] = {
+      ...releases,
+      "2026.11.0": { ...pointer, integrity: computeIntegrity(text) },
+    };
+  });
+  const error = await captureError(() => readLocalRegistry(root, options));
+  expect(error.code).toBe("REGISTRY_CATALOG_INVALID");
+  expect(error.message).toContain("oxc");
+  expect(error.message).toContain("9.9.9");
+});

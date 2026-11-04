@@ -1,4 +1,5 @@
 import { z } from "zod";
+import type { Catalog } from "@aokit/module";
 import type { Integrity } from "./integrity.ts";
 
 /**
@@ -9,7 +10,7 @@ export const supportedRegistrySchemaVersion = 1;
 /**
  * Public URL of the versioned JSON Schema of the Registry index.
  */
-export const registryIndexSchemaUrl = "https://aokit.dev/schema/registry/v1.json";
+export const registryIndexSchemaUrl = "https://aokit.andryore.dev/schema/registry/v1.json";
 
 const semver = z.string().regex(/^\d+\.\d+\.\d+(-[0-9A-Za-z.-]+)?(\+[0-9A-Za-z.-]+)?$/, {
   message: "must be a semver version",
@@ -82,3 +83,18 @@ export const registryIndexSchema = z
   });
 
 export type RegistryIndex = z.output<typeof registryIndexSchema>;
+
+/**
+ * The Module version map of a Release: Module name to the exact version that Release ships.
+ */
+export const releaseModulesSchema = z.record(z.string().min(1), semver);
+
+/**
+ * A Release Catalog as the Registry serves it: the dependency Catalog plus the Module version map.
+ */
+export type ReleaseCatalog = Catalog & { modules: Record<string, string> };
+
+/**
+ * The shape of a Catalog file before its `modules` map is split from the dependency Catalog.
+ */
+export const catalogFileSchema = z.record(z.string(), z.unknown());

@@ -1,9 +1,20 @@
 {
   "extends": "./tsconfig.base.json",
   "compilerOptions": {
+    "jsx": "react-jsx",
     "paths": {
       "@aokit/module": ["./packages/module/src/index.ts"]
     }
   },
-  "include": ["packages/*/src", "packages/*/test", "tools", "registry-src/*/module.ts", "*.ts"]
+  "include": [
+    "packages/*/src",
+    "packages/*/test",
+    "tools",
+    "registry-src/*/module.ts",
+    "registry-src/*/files/**/*.ts",
+    "registry-src/*/files/**/*.tsx",
+    "registry-src/*/migrations/*.ts",
+    "registry-src/*.d.ts",
+    "*.ts"
+  ]
 }
