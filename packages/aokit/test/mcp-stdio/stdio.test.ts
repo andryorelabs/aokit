@@ -1,5 +1,5 @@
 import { afterAll, expect, test } from "bun:test";
-import { mkdtempSync, readdirSync, realpathSync, rmSync } from "node:fs";
+import { existsSync, mkdtempSync, readdirSync, realpathSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import {
@@ -127,4 +127,27 @@ test("closing stdin while a call runs exits 0 with only JSON-RPC frames on stdou
   await Promise.race([pending, Bun.sleep(100)]);
   expectOnlyJsonRpc(transport.lines);
   expect(readdirSync(workspace)).not.toContain("mid-call");
+}, 60_000);
+
+test("closing stdin while create runs leaves a complete Project or none", async () => {
+  const transport = new RecordingTransport();
+  const client = new Client({ name: "aokit-stdio-test", version: "1.0.0" });
+  await client.connect(transport);
+  const directory = join(workspace, "mid-create");
+  const planned = await client.callTool({ name: "plan", arguments: createInput(directory) });
+  const planData = z
+    .object({ data: z.object({ planId: z.string() }) })
+    .parse(planned.structuredContent).data;
+  const pending = client
+    .callTool({
+      name: "create",
+      arguments: { ...createInput(directory), planId: planData.planId },
+    })
+    .catch(() => undefined);
+  await transport.close();
+  expect(await transport.process.exited).toBe(0);
+  await Promise.race([pending, Bun.sleep(100)]);
+  expectOnlyJsonRpc(transport.lines);
+  const entries = existsSync(directory) ? readdirSync(directory) : [];
+  if (entries.length > 0) expect(entries).toContain("aokit.lock.json");
 }, 60_000);

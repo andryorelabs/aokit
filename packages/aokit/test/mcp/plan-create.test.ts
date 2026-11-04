@@ -211,3 +211,20 @@ describe("create", () => {
     expect(entriesOf(two)).toEqual([]);
   });
 });
+
+describe("call queue", () => {
+  test("two concurrent creates into one directory run one after the other", async () => {
+    const client = await connectClient();
+    const directory = join(workspace, "queued");
+    const planned = await callTool(client, "plan", createInput(directory));
+    const planId = String(planned.data?.["planId"]);
+    const createArguments = { ...createInput(directory), planId };
+    const [first, second] = await Promise.all([
+      callTool(client, "create", createArguments),
+      callTool(client, "create", createArguments),
+    ]);
+    expect(first.ok).toBe(true);
+    expect(second.ok).toBe(false);
+    expect(entriesOf(directory)).toContain("aokit.lock.json");
+  }, 60_000);
+});
