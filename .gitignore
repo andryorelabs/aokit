@@ -1,7 +1,7 @@
 
-# forge local tracker: tickets are versioned, tracker state is not.
-.forge/*
-!.forge/tickets/
+# emet local tracker: tickets are versioned, tracker state is not.
+.emet/*
+!.emet/tickets/
 
 node_modules/
 coverage/
