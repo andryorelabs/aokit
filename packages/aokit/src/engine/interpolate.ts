@@ -49,8 +49,12 @@ export function interpolateTargets(text: string, directoryOf: (target: string) =
  * Applies {@link interpolateTargets} to every string inside a JSON value. Target directories are
  * plain relative paths, so substituting inside the serialized form keeps the JSON valid.
  */
-export function interpolateTargetsDeep<T>(value: T, directoryOf: (target: string) => string): T {
-  const interpolated: T = JSON.parse(interpolateTargets(JSON.stringify(value), directoryOf));
+export function interpolateTargetsDeep<T>(value: T, directoryOf: (target: string) => string): T;
+export function interpolateTargetsDeep(
+  value: unknown,
+  directoryOf: (target: string) => string,
+): unknown {
+  const interpolated: unknown = JSON.parse(interpolateTargets(JSON.stringify(value), directoryOf));
   return interpolated;
 }
 

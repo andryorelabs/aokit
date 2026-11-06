@@ -5,7 +5,7 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { curatedCombinations } from "../real-build/plan.ts";
 import { applyEdit, indexAtRelease, lastPair, planEdits, releasePairs } from "./plan.ts";
-import { type Exec, buildCases, pairsOf, runJob } from "./run.ts";
+import { type Exec, buildCases, pairsOf, readCatalogModules, readIndex, runJob } from "./run.ts";
 
 const workspaceRoot = join(import.meta.dir, "..", "..");
 const scratchRoots: string[] = [];
@@ -63,9 +63,10 @@ describe("release pairs and historical indexes", () => {
   });
 
   test("the index at the first Release drops later Releases and steps Modules back", async () => {
-    const index = await Bun.file(join(workspaceRoot, "registry/index.json")).json();
-    const catalog = await Bun.file(join(workspaceRoot, "registry/catalog/2026.11.0.json")).json();
-    const earlier = indexAtRelease(index, "2026.11.0", catalog.modules);
+    const registry = join(workspaceRoot, "registry");
+    const index = await readIndex(registry);
+    const modules = await readCatalogModules(registry, index, "2026.11.0");
+    const earlier = indexAtRelease(index, "2026.11.0", modules);
     expect(earlier.release).toBe("2026.11.0");
     expect(Object.keys(earlier.releases)).toEqual(["2026.11.0"]);
     expect(earlier.modules["vite-react"]?.latest).toBe("1.0.0");

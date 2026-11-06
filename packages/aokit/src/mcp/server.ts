@@ -9,7 +9,7 @@ import {
   type Envelope,
 } from "../cli/envelope.ts";
 import { cliVersion } from "../cli/version.ts";
-import { z } from "zod";
+import type { z } from "zod";
 import { createPlanSession } from "./plan-id.ts";
 import { toToolResult } from "./result.ts";
 import { mcpTools } from "./tools/index.ts";
