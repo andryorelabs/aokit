@@ -53,9 +53,9 @@ test("add with interactive false fails with the exact --trust form and opens no 
     {
       ...context,
       interactive: false,
-      prompt: async () => {
+      prompt: () => {
         asked += 1;
-        return "yes";
+        return Promise.resolve("yes");
       },
     },
     addInput(project, url),
@@ -74,9 +74,9 @@ test("add with interactive true asks the injected prompt for trust", async () =>
     {
       ...context,
       interactive: true,
-      prompt: async (question) => {
+      prompt: (question) => {
         questions.push(question);
-        return "yes";
+        return Promise.resolve("yes");
       },
     },
     addInput(project, url),
@@ -118,9 +118,9 @@ test("runCli puts interactive and the prompt into the context so the CLI trust p
   ];
   const exitCode = await runAddThroughCli(context, argv, {
     interactive: true,
-    prompt: async (question) => {
+    prompt: (question) => {
       questions.push(question);
-      return "yes";
+      return Promise.resolve("yes");
     },
   });
   expect(questions[0]).toContain("Trust it?");
@@ -143,9 +143,9 @@ test("runCli with interactive false never asks and fails with the --trust form",
   ];
   const exitCode = await runAddThroughCli(context, argv, {
     interactive: false,
-    prompt: async () => {
+    prompt: () => {
       asked += 1;
-      return "yes";
+      return Promise.resolve("yes");
     },
   });
   expect(asked).toBe(0);

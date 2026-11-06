@@ -40,10 +40,11 @@ class RecordingTransport implements Transport {
   onerror?: (error: Error) => void;
   onmessage?: (message: JSONRPCMessage) => void;
 
-  async start(): Promise<void> {
+  start(): Promise<void> {
     this.read().catch((error: unknown) => {
       this.onerror?.(error instanceof Error ? error : new Error(String(error)));
     });
+    return Promise.resolve();
   }
 
   private async read(): Promise<void> {
@@ -98,7 +99,9 @@ test("plan then create over stdio writes only JSON-RPC frames to stdout and exit
   const client = new Client({ name: "aokit-stdio-test", version: "1.0.0" });
   await client.connect(transport);
   const { tools } = await client.listTools();
-  expect(tools.map((tool) => tool.name)).toEqual(expect.arrayContaining(["plan", "create"]));
+  const toolNames = tools.map((tool) => tool.name);
+  expect(toolNames).toContain("plan");
+  expect(toolNames).toContain("create");
   const directory = join(workspace, "app");
   const planned = await client.callTool({ name: "plan", arguments: createInput(directory) });
   const planData = z

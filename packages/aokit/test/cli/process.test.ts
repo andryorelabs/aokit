@@ -4,6 +4,7 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 
 import { spawnAokit as spawnAokitProcess } from "../helpers/aokit-process.ts";
+import { z } from "zod";
 
 const shutdownModule = join(import.meta.dir, "..", "..", "src", "cli", "shutdown.ts");
 
@@ -13,9 +14,9 @@ function spawnAokit(argv: string[], env: Record<string, string> = {}) {
 
 test("aokit --version prints only the version through the binary entry", async () => {
   const result = await spawnAokit(["--version"]);
-  const packageManifest: { version: string } = await Bun.file(
-    join(import.meta.dir, "..", "..", "package.json"),
-  ).json();
+  const packageManifest = z
+    .object({ version: z.string() })
+    .parse(await Bun.file(join(import.meta.dir, "..", "..", "package.json")).json());
   expect(result).toEqual({ stdout: `${packageManifest.version}\n`, stderr: "", exitCode: 0 });
 });
 

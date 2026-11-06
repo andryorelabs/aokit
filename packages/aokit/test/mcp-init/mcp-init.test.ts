@@ -9,6 +9,7 @@ import { runCommand } from "../../src/cli/command.ts";
 import { exposedCommands } from "../../src/cli/commands/registry.ts";
 import { mcpInitCommand } from "../../src/cli/commands/mcp-init.ts";
 import { exitCodeForErrorCode } from "../../src/cli/exit-codes.ts";
+import { commandNamesFrom, jsonAt, keysAt, parseJson } from "../helpers/cli-json.ts";
 
 let directory: string;
 
@@ -114,8 +115,8 @@ test("another server stays byte-identical", async () => {
   await writeFile(join(directory, ".cursor/mcp.json"), other);
   await init({ client: "cursor" });
   const text = await read(".cursor/mcp.json");
-  const parsed = JSON.parse(text);
-  expect(Object.keys(parsed.mcpServers).toSorted()).toEqual(["aokit", "zeta"]);
+  const parsed = parseJson(text);
+  expect(keysAt(parsed, "mcpServers").toSorted()).toEqual(["aokit", "zeta"]);
   expect(text).toContain(`    "zeta": { "command": "node", "args": ["z.js"] }`);
 });
 
@@ -138,7 +139,10 @@ test("an existing aokit entry with different args is replaced, not unioned", asy
   expect(result).toMatchObject({ ok: true, data: { changed: true } });
   const text = await read(".mcp.json");
   expect(text).toContain("// note");
-  expect(parse(text).mcpServers.aokit).toEqual({ command: "bunx", args: ["aokit", "mcp"] });
+  expect(jsonAt(parse(text), "mcpServers", "aokit")).toEqual({
+    command: "bunx",
+    args: ["aokit", "mcp"],
+  });
 });
 
 test("an existing aokit entry keeps keys the user added", async () => {
@@ -150,7 +154,7 @@ test("an existing aokit entry keeps keys the user added", async () => {
   expect(result).toMatchObject({ ok: true, data: { changed: true } });
   const text = await read(".mcp.json");
   expect(text).toContain("// note");
-  expect(parse(text).mcpServers.aokit).toEqual({
+  expect(jsonAt(parse(text), "mcpServers", "aokit")).toEqual({
     command: "bunx",
     args: ["aokit", "mcp"],
     env: { A: "1" },
@@ -185,13 +189,12 @@ test("--json returns client, path, changed and content", async () => {
     "--json",
   ]);
   expect(run.exitCode).toBe(0);
-  const envelope = JSON.parse(run.stdout);
-  expect(Object.keys(envelope.data).toSorted()).toEqual(["changed", "client", "content", "path"]);
+  const envelope = parseJson(run.stdout);
+  expect(keysAt(envelope, "data").toSorted()).toEqual(["changed", "client", "content", "path"]);
 });
 
 test("aokit schema lists mcp init and --help prints its flags", async () => {
-  const index = JSON.parse((await runAokit(["schema"])).stdout);
-  expect(index.commands.map((command: { name: string }) => command.name)).toContain("mcp init");
+  expect(commandNamesFrom((await runAokit(["schema"])).stdout)).toContain("mcp init");
   const help = await runAokit(["mcp", "init", "--help"]);
   expect(help.exitCode).toBe(0);
   for (const flag of ["--client", "--print", "--dry-run"]) expect(help.stdout).toContain(flag);

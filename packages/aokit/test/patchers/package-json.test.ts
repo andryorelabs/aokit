@@ -1,5 +1,6 @@
 import { expect, test } from "bun:test";
 import { mergePackageJson } from "../../src/patchers/package-json/index.ts";
+import { jsonAt, keysAt, parseJson } from "../helpers/cli-json.ts";
 
 const source = JSON.stringify({
   name: "app",
@@ -12,11 +13,11 @@ test("mergePackageJson merges dependencies by name with sorted keys and keeps ex
     devDependencies: { typescript: "6.0.0" },
     scripts: { test: "bun test", build: "x" },
   });
-  const parsed: Record<string, unknown> = JSON.parse(result);
-  expect(Object.keys(Object(parsed.dependencies))).toEqual(["a", "b", "zod"]);
-  expect(Object(parsed.dependencies)).toHaveProperty("zod", "^3.0.0");
-  expect(Object.keys(Object(parsed.scripts))).toEqual(["build", "test"]);
-  expect(Object.keys(parsed)[0]).toBe("name");
+  const parsed = parseJson(result);
+  expect(keysAt(parsed, "dependencies")).toEqual(["a", "b", "zod"]);
+  expect(jsonAt(parsed, "dependencies", "zod")).toBe("^3.0.0");
+  expect(keysAt(parsed, "scripts")).toEqual(["build", "test"]);
+  expect(keysAt(parsed)[0]).toBe("name");
 });
 
 test("mergePackageJson is idempotent", () => {

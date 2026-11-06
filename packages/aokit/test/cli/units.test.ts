@@ -79,7 +79,7 @@ describe("shutdown hooks", () => {
     registerShutdownHook(() => {
       throw new Error("hook failure");
     });
-    registerShutdownHook(async () => {
+    registerShutdownHook(() => {
       calls.push("third");
     });
     await runShutdownHooks();

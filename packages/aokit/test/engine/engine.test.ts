@@ -76,12 +76,9 @@ test("an unresolvable Target names the Target and its Modules", async () => {
   );
   const broken: EngineModule = {
     readFile: (from) => module.readFile(from),
-    manifest: JSON.parse(
-      JSON.stringify({
-        ...module.manifest,
-        files: [{ from: "a", to: "a.txt", target: "mobile" }],
-      }),
-    ),
+    manifest: Object.assign({}, module.manifest, {
+      files: [{ from: "a", to: "a.txt", target: "mobile" }],
+    }),
   };
   const error = await capture(() => build([broken]));
   expect(error.code).toBe("engine.layout-unresolvable");
