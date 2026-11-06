@@ -10,6 +10,7 @@ Cross-repo standards that aokit's first-party Modules encode and that Andry's ow
 | [typescript](typescript.md)         | TypeScript 6.x plus the `typescript7` alias, explicit bins, `astro check`.                                                    |
 | [renovate](renovate.md)             | Range strategy, release age, automerge, Toolchain pin groups.                                                                 |
 | [docs-and-forge](docs-and-forge.md) | ADRs, `GLOSSARY.md`, `AGENTS.md`, skills, Linear conventions, trunk branch.                                                   |
+| [testing](testing.md)               | Coverage threshold policy and the coverage manifest.                                                                          |
 
 The standards map to Modules in the [module catalog](../architecture/module-catalog.md): `oxc`, `eslint` companion, `commitlint` + `husky` + `lint-staged`, `knip`, `playwright` + `axe`, `renovate` and `adr-docs`. Terms follow [GLOSSARY.md](../../GLOSSARY.md).
 
