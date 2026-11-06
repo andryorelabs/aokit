@@ -1,5 +1,5 @@
 import { readdir } from "node:fs/promises";
-import { dirname, join, posix } from "node:path";
+import { join, posix } from "node:path";
 import { lockfileName, type ConflictWrite } from "../apply/index.ts";
 import { AokitError } from "../cli/envelope.ts";
 import { cliVersion } from "../cli/version.ts";
@@ -79,8 +79,9 @@ async function unmanagedFiles(
   movedFrom: readonly string[],
 ): Promise<string[]> {
   const directories = new Set(
-    movedFrom.map((path) => dirname(path)).filter((parent) => parent !== "."),
+    movedFrom.filter((path) => path.includes("/")).map((path) => path.split("/")[0] ?? ""),
   );
+  directories.delete("");
   const found = await Promise.all([...directories].map((parent) => filesUnder(directory, parent)));
   const unmanaged = new Set(found.flat().filter((path) => lockfile.files[path] === undefined));
   return [...unmanaged].toSorted();

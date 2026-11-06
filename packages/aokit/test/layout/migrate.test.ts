@@ -272,7 +272,7 @@ describe("aokit layout migrate", () => {
     expect(conflicts).toContain("apps/web/tsconfig.json");
   });
 
-  test("monorepo to single follows the merge policy for colliding tsconfig.json files", async () => {
+  test("monorepo to single keeps a user tsconfig.json left in an emptied Target directory and warns", async () => {
     const directory = await committed("monorepo", full);
     await writeFile(join(directory, "apps/web/tsconfig.json"), "\n// web edit\n", { flag: "a" });
     await writeFile(join(directory, "apps/server/tsconfig.json"), "\n// server edit\n", {
@@ -288,6 +288,7 @@ describe("aokit layout migrate", () => {
     expect(serverSide).toContain("// server edit");
     const renamedFrom = envelope.data.plan.changes.map((change) => change.renamedFrom);
     expect(renamedFrom).not.toContain("apps/server/tsconfig.json");
+    expect(envelope.data.warnings.join("\n")).toContain("apps/server/tsconfig.json");
   });
 
   describe("conflicts and abort", () => {
