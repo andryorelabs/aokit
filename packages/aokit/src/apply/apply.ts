@@ -386,16 +386,17 @@ export async function apply(
     await assertParentExists(projectDirectory);
     const project = await resolveProjectKind(projectDirectory);
     throwIfInterrupted(interruption);
-    stagingDirectory = join(
+    const createdDirectory = join(
       dirname(projectDirectory),
       `.${basename(projectDirectory)}.aokit-tmp-${randomBytes(6).toString("hex")}`,
     );
-    await mkdir(stagingDirectory, { mode: 0o777 });
+    await mkdir(createdDirectory, { mode: 0o777 });
+    stagingDirectory = createdDirectory;
     const applyByKind = project === "new" ? applyNew : applyExisting;
     const stash = await applyByKind(
       plan,
       lockfile,
-      stagingDirectory,
+      createdDirectory,
       projectDirectory,
       interruption,
       options,
