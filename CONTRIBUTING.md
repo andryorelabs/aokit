@@ -8,6 +8,8 @@ By participating in this project, you agree to abide by the [Code of Conduct](CO
 
 This repository uses [bun](https://bun.sh) only. Install with `bun install --frozen-lockfile`. Check the `package.json` scripts before running anything, and do not run the build unless asked.
 
+To hide the lint-debt commits from `git blame`, run `git config blame.ignoreRevsFile .git-blame-ignore-revs` once (see [.git-blame-ignore-revs](.git-blame-ignore-revs)).
+
 Terms follow [GLOSSARY.md](GLOSSARY.md). The architecture is in [docs/architecture/overview.md](docs/architecture/overview.md) and the coding standards are in [docs/standards](docs/standards/README.md).
 
 ## Branch naming and commit format
