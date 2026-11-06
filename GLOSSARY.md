@@ -132,6 +132,10 @@ _Avoid_: release (of the CLI), CLI release
 A VFS codemod shipped with a Module version that carries a Project across a change a re-render cannot, and may migrate the Module's answers.
 _Avoid_: upgrade script, codemod, hook
 
+**Layout migration**:
+Moving a Project from one Layout to the other, carrying the user's edits by rename and 3-way merge; it keeps the Release and the Selected Modules.
+_Avoid_: Migration, restructure
+
 **Renames manifest**:
 A Module version's map from the previous version's paths to its own, relative to a Target, so the user's edits follow a moved file.
 _Avoid_: move list, path map
@@ -161,11 +165,13 @@ _Avoid_: app, workspace
 - A **Registry** publishes **Releases**; each Release has one **Catalog**; the **Toolchain pin group** is the part of the Catalog pinned exactly.
 - A command fetches only from a **Trusted Registry**; a git-hosted Registry is fetched at its **Pin**, and a **Yanked version** is served but never chosen.
 - A **Release** is a Registry snapshot; a **CLI version** is the program that reads it; a Registry index can require a minimum CLI version.
+- `layout migrate` performs a **Layout migration**: it pairs files across two Renders by **Provenance**.
 - A Module version may ship **Migrations** and a **Renames manifest**; `update` moves a Project from one Release to another and runs them.
 
 ## Flagged ambiguities
 
 - "Release" always means a Registry Release. The program's own versions are CLI versions, and the page GitHub shows for one is a "GitHub Release", never a bare "Release".
+- "Migration" means only a Module version's codemod; moving between Layouts is a Layout migration.
 - "preset" is deliberately absent: reusable selections are the Lockfile of a real project (`create --from`), not a maintained bundle.
 - "marker" means only the begin or end comment of a Region; an Anchor is never a marker.
 - "template" means only a Module's plain source files; it never means a bundle of choices.

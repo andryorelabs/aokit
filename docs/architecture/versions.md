@@ -20,10 +20,10 @@ The Lockfile records the outcome per dependency in `deps.<name>` as `{version, p
 
 A Toolchain pin group is a set of dependencies pinned exactly regardless of the default. A Module marks a dependency with `pinGroup` ([Module contract](module-contract.md#deps)); every Module listing the same group name moves together, because the packages in a group must be tested as one version set.
 
-| Group | Members | Why |
-| --- | --- | --- |
-| `oxc` | `oxlint`, `oxfmt`, `oxlint-tsgolint`, and the other Oxc packages | Rule behavior and formatter output change between versions. The format phase is part of [deterministic generation](engine.md#determinism), so a floating formatter would make the same inputs produce different bytes. |
-| `typescript7` | `typescript` as the real 6.x release from the Catalog, plus an exact alias `typescript7` to the 7.x native release | Both compilers must coexist while 7.x has no JS API. |
+| Group         | Members                                                                                                            | Why                                                                                                                                                                                                                    |
+| ------------- | ------------------------------------------------------------------------------------------------------------------ | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `oxc`         | `oxlint`, `oxfmt`, `oxlint-tsgolint`, and the other Oxc packages                                                   | Rule behavior and formatter output change between versions. The format phase is part of [deterministic generation](engine.md#determinism), so a floating formatter would make the same inputs produce different bytes. |
+| `typescript7` | `typescript` as the real 6.x release from the Catalog, plus an exact alias `typescript7` to the 7.x native release | Both compilers must coexist while 7.x has no JS API.                                                                                                                                                                   |
 
 Rules for the TypeScript group:
 

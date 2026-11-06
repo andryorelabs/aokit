@@ -19,16 +19,17 @@ The input of each command (`create`, `add`, `remove`, `update`, ...) is one Zod 
 
 ```ts
 interface AokitMeta {
-  flag?: string;          // long flag name; defaults to the kebab-cased key
-  alias?: string;         // single-letter alias
-  positional?: number;    // position among positional arguments
-  prompt?: {              // how the interactive surface asks
+  flag?: string; // long flag name; defaults to the kebab-cased key
+  alias?: string; // single-letter alias
+  positional?: number; // position among positional arguments
+  prompt?: {
+    // how the interactive surface asks
     type: "text" | "select" | "multiselect" | "confirm";
     message: string;
   };
-  group?: string;         // help section and prompt group
-  hidden?: boolean;       // omitted from help, prompts and web UI; still accepted
-  examples?: string[];    // real example values, reused by --help and tool descriptions
+  group?: string; // help section and prompt group
+  hidden?: boolean; // omitted from help, prompts and web UI; still accepted
+  examples?: string[]; // real example values, reused by --help and tool descriptions
 }
 
 export const aokitMeta = z.registry<AokitMeta>();
@@ -46,14 +47,14 @@ Fields are registered with `.register(aokitMeta, {...})`, so the schema stays pl
 
 ### Surfaces
 
-| Surface | Driven by | Notes |
-| --- | --- | --- |
-| Flags | schema + `flag`, `alias`, `positional`, `group`, `hidden` | Parsed by trpc-cli behind the command layer below. |
-| Prompts | schema + `prompt`, `group`, defaults | Only for fields the flags did not supply; see [CLI UX](cli-ux.md#principles). |
-| `--json` | output schema | Same `{ok, data, error}` envelope as MCP. |
-| `aokit schema` | `z.toJSONSchema(..., { io: "input" })` | See below. |
-| MCP | the same JSON Schemas as tool input | See [MCP server](#mcp-server). |
-| Web UI (possible, later) | JSON Schema + `prompt`, `group`, `examples` | Not designed in detail; the schema is the only contract it would need. |
+| Surface                  | Driven by                                                 | Notes                                                                         |
+| ------------------------ | --------------------------------------------------------- | ----------------------------------------------------------------------------- |
+| Flags                    | schema + `flag`, `alias`, `positional`, `group`, `hidden` | Parsed by trpc-cli behind the command layer below.                            |
+| Prompts                  | schema + `prompt`, `group`, defaults                      | Only for fields the flags did not supply; see [CLI UX](cli-ux.md#principles). |
+| `--json`                 | output schema                                             | Same `{ok, data, error}` envelope as MCP.                                     |
+| `aokit schema`           | `z.toJSONSchema(..., { io: "input" })`                    | See below.                                                                    |
+| MCP                      | the same JSON Schemas as tool input                       | See [MCP server](#mcp-server).                                                |
+| Web UI (possible, later) | JSON Schema + `prompt`, `group`, `examples`               | Not designed in detail; the schema is the only contract it would need.        |
 
 ### Command layer
 
@@ -85,14 +86,14 @@ The layer holds no generation logic: it calls the Registry client, Resolver and 
 
 ### Tools
 
-| Tool | Purpose | Input | `data` on success |
-| --- | --- | --- | --- |
-| `get_guidance` | How to use aokit correctly: vocabulary, the plan-before-create rule, how to choose Modules, which tools to call in what order. | `{ topic: "overview" \| "workflow" \| "modules" \| "layouts" \| "errors" }` | `{ topic, markdown }` |
-| `get_schema` | JSON Schema for a command's input (the same output as `aokit schema`), plus the available Modules, Capabilities and Layouts. | `{ command: "create" \| "add" \| "remove" \| "update" }` | `{ command, inputSchema, modules: [{ name, version, provides, requires, conflicts }], layouts }` |
-| `plan` | Resolve a new Project and return its Plan without writing. | the explicit `create` input (`directory`, `layout`, `modules`, `answer`, `registry`, `trust`, ...) | the `create` output data (`modules`, `plan`, `warnings`, `reproduce`, ...) plus `{ planId, nextSteps }` |
-| `create` | Apply a previously planned `create`. Writes the Project. `destructiveHint: true`. | the explicit `create` input plus `{ planId }` | the `create` output data plus `{ nextSteps }` |
-| `plan_add` | Resolve adding Modules to an existing Project (read from its Lockfile) and return the Plan. | the explicit `add` input | the `add` output data (`added`, `pulledIn`, `conflicts`, `plan`, `reproduce`, ...) plus `{ planId, nextSteps }` |
-| `add` | Apply a previously planned `add`. Writes files and the Lockfile. `destructiveHint: true`. | the explicit `add` input plus `{ planId }` | the `add` output data plus `{ nextSteps }` |
+| Tool           | Purpose                                                                                                                        | Input                                                                                              | `data` on success                                                                                               |
+| -------------- | ------------------------------------------------------------------------------------------------------------------------------ | -------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------- |
+| `get_guidance` | How to use aokit correctly: vocabulary, the plan-before-create rule, how to choose Modules, which tools to call in what order. | `{ topic: "overview" \| "workflow" \| "modules" \| "layouts" \| "errors" }`                        | `{ topic, markdown }`                                                                                           |
+| `get_schema`   | JSON Schema for a command's input (the same output as `aokit schema`), plus the available Modules, Capabilities and Layouts.   | `{ command: "create" \| "add" \| "remove" \| "update" }`                                           | `{ command, inputSchema, modules: [{ name, version, provides, requires, conflicts }], layouts }`                |
+| `plan`         | Resolve a new Project and return its Plan without writing.                                                                     | the explicit `create` input (`directory`, `layout`, `modules`, `answer`, `registry`, `trust`, ...) | the `create` output data (`modules`, `plan`, `warnings`, `reproduce`, ...) plus `{ planId, nextSteps }`         |
+| `create`       | Apply a previously planned `create`. Writes the Project. `destructiveHint: true`.                                              | the explicit `create` input plus `{ planId }`                                                      | the `create` output data plus `{ nextSteps }`                                                                   |
+| `plan_add`     | Resolve adding Modules to an existing Project (read from its Lockfile) and return the Plan.                                    | the explicit `add` input                                                                           | the `add` output data (`added`, `pulledIn`, `conflicts`, `plan`, `reproduce`, ...) plus `{ planId, nextSteps }` |
+| `add`          | Apply a previously planned `add`. Writes files and the Lockfile. `destructiveHint: true`.                                      | the explicit `add` input plus `{ planId }`                                                         | the `add` output data plus `{ nextSteps }`                                                                      |
 
 Notes:
 
@@ -102,7 +103,7 @@ Notes:
 - `nextSteps` is data (for example `bun install`); the server never runs the install, as it is outside the [deterministic phase](engine.md#determinism).
 - `remove` and `update` are CLI-only in v1: they can leave merge conflicts that need a human, which does not fit a single-shot tool call.
 - `error.code` is a stable specific code (`CAPABILITY_CONFLICT`, `PLAN_REQUIRED`, `DIRTY_TREE`, ...). Each code belongs to one category of the [exit-code table](cli-ux.md#exit-codes) (usage, resolution, precondition, failure), which is what the CLI turns into its exit code; MCP has no exit codes, so the specific code is the contract.
-Example result (`plan`, failing resolution):
+  Example result (`plan`, failing resolution):
 
 ```json
 {
@@ -120,12 +121,12 @@ Example result (`plan`, failing resolution):
 
 `aokit mcp` with no subcommand starts the server; `aokit mcp init --client <claude|cursor|vscode|codex>` writes the client's MCP configuration so the server starts with `bunx aokit mcp`:
 
-| Client | File written | Server key |
-| --- | --- | --- |
-| `claude` | `.mcp.json` in the project (or `claude mcp add` instructions with `--print`) | `mcpServers` |
-| `cursor` | `.cursor/mcp.json` | `mcpServers` |
-| `vscode` | `.vscode/mcp.json` | `servers`, with `type: "stdio"` |
-| `codex` | prints the `~/.codex/config.toml` block and writes nothing (`--write` is deferred) | `mcp_servers` |
+| Client   | File written                                                                       | Server key                      |
+| -------- | ---------------------------------------------------------------------------------- | ------------------------------- |
+| `claude` | `.mcp.json` in the project (or `claude mcp add` instructions with `--print`)       | `mcpServers`                    |
+| `cursor` | `.cursor/mcp.json`                                                                 | `mcpServers`                    |
+| `vscode` | `.vscode/mcp.json`                                                                 | `servers`, with `type: "stdio"` |
+| `codex`  | prints the `~/.codex/config.toml` block and writes nothing (`--write` is deferred) | `mcp_servers`                   |
 
 The command merges into an existing file without touching other servers or comments (the JSONC patcher of the [non-TS patchers](engine.md#non-ts-patchers)), is a no-op on a second run, honors `--dry-run`, and prints the exact change. A file that is not valid JSONC fails with `INVALID_CONFIG` and is left unchanged. With `--json` it returns `{ client, path, changed, content }`.
 

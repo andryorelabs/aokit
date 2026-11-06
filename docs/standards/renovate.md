@@ -4,12 +4,12 @@ The `renovate` Module ships this policy. It implements the default dependency po
 
 ## Defaults
 
-| Setting | Value | Reason |
-| --- | --- | --- |
-| `rangeStrategy` | `bump` | Ranges in `package.json` move with the lockfile, so the declared range always reflects what is installed. |
-| `minimumReleaseAge` | `3 days` by default; `7 days` for groups that break often | Gives the registry time to yank bad or compromised releases before they land. |
-| Lockfile | Bun lockfile committed | Reproducible installs; Renovate updates both. |
-| Schedule | Per repo | Not part of the standard. |
+| Setting             | Value                                                     | Reason                                                                                                    |
+| ------------------- | --------------------------------------------------------- | --------------------------------------------------------------------------------------------------------- |
+| `rangeStrategy`     | `bump`                                                    | Ranges in `package.json` move with the lockfile, so the declared range always reflects what is installed. |
+| `minimumReleaseAge` | `3 days` by default; `7 days` for groups that break often | Gives the registry time to yank bad or compromised releases before they land.                             |
+| Lockfile            | Bun lockfile committed                                    | Reproducible installs; Renovate updates both.                                                             |
+| Schedule            | Per repo                                                  | Not part of the standard.                                                                                 |
 
 All active reference repositories already use `bump` with a release age and automerge; none pins every dependency.
 
@@ -23,10 +23,10 @@ All active reference repositories already use `bump` with a release age and auto
 
 Toolchain pin groups are pinned exactly (`rangeStrategy: "pin"`), each in its own group so the members move in one pull request:
 
-| Group | Members |
-| --- | --- |
-| `oxc` | `oxlint`, `oxfmt`, the Oxlint type-aware backend, related oxc packages |
-| `typescript7` | the `typescript7` alias (`typescript@7.1.0-beta`) |
+| Group         | Members                                                                |
+| ------------- | ---------------------------------------------------------------------- |
+| `oxc`         | `oxlint`, `oxfmt`, the Oxlint type-aware backend, related oxc packages |
+| `typescript7` | the `typescript7` alias (`typescript@7.1.0-beta`)                      |
 
 The real `typescript` 6.x dependency follows the normal range policy unless the Project's Catalog pins it.
 

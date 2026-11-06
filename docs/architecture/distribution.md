@@ -47,14 +47,14 @@ Verification instructions (download, `sha256sum -c SHA256SUMS`, `gh attestation 
 
 Two options were compared for versioning, changelog and tagging.
 
-| | changesets | bumpp + changelogithub |
-| --- | --- | --- |
-| Model | A markdown "changeset" file per change, committed with the PR; a bot opens a "Version Packages" PR that aggregates them. | The maintainer runs `bumpp` to bump the version, tag and push; `changelogithub` generates GitHub release notes from conventional commits. |
-| Fit for monorepo with several packages | Built for it: per-package versions, dependency bumps, linked and fixed groups. | Single version; fine for one version across packages, no per-package logic. |
-| Source of release notes | Hand-written changeset text. | Commit messages, which in this repo are already gitmoji + conventional commits with bullet bodies. |
-| Extra process | Contributors must add a changeset; a release PR must be merged. | None per change; one command per release. |
-| npm trusted publishing | Works; publish step in CI after the release PR merges. | Works; publish step runs on the pushed tag. |
-| Maintenance | More moving parts (action, bot PR, config). | Two small tools. |
+|                                        | changesets                                                                                                               | bumpp + changelogithub                                                                                                                    |
+| -------------------------------------- | ------------------------------------------------------------------------------------------------------------------------ | ----------------------------------------------------------------------------------------------------------------------------------------- |
+| Model                                  | A markdown "changeset" file per change, committed with the PR; a bot opens a "Version Packages" PR that aggregates them. | The maintainer runs `bumpp` to bump the version, tag and push; `changelogithub` generates GitHub release notes from conventional commits. |
+| Fit for monorepo with several packages | Built for it: per-package versions, dependency bumps, linked and fixed groups.                                           | Single version; fine for one version across packages, no per-package logic.                                                               |
+| Source of release notes                | Hand-written changeset text.                                                                                             | Commit messages, which in this repo are already gitmoji + conventional commits with bullet bodies.                                        |
+| Extra process                          | Contributors must add a changeset; a release PR must be merged.                                                          | None per change; one command per release.                                                                                                 |
+| npm trusted publishing                 | Works; publish step in CI after the release PR merges.                                                                   | Works; publish step runs on the pushed tag.                                                                                               |
+| Maintenance                            | More moving parts (action, bot PR, config).                                                                              | Two small tools.                                                                                                                          |
 
 **Decision: bumpp + changelogithub.** aokit has two packages released together at one version (`aokit` and `create-aokit`), a single maintainer, and commit messages that already follow a strict convention, so generated notes cost nothing and a per-change changeset file would be duplicated effort. The release flow is: `bumpp` creates the version commit and tag, the tag triggers the workflow, which builds, tests, publishes to npm with provenance, builds the binaries, generates `SHA256SUMS` and attestations, and runs `changelogithub` to fill the GitHub Release. Revisit changesets only if the repository grows packages that must version independently.
 

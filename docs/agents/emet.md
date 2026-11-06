@@ -56,7 +56,7 @@ internal links checked by hand.
 
 Max `concurrency.waveSize` live agents per wave, and a global
 `concurrency.maxLiveWorkers` cap shared **host-wide** — by every
-concurrently running `/forge` coordinator on this machine, across *every*
+concurrently running `/forge` coordinator on this machine, across _every_
 repo and every git worktree of every repo (e.g. several Orca worktrees of
 this same repo, or an entirely unrelated repo, all draw from one pool). The
 pool lives under `~/.local/state/forge/slots`, not this repo's own

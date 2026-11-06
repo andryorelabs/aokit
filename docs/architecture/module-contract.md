@@ -24,23 +24,23 @@ export default defineModule({
 
 ## Field table
 
-| Field | Type | Meaning |
-| --- | --- | --- |
-| `$schema` | URL string | JSON Schema of the manifest format, for editors and validation. |
-| `schemaVersion` | integer | Manifest format version, see [Schema versioning](#schema-versioning). |
-| `name` | string | Unique within a Registry. |
-| `version` | semver | Module version. Immutable once published. |
-| `provides` | `{ capability, cardinality? }[]` | Capabilities this Module offers; Cardinality per entry (default `{ max: 1 }`). See [Capabilities](capabilities.md#cardinality). |
-| `requires` | string[] | Capabilities that must be provided by another selected Module, and Extension points as `ext:<name>@<range>`. Never a Layout. |
-| `conflicts` | string[] | Module names or Capabilities that must not be selected together with this Module. |
-| `answers` | schema | Questions the Module asks (feeds `{{var}}` and the prompt schema). Optional. |
-| `files` | `{ from, to, target, mode?, ownership? }[]` | Plain source files copied into a [Target](layouts.md#targets). `to` is relative to the Target and may contain `__name__` and `{{var}}`. File content and data Op strings may also contain `{{target:<name>}}`, replaced by the directory the Layout resolves for that Target (`.` for the root). File content may also contain `{{import:<target>:<subpath>}}`, replaced by the relative import specifier from the importing file to that location in the Layout; an unresolvable Target or a path that leaves the Project fails the build. |
-| `deps` | see [deps](#deps) | npm dependencies, per dependency type, with optional `pinGroup`. |
-| `env` | `{ key, scope, example?, schema? }[]` | Environment variables the Module needs; written through the `env` patcher, never overwriting existing keys. |
-| `ops` | [Op](engine.md#ops-catalog)[] | Declarative edits at Extension points or files. |
-| `extensionPoints` | `{ name, version, target, kind, anchor, file? }[]` | Extension points this (base) Module declares. See [Capabilities](capabilities.md#extension-points). |
-| `override` | `{ file \| op, reason }[]` | Explicit permission to replace something another Module produced, see [Override](#override). |
-| `migrations` | `{ from, to, stage, script }[]` | Migrations between versions: `from` a semver range, `to` a semver, `stage` `"before"` or `"after"`, `script` a path relative to the version directory. Authored in TypeScript with `defineMigration`; see [Lifecycle: migrations](lifecycle.md#migrations). |
+| Field             | Type                                               | Meaning                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                     |
+| ----------------- | -------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `$schema`         | URL string                                         | JSON Schema of the manifest format, for editors and validation.                                                                                                                                                                                                                                                                                                                                                                                                                                                                             |
+| `schemaVersion`   | integer                                            | Manifest format version, see [Schema versioning](#schema-versioning).                                                                                                                                                                                                                                                                                                                                                                                                                                                                       |
+| `name`            | string                                             | Unique within a Registry.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                   |
+| `version`         | semver                                             | Module version. Immutable once published.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                   |
+| `provides`        | `{ capability, cardinality? }[]`                   | Capabilities this Module offers; Cardinality per entry (default `{ max: 1 }`). See [Capabilities](capabilities.md#cardinality).                                                                                                                                                                                                                                                                                                                                                                                                             |
+| `requires`        | string[]                                           | Capabilities that must be provided by another selected Module, and Extension points as `ext:<name>@<range>`. Never a Layout.                                                                                                                                                                                                                                                                                                                                                                                                                |
+| `conflicts`       | string[]                                           | Module names or Capabilities that must not be selected together with this Module.                                                                                                                                                                                                                                                                                                                                                                                                                                                           |
+| `answers`         | schema                                             | Questions the Module asks (feeds `{{var}}` and the prompt schema). Optional.                                                                                                                                                                                                                                                                                                                                                                                                                                                                |
+| `files`           | `{ from, to, target, mode?, ownership? }[]`        | Plain source files copied into a [Target](layouts.md#targets). `to` is relative to the Target and may contain `__name__` and `{{var}}`. File content and data Op strings may also contain `{{target:<name>}}`, replaced by the directory the Layout resolves for that Target (`.` for the root). File content may also contain `{{import:<target>:<subpath>}}`, replaced by the relative import specifier from the importing file to that location in the Layout; an unresolvable Target or a path that leaves the Project fails the build. |
+| `deps`            | see [deps](#deps)                                  | npm dependencies, per dependency type, with optional `pinGroup`.                                                                                                                                                                                                                                                                                                                                                                                                                                                                            |
+| `env`             | `{ key, scope, example?, schema? }[]`              | Environment variables the Module needs; written through the `env` patcher, never overwriting existing keys.                                                                                                                                                                                                                                                                                                                                                                                                                                 |
+| `ops`             | [Op](engine.md#ops-catalog)[]                      | Declarative edits at Extension points or files.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                             |
+| `extensionPoints` | `{ name, version, target, kind, anchor, file? }[]` | Extension points this (base) Module declares. See [Capabilities](capabilities.md#extension-points).                                                                                                                                                                                                                                                                                                                                                                                                                                         |
+| `override`        | `{ file \| op, reason }[]`                         | Explicit permission to replace something another Module produced, see [Override](#override).                                                                                                                                                                                                                                                                                                                                                                                                                                                |
+| `migrations`      | `{ from, to, stage, script }[]`                    | Migrations between versions: `from` a semver range, `to` a semver, `stage` `"before"` or `"after"`, `script` a path relative to the version directory. Authored in TypeScript with `defineMigration`; see [Lifecycle: migrations](lifecycle.md#migrations).                                                                                                                                                                                                                                                                                 |
 
 ### `files`
 
@@ -104,8 +104,18 @@ Declarative Ops cover the common edits. A Module may also ship an arbitrary tran
   "requires": [],
   "conflicts": ["eslint-prettier"],
   "files": [
-    { "from": "files/oxlintrc.json", "to": ".oxlintrc.json", "target": "config", "ownership": "managed" },
-    { "from": "files/oxfmtrc.json", "to": ".oxfmtrc.json", "target": "config", "ownership": "managed" }
+    {
+      "from": "files/oxlintrc.json",
+      "to": ".oxlintrc.json",
+      "target": "config",
+      "ownership": "managed"
+    },
+    {
+      "from": "files/oxfmtrc.json",
+      "to": ".oxfmtrc.json",
+      "target": "config",
+      "ownership": "managed"
+    }
   ],
   "deps": {
     "devDependencies": {
@@ -123,7 +133,14 @@ Declarative Ops cover the common edits. A Module may also ship an arbitrary tran
     }
   ],
   "extensionPoints": [
-    { "name": "lint.ignores", "version": "1.0.0", "target": "config", "kind": "json", "anchor": "/ignorePatterns", "file": ".oxlintrc.json" }
+    {
+      "name": "lint.ignores",
+      "version": "1.0.0",
+      "target": "config",
+      "kind": "json",
+      "anchor": "/ignorePatterns",
+      "file": ".oxlintrc.json"
+    }
   ]
 }
 ```

@@ -6,32 +6,32 @@ The Lockfile is not a manifest: a manifest describes a Module, the Lockfile desc
 
 ## Field table
 
-| Field | Type | Meaning |
-| --- | --- | --- |
-| `$schema` | URL string | JSON Schema of the Lockfile format, for editors and validation. |
-| `lockfileVersion` | integer | Format version, incremented on any breaking change. Currently `2`. See [Lockfile versioning](#lockfile-versioning). |
-| `cliVersion` | semver | Version of the CLI that last wrote the file. Informational; never used for compatibility decisions. |
-| `protocolVersion` | integer | Registry protocol version the Project was generated against. |
-| `layout` | `"single"` \| `"monorepo"` | The [Layout](layouts.md) chosen by the user. Targets resolve the same way on every later command. |
-| `registries` | map `name → object` | Registries used by the Project. |
-| `registries.<name>.source` | string | `"bundled"` (the Registry shipped with the CLI), a path relative to the Project directory, a URL or a giget ref. Remote refs are pinned to a commit SHA. |
-| `registries.<name>.release` | string | Registry release the [Catalog](versions.md#catalogs) came from. |
-| `registries.<name>.minCliVersion` | semver | Lowest CLI that can read this release. Per Registry release, so a new release may demand a newer CLI without invalidating old Projects. |
-| `modules` | map `name → object` | Selected Modules, sorted by name. |
-| `modules.<name>.version` | semver | Exact Module version. |
-| `modules.<name>.registry` | string | Key into `registries`. |
-| `modules.<name>.selected` | boolean | `true` for a [Selected Module](../../GLOSSARY.md) (named by the user), `false` for one pulled in by `requires`. `remove` uses it to find orphans. |
-| `modules.<name>.integrity` | string | `sha256-<hex>` over the canonical manifest and the Module's files, copied verbatim from the Registry index. See [Integrity format](#integrity-format). |
-| `modules.<name>.answers` | object | The answers given to this Module, scoped to it. Feeds `{{var}}` ([Engine](engine.md#no-template-engine)) and replays the old render. |
-| `files` | map `path → object` | Every generated file, keyed by Project-relative POSIX path, sorted. |
-| `files.<path>.owners` | string[] | Modules that contributed to the file, sorted. More than one for merged files such as `package.json`. Always real Module names: workspace wiring that no Module owns gets no entry, and there is no `aokit` pseudo-owner. |
-| `files.<path>.mode` | `"managed"` \| `"seed"` \| `"ejected"` | The [Ownership mode](#ownership-modes). |
-| `files.<path>.hash` | string | `sha256-<hex>` of the content as aokit last wrote it (LF-normalized, after the format phase). |
-| `deps` | map `name → object` | Dependencies aokit added, sorted by name. |
-| `deps.<name>.version` | string | The range or exact version written to `package.json`. |
-| `deps.<name>.pinned` | boolean | `true` for a [Toolchain pin group](versions.md#toolchain-pin-groups) member or a dependency pinned with `aokit deps pin`. |
-| `deps.<name>.owners` | string[] | Modules whose `deps` list the dependency, sorted. `remove` deletes a dependency only when no remaining Module owns it. |
-| `deps.<name>.source` | `"catalog"` \| `"module"` \| `"user"` | Where the version came from: the Registry release's Catalog, a version fixed in the Module's own manifest, or a user override. |
+| Field                             | Type                                   | Meaning                                                                                                                                                                                                                  |
+| --------------------------------- | -------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `$schema`                         | URL string                             | JSON Schema of the Lockfile format, for editors and validation.                                                                                                                                                          |
+| `lockfileVersion`                 | integer                                | Format version, incremented on any breaking change. Currently `2`. See [Lockfile versioning](#lockfile-versioning).                                                                                                      |
+| `cliVersion`                      | semver                                 | Version of the CLI that last wrote the file. Informational; never used for compatibility decisions.                                                                                                                      |
+| `protocolVersion`                 | integer                                | Registry protocol version the Project was generated against.                                                                                                                                                             |
+| `layout`                          | `"single"` \| `"monorepo"`             | The [Layout](layouts.md) chosen by the user. Targets resolve the same way on every later command.                                                                                                                        |
+| `registries`                      | map `name → object`                    | Registries used by the Project.                                                                                                                                                                                          |
+| `registries.<name>.source`        | string                                 | `"bundled"` (the Registry shipped with the CLI), a path relative to the Project directory, a URL or a giget ref. Remote refs are pinned to a commit SHA.                                                                 |
+| `registries.<name>.release`       | string                                 | Registry release the [Catalog](versions.md#catalogs) came from.                                                                                                                                                          |
+| `registries.<name>.minCliVersion` | semver                                 | Lowest CLI that can read this release. Per Registry release, so a new release may demand a newer CLI without invalidating old Projects.                                                                                  |
+| `modules`                         | map `name → object`                    | Selected Modules, sorted by name.                                                                                                                                                                                        |
+| `modules.<name>.version`          | semver                                 | Exact Module version.                                                                                                                                                                                                    |
+| `modules.<name>.registry`         | string                                 | Key into `registries`.                                                                                                                                                                                                   |
+| `modules.<name>.selected`         | boolean                                | `true` for a [Selected Module](../../GLOSSARY.md) (named by the user), `false` for one pulled in by `requires`. `remove` uses it to find orphans.                                                                        |
+| `modules.<name>.integrity`        | string                                 | `sha256-<hex>` over the canonical manifest and the Module's files, copied verbatim from the Registry index. See [Integrity format](#integrity-format).                                                                   |
+| `modules.<name>.answers`          | object                                 | The answers given to this Module, scoped to it. Feeds `{{var}}` ([Engine](engine.md#no-template-engine)) and replays the old render.                                                                                     |
+| `files`                           | map `path → object`                    | Every generated file, keyed by Project-relative POSIX path, sorted.                                                                                                                                                      |
+| `files.<path>.owners`             | string[]                               | Modules that contributed to the file, sorted. More than one for merged files such as `package.json`. Always real Module names: workspace wiring that no Module owns gets no entry, and there is no `aokit` pseudo-owner. |
+| `files.<path>.mode`               | `"managed"` \| `"seed"` \| `"ejected"` | The [Ownership mode](#ownership-modes).                                                                                                                                                                                  |
+| `files.<path>.hash`               | string                                 | `sha256-<hex>` of the content as aokit last wrote it (LF-normalized, after the format phase).                                                                                                                            |
+| `deps`                            | map `name → object`                    | Dependencies aokit added, sorted by name.                                                                                                                                                                                |
+| `deps.<name>.version`             | string                                 | The range or exact version written to `package.json`.                                                                                                                                                                    |
+| `deps.<name>.pinned`              | boolean                                | `true` for a [Toolchain pin group](versions.md#toolchain-pin-groups) member or a dependency pinned with `aokit deps pin`.                                                                                                |
+| `deps.<name>.owners`              | string[]                               | Modules whose `deps` list the dependency, sorted. `remove` deletes a dependency only when no remaining Module owns it.                                                                                                   |
+| `deps.<name>.source`              | `"catalog"` \| `"module"` \| `"user"`  | Where the version came from: the Registry release's Catalog, a version fixed in the Module's own manifest, or a user override.                                                                                           |
 
 `mode` in `files` is always the Ownership mode. The POSIX permission bits of a file are a separate matter: they come from the `mode` of the Module's `files` entry in the [manifest](module-contract.md#field-table), are applied on write, and are preserved on merge (see [Merge policy](#merge-policy)). They are read from disk, not stored in the Lockfile.
 
@@ -164,11 +164,11 @@ There is one integrity format everywhere: `sha256-<lowercase hex>`, computed ove
 
 Each generated file has exactly one Ownership mode, recorded in `files.<path>.mode`.
 
-| Mode | Behavior |
-| --- | --- |
-| `managed` | Regenerated by `update` and 3-way merged with the user's edits. The default. |
-| `seed` | Written once at `create`/`add`. Never regenerated; `update` does not touch it, so the user's edits are never at risk. Starter pages and example config are `seed`. |
-| `ejected` | The user's file. aokit never touches it again; `update` and `remove` skip it and `doctor` does not report drift on it. |
+| Mode      | Behavior                                                                                                                                                           |
+| --------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `managed` | Regenerated by `update` and 3-way merged with the user's edits. The default.                                                                                       |
+| `seed`    | Written once at `create`/`add`. Never regenerated; `update` does not touch it, so the user's edits are never at risk. Starter pages and example config are `seed`. |
+| `ejected` | The user's file. aokit never touches it again; `update` and `remove` skip it and `doctor` does not report drift on it.                                             |
 
 The initial mode comes from the Module's `files[].ownership` (default `managed`). `aokit eject <path>` sets a file to `ejected`: the Lockfile entry keeps its `owners` and last `hash` so `restore` knows what to bring back. `aokit restore <path>` returns an `ejected` file (or a drifted `managed` one) to the state a fresh render of its owners would produce, and sets the mode back to `managed`; for a `seed` file it rewrites the seed content. Command flows are in [lifecycle](lifecycle.md#eject-and-restore).
 
@@ -186,13 +186,13 @@ The root `AGENTS.md` and `CLAUDE.md` are Region files: they are `managed`, and t
 
 `files.<path>.hash` is the hash of the file as aokit last wrote it. For a [Region file](#region-files) it covers only the line-ending-normalized aokit Regions, so text outside markers is not drift and an edit inside a Region is `modified`. Comparing it with the hash of the file on disk now gives a drift state without rendering anything:
 
-| State | Condition |
-| --- | --- |
-| `pristine` | On disk, hash equals the recorded hash. |
-| `modified` | On disk, hash differs. |
-| `deleted` | In the Lockfile, absent on disk. |
-| `unknown` | On disk under a Target a Module writes to, but absent from the Lockfile (created by the user), or in the Lockfile with no readable hash. Every `<name>.aokit-new` file is reported as `unknown`. |
-| `volatile` | A file whose bytes are expected to change outside aokit, such as the package-manager lockfile. It is never reported as drift and its content is never merged: the user's version is kept. |
+| State      | Condition                                                                                                                                                                                        |
+| ---------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `pristine` | On disk, hash equals the recorded hash.                                                                                                                                                          |
+| `modified` | On disk, hash differs.                                                                                                                                                                           |
+| `deleted`  | In the Lockfile, absent on disk.                                                                                                                                                                 |
+| `unknown`  | On disk under a Target a Module writes to, but absent from the Lockfile (created by the user), or in the Lockfile with no readable hash. Every `<name>.aokit-new` file is reported as `unknown`. |
+| `volatile` | A file whose bytes are expected to change outside aokit, such as the package-manager lockfile. It is never reported as drift and its content is never merged: the user's version is kept.        |
 
 The states are computed fresh on every run and are **never stored** in the Lockfile. `ejected` files report no drift. Outside git, `unknown` is found by walking the Targets with a fixed exclusion list (`node_modules`, `.git`, `dist`, `.env*`); inside git it comes from `git ls-files --others --exclude-standard`, so ignored files are not reported.
 
@@ -208,18 +208,18 @@ Hashes are taken over LF-normalized content after the format phase, matching wha
 
 All 3-way merging goes through one `Merger` interface: `merge(base, user, next, path) → { content, conflict }` for one file. `git merge-file` is the primary implementation inside a repository; `node-diff3` is used outside one. The two produce byte-identical diff3-style conflict markers (labels `base`, `user`, `new`, with a `|||||||` base section), so the rest of the system does not know which ran. A result that needs a human is a **Conflict**.
 
-| Case | Policy |
-| --- | --- |
-| Text file | `Merger`: `git merge-file` primary, `node-diff3` fallback. Conflicts leave markers in the file. |
-| Binary file | Detected by a NUL byte in the first 8 KB. Never merged. If `next` differs from the user's file, the new version is written next to it as `<name>.aokit-new` and the Conflict is reported. |
-| JSON / JSONC | Merged structurally (by key, arrays by value) with the same patchers as the [Engine](engine.md#non-ts-patchers), not line by line. The user's key order and comments are preserved, and keys that are new are inserted in sorted position. A scalar changed on both sides falls back to a text merge with markers. |
-| Package-manager lockfiles (`bun.lock`) | Never merged. If `package.json` changed, the file is regenerated by reinstalling. |
-| Delete vs modify | If the user modified a file that the new render deletes, or deleted a file that the new render modifies, the file is kept as the user left it and a **warning** is printed. It is not a Conflict and does not produce exit `6`. When the render removed the file, the Module is dropped from its `owners` (the entry is removed when none remain). Nothing is deleted on a doubt. |
-| Line endings | Everything is normalized to LF before hashing and merging. |
-| File modes | POSIX permission bits (such as the executable bit on hooks) are preserved from the user's file; if the new render changes the bit and the user did not, the new bit applies. |
-| `seed` and `ejected` files | Not merged; never passed to the `Merger`. A new seed is created; a seed the render removes is deleted only if `pristine` and solely owned. |
-| A file the render creates over an `unknown` user file | A Conflict. |
-| Conflicted files in the Lockfile | They keep their previous `hash`, so `doctor` reports them `modified` until resolved. |
+| Case                                                  | Policy                                                                                                                                                                                                                                                                                                                                                                            |
+| ----------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Text file                                             | `Merger`: `git merge-file` primary, `node-diff3` fallback. Conflicts leave markers in the file.                                                                                                                                                                                                                                                                                   |
+| Binary file                                           | Detected by a NUL byte in the first 8 KB. Never merged. If `next` differs from the user's file, the new version is written next to it as `<name>.aokit-new` and the Conflict is reported.                                                                                                                                                                                         |
+| JSON / JSONC                                          | Merged structurally (by key, arrays by value) with the same patchers as the [Engine](engine.md#non-ts-patchers), not line by line. The user's key order and comments are preserved, and keys that are new are inserted in sorted position. A scalar changed on both sides falls back to a text merge with markers.                                                                |
+| Package-manager lockfiles (`bun.lock`)                | Never merged. If `package.json` changed, the file is regenerated by reinstalling.                                                                                                                                                                                                                                                                                                 |
+| Delete vs modify                                      | If the user modified a file that the new render deletes, or deleted a file that the new render modifies, the file is kept as the user left it and a **warning** is printed. It is not a Conflict and does not produce exit `6`. When the render removed the file, the Module is dropped from its `owners` (the entry is removed when none remain). Nothing is deleted on a doubt. |
+| Line endings                                          | Everything is normalized to LF before hashing and merging.                                                                                                                                                                                                                                                                                                                        |
+| File modes                                            | POSIX permission bits (such as the executable bit on hooks) are preserved from the user's file; if the new render changes the bit and the user did not, the new bit applies.                                                                                                                                                                                                      |
+| `seed` and `ejected` files                            | Not merged; never passed to the `Merger`. A new seed is created; a seed the render removes is deleted only if `pristine` and solely owned.                                                                                                                                                                                                                                        |
+| A file the render creates over an `unknown` user file | A Conflict.                                                                                                                                                                                                                                                                                                                                                                       |
+| Conflicted files in the Lockfile                      | They keep their previous `hash`, so `doctor` reports them `modified` until resolved.                                                                                                                                                                                                                                                                                              |
 
 ## Old module versions stay fetchable
 

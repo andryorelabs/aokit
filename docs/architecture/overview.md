@@ -28,13 +28,13 @@ Detail lives in the sibling documents:
 
 ## Component map
 
-| Component | Responsibility |
-| --- | --- |
-| CLI layer | Parses flags and prompts from one schema, prints Plans, sets exit codes. Contains no generation logic. |
-| Registry client | Fetches Module manifests and the Catalog from a Registry, verifies integrity, caches immutable versions. |
-| Resolver | Takes the selected Modules plus answers, checks `provides`/`requires`/`conflicts` and Cardinality, orders Modules topologically, and fails with actionable errors. Pure: no I/O. |
-| Engine | Builds the Plan in the VFS by running each Module's `files` and Ops in canonical order, then applies it atomically. |
-| Lockfile | `aokit.lock.json`: records Layout, Modules with version, source and integrity, answers, per-file hash and Ownership mode, dependency pins. Read by `update`, `remove` and `doctor`. |
+| Component       | Responsibility                                                                                                                                                                      |
+| --------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| CLI layer       | Parses flags and prompts from one schema, prints Plans, sets exit codes. Contains no generation logic.                                                                              |
+| Registry client | Fetches Module manifests and the Catalog from a Registry, verifies integrity, caches immutable versions.                                                                            |
+| Resolver        | Takes the selected Modules plus answers, checks `provides`/`requires`/`conflicts` and Cardinality, orders Modules topologically, and fails with actionable errors. Pure: no I/O.    |
+| Engine          | Builds the Plan in the VFS by running each Module's `files` and Ops in canonical order, then applies it atomically.                                                                 |
+| Lockfile        | `aokit.lock.json`: records Layout, Modules with version, source and integrity, answers, per-file hash and Ownership mode, dependency pins. Read by `update`, `remove` and `doctor`. |
 
 ```mermaid
 flowchart LR
@@ -64,13 +64,13 @@ flowchart LR
 
 ## Mapping to the glossary
 
-| Concept | Where it appears |
-| --- | --- |
-| Module | The unit declared by a manifest ([Module contract](module-contract.md)); the input of every flow step. |
-| Capability, Cardinality | `provides`/`requires`/`conflicts` and per-Capability limits ([Capabilities](capabilities.md)); consumed by the Resolver. |
-| Extension point | Declared by base Modules, targeted by other Modules' Ops ([Capabilities](capabilities.md#extension-points)). |
-| Op | Declarative edit applied by the Engine ([Engine](engine.md#ops-catalog)). |
-| Target, Layout | Logical destinations and their resolution to paths ([Layouts](layouts.md)). |
-| VFS, Plan | The in-memory build and its reviewable result ([Engine](engine.md#vfs-and-plan-before-apply)). |
-| Registry, Catalog, Toolchain pin group | Provided by the Registry client; the pin group is part of the Catalog ([Module contract](module-contract.md#deps)). |
-| Lockfile, Ownership mode | Written at apply; drives later lifecycle commands. |
+| Concept                                | Where it appears                                                                                                         |
+| -------------------------------------- | ------------------------------------------------------------------------------------------------------------------------ |
+| Module                                 | The unit declared by a manifest ([Module contract](module-contract.md)); the input of every flow step.                   |
+| Capability, Cardinality                | `provides`/`requires`/`conflicts` and per-Capability limits ([Capabilities](capabilities.md)); consumed by the Resolver. |
+| Extension point                        | Declared by base Modules, targeted by other Modules' Ops ([Capabilities](capabilities.md#extension-points)).             |
+| Op                                     | Declarative edit applied by the Engine ([Engine](engine.md#ops-catalog)).                                                |
+| Target, Layout                         | Logical destinations and their resolution to paths ([Layouts](layouts.md)).                                              |
+| VFS, Plan                              | The in-memory build and its reviewable result ([Engine](engine.md#vfs-and-plan-before-apply)).                           |
+| Registry, Catalog, Toolchain pin group | Provided by the Registry client; the pin group is part of the Catalog ([Module contract](module-contract.md#deps)).      |
+| Lockfile, Ownership mode               | Written at apply; drives later lifecycle commands.                                                                       |

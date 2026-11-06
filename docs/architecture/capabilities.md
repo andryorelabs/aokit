@@ -14,15 +14,15 @@ A Capability is a named thing a Module provides or requires. This model replaces
 Cardinality is the number of Modules that may provide one Capability in a Project. It is declared where the Capability is provided:
 
 ```ts
-provides: [{ capability: "orm", cardinality: { max: 1 } }]
-provides: [{ capability: "deploy", cardinality: "many" }]
+provides: [{ capability: "orm", cardinality: { max: 1 } }];
+provides: [{ capability: "deploy", cardinality: "many" }];
 ```
 
-| Capability | Cardinality | Effect |
-| --- | --- | --- |
-| `orm` | at most one | Selecting two ORMs fails resolution. |
+| Capability       | Cardinality | Effect                                    |
+| ---------------- | ----------- | ----------------------------------------- |
+| `orm`            | at most one | Selecting two ORMs fails resolution.      |
 | `lint`, `format` | at most one | One linter and one formatter per Project. |
-| `deploy` | many | `docker` and `coolify` can coexist. |
+| `deploy`         | many        | `docker` and `coolify` can coexist.       |
 
 A bare string in `provides` means `{ max: 1 }`. When two Modules declare different Cardinality for the same Capability, the stricter one wins and the Resolver reports the disagreement as a Registry warning.
 
@@ -76,7 +76,13 @@ An Extension point is a named, versioned point that a base Module declares so ot
 Declaration, in the base Module's `extensionPoints`:
 
 ```json
-{ "name": "web.providers", "version": "1.0.0", "target": "web", "kind": "array", "anchor": "providers" }
+{
+  "name": "web.providers",
+  "version": "1.0.0",
+  "target": "web",
+  "kind": "array",
+  "anchor": "providers"
+}
 ```
 
 - `name`: namespaced, dot-separated (`web.providers`, `server.middleware`, `env.schema`).
