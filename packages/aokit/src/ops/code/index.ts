@@ -1,8 +1,8 @@
 import type { OpHandler, OpHandlers } from "../../engine/ops.ts";
-import { appendEntry, findEntryByKey, hasEntryText, sameEntry } from "./entries.ts";
+import { appendEntry, findEntryByKey, hasEntryText, queuedEntries, sameEntry } from "./entries.ts";
 import { CodeOpError } from "./errors.ts";
 import { addImportEdits } from "./imports.ts";
-import { commitEdits, locateSite } from "./resolve.ts";
+import { batchOf, commitEdits, locateSite } from "./resolve.ts";
 
 const addImport: OpHandler = (context, op) => {
   if (op.op !== "addImport") {
@@ -17,7 +17,7 @@ const addToArray: OpHandler = (context, op) => {
     return;
   }
   const site = locateSite(context, op, ["array"]);
-  if (hasEntryText(site, op.element)) {
+  if (hasEntryText(site, op.element, queuedEntries(batchOf(context, site), site))) {
     return;
   }
   commitEdits(context, site, (batch) =>
@@ -39,7 +39,7 @@ const registerAt: OpHandler = (context, op) => {
       );
     }
     const entry = `${op.key}: ${op.expression}`;
-    const existing = findEntryByKey(site, op.key);
+    const existing = findEntryByKey(site, op.key, queuedEntries(batchOf(context, site), site));
     if (existing !== undefined) {
       if (sameEntry(existing, entry)) {
         return;
@@ -65,7 +65,7 @@ const registerAt: OpHandler = (context, op) => {
       context.module,
     );
   }
-  if (hasEntryText(site, op.expression)) {
+  if (hasEntryText(site, op.expression, queuedEntries(batchOf(context, site), site))) {
     return;
   }
   commitEdits(context, site, (batch) =>

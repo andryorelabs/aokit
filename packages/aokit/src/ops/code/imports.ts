@@ -1,6 +1,7 @@
 import type { Op } from "@aokit/module";
 import { parseSync } from "oxc-parser";
-import type { createEditBatch } from "../../edit/batch.ts";
+import type { EditBatch } from "../../edit/batch.ts";
+import { queuedImport } from "./queued.ts";
 import type { AnchorSite } from "./resolve.ts";
 
 type AddImport = Extract<Op, { op: "addImport" }>;
@@ -54,18 +55,25 @@ function statementText(
 
 /** Adds the missing parts of an import; adds nothing when everything is already imported. */
 export function addImportEdits(
-  batch: ReturnType<typeof createEditBatch>,
+  batch: EditBatch,
   site: AnchorSite,
   module: string,
   op: AddImport,
 ): void {
   const existing = existingImports(site, op.from);
-  const present = new Set(existing.flatMap((entry) => entry.named));
+  const queued = queuedImport(batch, op.from);
+  const present = new Set([...existing.flatMap((entry) => entry.named), ...queued.named]);
   const missingNamed = (op.named ?? []).filter((name) => !present.has(name));
-  const hasDefault = existing.some((entry) => entry.defaultName !== undefined);
-  const hasNamespace = existing.some((entry) => entry.namespaceName !== undefined);
+  const hasDefault = queued.hasDefault || existing.some((entry) => entry.defaultName !== undefined);
+  const hasNamespace =
+    queued.hasNamespace || existing.some((entry) => entry.namespaceName !== undefined);
   const missingDefault = op.default !== undefined && !hasDefault ? op.default : undefined;
   const missingNamespace = op.namespace !== undefined && !hasNamespace ? op.namespace : undefined;
+  for (const name of missingNamed) {
+    queued.named.add(name);
+  }
+  queued.hasDefault ||= missingDefault !== undefined;
+  queued.hasNamespace ||= missingNamespace !== undefined;
 
   const host = existing.find((entry) => entry.lastNamedEnd !== undefined);
   let remainingNamed = missingNamed;
