@@ -5,6 +5,9 @@ import { runCommand } from "../../src/cli/command.ts";
 import { createCommand } from "../../src/cli/commands/create.ts";
 import { cliVersion } from "../../src/cli/version.ts";
 import type { CommandContext } from "../../src/cli/command.ts";
+import type { Integrity } from "../../src/registry/integrity.ts";
+import type { Lockfile } from "../../src/lockfile/schema.ts";
+import { readProjectLockfile } from "../helpers/registry-json.ts";
 import { bundledRegistryPath } from "../../src/registry/bundled.ts";
 import {
   editJson,
@@ -102,7 +105,17 @@ export async function snapshotTree(root: string): Promise<Map<string, string>> {
   return files;
 }
 
+/** The integrity a Lockfile records for a Module. */
+export function lockedIntegrity(lockfile: Lockfile, moduleName: string): Integrity {
+  const recorded = lockfile.modules[moduleName]?.integrity;
+  const prefix = "sha256-";
+  if (recorded === undefined || !recorded.startsWith(prefix)) {
+    throw new Error(`the Lockfile records no integrity for ${moduleName}`);
+  }
+  return `${prefix}${recorded.slice(prefix.length)}`;
+}
+
 /** The parsed `aokit.lock.json` of a Project. */
-export async function readLockfileJson(directory: string): Promise<Record<string, any>> {
-  return JSON.parse(await readFile(join(directory, "aokit.lock.json"), "utf8"));
+export async function readLockfileJson(directory: string): Promise<Lockfile> {
+  return readProjectLockfile(directory);
 }

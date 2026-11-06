@@ -9,6 +9,7 @@ import { recopyCommand } from "../../src/cli/commands/recopy.ts";
 import { removeCommand } from "../../src/cli/commands/remove.ts";
 import { updateCommand } from "../../src/cli/commands/update.ts";
 import { computeIntegrity } from "../../src/registry/index.ts";
+import { editProjectLockfile, parseJsonRecord } from "../helpers/registry-json.ts";
 import { editJson, type ServedRegistry } from "../registry-remote/served-registry.ts";
 import {
   cleanUp,
@@ -66,10 +67,11 @@ test("recopy renders the newest version of a remote Module whose locked version 
     trust: [server.url],
   });
   expect(added).toMatchObject({ ok: true });
-  const lockfilePath = join(project, "aokit.lock.json");
-  const lockfile = JSON.parse(await readFile(lockfilePath, "utf8"));
-  lockfile.modules.knip.version = "0.9.0";
-  await writeFile(lockfilePath, `${JSON.stringify(lockfile, null, 2)}\n`, "utf8");
+  await editProjectLockfile(project, (lockfile) => {
+    const knip = lockfile.modules["knip"];
+    if (knip === undefined) throw new Error("knip was not locked by add");
+    knip.version = "0.9.0";
+  });
   const recopied = await runCommand(recopyCommand, context, {
     ...lifecycleDefaults,
     directory: project,
@@ -78,7 +80,7 @@ test("recopy renders the newest version of a remote Module whose locked version 
     ok: true,
     data: { substitutions: [{ module: "knip", locked: "0.9.0", rendered: "1.1.0" }] },
   });
-  expect((await readLockfileJson(project))["modules"]["knip"]).toMatchObject({
+  expect((await readLockfileJson(project)).modules["knip"]).toMatchObject({
     version: "1.1.0",
     registry: "acme",
   });
@@ -131,21 +133,21 @@ test("add resolves a remote Module's requires from the same remote Registry", as
   });
   expect(added).toMatchObject({ ok: true, data: { added: ["coolify"], pulledIn: ["docker"] } });
   const lockfile = await readLockfileJson(project);
-  expect(lockfile["modules"]["coolify"]["registry"]).toBe("acme");
-  expect(lockfile["modules"]["docker"]["registry"]).toBe("acme");
+  expect(lockfile.modules["coolify"]?.["registry"]).toBe("acme");
+  expect(lockfile.modules["docker"]?.["registry"]).toBe("acme");
 });
 
 test("a kept offline index never moves the Project to a Release it does not record", async () => {
   const context = await isolatedContext();
   const server = served(await namedRegistryCopy("acme"));
   const project = await createRemoteProject(context, server, "oxc");
-  const release: string = (await readLockfileJson(project))["registries"]["acme"]["release"];
+  const release: string = (await readLockfileJson(project)).registries["acme"]?.["release"] ?? "";
   await server.stop();
   const forgedRelease = "2099.1.0";
   const currentCatalog = keptCopy(context, `${server.url}/catalog/${release}.json`);
   const forgedCatalog = keptCopy(context, `${server.url}/catalog/${forgedRelease}.json`);
-  const catalog = JSON.parse(await readFile(currentCatalog, "utf8"));
-  catalog.release = forgedRelease;
+  const catalog = parseJsonRecord(await readFile(currentCatalog, "utf8"));
+  catalog["release"] = forgedRelease;
   const forgedText = `${JSON.stringify(catalog, null, 2)}\n`;
   await writeFile(forgedCatalog, forgedText, "utf8");
   await editJson(keptCopy(context, `${server.url}/index.json`), (index) => {

@@ -263,12 +263,14 @@ test("a redirect to a host that is neither https nor loopback is refused before 
 test("an https Registry that redirects to http, even on loopback, is a refused downgrade", async () => {
   const requested: string[] = [];
   const redirectingFetch: typeof fetch = Object.assign(
-    async (input: string | URL | Request) => {
+    (input: string | URL | Request) => {
       requested.push(input instanceof Request ? input.url : input.toString());
-      return new Response(null, {
-        status: 302,
-        headers: { location: "http://127.0.0.1:9/index.json" },
-      });
+      return Promise.resolve(
+        new Response(null, {
+          status: 302,
+          headers: { location: "http://127.0.0.1:9/index.json" },
+        }),
+      );
     },
     { preconnect: fetch.preconnect },
   );
@@ -283,9 +285,9 @@ test("an https Registry that redirects to http, even on loopback, is a refused d
 test("the injected fetch is the only way a URL Registry reads, and its failure is REGISTRY_FETCH_FAILED", async () => {
   const requested: string[] = [];
   const failingFetch: typeof fetch = Object.assign(
-    async (input: string | URL | Request) => {
+    (input: string | URL | Request) => {
       requested.push(input instanceof Request ? input.url : input.toString());
-      throw new TypeError("network down");
+      return Promise.reject(new TypeError("network down"));
     },
     { preconnect: fetch.preconnect },
   );

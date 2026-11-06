@@ -15,9 +15,9 @@ function recordingLsRemote(output: string) {
   const calls: { repositoryUrl: string; ref: string }[] = [];
   return {
     calls,
-    lsRemote: async (repositoryUrl: string, ref: string) => {
+    lsRemote: (repositoryUrl: string, ref: string) => {
       calls.push({ repositoryUrl, ref });
-      return output;
+      return Promise.resolve(output);
     },
   };
 }

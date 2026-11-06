@@ -68,8 +68,8 @@ test("add @fixture/button installs it, @fixture/utils and the URL item, each Reg
     registry: "fixture",
     selected: false,
   });
-  const cardKey: string = lockfile["modules"][cardModule ?? ""]["registry"];
-  expect(lockfile["modules"][cardModule ?? ""]["selected"]).toBe(false);
+  const cardKey: string = lockfile["modules"][cardModule ?? ""]?.["registry"] ?? "";
+  expect(lockfile["modules"][cardModule ?? ""]?.["selected"]).toBe(false);
   expect(lockfile["registries"]["fixture"]).toMatchObject({
     source: `${fixture.url}/registry.json`,
     trusted: true,
@@ -78,7 +78,7 @@ test("add @fixture/button installs it, @fixture/utils and the URL item, each Reg
     source: `${cards.trustSource}/registry.json`,
     trusted: true,
   });
-  expect(lockfile["modules"]["@fixture/button"]["version"]).toMatch(
+  expect(lockfile["modules"]["@fixture/button"]?.["version"]).toMatch(
     /^0\.0\.0-shadcn\.[0-9a-f]{12}$/,
   );
   const data = addCommand.output.parse(added.ok ? added.data : undefined);

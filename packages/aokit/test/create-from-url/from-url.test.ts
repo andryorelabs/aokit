@@ -7,13 +7,14 @@ import { createCommand } from "../../src/cli/commands/create.ts";
 import { exitCodeForEnvelope } from "../../src/cli/envelope.ts";
 import { cliVersion } from "../../src/cli/version.ts";
 import { readLockfileSource, renderFromSource } from "../../src/create/from.ts";
+import type { Lockfile } from "../../src/lockfile/schema.ts";
 import {
   builtRegistry,
   cleanTemporaryDirectories,
   createProject,
-  editLockfile,
   temporaryDirectory,
 } from "../diff/support.ts";
+import { editProjectLockfile, parseLockfileJson } from "../helpers/registry-json.ts";
 import { type ServedRegistry, serveRegistry } from "../registry-remote/served-registry.ts";
 
 const context = { version: cliVersion, env: {}, commands: [] };
@@ -26,6 +27,16 @@ afterEach(async () => {
   await cleanTemporaryDirectories();
 });
 
+function setOfficialRegistry(
+  lockfile: Lockfile,
+  fields: { source: string; trusted?: boolean },
+): void {
+  const official = lockfile.registries["official"];
+  if (official === undefined) throw new Error("the Project has no official Registry");
+  official.source = fields.source;
+  if (fields.trusted !== undefined) official.trusted = fields.trusted;
+}
+
 function serve(root: string): ServedRegistry {
   const server = serveRegistry(root);
   servers.push(server);
@@ -34,9 +45,9 @@ function serve(root: string): ServedRegistry {
 
 function stubFetch(body: string, seen: string[]): typeof fetch {
   return Object.assign(
-    async (input: string | URL | Request) => {
+    (input: string | URL | Request) => {
       seen.push(input instanceof Request ? input.url : input.toString());
-      return new Response(body);
+      return Promise.resolve(new Response(body));
     },
     { preconnect: fetch.preconnect },
   );
@@ -70,8 +81,8 @@ async function remoteRegistryLockfile() {
   const registry = await builtRegistry();
   const registryServer = serve(registry);
   const project = await createProject(registry);
-  await editLockfile(project, (lockfile) => {
-    lockfile["registries"]["official"].source = registryServer.url;
+  await editProjectLockfile(project, (lockfile) => {
+    setOfficialRegistry(lockfile, { source: registryServer.url });
   });
   return { registryServer, lockfileServer: serve(project) };
 }
@@ -123,7 +134,7 @@ test("readLockfileSource uses the injected fetch", async () => {
     fetch: injected,
   });
   expect(seen).toEqual(["https://lock.test/aokit.lock.json"]);
-  expect(lockfile).toEqual(JSON.parse(text));
+  expect(lockfile).toEqual(parseLockfileJson(text));
 });
 
 test("a served file that is not a Lockfile is INVALID_INPUT", async () => {
@@ -150,10 +161,8 @@ test("an untrusted Registry named by a served Lockfile is REGISTRY_UNTRUSTED", a
     cliVersion,
     adapters: { env },
   }).catch((error: unknown) => error);
-  expect(thrown).toMatchObject({
-    code: "REGISTRY_UNTRUSTED",
-    message: expect.stringContaining("--trust"),
-  });
+  expect(thrown).toMatchObject({ code: "REGISTRY_UNTRUSTED" });
+  expect(String(Reflect.get(Object(thrown), "message"))).toContain("--trust");
   expect(registryServer.requests.filter((path) => path.startsWith("modules/"))).toEqual([]);
   expect(existsSync(target)).toBe(false);
 });
@@ -179,9 +188,8 @@ test("a served Lockfile cannot declare its own Registry trusted", async () => {
   const registry = await builtRegistry();
   const registryServer = serve(registry);
   const project = await createProject(registry);
-  await editLockfile(project, (lockfile) => {
-    lockfile["registries"]["official"].source = registryServer.url;
-    lockfile["registries"]["official"].trusted = true;
+  await editProjectLockfile(project, (lockfile) => {
+    setOfficialRegistry(lockfile, { source: registryServer.url, trusted: true });
   });
   const lockfileServer = serve(project);
   const target = newDirectory();
@@ -200,8 +208,8 @@ test("a served Lockfile cannot declare its own Registry trusted", async () => {
 test("a served Lockfile cannot name a local Registry path", async () => {
   const registry = await builtRegistry();
   const project = await createProject(registry);
-  await editLockfile(project, (lockfile) => {
-    lockfile["registries"]["official"].source = registry;
+  await editProjectLockfile(project, (lockfile) => {
+    setOfficialRegistry(lockfile, { source: registry });
   });
   const lockfileServer = serve(project);
   const target = newDirectory();
