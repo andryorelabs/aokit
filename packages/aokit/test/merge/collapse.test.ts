@@ -20,11 +20,16 @@ describe("mergeProject when several paths collapse onto one", () => {
       lockfile: lockfileOf(base),
       merger: createMerger(),
       driftOf,
+      renames: new Map([
+        ["apps/web/tsconfig.json", "tsconfig.json"],
+        ["apps/api/tsconfig.json", "tsconfig.json"],
+      ]),
     });
-    const keptEdits = ["apps/web/tsconfig.json", "apps/api/tsconfig.json"].filter((path) =>
-      result.vfs.has(path),
+    const conflict = result.conflicts.find((entry) => entry.path === "tsconfig.json");
+    expect(conflict?.user).toBe("web edit\n");
+    expect(result.vfs.has("apps/api/tsconfig.json")).toBe(true);
+    expect(result.warnings.some((warning) => warning.includes("apps/api/tsconfig.json"))).toBe(
+      true,
     );
-    expect(keptEdits).toHaveLength(2);
-    expect(result.warnings.length + result.conflicts.length).toBeGreaterThanOrEqual(2);
   });
 });
