@@ -51,12 +51,6 @@ export async function createProject(registry: string): Promise<string> {
 }
 
 /** Rewrites the Lockfile of a Project through `edit`. */
-export async function editLockfile(
-  directory: string,
-  edit: (lockfile: Record<string, any>) => void,
-): Promise<void> {
-  await editLockfileJson(directory, edit);
-}
 
 /** Rewrites the Lockfile of a Project through `edit`, typed as a JSON object. */
 export async function editLockfileJson(

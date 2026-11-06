@@ -9,3 +9,7 @@ coverage/
 /packages/*/dist/
 /packages/aokit/registry/
 *.tsbuildinfo
+/packages/aokit/LICENSE
+/packages/aokit/README.md
+/packages/create-aokit/LICENSE
+/packages/create-aokit/README.md

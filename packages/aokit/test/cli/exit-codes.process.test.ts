@@ -5,7 +5,7 @@ import {
   builtRegistry,
   cleanTemporaryDirectories,
   createProject as createFixtureProject,
-  editLockfile,
+  editLockfileJson,
 } from "../diff/support.ts";
 import { spawnAokit as spawnAokitProcess } from "../helpers/aokit-process.ts";
 import { commitAll, createProject, git, newWorkspace } from "../restore/helpers.ts";
@@ -45,7 +45,7 @@ describe("exit codes through a real process", () => {
       const text = await Bun.file(path).text();
       await writeFile(path, text.replace('version: "1.0.0",', 'version: "1.1.0",'), "utf8");
     });
-    await editLockfile(project, (lockfile) => {
+    await editLockfileJson(project, (lockfile) => {
       const registries: unknown = lockfile["registries"];
       const official = jsonAt(registries, "official");
       if (typeof official !== "object" || official === null) {
