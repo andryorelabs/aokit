@@ -4,7 +4,7 @@
   "workspaces": {
     ".": {
       "entry": ["tools/**/*.test.ts", "registry-src/*/module.ts", "registry-src/*/migrations/*.ts"],
-      "ignoreDependencies": ["typescript7"]
+      "ignoreDependencies": ["typescript7", "publint", "@arethetypeswrong/cli"]
     },
     "packages/aokit": {
       "entry": ["test/**/*.test.ts", "src/cli/main.ts"]

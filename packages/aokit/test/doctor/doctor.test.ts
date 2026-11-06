@@ -12,6 +12,14 @@ import { stashRoot as stashRootOf } from "../../src/apply/stash.ts";
 import { openGit } from "../../src/git/index.ts";
 import { abortUpdate, writeUpdateMarker } from "../../src/update/state.ts";
 import { runGitChecked } from "../../src/git/run.ts";
+import { z } from "zod";
+import {
+  type JsonObject,
+  isJsonObject,
+  objectAt,
+  parseJsonObject,
+  valueAt,
+} from "../helpers/update-json.ts";
 
 const context: CommandContext = { version: cliVersion, env: {}, commands: exposedCommands };
 const workspaces: string[] = [];
@@ -40,8 +48,16 @@ async function doctor(directory: string) {
   return { envelope, exitCode: exitCodeForEnvelope(envelope) };
 }
 
-function lockfileOf(directory: string): { files: Record<string, { hash: string; mode: string }> } {
-  return JSON.parse(readFileSync(join(directory, "aokit.lock.json"), "utf8"));
+const lockfileFilesSchema = z.object({
+  files: z.record(z.string(), z.object({ hash: z.string(), mode: z.string() })),
+});
+
+function lockfileOf(directory: string) {
+  return lockfileFilesSchema.parse(readLockfileJson(directory));
+}
+
+function readLockfileJson(directory: string): JsonObject {
+  return parseJsonObject(readFileSync(join(directory, "aokit.lock.json"), "utf8"));
 }
 
 function stateMap(data: unknown): Record<string, string> {
@@ -128,8 +144,8 @@ for (const useGit of [true, false]) {
     test("an ejected file reports no drift when edited", async () => {
       const lockfile = lockfileOf(directory);
       const path = Object.keys(lockfile.files).find((file) => !file.endsWith("package.json")) ?? "";
-      const edited = JSON.parse(readFileSync(join(directory, "aokit.lock.json"), "utf8"));
-      edited.files[path].mode = "ejected";
+      const edited = readLockfileJson(directory);
+      objectAt(edited, "files", path)["mode"] = "ejected";
       writeFileSync(join(directory, "aokit.lock.json"), JSON.stringify(edited));
       const original = readFileSync(join(directory, path), "utf8");
       writeFileSync(join(directory, path), `${original}\nchanged\n`);
@@ -137,21 +153,24 @@ for (const useGit of [true, false]) {
       expect(exitCode).toBe(0);
       expect(stateMap(envelope.data)[path]).toBe("pristine");
       writeFileSync(join(directory, path), original);
-      edited.files[path].mode = lockfile.files[path]?.mode;
+      objectAt(edited, "files", path)["mode"] = lockfile.files[path]?.mode ?? null;
       writeFileSync(join(directory, "aokit.lock.json"), JSON.stringify(edited));
     });
 
     test("a volatile-hash file classifies volatile, not modified", async () => {
-      const lockfile = JSON.parse(readFileSync(join(directory, "aokit.lock.json"), "utf8"));
-      const path = Object.keys(lockfile.files).find((file) => !file.endsWith("package.json")) ?? "";
-      const previous = lockfile.files[path].hash;
+      const lockfile = readLockfileJson(directory);
+      const path =
+        Object.keys(objectAt(lockfile, "files")).find((file) => !file.endsWith("package.json")) ??
+        "";
+      const previous = objectAt(lockfile, "files", path)["hash"] ?? null;
       const { createHash } = await import("node:crypto");
-      lockfile.files[path].hash = `sha256-${createHash("sha256").update("volatile").digest("hex")}`;
+      objectAt(lockfile, "files", path)["hash"] =
+        `sha256-${createHash("sha256").update("volatile").digest("hex")}`;
       writeFileSync(join(directory, "aokit.lock.json"), JSON.stringify(lockfile));
       const { envelope, exitCode } = await doctor(directory);
       expect(exitCode).toBe(0);
       expect(stateMap(envelope.data)[path]).toBe("volatile");
-      lockfile.files[path].hash = previous;
+      objectAt(lockfile, "files", path)["hash"] = previous;
       writeFileSync(join(directory, "aokit.lock.json"), JSON.stringify(lockfile));
     });
 
@@ -208,12 +227,14 @@ for (const useGit of [true, false]) {
     test("a missing dependency in package.json is a problem", async () => {
       const manifestPath = join(directory, "package.json");
       const original = readFileSync(manifestPath, "utf8");
-      const manifest = JSON.parse(original);
-      const lockfile = JSON.parse(readFileSync(join(directory, "aokit.lock.json"), "utf8"));
-      const name = Object.keys(lockfile.deps)[0] ?? "";
+      const manifest = parseJsonObject(original);
+      const lockfile = readLockfileJson(directory);
+      const name = Object.keys(objectAt(lockfile, "deps"))[0] ?? "";
       expect(name).not.toBe("");
-      delete manifest.devDependencies?.[name];
-      delete manifest.dependencies?.[name];
+      for (const section of ["devDependencies", "dependencies"]) {
+        const dependencies = valueAt(manifest, section);
+        if (isJsonObject(dependencies)) delete dependencies[name];
+      }
       writeFileSync(manifestPath, JSON.stringify(manifest, null, 2));
       const { envelope } = await doctor(directory);
       const { problems } = doctorCommand.output.parse(envelope.data);
@@ -246,9 +267,9 @@ function doctorOutputParses(data: unknown): boolean {
   return doctorCommand.output.safeParse(data).success;
 }
 
-function rewriteLockfile(directory: string, change: (lockfile: any) => void): void {
+function rewriteLockfile(directory: string, change: (lockfile: JsonObject) => void): void {
   const path = join(directory, "aokit.lock.json");
-  const lockfile = JSON.parse(readFileSync(path, "utf8"));
+  const lockfile = parseJsonObject(readFileSync(path, "utf8"));
   change(lockfile);
   writeFileSync(path, JSON.stringify(lockfile));
 }
@@ -262,8 +283,8 @@ describe("doctor Project checks", () => {
   test("a Module integrity that differs from the Registry is reported", async () => {
     const directory = await createProject(false);
     rewriteLockfile(directory, (lockfile) => {
-      const name = Object.keys(lockfile.modules)[0] ?? "";
-      lockfile.modules[name].integrity = `sha256-${"0".repeat(64)}`;
+      const name = Object.keys(objectAt(lockfile, "modules"))[0] ?? "";
+      objectAt(lockfile, "modules", name)["integrity"] = `sha256-${"0".repeat(64)}`;
     });
     expect(await problemKinds(directory)).toContain("integrity");
   });
@@ -271,8 +292,8 @@ describe("doctor Project checks", () => {
   test("a Registry that needs a newer CLI is reported", async () => {
     const directory = await createProject(false);
     rewriteLockfile(directory, (lockfile) => {
-      const name = Object.keys(lockfile.registries)[0] ?? "";
-      lockfile.registries[name].minCliVersion = "999.0.0";
+      const name = Object.keys(objectAt(lockfile, "registries"))[0] ?? "";
+      objectAt(lockfile, "registries", name)["minCliVersion"] = "999.0.0";
     });
     expect(await problemKinds(directory)).toContain("cli");
   });
@@ -280,7 +301,7 @@ describe("doctor Project checks", () => {
   test("a locked Module whose requirement is missing fails the Resolver check", async () => {
     const directory = await createProject(false, "vite-react,tailwind4");
     rewriteLockfile(directory, (lockfile) => {
-      delete lockfile.modules["vite-react"];
+      delete objectAt(lockfile, "modules")["vite-react"];
     });
     expect(await problemKinds(directory)).toContain("resolver");
   });

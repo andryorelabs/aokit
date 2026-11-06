@@ -63,10 +63,11 @@ function memoryCache(): RegistryCache & {
   const cache = {
     entries,
     puts: 0,
-    get: async (integrity: string) => entries.get(integrity),
-    put: async (integrity: string, files: CachedModuleVersion) => {
+    get: (integrity: string) => Promise.resolve(entries.get(integrity)),
+    put: (integrity: string, files: CachedModuleVersion) => {
       cache.puts += 1;
       entries.set(integrity, files);
+      return Promise.resolve();
     },
   };
   return cache;

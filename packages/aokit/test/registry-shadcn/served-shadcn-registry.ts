@@ -61,7 +61,7 @@ export async function removeShadcnFixtures(): Promise<void> {
  */
 export async function serveShadcnRegistry(
   items: readonly FixtureItem[] = fixtureItems(),
-  name: string | undefined = "fixture",
+  name = "fixture",
 ): Promise<ServedShadcnRegistry> {
   const root = await mkdtemp(join(tmpdir(), "aokit-shadcn-fixture-"));
   roots.push(root);
@@ -71,7 +71,7 @@ export async function serveShadcnRegistry(
     join(root, "registry.json"),
     `${JSON.stringify(
       {
-        ...(name === undefined ? {} : { name }),
+        name,
         homepage: "https://fixture.invalid",
         items: items.map((item) => ({ name: item.name, type: item.type })),
       },

@@ -1,6 +1,16 @@
 import { expect, test } from "bun:test";
 import { access, constants, readFile, stat } from "node:fs/promises";
 import { join } from "node:path";
+import type { ExitCode as SourceExitCode } from "../../packages/aokit/src/cli/exit-codes.ts";
+import type {
+  run as sourceRun,
+  RunOptions as SourceRunOptions,
+} from "../../packages/aokit/src/cli/run.ts";
+import type {
+  ExitCode as DeclaredExitCode,
+  run as declaredRun,
+  RunOptions as DeclaredRunOptions,
+} from "./assets/run.d.ts";
 import { buildPackage } from "./build.ts";
 
 const repoRoot = join(import.meta.dir, "..", "..");
@@ -19,11 +29,32 @@ test("buildPackage emits an executable bundle with the shebang and a Registry co
   );
 }, 120_000);
 
+async function readManifest(path: string): Promise<Record<string, unknown>> {
+  const manifest: unknown = await Bun.file(path).json();
+  if (typeof manifest !== "object" || manifest === null) {
+    throw new Error(`${path} is not a JSON object.`);
+  }
+  return Object.fromEntries(Object.entries(manifest));
+}
+
 test("create-aokit has the version of aokit and depends on exactly that version", async () => {
-  const aokit: { version: string } = await Bun.file(join(packageDirectory, "package.json")).json();
-  const createAokit: { version: string; dependencies: Record<string, string> } = await Bun.file(
+  const aokit = await readManifest(join(packageDirectory, "package.json"));
+  const createAokit = await readManifest(
     join(repoRoot, "packages", "create-aokit", "package.json"),
-  ).json();
-  expect(createAokit.version).toBe(aokit.version);
-  expect(createAokit.dependencies["aokit"]).toBe(aokit.version);
+  );
+  expect(createAokit["version"]).toBe(aokit["version"]);
+  expect(createAokit["dependencies"]).toMatchObject({ aokit: aokit["version"] });
+});
+
+type MutuallyAssignable<Left, Right> = [Left] extends [Right]
+  ? [Right] extends [Left]
+    ? true
+    : false
+  : false;
+
+test("dist/run.d.ts declares the same run, RunOptions and ExitCode as the source", () => {
+  const sameRun: MutuallyAssignable<typeof declaredRun, typeof sourceRun> = true;
+  const sameOptions: MutuallyAssignable<DeclaredRunOptions, SourceRunOptions> = true;
+  const sameExitCode: MutuallyAssignable<DeclaredExitCode, SourceExitCode> = true;
+  expect([sameRun, sameOptions, sameExitCode]).toEqual([true, true, true]);
 });

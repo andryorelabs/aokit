@@ -2,18 +2,24 @@ import { afterAll, beforeAll, describe, expect, setDefaultTimeout, test } from "
 import { mkdir, mkdtemp, readdir, readFile, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
+import { z } from "zod";
 import { aokitCommand, spawnAokit } from "../../helpers/aokit-process.ts";
 
 const describeWithBinary = (process.env["AOKIT_BIN"] ?? "") === "" ? describe.skip : describe;
 
 const committedRegistry = join(import.meta.dir, "../../../../../registry");
 
-interface RegistryIndex {
-  readonly modules: Record<
-    string,
-    { readonly versions: Record<string, { readonly integrity: string }> }
-  >;
-}
+const registryIndexSchema = z.object({
+  modules: z.record(
+    z.string(),
+    z.object({ versions: z.record(z.string(), z.object({ integrity: z.string() })) }),
+  ),
+});
+
+const lockfileSchema = z.looseObject({
+  registries: z.record(z.string(), z.looseObject({ release: z.string() })),
+  modules: z.record(z.string(), z.looseObject({ version: z.string(), integrity: z.string() })),
+});
 
 async function runGit(directory: string, ...args: string[]): Promise<void> {
   const child = Bun.spawn(["git", "-c", "user.name=t", "-c", "user.email=t@example.com", ...args], {
@@ -197,17 +203,22 @@ describeWithBinary("the standalone binary", () => {
       { cwd: workDirectory, env },
     );
     expect(created.exitCode).toBe(0);
-    const index: RegistryIndex = JSON.parse(
-      await readFile(join(committedRegistry, "index.json"), "utf8"),
+    const index = registryIndexSchema.parse(
+      JSON.parse(await readFile(join(committedRegistry, "index.json"), "utf8")),
     );
     const olderIntegrity = index.modules["vite-react"]?.versions["1.0.0"]?.integrity;
     if (olderIntegrity === undefined) throw new Error("the Registry has no vite-react 1.0.0");
-    const lockfile = JSON.parse(
-      await readFile(join(workDirectory, "latest", "aokit.lock.json"), "utf8"),
+    const lockfile = lockfileSchema.parse(
+      JSON.parse(await readFile(join(workDirectory, "latest", "aokit.lock.json"), "utf8")),
     );
-    lockfile.registries.official.release = "2026.11.0";
-    lockfile.modules["vite-react"].version = "1.0.0";
-    lockfile.modules["vite-react"].integrity = olderIntegrity;
+    const officialRegistry = lockfile.registries["official"];
+    const viteReactModule = lockfile.modules["vite-react"];
+    if (officialRegistry === undefined || viteReactModule === undefined) {
+      throw new Error("the lockfile lacks the official Registry or vite-react");
+    }
+    officialRegistry.release = "2026.11.0";
+    viteReactModule.version = "1.0.0";
+    viteReactModule.integrity = olderIntegrity;
     await writeFile(join(workDirectory, "older.lock.json"), JSON.stringify(lockfile));
     const older = await spawnAokit(
       ["create", "app", "--from", "older.lock.json", "--yes", "--no-install", "--json"],
@@ -224,7 +235,9 @@ describeWithBinary("the standalone binary", () => {
       env,
     });
     expect(updated.exitCode).toBe(0);
-    expect(JSON.parse(updated.stdout)).toMatchObject({ ok: true });
+    expect(
+      z.looseObject({ ok: z.literal(true) }).safeParse(JSON.parse(updated.stdout)).success,
+    ).toBe(true);
     expect(await Bun.file(join(projectDirectory, "src", "router.tsx")).exists()).toBe(true);
     expect(await Bun.file(join(projectDirectory, "src", "routes.tsx")).exists()).toBe(false);
   });

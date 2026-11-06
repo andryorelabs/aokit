@@ -1,15 +1,26 @@
 import { afterEach, describe, expect, test } from "bun:test";
 import { cp, readFile, writeFile } from "node:fs/promises";
 import { join } from "node:path";
+import { z } from "zod";
 import { runCommand } from "../../src/cli/command.ts";
 import { createCommand } from "../../src/cli/commands/create.ts";
 import { doctorCommand } from "../../src/cli/commands/doctor.ts";
 import { updateCommand } from "../../src/cli/commands/update.ts";
 import { cleanTemporaryDirectories, commandContext, temporaryDirectory } from "../diff/support.ts";
+import { parseJson, valueAt } from "../helpers/update-json.ts";
 
 afterEach(cleanTemporaryDirectories);
 
 const committedRegistry = join(import.meta.dir, "../../../../registry");
+
+const indexSchema = z.looseObject({
+  release: z.string(),
+  releases: z.record(z.string(), z.unknown()),
+  modules: z.record(
+    z.string(),
+    z.looseObject({ latest: z.string(), versions: z.record(z.string(), z.unknown()) }),
+  ),
+});
 
 interface IndexModule {
   latest: string;
@@ -56,7 +67,7 @@ describe("aokit update against the committed Registry", () => {
     await cp(committedRegistry, registry, { recursive: true });
     const indexPath = join(registry, "index.json");
     const fullIndexText = await readFile(indexPath, "utf8");
-    const full: IndexShape = JSON.parse(fullIndexText);
+    const full: IndexShape = indexSchema.parse(parseJson(fullIndexText));
     await writeFile(indexPath, `${JSON.stringify(atFirstRelease(full), null, 2)}\n`, "utf8");
     const directory = join(await temporaryDirectory(), "app");
     const created = await runCommand(createCommand, commandContext, {
@@ -88,8 +99,8 @@ describe("aokit update against the committed Registry", () => {
     expect(await readFile(join(directory, "src/user.ts"), "utf8")).toBe(
       `import { userRoute } from "./router";\n`,
     );
-    const lockfile = JSON.parse(await readFile(join(directory, "aokit.lock.json"), "utf8"));
-    expect(lockfile.modules["vite-react"].version).toBe("1.2.0");
+    const lockfile = parseJson(await readFile(join(directory, "aokit.lock.json"), "utf8"));
+    expect(valueAt(lockfile, "modules", "vite-react", "version")).toBe("1.2.0");
   });
 
   test("doctor verifies the integrity of the pinned version, not the latest", async () => {
@@ -97,7 +108,7 @@ describe("aokit update against the committed Registry", () => {
     await cp(committedRegistry, registry, { recursive: true });
     const indexPath = join(registry, "index.json");
     const fullIndexText = await readFile(indexPath, "utf8");
-    const full: IndexShape = JSON.parse(fullIndexText);
+    const full: IndexShape = indexSchema.parse(parseJson(fullIndexText));
     await writeFile(indexPath, `${JSON.stringify(atFirstRelease(full), null, 2)}\n`, "utf8");
     const directory = join(await temporaryDirectory(), "app");
     const created = await runCommand(createCommand, commandContext, {
@@ -108,8 +119,8 @@ describe("aokit update against the committed Registry", () => {
       install: false,
     });
     if (!created.ok) throw new Error(created.error.message);
-    const pinned = JSON.parse(await readFile(join(directory, "aokit.lock.json"), "utf8"));
-    expect(pinned.modules["vite-react"].version).toBe("1.0.0");
+    const pinned = parseJson(await readFile(join(directory, "aokit.lock.json"), "utf8"));
+    expect(valueAt(pinned, "modules", "vite-react", "version")).toBe("1.0.0");
     await git(directory, "init", "-q");
     await git(directory, "add", "-A");
     await git(directory, "commit", "-q", "-m", "init");

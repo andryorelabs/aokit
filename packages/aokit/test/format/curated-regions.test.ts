@@ -1,23 +1,25 @@
 import { expect, test } from "bun:test";
+import { z } from "zod";
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { catalogSchema, parseManifest } from "@aokit/module";
 import type { EngineModule } from "../../src/engine/index.ts";
 import { createOxfmtFormatter } from "../../src/format/index.ts";
 import { buildProject } from "../../src/pipeline/index.ts";
+import { jsonAt, parseJson } from "../helpers/cli-json.ts";
 
 const sourceRoot = join(import.meta.dir, "..", "..", "..", "..", "registry-src");
 const curated = ["oxc", "knip", "vite-react", "tailwind4", "hono", "docker", "coolify"] as const;
 const skillPath = ".claude/skills/hono-add-route/SKILL.md";
 
 const catalog = catalogSchema.parse(
-  JSON.parse(readFileSync(join(sourceRoot, "catalog", "2026.11.2.json"), "utf8")),
+  parseJson(readFileSync(join(sourceRoot, "catalog", "2026.11.2.json"), "utf8")),
 );
 
 async function loadModule(name: string): Promise<EngineModule> {
-  const loaded: { default: unknown } = await import(join(sourceRoot, name, "module.ts"));
+  const loaded: unknown = await import(join(sourceRoot, name, "module.ts"));
   return {
-    manifest: parseManifest(loaded.default),
+    manifest: parseManifest(jsonAt(loaded, "default")),
     readFile: (from) => readFileSync(join(sourceRoot, name, from), "utf8"),
   };
 }
@@ -44,14 +46,17 @@ async function render(layout: "single" | "monorepo", formatted: boolean) {
 }
 
 function installedCatalog() {
-  const manifest = JSON.parse(
+  const manifest = parseJson(
     readFileSync(
       join(import.meta.dir, "..", "..", "..", "..", "node_modules", "oxfmt", "package.json"),
       "utf8",
     ),
   );
   return catalogSchema.parse({
-    dependencies: { oxfmt: manifest.version, oxlint: "1.90.0" },
+    dependencies: {
+      oxfmt: z.object({ version: z.string() }).parse(manifest).version,
+      oxlint: "1.90.0",
+    },
     pinGroups: { oxc: ["oxlint", "oxfmt"] },
   });
 }

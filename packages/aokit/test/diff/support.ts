@@ -6,6 +6,7 @@ import { writeRegistrySourceFixture } from "../../../../tools/registry-build/fix
 import { runCommand, type CommandContext } from "../../src/cli/command.ts";
 import { createCommand } from "../../src/cli/commands/create.ts";
 import { cliVersion } from "../../src/cli/version.ts";
+import { type JsonObject, parseJsonObject } from "../helpers/update-json.ts";
 
 const temporaryDirectories: string[] = [];
 
@@ -49,13 +50,13 @@ export async function createProject(registry: string): Promise<string> {
   return directory;
 }
 
-/** Rewrites the Lockfile of a Project through `edit`. */
-export async function editLockfile(
+/** Rewrites the Lockfile of a Project through `edit`, typed as a JSON object. */
+export async function editLockfileJson(
   directory: string,
-  edit: (lockfile: Record<string, any>) => void,
+  edit: (lockfile: JsonObject) => void,
 ): Promise<void> {
   const path = join(directory, "aokit.lock.json");
-  const lockfile = JSON.parse(await readFile(path, "utf8"));
+  const lockfile = parseJsonObject(await readFile(path, "utf8"));
   edit(lockfile);
   await writeFile(path, `${JSON.stringify(lockfile, null, 2)}\n`, "utf8");
 }

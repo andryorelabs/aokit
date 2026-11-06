@@ -144,8 +144,8 @@ test("add <item-url> --trust --yes is ok and the Lockfile records the Registry",
   const [name] = addCommand.output.parse(envelope.ok ? envelope.data : undefined).added;
   expect(name).toMatch(/^@[a-z0-9-]+\/card$/);
   const lockfile = await readLockfileJson(project);
-  const key: string = lockfile["modules"][name ?? ""]["registry"];
-  expect(lockfile["registries"][key]).toMatchObject({
+  const key: string = lockfile.modules[name ?? ""]?.["registry"] ?? "";
+  expect(lockfile.registries[key]).toMatchObject({
     source: `${host.trustSource}/registry.json`,
     release: "shadcn",
     trusted: true,
@@ -167,7 +167,7 @@ test("create --registry <shadcn-url> installs Adapted Modules and records the Re
   });
   expect(created).toMatchObject({ ok: true, data: { modules: ["@fixture/utils"] } });
   const lockfile = await readLockfileJson(project);
-  expect(lockfile["registries"]["fixture"]).toMatchObject({
+  expect(lockfile.registries["fixture"]).toMatchObject({
     source: `${fixture.url}/registry.json`,
     trusted: true,
   });
@@ -191,19 +191,19 @@ test("create --registry <shadcn-url> follows registryDependencies and keeps the 
   });
   expect(created).toMatchObject({ ok: true });
   const lockfile = await readLockfileJson(project);
-  const cardModule = Object.keys(lockfile["modules"]).find((name) => name.endsWith("/card"));
+  const cardModule = Object.keys(lockfile.modules).find((name) => name.endsWith("/card"));
   expect(cardModule).toBeDefined();
-  expect(lockfile["modules"]["@fixture/button"]).toMatchObject({ registry: "fixture" });
-  expect(lockfile["modules"]["@fixture/utils"]).toMatchObject({
+  expect(lockfile.modules["@fixture/button"]).toMatchObject({ registry: "fixture" });
+  expect(lockfile.modules["@fixture/utils"]).toMatchObject({
     registry: "fixture",
     selected: false,
   });
-  const nativeKey: string = lockfile["modules"]["tailwind4"]["registry"];
+  const nativeKey: string = lockfile.modules["tailwind4"]?.["registry"] ?? "";
   expect(nativeKey).not.toBe("fixture");
-  expect(lockfile["registries"][nativeKey]).toMatchObject({ source: "bundled" });
-  expect(lockfile["registries"]["fixture"]).toMatchObject({ trusted: true });
-  const cardKey: string = lockfile["modules"][cardModule ?? ""]["registry"];
-  expect(lockfile["registries"][cardKey]).toMatchObject({
+  expect(lockfile.registries[nativeKey]).toMatchObject({ source: "bundled" });
+  expect(lockfile.registries["fixture"]).toMatchObject({ trusted: true });
+  const cardKey: string = lockfile.modules[cardModule ?? ""]?.["registry"] ?? "";
+  expect(lockfile.registries[cardKey]).toMatchObject({
     source: `${cards.trustSource}/registry.json`,
     trusted: true,
   });
@@ -252,8 +252,8 @@ test("create --modules @ns/item reaches a Namespace of the user config", async (
   });
   expect(created).toMatchObject({ ok: true });
   const lockfile = await readLockfileJson(project);
-  expect(lockfile["modules"]["@alpha/alpha"]).toMatchObject({ selected: true });
-  expect(lockfile["modules"]["oxc"]).toMatchObject({ selected: true });
+  expect(lockfile.modules["@alpha/alpha"]).toMatchObject({ selected: true });
+  expect(lockfile.modules["oxc"]).toMatchObject({ selected: true });
 });
 
 test("update --registry <shadcn-url> reads the shadcn Registry of the Lockfile", async () => {
@@ -272,7 +272,7 @@ test("after add @fixture/button the native Modules still render with their Catal
   const context = await isolatedContext();
   const { project } = await projectWithButton(context);
   const lockfile = await readLockfileJson(project);
-  expect(lockfile["deps"]["oxlint"]).toMatchObject({ source: "catalog" });
+  expect(lockfile.deps["oxlint"]).toMatchObject({ source: "catalog" });
   const doctor = await runCommand(doctorCommand, context, { directory: project });
   expect(doctor).toMatchObject({ ok: true, data: { clean: true, problems: [] } });
   const removed = await runCommand(removeCommand, context, {
@@ -281,13 +281,14 @@ test("after add @fixture/button the native Modules still render with their Catal
     module: "@fixture/button",
   });
   expect(removed).toMatchObject({ ok: true });
-  expect((await readLockfileJson(project))["deps"]["oxlint"]).toEqual(lockfile["deps"]["oxlint"]);
+  expect((await readLockfileJson(project)).deps["oxlint"]).toEqual(lockfile.deps["oxlint"]);
 });
 
 test("a locked shadcn version keeps resolving after the item changes upstream", async () => {
   const context = await isolatedContext();
   const { project, fixture } = await projectWithButton(context);
-  const locked: string = (await readLockfileJson(project))["modules"]["@fixture/utils"]["version"];
+  const locked: string =
+    (await readLockfileJson(project)).modules["@fixture/utils"]?.["version"] ?? "";
   await fixture.writeItem({
     name: "utils",
     type: "registry:lib",
@@ -295,7 +296,7 @@ test("a locked shadcn version keeps resolving after the item changes upstream", 
   });
   const doctor = await runCommand(doctorCommand, context, { directory: project });
   expect(doctor).toMatchObject({ ok: true, data: { clean: true, problems: [] } });
-  expect((await readLockfileJson(project))["modules"]["@fixture/utils"]["version"]).toBe(locked);
+  expect((await readLockfileJson(project)).modules["@fixture/utils"]?.["version"]).toBe(locked);
 
   await rm(join(context.env["XDG_CACHE_HOME"] ?? "", "aokit", "registry"), {
     recursive: true,
@@ -310,10 +311,8 @@ test("a locked shadcn version keeps resolving after the item changes upstream", 
   expect(removed).toMatchObject({ ok: false, error: { code: "REGISTRY_ITEM_CHANGED" } });
   expect(exitCodeForEnvelope(removed)).toBe(1);
   const changedDoctor = await runCommand(doctorCommand, context, { directory: project });
-  expect(changedDoctor).toMatchObject({
-    ok: false,
-    error: { code: "REGISTRY_ITEM_CHANGED", fix: expect.stringContaining("aokit update") },
-  });
+  expect(changedDoctor).toMatchObject({ ok: false, error: { code: "REGISTRY_ITEM_CHANGED" } });
+  expect(changedDoctor.ok ? "" : changedDoctor.error.fix).toContain("aokit update");
   expect(JSON.stringify(changedDoctor)).toContain("[REGISTRY_ITEM_CHANGED]");
   expect(exitCodeForEnvelope(changedDoctor)).toBe(1);
   expect(await snapshotTree(project)).toEqual(before);
@@ -455,9 +454,9 @@ test("an owner/repo/item#ref dependency is read through the github: transport, p
   const lsRemoteCalls: string[] = [];
   const github = {
     rawBaseUrl: raw.url,
-    lsRemote: async (repositoryUrl: string, ref: string): Promise<string> => {
+    lsRemote: (repositoryUrl: string, ref: string): Promise<string> => {
       lsRemoteCalls.push(`${repositoryUrl} ${ref}`);
-      return `${sha}\trefs/tags/v2\n`;
+      return Promise.resolve(`${sha}\trefs/tags/v2\n`);
     },
   };
   const added = await runAdd(
@@ -474,9 +473,9 @@ test("an owner/repo/item#ref dependency is read through the github: transport, p
   expect(added.pulledIn).toHaveLength(1);
   expect(lsRemoteCalls).toEqual(["https://github.com/acme/ui.git v2"]);
   const lockfile = await readLockfileJson(project);
-  const iconName = Object.keys(lockfile["modules"]).find((name) => name.endsWith("/icon"));
-  const key: string = lockfile["modules"][iconName ?? ""]["registry"];
-  expect(lockfile["registries"][key]).toMatchObject({
+  const iconName = Object.keys(lockfile.modules).find((name) => name.endsWith("/icon"));
+  const key: string = lockfile.modules[iconName ?? ""]?.["registry"] ?? "";
+  expect(lockfile.registries[key]).toMatchObject({
     source: `github:acme/ui#${sha}`,
     trusted: true,
   });
@@ -515,7 +514,7 @@ test("an owner/repo/item#ref dependency is versioned from its commit SHA and sta
   const raw = served(root);
   const fixture = await shadcnRegistry([item("toolbar", ["acme/ui/icon#v2"])]);
   const project = await styledProject(context);
-  const github = { lsRemote: async (): Promise<string> => `${sha}\trefs/tags/v2\n` };
+  const github = { lsRemote: (): Promise<string> => Promise.resolve(`${sha}\trefs/tags/v2\n`) };
   await withRawGithubAt(raw.url, () =>
     runAdd(
       context,
@@ -530,9 +529,9 @@ test("an owner/repo/item#ref dependency is versioned from its commit SHA and sta
     ),
   );
   const lockfile = await readLockfileJson(project);
-  const iconName = Object.keys(lockfile["modules"]).find((name) => name.endsWith("/icon")) ?? "";
-  expect(lockfile["modules"][iconName]["version"]).toBe(`0.0.0-shadcn.${sha.slice(0, 12)}`);
-  const toolbarVersion: string = lockfile["modules"]["@fixture/toolbar"]["version"];
+  const iconName = Object.keys(lockfile.modules).find((name) => name.endsWith("/icon")) ?? "";
+  expect(lockfile.modules[iconName]?.["version"]).toBe(`0.0.0-shadcn.${sha.slice(0, 12)}`);
+  const toolbarVersion: string = lockfile.modules["@fixture/toolbar"]?.["version"] ?? "";
   expect(toolbarVersion).toMatch(/^0\.0\.0-shadcn\.[0-9a-f]{12}$/);
   expect(toolbarVersion).not.toBe(`0.0.0-shadcn.${sha.slice(0, 12)}`);
 
@@ -544,7 +543,7 @@ test("an owner/repo/item#ref dependency is versioned from its commit SHA and sta
       directory: project,
     });
     expect(updated).toMatchObject({ ok: true });
-    expect((await readLockfileJson(project))["modules"][iconName]["version"]).toBe(
+    expect((await readLockfileJson(project)).modules[iconName]?.["version"]).toBe(
       `0.0.0-shadcn.${sha.slice(0, 12)}`,
     );
     const removed = await runCommand(removeCommand, context, {
@@ -555,7 +554,7 @@ test("an owner/repo/item#ref dependency is versioned from its commit SHA and sta
     expect(removed).toMatchObject({ ok: true });
   });
   const after = await readLockfileJson(project);
-  expect(Object.keys(after["modules"]).filter((name) => name.endsWith("/icon"))).toEqual([]);
+  expect(Object.keys(after.modules).filter((name) => name.endsWith("/icon"))).toEqual([]);
 });
 
 test("an untrusted item's own URL dependency host receives no request", async () => {

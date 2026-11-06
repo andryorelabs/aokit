@@ -2,6 +2,20 @@ import { afterAll, beforeAll, describe, expect, test } from "bun:test";
 import { cp, mkdir, mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { basename, join } from "node:path";
+import { z } from "zod";
+
+const versionSchema = z.object({ version: z.string() });
+const typesExportSchema = z.object({
+  exports: z.record(z.string(), z.object({ types: z.string() })),
+});
+const binSchema = z.object({ bin: z.record(z.string(), z.string()) });
+const releaseSchema = z.object({ release: z.string() });
+const lockfileSchema = z.object({ registries: z.record(z.string(), releaseSchema) });
+const registryIndexSchema = z.looseObject({
+  release: z.string(),
+  releases: z.record(z.string(), z.looseObject({ integrity: z.string(), path: z.string() })),
+});
+const catalogSchema = z.looseObject({ dependencies: z.record(z.string(), z.string()) });
 
 const tarballVariable = process.env["AOKIT_DIST_TARBALLS"];
 const describeWithTarballs = tarballVariable === undefined ? describe.skip : describe;
@@ -29,6 +43,19 @@ function findTarball(prefix: string): string {
     throw new Error(`AOKIT_DIST_TARBALLS has no tarball starting with "${prefix}".`);
   }
   return found;
+}
+
+type ShimChild = Bun.Subprocess<"ignore", "pipe", "pipe">;
+
+interface ShimRun {
+  readonly exitCode: number | null;
+  readonly signalCode: string | number | null;
+  readonly stdout: string;
+}
+
+async function collectShimRun(child: ShimChild): Promise<ShimRun> {
+  const [stdout] = await Promise.all([new Response(child.stdout).text(), child.exited]);
+  return { exitCode: child.exitCode, signalCode: child.signalCode, stdout };
 }
 
 describeWithTarballs("the installed aokit and create-aokit tarballs", () => {
@@ -67,8 +94,8 @@ describeWithTarballs("the installed aokit and create-aokit tarballs", () => {
     aokitBin = join(installDirectory, "node_modules", ".bin", "aokit");
     createAokitBin = join(installDirectory, "node_modules", ".bin", "create-aokit");
     packageRoot = join(installDirectory, "node_modules", "aokit");
-    const manifest: { version: string } = JSON.parse(
-      await readFile(join(packageRoot, "package.json"), "utf8"),
+    const manifest = versionSchema.parse(
+      JSON.parse(await readFile(join(packageRoot, "package.json"), "utf8")),
     );
     aokitVersion = manifest.version;
   }, 120_000);
@@ -85,6 +112,83 @@ describeWithTarballs("the installed aokit and create-aokit tarballs", () => {
     expect(bundle.startsWith("#!/usr/bin/env bun\n")).toBe(true);
   });
 
+  test("S7: aokit/cli types resolve to an emitted declaration file", async () => {
+    const manifest = typesExportSchema.parse(
+      JSON.parse(await readFile(join(packageRoot, "package.json"), "utf8")),
+    );
+    const typesPath = manifest.exports["./cli"]?.types ?? "";
+    expect(typesPath.endsWith(".d.ts")).toBe(true);
+    expect(typesPath.startsWith("./dist/")).toBe(true);
+    expect(await Bun.file(join(packageRoot, typesPath)).exists()).toBe(true);
+  });
+
+  test("S7: the create-aokit bin runs under Node", async () => {
+    const createRoot = join(installDirectory, "node_modules", "create-aokit");
+    const manifest = binSchema.parse(
+      JSON.parse(await readFile(join(createRoot, "package.json"), "utf8")),
+    );
+    const binPath = join(createRoot, manifest.bin["create-aokit"] ?? "");
+    expect((await readFile(binPath, "utf8")).startsWith("#!/usr/bin/env node\n")).toBe(true);
+    const result = await spawnIn(["node", binPath, "--help"], await freshDirectory("node-help"));
+    expect(result.exitCode, result.stderr).toBe(0);
+    expect(result.stdout).toContain("create");
+  });
+
+  async function startShimWithFakeBun(
+    script: string,
+    args: readonly string[],
+    name: string,
+  ): Promise<ShimChild> {
+    const work = await freshDirectory(name);
+    const fakeBin = join(work, "bin");
+    await mkdir(fakeBin, { recursive: true });
+    await writeFile(join(fakeBin, "bun"), script, { mode: 0o755 });
+    const createRoot = join(installDirectory, "node_modules", "create-aokit");
+    const manifest = binSchema.parse(
+      JSON.parse(await readFile(join(createRoot, "package.json"), "utf8")),
+    );
+    return Bun.spawn(["node", join(createRoot, manifest.bin["create-aokit"] ?? ""), ...args], {
+      cwd: work,
+      env: { ...process.env, PATH: `${fakeBin}:${process.env["PATH"] ?? ""}` },
+      stdout: "pipe",
+      stderr: "pipe",
+    });
+  }
+
+  test("the create-aokit bin disables the update notice, passes its arguments and relays the exit code", async () => {
+    const script = '#!/bin/sh\necho "notifier=$AOKIT_NO_UPDATE_NOTIFIER"\necho "args=$*"\nexit 7\n';
+    const result = await collectShimRun(await startShimWithFakeBun(script, ["my-app"], "shim-env"));
+    expect(result.stdout).toContain("notifier=1");
+    expect(result.stdout).toMatch(/args=.*cli\.js create my-app/);
+    expect(result.exitCode).toBe(7);
+  });
+
+  test("the create-aokit bin dies by the same signal as its child", async () => {
+    const child = await startShimWithFakeBun("#!/bin/sh\nkill -TERM $$\n", [], "shim-signal");
+    const result = await collectShimRun(child);
+    expect(result.signalCode ?? `exit ${String(result.exitCode)}`).toBe("SIGTERM");
+  });
+
+  test("the create-aokit bin passes SIGTERM on to its child and waits for it", async () => {
+    const script =
+      "#!/bin/sh\ntrap 'echo got-term; exit 0' TERM\necho ready\nwhile :; do sleep 0.1; done\n";
+    const child = await startShimWithFakeBun(script, [], "shim-forward");
+    const decoder = new TextDecoder();
+    let seen = "";
+    let signalled = false;
+    for await (const chunk of child.stdout) {
+      seen += decoder.decode(chunk, { stream: true });
+      if (!signalled && seen.includes("ready")) {
+        signalled = true;
+        child.kill("SIGTERM");
+      }
+    }
+    await child.exited;
+    expect(signalled).toBe(true);
+    expect(seen).toContain("got-term");
+    expect(child.exitCode).toBe(0);
+  });
+
   test("S2: create resolves the Registry shipped inside the package", async () => {
     const workDirectory = await freshDirectory("create-bundled");
     const result = await spawnIn(
@@ -92,11 +196,11 @@ describeWithTarballs("the installed aokit and create-aokit tarballs", () => {
       workDirectory,
     );
     expect(result.exitCode, result.stderr).toBe(0);
-    const index: { release: string } = JSON.parse(
-      await readFile(join(packageRoot, "registry", "index.json"), "utf8"),
+    const index = releaseSchema.parse(
+      JSON.parse(await readFile(join(packageRoot, "registry", "index.json"), "utf8")),
     );
-    const lockfile: { registries: Record<string, { release: string }> } = JSON.parse(
-      await readFile(join(workDirectory, "my-app", "aokit.lock.json"), "utf8"),
+    const lockfile = lockfileSchema.parse(
+      JSON.parse(await readFile(join(workDirectory, "my-app", "aokit.lock.json"), "utf8")),
     );
     expect(lockfile.registries["official"]?.release).toBe(index.release);
   }, 120_000);
@@ -105,17 +209,14 @@ describeWithTarballs("the installed aokit and create-aokit tarballs", () => {
     const registryCopy = join(await freshDirectory("mismatch"), "registry");
     await cp(join(packageRoot, "registry"), registryCopy, { recursive: true });
     const indexPath = join(registryCopy, "index.json");
-    const index: {
-      release: string;
-      releases: Record<string, { integrity: string; path: string }>;
-    } = JSON.parse(await readFile(indexPath, "utf8"));
+    const index = registryIndexSchema.parse(JSON.parse(await readFile(indexPath, "utf8")));
     const entry = index.releases[index.release];
     if (entry === undefined) {
       throw new Error("the packaged Registry index lacks its own latest Release.");
     }
     const catalogPath = join(registryCopy, entry.path);
-    const catalog = JSON.parse(await readFile(catalogPath, "utf8"));
-    catalog.dependencies.oxfmt = "0.1.0";
+    const catalog = catalogSchema.parse(JSON.parse(await readFile(catalogPath, "utf8")));
+    catalog.dependencies["oxfmt"] = "0.1.0";
     const catalogText = `${JSON.stringify(catalog, null, 2)}\n`;
     await writeFile(catalogPath, catalogText);
     const digest = new Bun.CryptoHasher("sha256").update(catalogText).digest("hex");

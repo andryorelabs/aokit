@@ -8,6 +8,7 @@ import { addCommand } from "../../src/cli/commands/add.ts";
 import { createCommand } from "../../src/cli/commands/create.ts";
 import { doctorCommand } from "../../src/cli/commands/doctor.ts";
 import { cliVersion } from "../../src/cli/version.ts";
+import { jsonAt, keysAt, parseJson } from "../helpers/cli-json.ts";
 
 const workspaces: string[] = [];
 const context = { version: cliVersion, env: {}, commands: [] };
@@ -92,10 +93,10 @@ describe("aokit add", () => {
     expect(tree(added)).toEqual(tree(fresh));
     const doctor = await runCommand(doctorCommand, context, { directory: added });
     expect(doctor.ok).toBe(true);
-    const addedLock = JSON.parse(readFileSync(join(added, "aokit.lock.json"), "utf8"));
-    const freshLock = JSON.parse(readFileSync(join(fresh, "aokit.lock.json"), "utf8"));
-    expect(addedLock.files).toEqual(freshLock.files);
-    expect(Object.keys(addedLock.modules)).toEqual(Object.keys(freshLock.modules));
+    const addedLock = parseJson(readFileSync(join(added, "aokit.lock.json"), "utf8"));
+    const freshLock = parseJson(readFileSync(join(fresh, "aokit.lock.json"), "utf8"));
+    expect(jsonAt(addedLock, "files")).toEqual(jsonAt(freshLock, "files"));
+    expect(keysAt(addedLock, "modules")).toEqual(keysAt(freshLock, "modules"));
   });
 
   test("an untracked file exits 5 unless --allow-dirty", async () => {
@@ -129,9 +130,9 @@ describe("aokit add", () => {
     await createProject(directory, "single", "oxc", true);
     const envelope = await addProject(directory, { modules: ["coolify"] });
     expect(envelope.ok).toBe(true);
-    const lock = JSON.parse(readFileSync(join(directory, "aokit.lock.json"), "utf8"));
-    expect(lock.modules.coolify.selected).toBe(true);
-    expect(lock.modules.docker.selected).toBe(false);
+    const lock = parseJson(readFileSync(join(directory, "aokit.lock.json"), "utf8"));
+    expect(jsonAt(lock, "modules", "coolify", "selected")).toBe(true);
+    expect(jsonAt(lock, "modules", "docker", "selected")).toBe(false);
     if (envelope.ok) {
       expect(addCommand.output.parse(envelope.data).pulledIn).toContain("docker");
     }

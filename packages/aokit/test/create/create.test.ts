@@ -11,6 +11,7 @@ import {
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { parseManifest } from "@aokit/module";
+import { z } from "zod";
 import { runCli, type CliIo } from "../../src/cli/adapter.ts";
 import { runCommand } from "../../src/cli/command.ts";
 import { createCommand } from "../../src/cli/commands/create.ts";
@@ -18,9 +19,51 @@ import { exposedCommands } from "../../src/cli/commands/registry.ts";
 import { parseAnswers, completeAnswers } from "../../src/project/answers.ts";
 import { reproduceCommand } from "../../src/project/reproduce.ts";
 import { cliVersion } from "../../src/cli/version.ts";
+import { parseJsonRecord, parseJsonText, parseLockfileJson } from "../helpers/registry-json.ts";
 import { aokitCommand, spawnAokit as spawnAokitProcess } from "../helpers/aokit-process.ts";
 
 const workspaces: string[] = [];
+
+const envelopeSchema = z.looseObject({
+  ok: z.boolean(),
+  error: z.looseObject({ code: z.string(), message: z.string(), fix: z.string() }).nullable(),
+  data: z
+    .looseObject({
+      applied: z.boolean().optional(),
+      installed: z.boolean().optional(),
+      modules: z.array(z.string()).optional(),
+      reproduce: z.string().optional(),
+      diff: z.string().optional(),
+      plan: z
+        .looseObject({
+          changes: z.array(
+            z.looseObject({
+              path: z.string(),
+              provenance: z.array(z.looseObject({ module: z.string() })).optional(),
+            }),
+          ),
+        })
+        .optional(),
+      input: z.looseObject({ properties: z.record(z.string(), z.unknown()) }).optional(),
+    })
+    .nullable(),
+});
+
+function parseEnvelope(stdout: string) {
+  return envelopeSchema.parse(parseJsonText(stdout));
+}
+
+function envelopeData(stdout: string) {
+  const { data } = parseEnvelope(stdout);
+  if (data === null) throw new Error("the envelope carries no data");
+  return data;
+}
+
+function envelopeError(stdout: string) {
+  const { error } = parseEnvelope(stdout);
+  if (error === null) throw new Error("the envelope carries no error");
+  return error;
+}
 
 afterAll(() => {
   for (const leftover of workspaces) {
@@ -85,15 +128,17 @@ describe("aokit create", () => {
     ]);
     expect(result.exitCode).toBe(0);
     expect(result.stderr).toBe("");
-    const envelope = JSON.parse(result.stdout);
-    expect(Object.keys(envelope)).toEqual(["data", "error", "ok"]);
+    const rawEnvelope = parseJsonRecord(result.stdout);
+    expect(Object.keys(rawEnvelope)).toEqual(["data", "error", "ok"]);
+    const envelope = parseEnvelope(result.stdout);
     expect(envelope.ok).toBe(true);
     expect(envelope.error).toBeNull();
-    expect(envelope.data.applied).toBe(true);
-    expect(envelope.data.installed).toBe(false);
-    expect(envelope.data.modules).toEqual(["oxc", "vite-react"]);
-    expect(Object.keys(envelope.data)).toEqual(Object.keys(envelope.data).toSorted());
-    const lockfile = JSON.parse(readFileSync(join(target, "aokit.lock.json"), "utf8"));
+    expect(envelope.data?.applied).toBe(true);
+    expect(envelope.data?.installed).toBe(false);
+    expect(envelope.data?.modules).toEqual(["oxc", "vite-react"]);
+    const rawData = z.record(z.string(), z.unknown()).parse(rawEnvelope["data"]);
+    expect(Object.keys(rawData)).toEqual(Object.keys(rawData).toSorted());
+    const lockfile = parseLockfileJson(readFileSync(join(target, "aokit.lock.json"), "utf8"));
     expect(Object.keys(lockfile.modules)).toEqual(["oxc", "vite-react"]);
     expect(result.stdout.trimEnd().split("\n")).toHaveLength(1);
   });
@@ -108,7 +153,7 @@ describe("aokit create", () => {
       "--no-install",
       "--json",
     ]);
-    expect(JSON.parse(result.stdout).data.reproduce).toBe(
+    expect(envelopeData(result.stdout).reproduce).toBe(
       "aokit create app --layout single --modules oxc,vite-react --no-install --yes",
     );
   });
@@ -129,7 +174,7 @@ describe("aokit create", () => {
       { directory: join(parent, "a"), modules: "oxc", dryRun: true },
     );
     if (!direct.ok) throw new Error(direct.error.message);
-    expect(direct.data).toMatchObject({ plan: JSON.parse(viaAdapter.stdout).data.plan });
+    expect(direct.data).toMatchObject({ plan: envelopeData(viaAdapter.stdout).plan });
   });
 
   test("a non-empty target exits 3 and stays unchanged; an empty one is used", async () => {
@@ -139,10 +184,10 @@ describe("aokit create", () => {
     writeFileSync(join(target, "keep.txt"), "mine");
     const refused = await runAokit(["create", target, "--modules", "oxc", "--yes", "--json"]);
     expect(refused.exitCode).toBe(3);
-    const envelope = JSON.parse(refused.stdout);
-    expect(envelope.error.code).toBe("INVALID_INPUT");
-    expect(envelope.error.message).toContain("not empty");
-    expect(envelope.error.fix).toContain("choose another directory");
+    const refusal = envelopeError(refused.stdout);
+    expect(refusal.code).toBe("INVALID_INPUT");
+    expect(refusal.message).toContain("not empty");
+    expect(refusal.fix).toContain("choose another directory");
     expect(readFileSync(join(target, "keep.txt"), "utf8")).toBe("mine");
 
     const dryRun = await runAokit(["create", target, "--modules", "oxc", "--dry-run", "--json"]);
@@ -167,12 +212,10 @@ describe("aokit create", () => {
       "--json",
     ]);
     expect(result.exitCode).toBe(0);
-    const { data } = JSON.parse(result.stdout);
+    const data = envelopeData(result.stdout);
     expect(data.applied).toBe(false);
-    const manifest = data.plan.changes.find(
-      (change: { path: string }) => change.path === "package.json",
-    );
-    expect(manifest.provenance.map((entry: { module: string }) => entry.module)).toContain("oxc");
+    const manifest = data.plan?.changes.find((change) => change.path === "package.json");
+    expect(manifest?.provenance?.map((entry) => entry.module)).toContain("oxc");
     expect(await Bun.file(join(target, "aokit.lock.json")).exists()).toBe(false);
   });
 
@@ -181,7 +224,7 @@ describe("aokit create", () => {
     const target = join(parent, "app");
     const result = await runAokit(["create", target, "--modules", "oxc", "--diff", "--json"]);
     expect(result.exitCode).toBe(0);
-    const { data } = JSON.parse(result.stdout);
+    const data = envelopeData(result.stdout);
     expect(data.applied).toBe(false);
     expect(data.diff).toContain("--- /dev/null\n+++ b/.oxlintrc.json\n@@ -0,0 +1,");
     expect(await Bun.file(join(target, "aokit.lock.json")).exists()).toBe(false);
@@ -190,7 +233,7 @@ describe("aokit create", () => {
   test("a Resolver error exits 4 with its code, message and fix", async () => {
     const result = await runAokit(["create", "app", "--modules", "tailwind4", "--json"]);
     expect(result.exitCode).toBe(4);
-    const { error } = JSON.parse(result.stdout);
+    const error = envelopeError(result.stdout);
     expect(error.code).toBe("REQUIREMENT_UNMET");
     expect(error.message).toContain("[extension_point_unmet]");
     expect(error.fix.length).toBeGreaterThan(0);
@@ -199,8 +242,8 @@ describe("aokit create", () => {
   test("missing modules exits 3 naming the flag", async () => {
     const result = await runAokit(["create", "app", "--yes", "--json"]);
     expect(result.exitCode).toBe(3);
-    expect(JSON.parse(result.stdout).error).toMatchObject({ code: "MISSING_VALUE" });
-    expect(JSON.parse(result.stdout).error.message).toContain("--modules");
+    expect(envelopeError(result.stdout)).toMatchObject({ code: "MISSING_VALUE" });
+    expect(envelopeError(result.stdout).message).toContain("--modules");
   });
 
   test.each([
@@ -218,7 +261,7 @@ describe("aokit create", () => {
       "--json",
     ]);
     expect(result.exitCode).toBe(3);
-    expect(JSON.parse(result.stdout).error.code).toBe("INVALID_INPUT");
+    expect(envelopeError(result.stdout).code).toBe("INVALID_INPUT");
   });
 
   test("a failed install leaves the Project, exits 1 and says to rerun bun install", async () => {
@@ -232,8 +275,8 @@ describe("aokit create", () => {
       PATH: `${fakeBin}:${process.env["PATH"] ?? ""}`,
     });
     expect(result.exitCode).toBe(1);
-    const { error } = JSON.parse(result.stdout);
-    expect(error.fix).toContain("bun install");
+    const { fix } = envelopeError(result.stdout);
+    expect(fix).toContain("bun install");
     expect(readFileSync(join(target, "aokit.lock.json"), "utf8")).toContain("oxc");
   });
 
@@ -274,8 +317,8 @@ describe("aokit create", () => {
     const version = await spawnAokit(["--version"]);
     expect(version.stdout).toBe("0.1.0\n");
     const schema = await runAokit(["schema", "create", "--json"]);
-    const { data } = JSON.parse(schema.stdout);
-    expect(Object.keys(data.input.properties)).toContain("modules");
+    const data = envelopeData(schema.stdout);
+    expect(Object.keys(data.input?.properties ?? {})).toContain("modules");
   });
 });
 

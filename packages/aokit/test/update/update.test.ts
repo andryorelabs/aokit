@@ -12,9 +12,10 @@ import {
   cleanTemporaryDirectories,
   commandContext,
   createProject,
-  editLockfile,
+  editLockfileJson,
   temporaryDirectory,
 } from "../diff/support.ts";
+import { objectAt, parseJsonObject, stringAt, valueAt } from "../helpers/update-json.ts";
 
 afterEach(cleanTemporaryDirectories);
 
@@ -163,11 +164,13 @@ describe("aokit update", () => {
     expect(await exists(directory, "notes.md")).toBe(false);
     expect(await read(directory, "docs/notes.md")).toContain("my own line");
     expect(await read(directory, "src/user.ts")).toBe(`import n from "./docs/notes";\n`);
-    const lockfile = JSON.parse(await read(directory, "aokit.lock.json"));
-    expect(Object.values<{ release: string }>(lockfile.registries)[0]?.release).toBe("2026.11.1");
-    expect(lockfile.modules.oxc.version).toBe("1.1.0");
-    expect(lockfile.files["docs/notes.md"]).toBeDefined();
-    expect(lockfile.files["notes.md"]).toBeUndefined();
+    const lockfile = parseJsonObject(await read(directory, "aokit.lock.json"));
+    expect(valueAt(Object.values(objectAt(lockfile, "registries"))[0], "release")).toBe(
+      "2026.11.1",
+    );
+    expect(valueAt(lockfile, "modules", "oxc", "version")).toBe("1.1.0");
+    expect(valueAt(lockfile, "files", "docs/notes.md")).toBeDefined();
+    expect(valueAt(lockfile, "files", "notes.md")).toBeUndefined();
     expect(
       updateCommand.output.parse(envelope.data).migrations.map((entry) => entry.script),
     ).toEqual(["migrations/to-1-1.after.js"]);
@@ -205,27 +208,34 @@ export default defineMigration(({ answers }) => {
 });
 `,
     });
-    await editLockfile(directory, (lockfile) => {
-      lockfile.modules.oxc.answers = { appRouter: "tanstack" };
+    await editLockfileJson(directory, (lockfile) => {
+      objectAt(lockfile, "modules", "oxc")["answers"] = { appRouter: "tanstack" };
     });
     await commitAll(directory);
     const envelope = await run({ directory, yes: true, install: false });
     if (!envelope.ok) throw new Error(envelope.error.message);
-    const lockfile = JSON.parse(await read(directory, "aokit.lock.json"));
-    expect(lockfile.modules.oxc.answers).toEqual({ router: "tanstack" });
+    const lockfile = parseJsonObject(await read(directory, "aokit.lock.json"));
+    expect(valueAt(lockfile, "modules", "oxc", "answers")).toEqual({ router: "tanstack" });
   });
 
   test("keeps a pinned dependency at its locked version and lists it", async () => {
     const { directory } = await project();
     await commitAll(directory);
-    const before = JSON.parse(await read(directory, "aokit.lock.json"));
+    const before = parseJsonObject(await read(directory, "aokit.lock.json"));
     const envelope = await run({ directory, yes: true, install: false });
     if (!envelope.ok) throw new Error(envelope.error.message);
     expect(updateCommand.output.parse(envelope.data).keptDeps).toEqual([
-      { name: "oxlint", kept: before.deps.oxlint.version, available: "1.91.0", reason: "pinned" },
+      {
+        name: "oxlint",
+        kept: stringAt(before, "deps", "oxlint", "version"),
+        available: "1.91.0",
+        reason: "pinned",
+      },
     ]);
-    const lockfile = JSON.parse(await read(directory, "aokit.lock.json"));
-    expect(lockfile.deps.oxlint.version).toBe(before.deps.oxlint.version);
+    const lockfile = parseJsonObject(await read(directory, "aokit.lock.json"));
+    expect(valueAt(lockfile, "deps", "oxlint", "version")).toBe(
+      valueAt(before, "deps", "oxlint", "version"),
+    );
     expect(await read(directory, "package.json")).not.toContain("1.91.0");
   });
 

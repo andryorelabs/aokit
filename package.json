@@ -16,9 +16,11 @@
     "build:package": "bun tools/build-package/main.ts",
     "build:binary": "bun tools/build-binary/main.ts",
     "registry:build": "bun tools/registry-build/main.ts",
-    "prepare": "husky"
+    "prepare": "husky",
+    "lint:package": "bun tools/build-package/lint-main.ts"
   },
   "devDependencies": {
+    "@arethetypeswrong/cli": "^0.18.5",
     "@commitlint/cli": "^21.2.4",
     "@commitlint/config-conventional": "^21.2.4",
     "@commitlint/types": "^21.2.3",
@@ -30,6 +32,7 @@
     "oxfmt": "0.75.0",
     "oxlint": "1.90.0",
     "oxlint-tsgolint": "7.0.2005",
+    "publint": "^0.3.25",
     "typescript": "npm:@typescript/typescript6@6.0.2",
     "typescript7": "npm:typescript@7.1.0-beta"
   },

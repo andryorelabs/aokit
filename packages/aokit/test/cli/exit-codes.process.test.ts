@@ -5,10 +5,11 @@ import {
   builtRegistry,
   cleanTemporaryDirectories,
   createProject as createFixtureProject,
-  editLockfile,
+  editLockfileJson,
 } from "../diff/support.ts";
 import { spawnAokit as spawnAokitProcess } from "../helpers/aokit-process.ts";
 import { commitAll, createProject, git, newWorkspace } from "../restore/helpers.ts";
+import { jsonAt } from "../helpers/cli-json.ts";
 
 const workspace = newWorkspace();
 
@@ -44,8 +45,13 @@ describe("exit codes through a real process", () => {
       const text = await Bun.file(path).text();
       await writeFile(path, text.replace('version: "1.0.0",', 'version: "1.1.0",'), "utf8");
     });
-    await editLockfile(project, (lockfile) => {
-      lockfile["registries"]["official"].source = newer;
+    await editLockfileJson(project, (lockfile) => {
+      const registries: unknown = lockfile["registries"];
+      const official = jsonAt(registries, "official");
+      if (typeof official !== "object" || official === null) {
+        throw new Error("official registry missing from lockfile");
+      }
+      Object.assign(official, { source: newer });
     });
     const result = await spawnAokit(["check", project, "--json"]);
     expect(result.exitCode).toBe(2);
