@@ -12,7 +12,8 @@ type WorkflowRule =
   | "no-pull-request-target"
   | "no-expression-in-run"
   | "pinned-actions"
-  | "node-version-file";
+  | "node-version-file"
+  | "bun-cache";
 
 /** The job slot used for problems that belong to the whole workflow rather than one job. */
 const workflowScope = "(workflow)";
@@ -22,6 +23,15 @@ const usesLine = /^\s*(?:-\s+)?uses:\s*(\S+)(?:\s+#\s*(\S.*?))?\s*$/;
 const jobKeyLine = /^ {2}([A-Za-z0-9_-]+):/;
 const topLevelLine = /^\S/;
 const readOnlyLevels = new Set(["read", "none"]);
+const frozenInstall = /\bbun install\b[^\n]*--frozen-lockfile/;
+
+/** The `with:` inputs of the shared Bun install cache step every install step must follow. */
+const bunCache = {
+  path: "~/.bun/install/cache",
+  key: "${{ runner.os }}-bun-${{ hashFiles('bun.lock') }}",
+  restoreKeys: "${{ runner.os }}-bun-",
+} as const;
+const bunCacheDescription = `the actions/cache step for ${bunCache.path}`;
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null && !Array.isArray(value);
@@ -145,6 +155,39 @@ function findJobProblems(file: string, job: string, definition: Record<string, u
   steps.forEach((step: unknown, index) => {
     if (isRecord(step)) problems.push(...findStepProblems(file, job, step, index));
   });
+  problems.push(...findBunCacheProblems(file, job, steps));
+  return problems;
+}
+
+function isBunCacheStep(step: unknown): boolean {
+  if (!isRecord(step)) return false;
+  const uses = step["uses"];
+  if (typeof uses !== "string" || !uses.startsWith("actions/cache@")) return false;
+  const inputs = isRecord(step["with"]) ? step["with"] : {};
+  return (
+    inputs["path"] === bunCache.path &&
+    inputs["key"] === bunCache.key &&
+    inputs["restore-keys"] === bunCache.restoreKeys
+  );
+}
+
+/** Every `bun install --frozen-lockfile` step must come right after the shared Bun cache step. */
+function findBunCacheProblems(file: string, job: string, steps: readonly unknown[]): string[] {
+  const problems: string[] = [];
+  steps.forEach((step: unknown, index) => {
+    if (!isRecord(step)) return;
+    const run = step["run"];
+    if (typeof run !== "string" || !frozenInstall.test(run)) return;
+    if (isBunCacheStep(steps[index - 1])) return;
+    problems.push(
+      describeProblem(
+        file,
+        job,
+        "bun-cache",
+        `install step ${stepLabel(step, index)} is not preceded by ${bunCacheDescription}`,
+      ),
+    );
+  });
   return problems;
 }
 
@@ -206,6 +249,13 @@ function findWorkflowProblems(file: string, text: string): string[] {
 
 const sha = "a".repeat(40);
 
+const fixtureCacheStep = `      - uses: actions/cache@${sha} # v6.1.0
+        with:
+          path: ${bunCache.path}
+          key: ${bunCache.key}
+          restore-keys: ${bunCache.restoreKeys}
+`;
+
 const validWorkflow = `name: Fixture
 
 on:
@@ -229,6 +279,10 @@ jobs:
       - uses: actions/setup-node@${sha} # v7.1.0
         with:
           node-version-file: .node-version
+
+${fixtureCacheStep}
+      - name: Install
+        run: bun install --frozen-lockfile
 
       - name: Print ref
         env:
@@ -320,6 +374,24 @@ const brokenFixtures: readonly {
     expected:
       "fixture.yml:build breaks node-version-file: setup-node step #2 must use node-version-file: .node-version and no node-version",
   },
+  {
+    rule: "bun-cache",
+    search: `${fixtureCacheStep}\n`,
+    replacement: "",
+    expected: `fixture.yml:build breaks bun-cache: install step "Install" is not preceded by ${bunCacheDescription}`,
+  },
+  {
+    rule: "bun-cache",
+    search: "path: ~/.bun/install/cache",
+    replacement: "path: node_modules",
+    expected: `fixture.yml:build breaks bun-cache: install step "Install" is not preceded by ${bunCacheDescription}`,
+  },
+  {
+    rule: "bun-cache",
+    search: `          restore-keys: ${bunCache.restoreKeys}\n`,
+    replacement: "",
+    expected: `fixture.yml:build breaks bun-cache: install step "Install" is not preceded by ${bunCacheDescription}`,
+  },
 ];
 
 describe("S8: workflow hardening invariants", () => {
@@ -363,6 +435,31 @@ describe("S8: workflow hardening invariants", () => {
   test("a job calling a reusable workflow needs no timeout-minutes", () => {
     const text = `${validWorkflow}  reuse:\n    uses: ./.github/workflows/other.yml\n`;
     expect(findWorkflowProblems("fixture.yml", text)).toEqual([]);
+  });
+
+  test("an install step with extra flags and a cache right before it passes", () => {
+    const text = breakFixture(
+      "run: bun install --frozen-lockfile\n",
+      "run: bun install --frozen-lockfile --ignore-scripts\n",
+    );
+    expect(findWorkflowProblems("fixture.yml", text)).toEqual([]);
+  });
+
+  test("a step between the cache and the install step fails", () => {
+    const text = breakFixture(
+      "      - name: Install\n",
+      "      - name: Between\n        run: true\n\n      - name: Install\n",
+    );
+    expect(findWorkflowProblems("fixture.yml", text)).toEqual([
+      `fixture.yml:build breaks bun-cache: install step "Install" is not preceded by ${bunCacheDescription}`,
+    ]);
+  });
+
+  test("an install step in a second job without a cache names that job", () => {
+    const text = `${validWorkflow}  other:\n    runs-on: ubuntu-latest\n    timeout-minutes: 5\n    steps:\n      - run: bun install --frozen-lockfile\n`;
+    expect(findWorkflowProblems("fixture.yml", text)).toEqual([
+      `fixture.yml:other breaks bun-cache: install step #1 is not preceded by ${bunCacheDescription}`,
+    ]);
   });
 
   test("CRLF line endings do not hide an unpinned reference", () => {

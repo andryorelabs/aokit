@@ -11,7 +11,9 @@ const routedMatrixExpression =
 
 /** Jobs routed through `vars.BLACKSMITH_RUNNER`, as `<file>:<job>`; while aokit is private this is every Linux job. */
 export const routedJobs: readonly string[] = [
-  "ci.yml:check-and-test",
+  "ci.yml:check",
+  "ci.yml:test",
+  "ci.yml:commitlint",
   "determinism.yml:digest",
   "determinism.yml:compare",
   "distribution.yml:linux-x64",
@@ -104,6 +106,33 @@ function workflow(job: string, runsOn: string, extra = ""): string {
   return `name: CI\n\njobs:\n  ${job}:\n    name: ${job}\n${extra}    runs-on: ${runsOn}\n    steps:\n      - run: true\n`;
 }
 
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === "object" && value !== null && !Array.isArray(value);
+}
+
+function field(value: unknown, key: string): unknown {
+  return isRecord(value) ? value[key] : undefined;
+}
+
+function jobSteps(jobs: unknown, job: string): unknown[] {
+  const steps = field(field(jobs, job), "steps");
+  return Array.isArray(steps) ? steps : [];
+}
+
+function stepRuns(jobs: unknown, job: string): string[] {
+  return jobSteps(jobs, job).flatMap((step: unknown) => {
+    const run = field(step, "run");
+    return typeof run === "string" ? [run] : [];
+  });
+}
+
+/** The routed `ci.yml` jobs besides `test`, so a `test` fixture is a complete `ci.yml`. */
+const ciSiblingJobs = `  check:\n    runs-on: ${routedExpression}\n  commitlint:\n    runs-on: ${routedExpression}\n`;
+
+function ciWorkflow(testRunsOn: string, matrix: string): string {
+  return `${workflow("test", testRunsOn, matrix)}${ciSiblingJobs}`;
+}
+
 const osMatrix = "    strategy:\n      matrix:\n        os: [ubuntu-latest, macos-latest]\n";
 
 describe("CI runner routing", () => {
@@ -146,23 +175,23 @@ describe("CI runner routing", () => {
   });
 
   test("an os matrix job using the matrix form passes", () => {
-    const text = workflow("check-and-test", routedMatrixExpression, osMatrix);
+    const text = ciWorkflow(routedMatrixExpression, osMatrix);
     expect(findRunnerRoutingProblems("ci.yml", text)).toEqual([]);
   });
 
   test("an os matrix job using the plain expression fails so macOS never reaches Blacksmith", () => {
-    const text = workflow("check-and-test", routedExpression, osMatrix);
+    const text = ciWorkflow(routedExpression, osMatrix);
     expect(findRunnerRoutingProblems("ci.yml", text)).toEqual([
-      "ci.yml:check-and-test is routed and must use the os matrix form of the BLACKSMITH_RUNNER expression",
+      "ci.yml:test is routed and must use the os matrix form of the BLACKSMITH_RUNNER expression",
     ]);
   });
 
   test("a block-style os matrix using the plain expression fails", () => {
     const blockMatrix =
       "    strategy:\n      matrix:\n        os:\n          - ubuntu-latest\n          - macos-latest\n";
-    const text = workflow("check-and-test", routedExpression, blockMatrix);
+    const text = ciWorkflow(routedExpression, blockMatrix);
     expect(findRunnerRoutingProblems("ci.yml", text)).toEqual([
-      "ci.yml:check-and-test is routed and must use the os matrix form of the BLACKSMITH_RUNNER expression",
+      "ci.yml:test is routed and must use the os matrix form of the BLACKSMITH_RUNNER expression",
     ]);
   });
 
@@ -178,6 +207,47 @@ describe("CI runner routing", () => {
     expect(findRunnerRoutingProblems("upgrade.yml", text)).toEqual([
       "upgrade.yml:10 uses vars.BLACKSMITH_RUNNER outside a runs-on routing expression",
     ]);
+  });
+
+  test("a ci.yml without the split jobs reports each one missing", () => {
+    const text = workflow("check-and-test", routedMatrixExpression, osMatrix);
+    expect(findRunnerRoutingProblems("ci.yml", text)).toEqual([
+      "ci.yml:check-and-test is not routed and must use a literal ubuntu-latest or macos-* label",
+      "ci.yml:check is listed in routedJobs but missing",
+      "ci.yml:test is listed in routedJobs but missing",
+      "ci.yml:commitlint is listed in routedJobs but missing",
+    ]);
+  });
+
+  test("ci.yml splits into parallel check, test and commitlint jobs gated by ci-passed", () => {
+    const text = readFileSync(join(workflowsDirectory, "ci.yml"), "utf8");
+    expect(parseJobs(text).map((job) => job.name)).toEqual([
+      "check",
+      "test",
+      "commitlint",
+      "ci-passed",
+    ]);
+    const jobs = field(Bun.YAML.parse(text), "jobs");
+    expect(stepRuns(jobs, "check")).toContain("bun run check");
+    expect(stepRuns(jobs, "check")).not.toContain("bun run test");
+    expect(stepRuns(jobs, "test")).toContain("bun run test");
+    expect(stepRuns(jobs, "test")).not.toContain("bun run check");
+    expect(field(field(jobs, "check"), "needs")).toBeUndefined();
+    expect(field(field(jobs, "test"), "needs")).toBeUndefined();
+    const commitlint = field(jobs, "commitlint");
+    expect(field(commitlint, "if")).toBe("github.event_name == 'pull_request'");
+    const checkoutInputs = field(jobSteps(jobs, "commitlint")[0], "with");
+    expect(field(checkoutInputs, "fetch-depth")).toBe(0);
+    expect(field(checkoutInputs, "filter")).toBe("blob:none");
+    expect(stepRuns(jobs, "commitlint")).toContain(
+      "bun install --frozen-lockfile --ignore-scripts",
+    );
+    expect(stepRuns(jobs, "commitlint")).toContain(
+      'bunx commitlint --from "$BASE_SHA" --to "$HEAD_SHA" --verbose',
+    );
+    const gate = field(jobs, "ci-passed");
+    expect(field(gate, "if")).toBe("always()");
+    expect(field(gate, "needs")).toEqual(["check", "test", "commitlint"]);
   });
 
   test("a routed job missing from its file is reported", () => {
