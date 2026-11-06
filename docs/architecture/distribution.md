@@ -96,15 +96,17 @@ A pull request from a fork, or a repository without the variable, falls back to 
 
 Routed jobs:
 
-| Workflow           | Job                          | Form   |
-| ------------------ | ---------------------------- | ------ |
-| `ci.yml`           | `check-and-test` (Linux leg) | matrix |
-| `determinism.yml`  | `digest` (Linux leg)         | matrix |
-| `determinism.yml`  | `compare`                    | plain  |
-| `distribution.yml` | `linux-x64`                  | plain  |
-| `docker.yml`       | `smoke`                      | plain  |
-| `real-build.yml`   | `build`                      | plain  |
-| `upgrade.yml`      | `upgrade`                    | plain  |
+| Workflow           | Job                  | Form   |
+| ------------------ | -------------------- | ------ |
+| `ci.yml`           | `check`              | plain  |
+| `ci.yml`           | `test` (Linux leg)   | matrix |
+| `ci.yml`           | `commitlint`         | plain  |
+| `determinism.yml`  | `digest` (Linux leg) | matrix |
+| `determinism.yml`  | `compare`            | plain  |
+| `distribution.yml` | `linux-x64`          | plain  |
+| `docker.yml`       | `smoke`              | plain  |
+| `real-build.yml`   | `build`              | plain  |
+| `upgrade.yml`      | `upgrade`            | plain  |
 
 Never routed: the macOS legs of `ci.yml` and `determinism.yml`, and any Windows, release, deploy, CodeQL, Scorecard or Lighthouse job. No VPS or self-hosted runners. `tools/workflows/runner-routing.test.ts` holds the `routedJobs` list and fails when a listed job lacks the expression, an unlisted job uses anything but a literal `ubuntu-latest` or `macos-*` label, a label matches `vps-*` or `self-hosted`, or `vars.BLACKSMITH_RUNNER` appears outside these expressions.
 
@@ -134,4 +136,4 @@ Roll back to GitHub-hosted runners, with no workflow change:
 gh variable delete BLACKSMITH_RUNNER
 ```
 
-When aokit goes public, run `gh variable delete BLACKSMITH_RUNNER` and narrow the routing to the light jobs: `ci.yml` `check-and-test` (Linux leg) and `determinism.yml` `compare`. The other workflows go back to a literal `ubuntu-latest`, and `routedJobs` is updated to match.
+When aokit goes public, run `gh variable delete BLACKSMITH_RUNNER` and narrow the routing to the light jobs: `ci.yml` `check`, `test` (Linux leg) and `commitlint` and `determinism.yml` `compare`. The other workflows go back to a literal `ubuntu-latest`, and `routedJobs` is updated to match.
