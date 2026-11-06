@@ -46,6 +46,94 @@ function checkAdrIndex(root: string): string[] {
   return problems;
 }
 
+function adrStatus(lines: string[]): string | undefined {
+  const line = lines.find((candidate) => candidate.startsWith("Status:"));
+  return line?.slice("Status:".length).replace(/\(.*$/, "").trim();
+}
+
+function adrRelations(lines: string[], label: string): string[] {
+  const line = lines.find((candidate) => candidate.startsWith(`${label}:`));
+  if (line === undefined) return [];
+  return [...line.matchAll(/\b(\d{4})\b/g)].map((match) => match[1] ?? "");
+}
+
+const relationPairs: readonly (readonly [string, string])[] = [
+  ["Supersedes", "Superseded by"],
+  ["Amends", "Amended by"],
+];
+
+function checkAdrRelations(root: string): string[] {
+  const adrDirectory = join(root, "docs/adr");
+  const lineSets = new Map<string, string[]>();
+  for (const name of adrFileNames(root)) {
+    lineSets.set(name.slice(0, 4), readFileSync(join(adrDirectory, name), "utf8").split("\n"));
+  }
+  const problems: string[] = [];
+  for (const [number, lines] of lineSets) {
+    for (const [forward, reverse] of relationPairs) {
+      for (const [label, counterLabel] of [
+        [forward, reverse],
+        [reverse, forward],
+      ] as const) {
+        for (const other of adrRelations(lines, label)) {
+          const otherLines = lineSets.get(other);
+          if (otherLines === undefined) {
+            problems.push(`ADR ${number} ${label} ${other}, which does not exist`);
+          } else if (!adrRelations(otherLines, counterLabel).includes(number)) {
+            problems.push(
+              `ADR ${number} ${label} ${other}, but ADR ${other} has no "${counterLabel}: ${number}" line`,
+            );
+          }
+        }
+      }
+    }
+  }
+  return problems;
+}
+
+function checkAdrIndexStatus(root: string): string[] {
+  const index = readFileSync(join(root, "docs/adr/README.md"), "utf8");
+  const problems: string[] = [];
+  for (const row of index.split("\n")) {
+    const match = /^\|\s*\d{4}\s*\|[^|]*\]\((\d{4}-[^)#\s]+\.md)\)[^|]*\|\s*([^|]*?)\s*\|/.exec(
+      row,
+    );
+    if (match === null) continue;
+    const file = match[1] ?? "";
+    const listedStatus = match[2] ?? "";
+    const path = join(root, "docs/adr", file);
+    if (!existsSync(path)) continue;
+    const actual = adrStatus(readFileSync(path, "utf8").split("\n"));
+    if (actual !== listedStatus) {
+      problems.push(
+        `docs/adr/README.md lists ${file} as "${listedStatus}" but the ADR says "${actual ?? "no status"}"`,
+      );
+    }
+  }
+  return problems;
+}
+
+function checkDocsIndex(root: string): string[] {
+  const docsDirectory = join(root, "docs");
+  const indexPath = join(docsDirectory, "README.md");
+  if (!existsSync(indexPath)) return ["docs/README.md does not exist"];
+  const index = stripCode(readFileSync(indexPath, "utf8"));
+  const listed = new Set<string>();
+  for (const match of index.matchAll(/\]\(<?([^)\s>#]+)/g)) {
+    const target = match[1] ?? "";
+    if (/^[a-z][a-z0-9+.-]*:/i.test(target)) continue;
+    listed.add(resolve(docsDirectory, target));
+  }
+  const problems: string[] = [];
+  for (const file of listMarkdown(docsDirectory)) {
+    if (file === indexPath) continue;
+    if (!listed.has(file)) {
+      problems.push(`${relative(root, file)} is not listed in docs/README.md`);
+    }
+  }
+  return problems;
+}
+
 function checkAdrStructure(root: string): string[] {
   const problems: string[] = [];
   for (const name of adrFileNames(root)) {
@@ -156,6 +244,18 @@ describe("docs invariants on the repository", () => {
     expect(checkAdrStructure(repoRoot)).toEqual([]);
   });
 
+  test("Supersedes and Amends relations are recorded on both ADRs", () => {
+    expect(checkAdrRelations(repoRoot)).toEqual([]);
+  });
+
+  test("ADR index statuses match the ADRs", () => {
+    expect(checkAdrIndexStatus(repoRoot)).toEqual([]);
+  });
+
+  test("docs/README.md indexes every Markdown file under docs", () => {
+    expect(checkDocsIndex(repoRoot)).toEqual([]);
+  });
+
   test("every relative Markdown link resolves to a file and heading", () => {
     expect(checkLinks(repoRoot)).toEqual([]);
   });
@@ -209,5 +309,42 @@ describe("docs invariants reject violations", () => {
   test("links inside code are ignored", () => {
     const root = writeTree({ "README.md": "`[x](nope.md)`\n```\n[y](nope.md)\n```\n" });
     expect(checkLinks(root)).toEqual([]);
+  });
+
+  test("amends without the reverse mention names both ADRs", () => {
+    const root = writeTree({
+      "docs/adr/0006-a.md": validAdr,
+      "docs/adr/0007-b.md": validAdr.replace("Spec: S1", "Amends: 0006\nSpec: S1"),
+    });
+    expect(checkAdrRelations(root)).toEqual([
+      'ADR 0007 Amends 0006, but ADR 0006 has no "Amended by: 0007" line',
+    ]);
+  });
+
+  test("two-way relations pass and a missing target fails", () => {
+    const root = writeTree({
+      "docs/adr/0006-a.md": validAdr.replace("Spec: S1", "Superseded by: 0007\nSpec: S1"),
+      "docs/adr/0007-b.md": validAdr.replace("Spec: S1", "Supersedes: 0006, 0009\nSpec: S1"),
+    });
+    expect(checkAdrRelations(root)).toEqual(["ADR 0007 Supersedes 0009, which does not exist"]);
+  });
+
+  test("index status mismatch names the file", () => {
+    const root = writeTree({
+      "docs/adr/README.md": "| 0001 | [A](0001-a.md) | Superseded | S1 |\n",
+      "docs/adr/0001-a.md": validAdr.replace("Accepted", "Accepted (2026-11-06)"),
+    });
+    expect(checkAdrIndexStatus(root)).toEqual([
+      'docs/adr/README.md lists 0001-a.md as "Superseded" but the ADR says "Accepted"',
+    ]);
+  });
+
+  test("docs index fails on a missing row", () => {
+    const root = writeTree({
+      "docs/README.md": "[a](a.md)\n",
+      "docs/a.md": "# A\n",
+      "docs/sub/b.md": "# B\n",
+    });
+    expect(checkDocsIndex(root)).toEqual(["docs/sub/b.md is not listed in docs/README.md"]);
   });
 });
