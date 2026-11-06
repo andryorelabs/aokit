@@ -9,9 +9,10 @@ import {
   cleanTemporaryDirectories,
   commandContext,
   createProject,
-  editLockfile,
+  editLockfileJson,
   temporaryDirectory,
 } from "../diff/support.ts";
+import { objectAt } from "../helpers/update-json.ts";
 import { type ServedRegistry, serveRegistry } from "../registry-remote/served-registry.ts";
 
 const servers: ServedRegistry[] = [];
@@ -56,8 +57,8 @@ describe("aokit check", () => {
   test("a newer Module version exits 2 with UPDATE_AVAILABLE data", async () => {
     const project = await createProject(await builtRegistry());
     const newer = await builtRegistry((source) => bumpOxc(source));
-    await editLockfile(project, (lockfile) => {
-      lockfile["registries"]["official"].source = newer;
+    await editLockfileJson(project, (lockfile) => {
+      objectAt(lockfile, "registries", "official")["source"] = newer;
     });
     const envelope = await runCheck(project);
     expect(envelope).toMatchObject({
@@ -84,8 +85,8 @@ describe("aokit check", () => {
         "utf8",
       );
     });
-    await editLockfile(project, (lockfile) => {
-      lockfile["registries"]["official"].source = newer;
+    await editLockfileJson(project, (lockfile) => {
+      objectAt(lockfile, "registries", "official")["source"] = newer;
     });
     const envelope = await runCheck(project);
     expect(envelope).toMatchObject({ data: { modules: [{ name: "oxc", migration: true }] } });
@@ -105,8 +106,8 @@ describe("aokit check", () => {
         "utf8",
       );
     });
-    await editLockfile(project, (lockfile) => {
-      lockfile["registries"]["official"].source = newer;
+    await editLockfileJson(project, (lockfile) => {
+      objectAt(lockfile, "registries", "official")["source"] = newer;
     });
     const envelope = await runCheck(project);
     expect(envelope).toMatchObject({ data: { modules: [{ name: "oxc", migration: true }] } });
@@ -114,8 +115,8 @@ describe("aokit check", () => {
 
   test("a newer Release with no Module change still exits 2", async () => {
     const project = await createProject(await builtRegistry());
-    await editLockfile(project, (lockfile) => {
-      lockfile["registries"]["official"].release = "2026.10.0";
+    await editLockfileJson(project, (lockfile) => {
+      objectAt(lockfile, "registries", "official")["release"] = "2026.10.0";
     });
     const envelope = await runCheck(project);
     expect(envelope).toMatchObject({
@@ -128,8 +129,8 @@ describe("aokit check", () => {
 
   test("a missing Registry path exits 1", async () => {
     const project = await createProject(await builtRegistry());
-    await editLockfile(project, (lockfile) => {
-      lockfile["registries"]["official"].source = join(project, "no-such-registry");
+    await editLockfileJson(project, (lockfile) => {
+      objectAt(lockfile, "registries", "official")["source"] = join(project, "no-such-registry");
     });
     const envelope = await runCheck(project);
     expect(envelope).toMatchObject({ ok: false, error: { code: "IO_ERROR" } });
@@ -142,8 +143,8 @@ describe("aokit check", () => {
     const server = serveRegistry(registry);
     servers.push(server);
     await isolateUserDirectories();
-    await editLockfile(project, (lockfile) => {
-      lockfile["registries"]["official"].source = server.url;
+    await editLockfileJson(project, (lockfile) => {
+      objectAt(lockfile, "registries", "official")["source"] = server.url;
     });
     const envelope = await runCheck(project);
     expect(envelope).toMatchObject({ ok: false, error: { code: "REGISTRY_UNTRUSTED" } });
@@ -156,9 +157,9 @@ describe("aokit check", () => {
     const server = serveRegistry(registry);
     servers.push(server);
     await isolateUserDirectories();
-    await editLockfile(project, (lockfile) => {
-      lockfile["registries"]["official"].source = server.url;
-      lockfile["registries"]["official"].trusted = true;
+    await editLockfileJson(project, (lockfile) => {
+      objectAt(lockfile, "registries", "official")["source"] = server.url;
+      objectAt(lockfile, "registries", "official")["trusted"] = true;
     });
     expect(exitCodeForEnvelope(await runCheck(project))).toBe(0);
     await server.stop();

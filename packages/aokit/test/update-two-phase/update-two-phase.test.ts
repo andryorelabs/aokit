@@ -13,6 +13,14 @@ import {
   createProject,
   temporaryDirectory,
 } from "../diff/support.ts";
+import {
+  arrayAt,
+  objectAt,
+  parseJson,
+  parseJsonObject,
+  stringAt,
+  valueAt,
+} from "../helpers/update-json.ts";
 
 afterEach(cleanTemporaryDirectories);
 
@@ -157,7 +165,9 @@ describe("aokit update --plan / --apply / --abort", () => {
     const applied = await run({ directory, apply: true, yes: true, install: false });
     expect(applied.ok).toBe(true);
     expect(await read(directory, "docs/notes.md")).toContain("mine");
-    expect(JSON.parse(await read(directory, "aokit.lock.json")).registries).toBeDefined();
+    expect(
+      valueAt(parseJson(await read(directory, "aokit.lock.json")), "registries"),
+    ).toBeDefined();
     expect(await exists(join(directory, ".git"), "aokit/plan.json")).toBe(false);
   });
 
@@ -168,17 +178,17 @@ describe("aokit update --plan / --apply / --abort", () => {
     const planned = await run({ directory, plan: true, install: false });
     expect(planned.ok).toBe(true);
     const planPath = join(directory, ".git", "aokit", "plan.json");
-    const saved = JSON.parse(await readFile(planPath, "utf8"));
-    const target = saved.changes.find(
-      (change: { type: string; content?: { encoding: string } }) =>
-        change.type !== "delete" && change.content?.encoding === "utf8",
+    const saved = parseJsonObject(await readFile(planPath, "utf8"));
+    const target = arrayAt(saved, "changes").find(
+      (change) =>
+        valueAt(change, "type") !== "delete" && valueAt(change, "content", "encoding") === "utf8",
     );
     expect(target).toBeDefined();
-    target.content.data = "written from the saved Plan\n";
+    objectAt(target, "content")["data"] = "written from the saved Plan\n";
     await writeFile(planPath, JSON.stringify(saved));
     const applied = await run({ directory, apply: true, yes: true, install: false });
     expect(applied.ok).toBe(true);
-    expect(await read(directory, target.path)).toBe("written from the saved Plan\n");
+    expect(await read(directory, stringAt(target, "path"))).toBe("written from the saved Plan\n");
   });
 
   test("--apply without a plan exits 5 PLAN_MISSING", async () => {
@@ -276,7 +286,7 @@ describe("aokit update --plan / --apply / --abort", () => {
     const planned = await run({ directory, plan: true, install: false });
     expect(planned.ok).toBe(true);
     const text = await read(join(directory, ".git"), "aokit/plan.json");
-    expect(planFileSchema.safeParse(JSON.parse(text)).success).toBe(true);
+    expect(planFileSchema.safeParse(parseJson(text)).success).toBe(true);
   });
   test("--apply --json reports the keptDeps and migrations that --plan --json returned", async () => {
     const { directory } = await project();

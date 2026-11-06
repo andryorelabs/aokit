@@ -11,6 +11,7 @@ import { renderFromLockfile } from "../../src/pipeline/index.ts";
 import { readLocalRegistry } from "../../src/registry/index.ts";
 import { resolveUpdateTarget } from "../../src/update/target.ts";
 import { cleanTemporaryDirectories, createProject, temporaryDirectory } from "../diff/support.ts";
+import { parseJsonObject } from "../helpers/update-json.ts";
 
 afterEach(cleanTemporaryDirectories);
 
@@ -91,7 +92,7 @@ test("a Yanked version a Release Catalog fixes is never selected by an update", 
   const modulePath = join(second, "oxc/module.ts");
   const moduleText = await readFile(modulePath, "utf8");
   await writeFile(modulePath, moduleText.replace('version: "1.0.0"', 'version: "1.1.0"'), "utf8");
-  const declared = { ...JSON.parse(secondCatalog), modules: { oxc: "1.1.0" } };
+  const declared = { ...parseJsonObject(secondCatalog), modules: { oxc: "1.1.0" } };
   await writeFile(
     join(second, "catalog/2026.11.1.json"),
     `${JSON.stringify(declared, null, 2)}\n`,

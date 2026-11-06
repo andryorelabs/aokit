@@ -2,6 +2,7 @@ import { afterAll, describe, expect, test } from "bun:test";
 import { mkdir, readFile, rm, writeFile } from "node:fs/promises";
 import { join } from "node:path";
 import { spawnAokit } from "../helpers/aokit-process.ts";
+import { arrayAt, parseJson, valueAt } from "../helpers/update-json.ts";
 import { commitAll, createProject, git, newWorkspace } from "../restore/helpers.ts";
 
 const workspace = newWorkspace();
@@ -33,10 +34,12 @@ describe("aokit layout migrate through a real process", () => {
       "--json",
     ]);
     expect(result.exitCode).toBe(0);
-    const envelope = JSON.parse(result.stdout);
-    expect(envelope.ok).toBe(true);
+    const envelope = parseJson(result.stdout);
+    expect(valueAt(envelope, "ok")).toBe(true);
     expect(
-      envelope.data.plan.changes.some((change: { type: string }) => change.type === "rename"),
+      arrayAt(envelope, "data", "plan", "changes").some(
+        (change) => valueAt(change, "type") === "rename",
+      ),
     ).toBe(true);
     expect(await git(directory, "status", "--short")).toBe("");
   });
@@ -53,7 +56,7 @@ describe("aokit layout migrate through a real process", () => {
       "--json",
     ]);
     expect(result.exitCode).toBe(0);
-    expect(JSON.parse(result.stdout).data.changed).toBe(false);
+    expect(valueAt(parseJson(result.stdout), "data", "changed")).toBe(false);
     expect(await git(directory, "status", "--short")).toBe("");
   });
 
@@ -70,7 +73,7 @@ describe("aokit layout migrate through a real process", () => {
       "--json",
     ]);
     expect(result.exitCode).toBe(5);
-    expect(JSON.parse(result.stdout).error.code).toBe("DIRTY_TREE");
+    expect(valueAt(parseJson(result.stdout), "error", "code")).toBe("DIRTY_TREE");
   });
 
   test("a missing Lockfile exits 5 with LOCKFILE_MISSING", async () => {
@@ -86,7 +89,7 @@ describe("aokit layout migrate through a real process", () => {
       "--json",
     ]);
     expect(result.exitCode).toBe(5);
-    expect(JSON.parse(result.stdout).error.code).toBe("LOCKFILE_MISSING");
+    expect(valueAt(parseJson(result.stdout), "error", "code")).toBe("LOCKFILE_MISSING");
   });
 
   test("a conflicted migration exits 6; update --abort names the owner; --abort restores", async () => {
@@ -106,7 +109,7 @@ describe("aokit layout migrate through a real process", () => {
       "--json",
     ]);
     expect(conflicted.exitCode).toBe(6);
-    expect(JSON.parse(conflicted.stdout).error.code).toBe("MERGE_CONFLICTS");
+    expect(valueAt(parseJson(conflicted.stdout), "error", "code")).toBe("MERGE_CONFLICTS");
     const refused = await aokit(["update", "--directory", directory, "--abort", "--json"]);
     expect(refused.exitCode).toBe(3);
     expect(refused.stdout).toContain("aokit layout migrate --abort");

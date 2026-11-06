@@ -10,6 +10,7 @@ import { exitCodeForErrorCode } from "../../src/cli/exit-codes.ts";
 import { openGit } from "../../src/git/index.ts";
 import { runGitChecked } from "../../src/git/run.ts";
 import { parseLockfile, serializeLockfile } from "../../src/lockfile/index.ts";
+import { parseJson } from "../helpers/update-json.ts";
 import {
   assertPlanFresh,
   deletePlanFile,
@@ -161,7 +162,8 @@ describe.each([true, false])("update marker and abort (git: %p)", (useGit) => {
 
     const result = await abortUpdate(project, git);
 
-    expect(result?.restored).toEqual(expect.arrayContaining(["a.txt", "b.txt"]));
+    expect(result?.restored).toContain("a.txt");
+    expect(result?.restored).toContain("b.txt");
     expect(await readTree(project)).toEqual(before);
     expect(await readUpdateMarker(project, git)).toBeNull();
     expect(await exists(stash.directory)).toBe(false);
@@ -247,7 +249,7 @@ describe("plan file", () => {
     expect(read?.targetLockfile).toEqual(plan.targetLockfile);
     expect(read?.plan.vfs.read("bin.dat")).toEqual(new Uint8Array([0, 255, 1, 2, 3]));
     expect(read?.plan.vfs.read("src/router.tsx")).toBe("router\n");
-    const onDisk = JSON.parse(await readFile(join(project, ".aokit", "plan.json"), "utf8"));
+    const onDisk = parseJson(await readFile(join(project, ".aokit", "plan.json"), "utf8"));
     expect(planFileSchema.safeParse(onDisk).success).toBe(true);
     expect(JSON.stringify(onDisk)).toContain('"encoding":"base64"');
   });

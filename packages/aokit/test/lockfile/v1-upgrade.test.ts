@@ -3,6 +3,7 @@ import { readFile, rm, writeFile } from "node:fs/promises";
 import { join } from "node:path";
 import { runCommand } from "../../src/cli/command.ts";
 import { addCommand } from "../../src/cli/commands/add.ts";
+import { isJsonObject, objectAt, parseJsonObject, valueAt } from "../helpers/update-json.ts";
 import { commitAll, context, createProject, newWorkspace, readLock } from "../restore/helpers.ts";
 
 const workspace = newWorkspace();
@@ -13,12 +14,16 @@ afterAll(async () => {
 
 async function downgradeToV1(directory: string): Promise<void> {
   const path = join(directory, "aokit.lock.json");
-  const lock = JSON.parse(await readFile(path, "utf8"));
-  lock.lockfileVersion = 1;
-  for (const entry of Object.values<Record<string, unknown>>(lock.modules)) delete entry.selected;
-  for (const entry of Object.values<Record<string, unknown>>(lock.deps)) delete entry.owners;
+  const lock = parseJsonObject(await readFile(path, "utf8"));
+  lock["lockfileVersion"] = 1;
+  for (const entry of Object.values(objectAt(lock, "modules"))) {
+    if (isJsonObject(entry)) delete entry["selected"];
+  }
+  for (const entry of Object.values(objectAt(lock, "deps"))) {
+    if (isJsonObject(entry)) delete entry["owners"];
+  }
   const agentFiles = ["AGENTS.md", "CLAUDE.md"];
-  for (const agentFile of agentFiles) delete lock.files[agentFile];
+  for (const agentFile of agentFiles) delete objectAt(lock, "files")[agentFile];
   await Promise.all(agentFiles.map((agentFile) => rm(join(directory, agentFile), { force: true })));
   await writeFile(path, `${JSON.stringify(lock, null, 2)}\n`);
 }
@@ -34,8 +39,8 @@ test("add on a v1 Lockfile writes v2 with exact dep owners", async () => {
     install: false,
   });
   expect(envelope.ok).toBe(true);
-  const raw = JSON.parse(await readFile(join(directory, "aokit.lock.json"), "utf8"));
-  expect(raw.lockfileVersion).toBe(2);
+  const raw = parseJsonObject(await readFile(join(directory, "aokit.lock.json"), "utf8"));
+  expect(valueAt(raw, "lockfileVersion")).toBe(2);
   const lockfile = await readLock(directory);
   expect(lockfile.deps["knip"]?.owners).toEqual(["knip"]);
   expect(lockfile.deps["oxlint"]?.owners).toEqual(["oxc"]);
