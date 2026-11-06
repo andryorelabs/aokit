@@ -16,7 +16,7 @@ function run(scenario: Scenario) {
   return mergeProject({
     base: vfsOf(scenario.base),
     next: builtOf(scenario.next),
-    readUser: async (path) => scenario.user[path],
+    readUser: (path) => Promise.resolve(scenario.user[path]),
     lockfile: lockfileOf(scenario.base, scenario.ejected),
     merger: createMerger(),
     driftOf,

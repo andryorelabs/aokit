@@ -3,7 +3,7 @@ import { join, resolve as resolvePath } from "node:path";
 import { structuredPatch } from "diff";
 import { z } from "zod";
 import type { PlanChange } from "../../engine/plan.ts";
-import { type FileContent, Vfs, compareByCodepoint } from "../../engine/vfs.ts";
+import { type FileContent, type Vfs, compareByCodepoint } from "../../engine/vfs.ts";
 import { loadUserTree } from "../../lifecycle/migration-stage.ts";
 import { modulesInOrder } from "../../update/run.ts";
 import { LockfileError, readLockfile } from "../../lockfile/index.ts";

@@ -16,7 +16,7 @@ describe("mergeProject when several paths collapse onto one", () => {
     const result = await mergeProject({
       base: vfsOf(base),
       next: builtOf({ "tsconfig.json": "collapsed\n" }),
-      readUser: async (path) => user[path],
+      readUser: (path) => Promise.resolve(user[path]),
       lockfile: lockfileOf(base),
       merger: createMerger(),
       driftOf,

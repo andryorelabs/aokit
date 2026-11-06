@@ -17,7 +17,8 @@
     "build:binary": "bun tools/build-binary/main.ts",
     "registry:build": "bun tools/registry-build/main.ts",
     "prepare": "husky",
-    "lint:package": "bun tools/build-package/lint-main.ts"
+    "lint:package": "bun tools/build-package/lint-main.ts",
+    "lint:docs": "bun tools/lint-docs/main.ts"
   },
   "devDependencies": {
     "@arethetypeswrong/cli": "^0.18.5",

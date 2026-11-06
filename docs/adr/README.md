@@ -39,4 +39,6 @@ One file per decision, named `NNNN-kebab-title.md`, numbered in order and never 
 - **Consequences**: what becomes easier, harder or fixed.
 - **Alternatives considered**: what was rejected and why.
 
+An ADR that replaces or changes another records it in the header with `Supersedes: NNNN` or `Amends: NNNN`, and the other ADR records the reverse with `Superseded by: NNNN` or `Amended by: NNNN`. A test fails when either side is missing. The Status column of the index must equal the ADR's `Status:` word (the date is not part of it).
+
 ADRs are living, as in [docs and forge](../standards/docs-and-forge.md#living-adrs). A decision that changes is revised in place and gains a `Revised:` line under `Status:` with the date and a one-line reason. The original text is not deleted, and a reversed decision says so in its Decision section. The index must list every ADR file, and every listed file must exist.

@@ -52,8 +52,28 @@ function caseLabel(entry: UpgradeCase): string {
   return `${entry.from} -> ${entry.to} ${entry.layout} ${entry.modules.join(",")}`;
 }
 
-async function readIndex(registry: string): Promise<RegistryIndex> {
-  return JSON.parse(await readFile(join(registry, "index.json"), "utf8"));
+function isPlainObject(value: unknown): value is Record<string, unknown> {
+  return typeof value === "object" && value !== null && !Array.isArray(value);
+}
+
+function isRegistryIndex(value: unknown): value is RegistryIndex {
+  return isPlainObject(value) && isPlainObject(value.releases) && isPlainObject(value.modules);
+}
+
+export async function readIndex(registry: string): Promise<RegistryIndex> {
+  const parsed: unknown = JSON.parse(await readFile(join(registry, "index.json"), "utf8"));
+  if (!isRegistryIndex(parsed)) {
+    throw new Error(`${join(registry, "index.json")} is not a Registry index.`);
+  }
+  return parsed;
+}
+
+async function readJsonObject(path: string): Promise<Record<string, unknown>> {
+  const parsed: unknown = JSON.parse(await readFile(path, "utf8"));
+  if (!isPlainObject(parsed)) {
+    throw new Error(`${path} is not a JSON object.`);
+  }
+  return parsed;
 }
 
 async function writeIndex(registry: string, index: RegistryIndex): Promise<void> {
@@ -65,7 +85,7 @@ export async function pairsOf(registry: string): Promise<[string, string][]> {
   return [lastPair(Object.keys((await readIndex(registry)).releases))];
 }
 
-async function readCatalogModules(
+export async function readCatalogModules(
   registry: string,
   index: RegistryIndex,
   release: string,
@@ -74,8 +94,16 @@ async function readCatalogModules(
   if (typeof pointer !== "object" || pointer === null || !("path" in pointer)) {
     throw new Error(`The Registry index does not list Release ${release}.`);
   }
-  const catalog = JSON.parse(await readFile(join(registry, String(pointer.path)), "utf8"));
-  return catalog.modules ?? {};
+  const catalog = await readJsonObject(join(registry, String(pointer.path)));
+  const modules = catalog.modules ?? {};
+  if (!isPlainObject(modules)) {
+    throw new Error(`The Catalog of Release ${release} has no Module map.`);
+  }
+  const versions: Record<string, string> = {};
+  for (const [name, version] of Object.entries(modules)) {
+    versions[name] = String(version);
+  }
+  return versions;
 }
 
 async function listFiles(root: string, relative = ""): Promise<string[]> {
@@ -154,13 +182,30 @@ function conflictCount(output: string): number | undefined {
 }
 
 async function lockedFiles(directory: string): Promise<Record<string, LockedFile>> {
-  const lock = JSON.parse(await readFile(join(directory, "aokit.lock.json"), "utf8"));
-  return lock.files;
+  const lock = await readJsonObject(join(directory, "aokit.lock.json"));
+  const files = lock.files;
+  if (!isPlainObject(files)) {
+    throw new Error(`${directory}/aokit.lock.json has no files map.`);
+  }
+  const result: Record<string, LockedFile> = {};
+  for (const [path, entry] of Object.entries(files)) {
+    if (!isPlainObject(entry) || typeof entry.mode !== "string" || !Array.isArray(entry.owners)) {
+      throw new Error(`${directory}/aokit.lock.json lists a malformed file entry for ${path}.`);
+    }
+    result[path] = { mode: entry.mode, owners: entry.owners.map(String) };
+  }
+  return result;
 }
 
 async function lockedReleases(directory: string): Promise<string[]> {
-  const lock = JSON.parse(await readFile(join(directory, "aokit.lock.json"), "utf8"));
-  return Object.values<{ release: string }>(lock.registries).map((registry) => registry.release);
+  const lock = await readJsonObject(join(directory, "aokit.lock.json"));
+  const registries = lock.registries;
+  if (!isPlainObject(registries)) {
+    throw new Error(`${directory}/aokit.lock.json has no registries map.`);
+  }
+  return Object.values(registries).map((registry) =>
+    isPlainObject(registry) ? String(registry.release) : "",
+  );
 }
 
 async function createAndEdit(

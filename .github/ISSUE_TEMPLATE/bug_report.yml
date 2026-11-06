@@ -1,0 +1,52 @@
+name: Bug report
+description: Something in the CLI, the Registry, a Module or generated Project output does not work as documented.
+title: "bug: "
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for reporting. For security vulnerabilities, do not use this form; use a private security advisory instead.
+  - type: dropdown
+    id: area
+    attributes:
+      label: Area
+      options:
+        - CLI
+        - Registry
+        - Module
+        - Generated Project output
+        - Other
+    validations:
+      required: true
+  - type: input
+    id: version
+    attributes:
+      label: aokit version
+      description: Output of `aokit --version`.
+    validations:
+      required: true
+  - type: textarea
+    id: reproduction
+    attributes:
+      label: Steps to reproduce
+      description: The exact commands you ran, starting from an empty directory if possible.
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: Expected behavior
+    validations:
+      required: true
+  - type: textarea
+    id: actual
+    attributes:
+      label: Actual behavior
+      description: Include the full output and exit code.
+    validations:
+      required: true
+  - type: input
+    id: environment
+    attributes:
+      label: Environment
+      description: Operating system, Bun and Node versions.

@@ -163,8 +163,8 @@ function trustQuestion(registry: TrustedRegistryInput): string {
   ].join("\n");
 }
 
-async function rejectPrompt(): Promise<string> {
-  return "no";
+function rejectPrompt(): Promise<string> {
+  return Promise.resolve("no");
 }
 
 function parseAnswer(answer: string): "yes" | "always" | "no" {

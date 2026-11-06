@@ -4,6 +4,7 @@ import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
 import { catalogSchema } from "@aokit/module";
 import { computeIntegrity } from "../../packages/aokit/src/registry/index.ts";
+import { registryIndexSchema } from "../../packages/aokit/src/registry/schema.ts";
 import { buildRegistry, listFiles } from "./build.ts";
 import { diffDirectories } from "./diff.ts";
 import { addMigrationToFixtureSource, writeRegistrySourceFixture } from "./fixture.ts";
@@ -15,6 +16,17 @@ async function temporaryDirectory(): Promise<string> {
   const path = await mkdtemp(join(tmpdir(), "aokit-registry-out-"));
   temporaryDirectories.push(path);
   return path;
+}
+
+async function readBuiltIndex(out: string) {
+  return registryIndexSchema.parse(JSON.parse(await readFile(join(out, "index.json"), "utf8")));
+}
+
+async function readCatalogModules(path: string): Promise<unknown> {
+  const catalog: unknown = JSON.parse(await readFile(path, "utf8"));
+  return typeof catalog === "object" && catalog !== null && "modules" in catalog
+    ? catalog.modules
+    : undefined;
 }
 
 async function fixtureSource(): Promise<string> {
@@ -43,18 +55,19 @@ test("registry:build writes the registry.md layout with sorted index and integri
     "modules/oxc/1.0.0/module.json",
   ]);
   const indexText = await readFile(join(out, "index.json"), "utf8");
-  const index = JSON.parse(indexText);
-  expect(index).toMatchObject({
+  const rawIndex: unknown = JSON.parse(indexText);
+  expect(rawIndex).toMatchObject({
     name: "official",
     release: "2026.11.0",
     minCliVersion: "0.1.0",
     schemaVersion: 1,
     releases: { "2026.11.0": { path: "catalog/2026.11.0.json" } },
   });
+  const index = registryIndexSchema.parse(rawIndex);
   expect(Object.keys(index.modules)).toEqual(["knip", "oxc"]);
-  expect(index.modules.oxc.latest).toBe("1.0.0");
-  expect(index.modules.oxc.versions["1.0.0"].provides).toEqual(["lint", "format"]);
-  expect(Object.keys(index.modules.oxc.versions["1.0.0"].files)).toEqual([
+  expect(index.modules.oxc?.latest).toBe("1.0.0");
+  expect(index.modules.oxc?.versions["1.0.0"]?.provides).toEqual(["lint", "format"]);
+  expect(Object.keys(index.modules.oxc?.versions["1.0.0"]?.files ?? {})).toEqual([
     "files/.oxlintrc.json",
     "files/nested/notes.md",
   ]);
@@ -96,10 +109,10 @@ test("a bumped Module adds a version and keeps the published one byte for byte",
     await bumpedSource((text) => text.replace('version: "1.0.0"', 'version: "1.1.0"')),
     out,
   );
-  const index = JSON.parse(await readFile(join(out, "index.json"), "utf8"));
-  expect(Object.keys(index.modules.oxc.versions)).toEqual(["1.0.0", "1.1.0"]);
-  expect(index.modules.oxc.latest).toBe("1.1.0");
-  expect(index.modules.knip.latest).toBe("2.1.0");
+  const index = await readBuiltIndex(out);
+  expect(Object.keys(index.modules.oxc?.versions ?? {})).toEqual(["1.0.0", "1.1.0"]);
+  expect(index.modules.oxc?.latest).toBe("1.1.0");
+  expect(index.modules.knip?.latest).toBe("2.1.0");
   expect(await readFile(join(out, "modules/oxc/1.0.0/module.json"), "utf8")).toBe(before);
   expect(await listFiles(out)).toContain("modules/oxc/1.1.0/files/.oxlintrc.json");
 });
@@ -129,7 +142,7 @@ test("a new Release adds its own Catalog and an edited published Catalog fails",
     "utf8",
   );
   await buildRegistry(next, out);
-  const index = JSON.parse(await readFile(join(out, "index.json"), "utf8"));
+  const index = await readBuiltIndex(out);
   expect(Object.keys(index.releases)).toEqual(["2026.11.0", "2026.12.0"]);
   expect(index.release).toBe("2026.12.0");
 
@@ -149,8 +162,8 @@ test("a new Release adds its own Catalog and an edited published Catalog fails",
 test("each built Catalog carries the Module versions of its Release and a published one keeps them", async () => {
   const out = await temporaryDirectory();
   await buildRegistry(await fixtureSource(), out);
-  const first = JSON.parse(await readFile(join(out, "catalog/2026.11.0.json"), "utf8"));
-  expect(first.modules).toEqual({ knip: "2.1.0", oxc: "1.0.0" });
+  const firstModules = await readCatalogModules(join(out, "catalog/2026.11.0.json"));
+  expect(firstModules).toEqual({ knip: "2.1.0", oxc: "1.0.0" });
 
   const next = await fixtureSource();
   const modulePath = join(next, "oxc/module.ts");
@@ -165,10 +178,10 @@ test("each built Catalog carries the Module versions of its Release and a publis
     "utf8",
   );
   await buildRegistry(next, out);
-  const kept = JSON.parse(await readFile(join(out, "catalog/2026.11.0.json"), "utf8"));
-  const added = JSON.parse(await readFile(join(out, "catalog/2026.12.0.json"), "utf8"));
-  expect(kept.modules).toEqual({ knip: "2.1.0", oxc: "1.0.0" });
-  expect(added.modules).toEqual({ knip: "2.1.0", oxc: "1.1.0" });
+  const keptModules = await readCatalogModules(join(out, "catalog/2026.11.0.json"));
+  const addedModules = await readCatalogModules(join(out, "catalog/2026.12.0.json"));
+  expect(keptModules).toEqual({ knip: "2.1.0", oxc: "1.0.0" });
+  expect(addedModules).toEqual({ knip: "2.1.0", oxc: "1.1.0" });
 });
 
 test("a Catalog source mapping a Module to a version no source builds fails the build", async () => {
@@ -185,14 +198,14 @@ test("a Catalog source mapping a Module to a version no source builds fails the 
   expect(String(failure)).toContain("oxc to 9.9.9");
 });
 
-test("the old schema domain appears nowhere in the tree", async () => {
+test("the old schema domain appears nowhere in the tree", () => {
   const retiredDomain = ["aokit", "dev"].join("\\.");
   const result = Bun.spawnSync(["git", "grep", "-n", retiredDomain], { cwd: repoRoot });
   expect(result.stdout.toString()).toBe("");
   expect(result.exitCode).toBe(1);
 });
 
-test("tsconfig.json typechecks Registry source files and Migration scripts", async () => {
+test("tsconfig.json typechecks Registry source files and Migration scripts", () => {
   const listed = Bun.spawnSync(
     ["node_modules/typescript7/bin/tsc", "--project", "tsconfig.json", "--listFilesOnly"],
     { cwd: repoRoot },
@@ -234,9 +247,9 @@ test("a Module shipping a Migration and renames.json lists both in files and int
   const out = await temporaryDirectory();
   await buildRegistry(source, out);
 
-  const index = JSON.parse(await readFile(join(out, "index.json"), "utf8"));
-  const version = index.modules.oxc.versions["2.0.0"];
-  expect(Object.keys(version.files).toSorted()).toEqual([
+  const index = await readBuiltIndex(out);
+  const version = index.modules.oxc?.versions["2.0.0"];
+  expect(Object.keys(version?.files ?? {}).toSorted()).toEqual([
     "files/.oxlintrc.json",
     "files/nested/notes.md",
     "migrations/1-to-2.before.js",
@@ -244,7 +257,7 @@ test("a Module shipping a Migration and renames.json lists both in files and int
   ]);
   const script = await readFile(join(out, "modules/oxc/2.0.0/migrations/1-to-2.before.js"), "utf8");
   expect(script).not.toContain("@aokit/module");
-  expect(version.files["migrations/1-to-2.before.js"]).toBe(computeIntegrity(script));
+  expect(version?.files["migrations/1-to-2.before.js"]).toBe(computeIntegrity(script));
   expect(await listFiles(join(out, "modules/oxc/2.0.0"))).toContain("renames.json");
 });
 

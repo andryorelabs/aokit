@@ -1,0 +1,37 @@
+name: Feature request
+description: Propose a change to the CLI, the Registry, a Module or generated Project output.
+title: "feat: "
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Check the [roadmap](https://github.com/andryorelabs/aokit/blob/main/ROADMAP.md) first, including its out-of-scope list.
+  - type: textarea
+    id: problem
+    attributes:
+      label: Problem
+      description: What are you trying to do, and what gets in the way today?
+    validations:
+      required: true
+  - type: textarea
+    id: proposal
+    attributes:
+      label: Proposed solution
+    validations:
+      required: true
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Alternatives considered
+  - type: dropdown
+    id: area
+    attributes:
+      label: Area
+      options:
+        - CLI
+        - Registry
+        - Module
+        - Generated Project output
+        - Other
+    validations:
+      required: true

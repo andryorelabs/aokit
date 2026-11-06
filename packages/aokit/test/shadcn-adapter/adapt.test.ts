@@ -471,7 +471,7 @@ const registrySource = "https://ui.acme.dev/r/registry.json";
 
 function agentsRegionOp(adapted: AdaptedModule) {
   const op = adapted.manifest.ops.find((entry) => entry.op === "appendRegion");
-  if (op === undefined) throw new Error("expected an appendRegion Op");
+  if (op?.op !== "appendRegion") throw new Error("expected an appendRegion Op");
   return op;
 }
 
@@ -482,7 +482,7 @@ test("S6 an Adapted Module appends its agents Region with name, type, files and 
   );
   const op = agentsRegionOp(adapted);
   expect(op).toMatchObject({ target: "root", file: "AGENTS.md", region: "agents" });
-  const content = op.op === "appendRegion" ? op.content : "";
+  const content = op.content;
   expect(content).toContain("@acme/button");
   expect(content).toContain("`ui`");
   expect(content).toContain("`ui/button.tsx`");

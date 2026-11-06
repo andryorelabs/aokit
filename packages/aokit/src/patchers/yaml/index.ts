@@ -18,7 +18,8 @@ function fingerprint(value: unknown): string {
 }
 
 function mergeSequence(document: Document, sequence: YAMLSeq, incoming: YamlValue[]) {
-  const seen = new Set(sequence.toJS(document).map(fingerprint));
+  const existing: unknown = sequence.toJS(document);
+  const seen = new Set<string>(Array.isArray(existing) ? existing.map(fingerprint) : []);
   for (const item of incoming) {
     if (seen.has(fingerprint(item))) continue;
     seen.add(fingerprint(item));

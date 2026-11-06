@@ -134,13 +134,15 @@ export async function runLifecycle(input: LifecycleInput): Promise<LifecycleResu
   const clean = await assertCleanTree(input.dir, { allowDirty: input.allowDirty, lockfile });
   const base = await input.render.base(lockfile);
   const hookContext: MigrationHookContext = { lockfile, base };
-  const edits = (await input.beforeNext?.(hookContext)) ?? new Map();
+  const edits: UserEdits =
+    (await input.beforeNext?.(hookContext)) ?? new Map<string, FileContent | undefined>();
   const next = await input.render.next(lockfile, base);
   const repository = await openGit(input.dir);
   const premerged = await mergeProject({
     base: base?.plan.vfs ?? Vfs.empty(),
     next,
-    readUser: async (path) => (edits.has(path) ? edits.get(path) : readUserFile(input.dir, path)),
+    readUser: (path) =>
+      edits.has(path) ? Promise.resolve(edits.get(path)) : readUserFile(input.dir, path),
     lockfile,
     merger: createMerger(repository === null ? {} : { git: repository }),
     driftOf: input.driftOf,

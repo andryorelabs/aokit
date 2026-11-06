@@ -64,9 +64,11 @@ function fixFor(entry: DriftEntry): string | null {
       return isNewSibling(entry.path)
         ? `merge ${entry.path} into ${entry.path.slice(0, -".aokit-new".length)} by hand, then delete it`
         : `delete ${entry.path}, or leave it: aokit never touches files it does not own`;
-    default:
+    case "pristine":
+    case "volatile":
       return null;
   }
+  return null;
 }
 
 async function readProjectLockfile(dir: string) {

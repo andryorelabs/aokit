@@ -1,7 +1,6 @@
 import {
   chmod,
   mkdir,
-  mkdtemp,
   readFile,
   rename,
   rm,
@@ -10,6 +9,7 @@ import {
   unlink,
   writeFile,
 } from "node:fs/promises";
+import { randomBytes } from "node:crypto";
 import { basename, dirname, join, resolve } from "node:path";
 import { registerShutdownHook } from "../cli/shutdown.ts";
 import type { Plan, PlanChange } from "../engine/plan.ts";
@@ -386,15 +386,17 @@ export async function apply(
     await assertParentExists(projectDirectory);
     const project = await resolveProjectKind(projectDirectory);
     throwIfInterrupted(interruption);
-    stagingDirectory = await mkdtemp(
-      join(dirname(projectDirectory), `.${basename(projectDirectory)}.aokit-tmp-`),
+    const createdDirectory = join(
+      dirname(projectDirectory),
+      `.${basename(projectDirectory)}.aokit-tmp-${randomBytes(6).toString("hex")}`,
     );
-    await chmod(stagingDirectory, 0o777 & ~process.umask());
+    await mkdir(createdDirectory, { mode: 0o777 });
+    stagingDirectory = createdDirectory;
     const applyByKind = project === "new" ? applyNew : applyExisting;
     const stash = await applyByKind(
       plan,
       lockfile,
-      stagingDirectory,
+      createdDirectory,
       projectDirectory,
       interruption,
       options,
