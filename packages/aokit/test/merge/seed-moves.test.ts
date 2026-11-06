@@ -11,7 +11,7 @@ function run(user: Record<string, FileContent>, nextFiles?: FixtureFiles) {
   return mergeProject({
     base: vfsOf(base),
     next: builtOf(nextFiles ?? { "app/seed.ts": seed("fresh seed\n") }),
-    readUser: async (path) => user[path],
+    readUser: (path) => Promise.resolve(user[path]),
     lockfile: lockfileOf(base),
     merger: createMerger(),
     driftOf,

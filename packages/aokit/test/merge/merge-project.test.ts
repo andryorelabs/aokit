@@ -16,9 +16,9 @@ function run(scenario: Scenario) {
   const result = mergeProject({
     base: vfsOf(scenario.base),
     next: builtOf(scenario.next),
-    readUser: async (path) => {
+    readUser: (path) => {
       reads.push(path);
-      return scenario.user[path];
+      return Promise.resolve(scenario.user[path]);
     },
     lockfile: lockfileOf(scenario.base, scenario.ejected),
     merger: createMerger(),
@@ -321,7 +321,7 @@ describe("mergeProject", () => {
       const result = await mergeProject({
         base: vfsOf({ "run.sh": base }),
         next,
-        readUser: async () => user,
+        readUser: () => Promise.resolve(user),
         lockfile: lockfileOf({ "run.sh": base }),
         merger: createMerger(),
         driftOf,
@@ -350,7 +350,7 @@ describe("mergeProject", () => {
       const result = await mergeProject({
         base: vfsOf({ "run.sh": base }),
         next,
-        readUser: async () => edited,
+        readUser: () => Promise.resolve(edited),
         lockfile: lockfileOf({ "run.sh": base }),
         merger: createMerger(),
         driftOf,

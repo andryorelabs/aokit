@@ -2,7 +2,7 @@ import { expect, test } from "bun:test";
 import { mkdtemp, readFile, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import type { z } from "zod";
+import { z } from "zod";
 import {
   catalogSchema,
   compileModule,
@@ -87,13 +87,23 @@ test("bare-string provides normalizes to { max: 1 } and many is accepted", () =>
   ]);
 });
 
+function parseObject(json: string): object {
+  const parsed: unknown = JSON.parse(json);
+  if (typeof parsed !== "object" || parsed === null) throw new Error("expected a JSON object");
+  return parsed;
+}
+
+function opName(member: z.ZodObject): string {
+  const field: unknown = member.shape.op;
+  if (!(field instanceof z.ZodLiteral)) throw new Error("expected a literal op field");
+  return String(field.value);
+}
+
 test("the Op union covers all 9 Ops", () => {
   const members: readonly z.ZodObject[] = opSchema.options.flatMap(
     (option): readonly z.ZodObject[] => ("options" in option ? option.options : [option]),
   );
-  expect(
-    [...new Set(members.map((member) => String(member.shape.op.def.values[0])))].toSorted(),
-  ).toEqual([
+  expect([...new Set(members.map((member) => opName(member)))].toSorted()).toEqual([
     "addCssAtRule",
     "addCssVariables",
     "addEnv",
@@ -134,7 +144,7 @@ test("compileModule sorts keys and is byte-stable", async () => {
   const first = await compileModule(sourcePath);
   const second = await compileModule(sourcePath);
   expect(first.json).toBe(second.json);
-  const topLevelKeys = Object.keys(JSON.parse(first.json));
+  const topLevelKeys = Object.keys(parseObject(first.json));
   expect(topLevelKeys).toEqual(topLevelKeys.toSorted());
   expect(first.json.endsWith("\n")).toBe(true);
 });
