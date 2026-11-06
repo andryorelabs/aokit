@@ -6,7 +6,7 @@ Conventions for documentation and for the agent and tracker workflow. They are e
 
 - Decisions live in `docs/adr/`, one file per decision, numbered, in Context / Decision / Consequences form.
 - ADRs are **living**: a decision that changes is revised in place and gains a `Revised:` line with the date and a one-line reason. The number never changes and the original text is not deleted; a reversed decision says so in its Decision section.
-- `docs/adr/README.md` is the index. An **index invariant test** checks that every ADR file is listed, every listed file exists, and every ADR has the required sections and a `Revised:` line when it has been revised. The test runs in CI and in the repository's own test runner.
+- `docs/adr/README.md` is the index. An **index invariant test** checks that every ADR file is listed, every listed file exists, and every ADR has the required sections and a `Revised:` line when it has been revised. The test is `tools/docs/docs-invariant.test.ts`; it also checks that every relative Markdown link in `docs/`, `README.md` and `GLOSSARY.md` resolves to a file and, with an anchor, to a heading (GitHub slugs), and that every ADR has `Status:`, `Spec:` and `Architecture:` lines. It runs in CI and in the repository's own test runner.
 
 ## `GLOSSARY.md`
 
