@@ -250,6 +250,18 @@ describe("CI runner routing", () => {
     expect(field(gate, "needs")).toEqual(["check", "test", "commitlint"]);
   });
 
+  test.each([
+    ["success success success", 0],
+    ["success success skipped", 0],
+    ["success failure skipped", 1],
+    ["success cancelled success", 1],
+  ])('ci-passed treats "%s" as exit %d', (results, expectedExit) => {
+    const text = readFileSync(join(workflowsDirectory, "ci.yml"), "utf8");
+    const script = stepRuns(field(Bun.YAML.parse(text), "jobs"), "ci-passed").join("\n");
+    const outcome = Bun.spawnSync(["sh", "-c", script], { env: { NEEDS_RESULTS: results } });
+    expect(outcome.exitCode).toBe(expectedExit);
+  });
+
   test("a routed job missing from its file is reported", () => {
     expect(findRunnerRoutingProblems("upgrade.yml", workflow("renamed", "ubuntu-latest"))).toEqual([
       "upgrade.yml:upgrade is listed in routedJobs but missing",

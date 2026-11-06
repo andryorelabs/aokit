@@ -23,7 +23,7 @@ const usesLine = /^\s*(?:-\s+)?uses:\s*(\S+)(?:\s+#\s*(\S.*?))?\s*$/;
 const jobKeyLine = /^ {2}([A-Za-z0-9_-]+):/;
 const topLevelLine = /^\S/;
 const readOnlyLevels = new Set(["read", "none"]);
-const frozenInstall = /\bbun install\b[^\n]*--frozen-lockfile/;
+const installCommand = /\bbun (?:install|i)\b/;
 
 /** The `with:` inputs of the shared Bun install cache step every install step must follow. */
 const bunCache = {
@@ -171,13 +171,13 @@ function isBunCacheStep(step: unknown): boolean {
   );
 }
 
-/** Every `bun install --frozen-lockfile` step must come right after the shared Bun cache step. */
+/** Every `bun install` or `bun i` step must come right after the shared Bun cache step. */
 function findBunCacheProblems(file: string, job: string, steps: readonly unknown[]): string[] {
   const problems: string[] = [];
   steps.forEach((step: unknown, index) => {
     if (!isRecord(step)) return;
     const run = step["run"];
-    if (typeof run !== "string" || !frozenInstall.test(run)) return;
+    if (typeof run !== "string" || !installCommand.test(run)) return;
     if (isBunCacheStep(steps[index - 1])) return;
     problems.push(
       describeProblem(
@@ -454,6 +454,16 @@ describe("S8: workflow hardening invariants", () => {
       `fixture.yml:build breaks bun-cache: install step "Install" is not preceded by ${bunCacheDescription}`,
     ]);
   });
+
+  test.each(["bun i --frozen-lockfile", "bun install"])(
+    'the install form "%s" without a cache step is caught',
+    (install) => {
+      const text = `${validWorkflow}  other:\n    runs-on: ubuntu-latest\n    timeout-minutes: 5\n    steps:\n      - run: ${install}\n`;
+      expect(findWorkflowProblems("fixture.yml", text)).toEqual([
+        `fixture.yml:other breaks bun-cache: install step #1 is not preceded by ${bunCacheDescription}`,
+      ]);
+    },
+  );
 
   test("an install step in a second job without a cache names that job", () => {
     const text = `${validWorkflow}  other:\n    runs-on: ubuntu-latest\n    timeout-minutes: 5\n    steps:\n      - run: bun install --frozen-lockfile\n`;
