@@ -2,8 +2,10 @@ import { expect, test } from "bun:test";
 import { buildSelection, expectBuilt } from "./deploy/support.ts";
 
 function packageJson(text: string | Uint8Array | undefined): Record<string, unknown> {
-  const parsed: Record<string, unknown> = JSON.parse(String(text));
-  return parsed;
+  const parsed: unknown = JSON.parse(String(text));
+  if (typeof parsed !== "object" || parsed === null)
+    throw new Error("package.json is not an object");
+  return Object.fromEntries(Object.entries(parsed));
 }
 
 test("hono alone on single writes the server base and its dependencies", async () => {

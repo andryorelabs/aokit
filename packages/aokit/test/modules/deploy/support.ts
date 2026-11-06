@@ -18,7 +18,10 @@ const catalog = catalogSchema.parse(
 
 /** Loads a curated Module from `registry-src/` as an Engine Module. */
 async function loadModule(name: string): Promise<EngineModule> {
-  const loaded: { default: unknown } = await import(join(sourceRoot, name, "module.ts"));
+  const loaded: unknown = await import(join(sourceRoot, name, "module.ts"));
+  if (typeof loaded !== "object" || loaded === null || !("default" in loaded)) {
+    throw new Error(`Module ${name} has no default export`);
+  }
   return {
     manifest: parseManifest(loaded.default),
     readFile: (from) => readFileSync(join(sourceRoot, name, from), "utf8"),

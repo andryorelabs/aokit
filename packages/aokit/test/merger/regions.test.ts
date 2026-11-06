@@ -5,14 +5,15 @@ import { createMerger } from "../../src/merger/index.ts";
 import { mergeRegionFile } from "../../src/merger/regions.ts";
 import { mergeTextWithDiff3 } from "../../src/merger/text.ts";
 import { regionDigest } from "../../src/patchers/markdown/regions.ts";
-import { builtOf, driftOf, hashOf, lockfileOf, vfsOf } from "../merge/harness.ts";
+import { builtOf, hashOf, lockfileOf, vfsOf } from "../merge/harness.ts";
+import type { driftOf } from "../merge/harness.ts";
 
 const block = (id: string, body: string) =>
   `<!-- aokit:begin ${id} -->\n${body}\n<!-- aokit:end ${id} -->`;
 const file = (...parts: string[]) => `${parts.join("\n\n")}\n`;
 
-const mergeText = async (base: string, user: string, next: string) =>
-  mergeTextWithDiff3(base, user, next);
+const mergeText = (base: string, user: string, next: string) =>
+  Promise.resolve(mergeTextWithDiff3(base, user, next));
 const merger = createMerger();
 
 function mergeAgents(base: string, user: string, next: string) {
@@ -146,7 +147,7 @@ function run(
   return mergeProject({
     base: vfsOf(base),
     next: builtOf(next),
-    readUser: async (path) => user[path],
+    readUser: (path) => Promise.resolve(user[path]),
     lockfile: lock,
     merger,
     driftOf: regionDrift,

@@ -6,7 +6,12 @@ import { join } from "node:path";
 import { runCommand } from "../../src/cli/command.ts";
 import { createCommand } from "../../src/cli/commands/create.ts";
 import { removeCommand } from "../../src/cli/commands/remove.ts";
+import { z } from "zod";
 import { cliVersion } from "../../src/cli/version.ts";
+
+const lockfileSchema = z.object({
+  files: z.record(z.string(), z.object({ owners: z.array(z.string()) })),
+});
 
 const context = { version: cliVersion, env: {}, commands: [] };
 const workspace = mkdtempSync(join(tmpdir(), "aokit-agent-regions-"));
@@ -92,8 +97,10 @@ describe("curated Module Regions", () => {
     const withHono = await createProject(registry, "hono");
     const skill = await readFile(join(withHono, skillPath), "utf8");
     expect(skill).toMatch(/^---\nname: hono-add-route\ndescription: \S.*\n---\n/u);
-    const lockfile = JSON.parse(await readFile(join(withHono, "aokit.lock.json"), "utf8"));
-    expect(lockfile.files[skillPath].owners).toContain("hono");
+    const lockfile = lockfileSchema.parse(
+      JSON.parse(await readFile(join(withHono, "aokit.lock.json"), "utf8")),
+    );
+    expect(lockfile.files[skillPath]?.owners).toContain("hono");
     const withoutHono = await createProject(registry, "docker");
     expect(await exists(withoutHono, skillPath)).toBe(false);
   });

@@ -2,9 +2,8 @@ import { describe, expect, test } from "bun:test";
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { catalogSchema, parseManifest } from "@aokit/module";
-import type { EngineModule } from "../../src/engine/index.ts";
-import { Vfs } from "../../src/engine/index.ts";
-import { type PipelineInput, buildProject } from "../../src/pipeline/index.ts";
+import type { EngineModule, Vfs } from "../../src/engine/index.ts";
+import { buildProject, type PipelineInput } from "../../src/pipeline/index.ts";
 import oxc from "../../../../registry-src/oxc/module.ts";
 
 const sourceRoot = join(import.meta.dir, "..", "..", "..", "..", "registry-src");

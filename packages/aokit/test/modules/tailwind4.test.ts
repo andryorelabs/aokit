@@ -12,7 +12,7 @@ const catalog = catalogSchema.parse(
   JSON.parse(readFileSync(join(sourceRoot, "catalog", "2026.11.0.json"), "utf8")),
 );
 
-function curated(name: string, declared: object): EngineModule {
+function curated(name: string, declared: unknown): EngineModule {
   return {
     manifest: parseManifest(declared),
     readFile: (from) => readFileSync(join(sourceRoot, name, from), "utf8"),
