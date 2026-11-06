@@ -5,6 +5,7 @@ import { createCommand } from "./create.ts";
 import { diffCommand } from "./diff.ts";
 import { doctorCommand } from "./doctor.ts";
 import { ejectCommand } from "./eject.ts";
+import { layoutMigrateCommand } from "./layout-migrate.ts";
 import { mcpInitCommand } from "./mcp-init.ts";
 import { recopyCommand } from "./recopy.ts";
 import { removeCommand } from "./remove.ts";
@@ -25,6 +26,7 @@ export const exposedCommands: readonly AnyCommand[] = [
   updateCommand,
   restoreCommand,
   schemaCommand,
+  layoutMigrateCommand,
   mcpInitCommand,
 ];
 
