@@ -1,4 +1,4 @@
-import { checkPushLine, pushNeedsGates, runGates } from "./pre-push-check.ts";
+import { checkPushLine, gateExitCode, pushNeedsGates, runGates } from "./pre-push-check.ts";
 
 const lines = (await Bun.stdin.text()).split("\n").filter((line) => line.trim() !== "");
 
@@ -13,7 +13,7 @@ for (const line of lines) {
 if (pushNeedsGates(lines)) {
   const exitCode = runGates((command) => {
     const result = Bun.spawnSync([...command], { stdout: "inherit", stderr: "inherit" });
-    return result.exitCode;
+    return gateExitCode(result.exitCode);
   });
   process.exit(exitCode);
 }

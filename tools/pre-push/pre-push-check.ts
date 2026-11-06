@@ -74,3 +74,11 @@ export function runGates(
   }
   return 0;
 }
+
+/**
+ * Maps a spawned process exit code to a hook exit code. A null code means the
+ * process was killed by a signal, which must never let the push through.
+ */
+export function gateExitCode(exitCode: number | null): number {
+  return exitCode === null ? 1 : exitCode;
+}

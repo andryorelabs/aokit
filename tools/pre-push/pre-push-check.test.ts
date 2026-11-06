@@ -1,6 +1,12 @@
 import { describe, expect, test } from "bun:test";
 import { join } from "node:path";
-import { PRE_PUSH_GATES, checkPushLine, pushNeedsGates, runGates } from "./pre-push-check.ts";
+import {
+  PRE_PUSH_GATES,
+  checkPushLine,
+  gateExitCode,
+  pushNeedsGates,
+  runGates,
+} from "./pre-push-check.ts";
 
 const sha = "1111111111111111111111111111111111111111";
 const zero = "0000000000000000000000000000000000000000";
@@ -129,5 +135,16 @@ describe("script process", () => {
 
   test("exits non-zero for Bad_Name", async () => {
     expect((await runScript(`${push("Bad_Name")}\n`)).code).not.toBe(0);
+  });
+});
+
+describe("gateExitCode", () => {
+  test("keeps numeric exit codes", () => {
+    expect(gateExitCode(0)).toBe(0);
+    expect(gateExitCode(2)).toBe(2);
+  });
+
+  test("maps a signal-killed process (null) to a non-zero code", () => {
+    expect(gateExitCode(null)).toBe(1);
   });
 });
