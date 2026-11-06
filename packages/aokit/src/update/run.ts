@@ -12,7 +12,8 @@ import {
   readPlanFile,
   writePlanFile,
 } from "./plan-file.ts";
-import { abortUpdate, planFilePath, writeUpdateMarker } from "./state.ts";
+import { abortLifecycle } from "../lifecycle/run.ts";
+import { planFilePath, writeUpdateMarker } from "./state.ts";
 import { lockfileDriftOf } from "../drift/drift-of.ts";
 import { layoutTables, type Target } from "../engine/layout.ts";
 import type { Plan } from "../engine/plan.ts";
@@ -650,5 +651,5 @@ export async function applyUpdatePlan(input: UpdateInput): Promise<UpdateResult>
 
 /** Undoes a conflicted update and drops a saved Plan; `null` when there was nothing to abort. */
 export async function abortProjectUpdate(dir: string): Promise<{ restored: string[] } | null> {
-  return abortUpdate(dir, (await openGit(dir)) ?? undefined);
+  return abortLifecycle(dir, "update");
 }

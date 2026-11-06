@@ -141,6 +141,7 @@ test("an unsatisfied range is an error naming both Modules", async () => {
   expect(error.code).toBe("ops.extension-point-range");
   expect(error.message).toContain('"auth"');
   expect(error.message).toContain('"base"');
+  expect(error.message).toContain("^2");
 });
 
 test("an unknown Extension point is an error", async () => {
@@ -148,6 +149,8 @@ test("an unknown Extension point is an error", async () => {
     contributor("auth", [{ op: "addToArray", ...point("web.nope"), element: "x" }]),
   ]);
   expect(error.code).toBe("ops.extension-point-missing");
+  expect(error.message).toContain("web.nope@");
+  expect(error.message).toContain("fix: select the Module that declares");
 });
 
 test("an Op on the wrong kind is an error", async () => {

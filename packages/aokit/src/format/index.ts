@@ -4,13 +4,13 @@ import oxfmtManifest from "oxfmt/package.json" with { type: "json" };
 import type { Formatter, Vfs } from "../engine/index.ts";
 import { optionsFor, readProjectConfigs } from "./config.ts";
 import { FormatError } from "./errors.ts";
+import { oxfmtSupports } from "./supported.ts";
 
 export { FormatError } from "./errors.ts";
 
 const pinGroup = "oxc";
 const packageName = "oxfmt";
 const formatCapability = "format";
-const unsupportedPrefix = "Unsupported file type";
 
 /** Options of {@link createOxfmtFormatter}. */
 export interface OxfmtFormatterOptions {
@@ -49,9 +49,6 @@ async function formatFile(
   if (errors.length === 0) {
     return result.code;
   }
-  if (errors.every((error) => error.message.startsWith(unsupportedPrefix))) {
-    return source;
-  }
   const details = errors.map((error) => error.codeframe ?? error.message).join("\n");
   throw new FormatError(
     "format.failed",
@@ -76,7 +73,7 @@ export function createOxfmtFormatter(options: OxfmtFormatterOptions): Formatter 
         paths.map(async (path) => {
           const source = vfs.read(path);
           const fileOptions = optionsFor(path, configs);
-          if (typeof source !== "string" || fileOptions === undefined) {
+          if (typeof source !== "string" || !oxfmtSupports(path) || fileOptions === undefined) {
             return undefined;
           }
           return formatFile(path, source, fileOptions);

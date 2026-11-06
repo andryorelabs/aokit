@@ -3,7 +3,7 @@
 Repo-specific config the global `/forge` command reads before running any of
 its 9 phases. Machine-checkable values (trunk/remote, ticket id shape,
 concurrency, preflight's required files, handoff/usage thresholds) live in
-[`forge.config.json`](../../forge.config.json) at the repo root, matching
+[`emet.config.json`](../../emet.config.json) at the repo root, matching
 `~/.claude/forge/schema/forge.config.schema.json`. This file holds the "why"
 prose and everything a JSON value can't express.
 
@@ -19,7 +19,7 @@ literal calls `/forge` makes to create, read, and transition tickets here, and
 - Worker branch: `ao-<n>-<slug>` — each worker checks this out
   itself at worktree step 0. Local-only, never pushed.
 - Commit: add a trailer line referencing the ticket at the end of the commit
-  body (see `commit.trailer`/`commit.trailerPosition` in `forge.config.json` if
+  body (see `commit.trailer`/`commit.trailerPosition` in `emet.config.json` if
   this repo wants something other than the built-in default).
 
 ## Worktree setup
@@ -30,7 +30,7 @@ that's built into `/forge` itself, identical in every repo, and nothing
 below needs to restate it.
 
 After the lock, a fresh worktree runs `worktree.bootstrap` from
-`forge.config.json`: `bun install --frozen-lockfile`. It installs the Bun
+`emet.config.json`: `bun install --frozen-lockfile`. It installs the Bun
 workspace (`packages/aokit`, `packages/module`) and runs the `prepare` script,
 which installs the husky hooks. There are no env files to copy from the main
 checkout. A worker never edits `package.json` or `bun.lock` unless its ticket
@@ -72,7 +72,7 @@ separate memory-headroom brake also denies new slot acquisitions when
 — see `forge doctor` for this host's resolved numbers, and pin an explicit
 integer here instead of `"auto"` only when there's a specific reason to cap
 this repo lower than the host otherwise would. Both settings live in
-`forge.config.json`. `FORGE_MAX_LIVE_WORKERS` (accepting `"auto"` too) and
+`emet.config.json`. `FORGE_MAX_LIVE_WORKERS` (accepting `"auto"` too) and
 `FORGE_RUN_IDLE_THRESHOLD_MS` still override their config counterparts when
 set, same as before this repo had a config file at all.
 

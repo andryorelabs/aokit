@@ -4,6 +4,7 @@ import { createEditBatch } from "../../edit/batch.ts";
 import { EditError } from "../../edit/errors.ts";
 import { type LocatedAnchor, type ParsedSource, parseSource } from "../../edit/locate.ts";
 import type { DeclaredExtensionPoint, OpHandler } from "../../engine/ops.ts";
+import { resolveExtensionPoint } from "../extension-point.ts";
 import { CodeOpError } from "./errors.ts";
 
 type OpContext = Parameters<OpHandler>[0];
@@ -25,21 +26,9 @@ export interface AnchorSite {
 }
 
 function requirePoint(context: OpContext, op: CodeOp): DeclaredExtensionPoint {
-  const point = context.extensionPoints.get(op.extensionPoint);
-  if (!point) {
-    throw new CodeOpError(
-      "ops.extension-point-missing",
-      `Module "${context.module}" uses extension point "${op.extensionPoint}" but no selected Module declares it.`,
-      context.module,
-    );
-  }
-  if (!Bun.semver.satisfies(point.version, op.range)) {
-    throw new CodeOpError(
-      "ops.extension-point-range",
-      `Module "${context.module}" requires extension point "${op.extensionPoint}@${op.range}" but "${point.module}" provides ${point.version}.\n  fix: use a ${context.module} release that supports ${op.extensionPoint}@${point.version}, or update ${point.module}.`,
-      context.module,
-    );
-  }
+  const point = resolveExtensionPoint(context, op.extensionPoint, op.range, (code, message) => {
+    throw new CodeOpError(`ops.${code}`, message, context.module);
+  });
   if (point.target !== op.target) {
     throw new CodeOpError(
       "ops.extension-point-target",
