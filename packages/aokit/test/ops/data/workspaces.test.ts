@@ -1,6 +1,7 @@
 import { expect, test } from "bun:test";
 import { Vfs } from "../../../src/engine/index.ts";
 import { wireWorkspaces } from "../../../src/ops/data/index.ts";
+import { parseJsonAt } from "../../helpers/cli-json.ts";
 
 function opVfs(vfs: Vfs) {
   return {
@@ -18,8 +19,8 @@ test("wireWorkspaces unions an existing workspaces list and stays idempotent", (
   vfs.write("apps/web/package.json", '{ "name": "mine" }\n');
   wireWorkspaces(opVfs(vfs), "monorepo");
   const once = String(vfs.read("package.json"));
-  expect(JSON.parse(once).workspaces).toEqual(["apps/server", "apps/web"]);
-  expect(JSON.parse(String(vfs.read("apps/web/package.json"))).name).toBe("mine");
+  expect(parseJsonAt(once, "workspaces")).toEqual(["apps/server", "apps/web"]);
+  expect(parseJsonAt(String(vfs.read("apps/web/package.json")), "name")).toBe("mine");
   wireWorkspaces(opVfs(vfs), "monorepo");
   expect(String(vfs.read("package.json"))).toBe(once);
 });

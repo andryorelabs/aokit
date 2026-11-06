@@ -120,7 +120,9 @@ test("a new Project root follows the umask instead of the 0700 staging mode", as
   await apply(planFrom(Vfs.empty(), next), await loadLockfile(), directory);
 
   const mode = (await stat(directory)).mode & 0o777;
-  expect(mode).toBe(0o777 & ~process.umask());
+  const currentMask = process.umask(0);
+  process.umask(currentMask);
+  expect(mode).toBe(0o777 & ~currentMask);
 });
 
 test("two applies use distinct temp directory names", async () => {

@@ -155,7 +155,7 @@ export async function tree(directory: string, prefix = ""): Promise<Record<strin
           : { [path]: await readFile(join(directory, path), "utf8") };
       }),
   );
-  return Object.assign({}, ...parts);
+  return Object.fromEntries(parts.flatMap((part) => Object.entries(part)));
 }
 
 export function regionIds(text: string): string[] {

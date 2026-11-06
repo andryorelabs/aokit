@@ -8,6 +8,7 @@ import { exposedCommands, hiddenCommands } from "../../src/cli/commands/registry
 import { schemaCommand } from "../../src/cli/commands/schema.ts";
 import { stringifySorted } from "../../src/cli/envelope.ts";
 import { createRunOptions } from "../../src/cli/run.ts";
+import { commandNamesFrom, jsonAt, parseJson, parseJsonAt } from "../helpers/cli-json.ts";
 
 interface CapturedRun {
   exitCode: number;
@@ -157,19 +158,18 @@ describe("aokit schema", () => {
   test("without an argument prints an index of commands", async () => {
     const result = await runAokit(["schema"]);
     expect(result.exitCode).toBe(0);
-    const index = JSON.parse(result.stdout);
-    expect(index.commands.map((command: { name: string }) => command.name)).toContain("schema");
+    expect(commandNamesFrom(result.stdout)).toContain("schema");
   });
 
   test("prints the input JSON Schema of a command with x-aokit meta", async () => {
     const result = await runAokit(["schema", "schema"]);
     expect(result.exitCode).toBe(0);
-    const printed = JSON.parse(result.stdout);
-    expect(printed.input.properties.command["x-aokit"]).toEqual({
+    const printed = parseJson(result.stdout);
+    expect(jsonAt(printed, "input", "properties", "command", "x-aokit")).toEqual({
       examples: ["schema"],
       positional: 0,
     });
-    expect(printed.input.properties.output.type).toBe("boolean");
+    expect(jsonAt(printed, "input", "properties", "output", "type")).toBe("boolean");
   });
 
   test("--output also prints the output schema", async () => {
@@ -180,7 +180,7 @@ describe("aokit schema", () => {
   test("an unknown command name is a usage error", async () => {
     const result = await runAokit(["schema", "nope", "--json"]);
     expect(result.exitCode).toBe(3);
-    expect(JSON.parse(result.stdout).error.code).toBe("UNKNOWN_COMMAND");
+    expect(parseJsonAt(result.stdout, "error", "code")).toBe("UNKNOWN_COMMAND");
   });
 });
 

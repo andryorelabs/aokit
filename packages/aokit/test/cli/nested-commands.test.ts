@@ -4,6 +4,7 @@ import { runCli, type CliIo } from "../../src/cli/adapter.ts";
 import { defineCommand } from "../../src/cli/command.ts";
 import { exposedCommands } from "../../src/cli/commands/registry.ts";
 import { aokitMeta } from "../../src/cli/meta.ts";
+import { commandNamesFrom, jsonAt, parseJson, parseJsonAt } from "../helpers/cli-json.ts";
 
 const nestedCommand = defineCommand({
   name: "mcp init",
@@ -59,17 +60,18 @@ test("`mcp init --help` prints the command's flags", async () => {
 });
 
 test("aokit schema lists the nested command and prints its input schema", async () => {
-  const index = JSON.parse((await runAokit(["schema"])).stdout);
-  expect(index.commands.map((command: { name: string }) => command.name)).toContain("mcp init");
-  const printed = JSON.parse((await runAokit(["schema", "mcp init"])).stdout);
-  expect(printed.command).toBe("mcp init");
-  expect(printed.input.properties.client["x-aokit"]).toMatchObject({ flag: "client" });
+  expect(commandNamesFrom((await runAokit(["schema"])).stdout)).toContain("mcp init");
+  const printed = parseJson((await runAokit(["schema", "mcp init"])).stdout);
+  expect(jsonAt(printed, "command")).toBe("mcp init");
+  expect(jsonAt(printed, "input", "properties", "client", "x-aokit")).toMatchObject({
+    flag: "client",
+  });
 });
 
 test("a hidden nested command is dispatched by its full name", async () => {
   const result = await runAokit(["mcp", "init", "--client", "vscode", "--json"], true);
   expect(result.exitCode).toBe(0);
-  expect(JSON.parse(result.stdout).data.client).toBe("vscode");
+  expect(parseJsonAt(result.stdout, "data", "client")).toBe("vscode");
 });
 
 const parentCommand = defineCommand({
