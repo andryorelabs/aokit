@@ -37,6 +37,11 @@ export interface MergeProjectInput {
   readonly driftOf: DriftOf;
   /** Old path to new path, Project-relative and already Target-resolved. */
   readonly renames?: ReadonlyMap<string, string>;
+  /**
+   * Old seed path to new path. A seed moves with its current content and is never merged; an
+   * existing file at the new path is a Conflict. Only `layout migrate` passes it.
+   */
+  readonly seedMoves?: ReadonlyMap<string, string>;
 }
 
 /** Result of {@link mergeProject}. */
@@ -82,8 +87,10 @@ const neverMerged = new Set([bunLockfile, "aokit.lock.json"]);
 function pathUniverse(
   input: MergeProjectInput,
   renamedFrom: ReadonlyMap<string, string>,
+  seedMoved: ReadonlyMap<string, string>,
 ): string[] {
-  const sources = new Set(renamedFrom.values());
+  const sources = new Set([...renamedFrom.values(), ...seedMoved.values()]);
+  for (const destination of seedMoved.keys()) sources.add(destination);
   const paths = new Set([
     ...Object.keys(input.lockfile.files),
     ...input.base.paths(),
@@ -364,6 +371,81 @@ async function effectiveRenames(input: MergeProjectInput): Promise<Map<string, s
   return applicable;
 }
 
+function isApplicableSeedMove(input: MergeProjectInput, from: string, to: string): boolean {
+  const entry = input.lockfile.files[from];
+  const nextFile = input.next.plan.vfs.get(to);
+  if (from === to || entry?.mode !== "seed") return false;
+  if (nextFile === undefined || nextFile.ownership !== "seed") return false;
+  return !input.next.plan.vfs.has(from) && input.lockfile.files[to] === undefined;
+}
+
+/** The seed moves whose old path is a seed Lockfile entry the next Render dropped. Keyed by new path. */
+async function effectiveSeedMoves(input: MergeProjectInput): Promise<Map<string, string>> {
+  const candidates = [...(input.seedMoves ?? [])].filter(([from, to]) =>
+    isApplicableSeedMove(input, from, to),
+  );
+  const present = await Promise.all(
+    candidates.map(async ([from]) => (await input.readUser(from)) !== undefined),
+  );
+  const moves = new Map<string, string>();
+  const sources = new Set<string>();
+  candidates.forEach(([from, to], index) => {
+    if (!present[index] || moves.has(to) || sources.has(from)) return;
+    sources.add(from);
+    moves.set(to, from);
+  });
+  return moves;
+}
+
+interface SeedMoveReads {
+  readonly from: string;
+  readonly to: string;
+  readonly content: FileContent | undefined;
+  readonly existing: FileContent | undefined;
+}
+
+async function readSeedMove(
+  input: MergeProjectInput,
+  from: string,
+  to: string,
+): Promise<SeedMoveReads> {
+  return {
+    from,
+    to,
+    content: normalizeUserContent(await input.readUser(from)),
+    existing: normalizeUserContent(await input.readUser(to)),
+  };
+}
+
+function recordSeedMove(
+  input: MergeProjectInput,
+  { from, to, content, existing }: SeedMoveReads,
+  state: Accumulator,
+  provenanceOf: (path: string) => readonly Provenance[],
+): void {
+  const previous = input.lockfile.files[from];
+  const nextFile = input.next.plan.vfs.get(to);
+  if (content === undefined) return;
+  const mode = nextFile?.mode === undefined ? {} : { mode: nextFile.mode };
+  if (existing !== undefined) {
+    state.conflicts.push({ path: to, next: content, base: "", user: textOf(existing) });
+    state.vfs.write(to, existing, mode);
+  } else {
+    state.vfs.write(to, content, { ownership: "seed", ...mode });
+    state.changes.push({
+      type: "rename",
+      path: to,
+      renamedFrom: from,
+      content,
+      previousContent: content,
+      ownership: "seed",
+      mode: nextFile?.mode,
+      provenance: provenanceOf(to),
+    });
+  }
+  if (previous !== undefined) state.files[to] = previous;
+}
+
 /**
  * The VFS-to-VFS merge procedure shared by add, remove and recopy. It reads the user side only for
  * paths in the Lockfile or in either Render, never formats user content, and never pairs renames
@@ -379,8 +461,9 @@ export async function mergeProject(input: MergeProjectInput): Promise<MergeProje
   };
   const provenanceOf = provenanceLookup(input);
   const renamedFrom = await effectiveRenames(input);
+  const seedMoved = await effectiveSeedMoves(input);
   const decided = await Promise.all(
-    pathUniverse(input, renamedFrom).map(async (path) => {
+    pathUniverse(input, renamedFrom, seedMoved).map(async (path) => {
       const sourcePath = renamedFrom.get(path) ?? path;
       const user = normalizeUserContent(await input.readUser(sourcePath));
       const entry = input.lockfile.files[sourcePath];
@@ -392,6 +475,10 @@ export async function mergeProject(input: MergeProjectInput): Promise<MergeProje
   for (const { context, decision } of decided) {
     recordDecision(context, decision, state, provenanceOf);
   }
+  const seedReads = await Promise.all(
+    [...seedMoved].map(([to, from]) => readSeedMove(input, from, to)),
+  );
+  for (const reads of seedReads) recordSeedMove(input, reads, state, provenanceOf);
   const bunEntry = input.lockfile.files[bunLockfile] ?? input.next.lockfile.files[bunLockfile];
   if (bunEntry !== undefined) state.files[bunLockfile] = bunEntry;
   const plan: Plan = {

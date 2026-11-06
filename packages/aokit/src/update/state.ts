@@ -10,8 +10,17 @@ const markerFileName = "update.json";
 const planFileName = "plan.json";
 const lockfileName = "aokit.lock.json";
 
+/** Which command left the undo marker; a marker without a kind belongs to `update`. */
+export type MarkerKind = "update" | "layout-migrate";
+
+const abortCommands: Record<MarkerKind, string> = {
+  update: "aokit update --abort",
+  "layout-migrate": "aokit layout migrate --abort",
+};
+
 /** What a conflicted update leaves behind so `update --abort` can undo it. */
 export const updateMarkerSchema = z.strictObject({
+  kind: z.enum(["update", "layout-migrate"]).default("update"),
   stashDirectory: z.string().min(1),
   conflictedPaths: z.array(z.string().min(1)),
   newSiblingPaths: z.array(z.string().min(1)),
@@ -147,8 +156,16 @@ async function removePlan(projectDirectory: string, git: Git | undefined): Promi
 export async function abortUpdate(
   projectDirectory: string,
   git: Git | undefined,
+  kind: MarkerKind = "update",
 ): Promise<{ restored: string[] } | null> {
   const marker = await readUpdateMarker(projectDirectory, git);
+  if (marker !== null && marker.kind !== kind) {
+    throw new AokitError(
+      "INVALID_INPUT",
+      `The undo marker in progress belongs to a ${marker.kind === "update" ? "update" : "layout migration"}, not to this command.`,
+      `Run "${abortCommands[marker.kind]}" to undo it.`,
+    );
+  }
   const hadPlan = await removePlan(projectDirectory, git);
   const stateDirectory = await updateStateDirectory(projectDirectory, git);
   if (marker === null) {

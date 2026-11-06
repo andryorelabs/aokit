@@ -13,7 +13,7 @@ import { mergeProject, type DriftOf } from "../merge/index.ts";
 import type { BuiltProject } from "../pipeline/build.ts";
 import { unifiedDiff } from "../project/diff.ts";
 import { runInstall } from "../project/install.ts";
-import { writeUpdateMarker } from "../update/state.ts";
+import { abortUpdate, writeUpdateMarker, type MarkerKind } from "../update/state.ts";
 
 /** How a command produces the two Renders the merge works from. */
 interface LifecycleRender {
@@ -55,6 +55,10 @@ export interface LifecycleInput {
    * `update --abort` can undo it.
    */
   readonly keepStashOnConflict?: boolean;
+  /** The kind the undo marker records; defaults to `update`. */
+  readonly markerKind?: MarkerKind;
+  /** Project-relative seed path to its new path; the merge moves them unmerged. */
+  readonly seedMoves?: ReadonlyMap<string, string>;
 }
 
 /** What the merge procedure produced; the `after` hook may amend it. */
@@ -141,6 +145,7 @@ export async function runLifecycle(input: LifecycleInput): Promise<LifecycleResu
     merger: createMerger(repository === null ? {} : { git: repository }),
     driftOf: input.driftOf,
     ...(input.renames === undefined ? {} : { renames: input.renames }),
+    ...(input.seedMoves === undefined ? {} : { seedMoves: input.seedMoves }),
   });
   const merged = (await input.afterMerge?.(premerged, hookContext)) ?? premerged;
   const warnings = [...(clean.warning === undefined ? [] : [clean.warning]), ...merged.warnings];
@@ -173,6 +178,7 @@ export async function runLifecycle(input: LifecycleInput): Promise<LifecycleResu
       newSiblingPaths: merged.conflicts
         .filter((conflict) => conflict.merged === undefined)
         .map(conflictFile),
+      kind: input.markerKind ?? "update",
       createdPaths: [...applied.stash.created],
       previousLockfile,
     });
@@ -180,4 +186,15 @@ export async function runLifecycle(input: LifecycleInput): Promise<LifecycleResu
   const shouldInstall = input.install && packageJsonChanged(merged.plan);
   if (shouldInstall) await (input.installer ?? ((dir) => runInstall(dir, process.env)))(input.dir);
   return { ...result, applied: true, installed: shouldInstall, stashKept: keepStash };
+}
+
+/**
+ * Undoes a conflicted lifecycle command and drops a saved Plan; `null` when there was nothing to
+ * abort. Fails with `INVALID_INPUT` when the marker belongs to the other kind.
+ */
+export async function abortLifecycle(
+  directory: string,
+  kind: MarkerKind,
+): Promise<{ restored: string[] } | null> {
+  return abortUpdate(directory, (await openGit(directory)) ?? undefined, kind);
 }
