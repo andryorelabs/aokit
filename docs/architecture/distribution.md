@@ -75,3 +75,63 @@ Generation must be byte-identical across machines ([Engine: determinism](engine.
 5. Run it for both the npm build and the compiled binary, and fail if their digests differ. Both embed the same native parser, so a difference points at bundling, asset embedding or the extraction path.
 
 The digests are stored as snapshots next to the capability-derived matrix, so an unintended change in generated output shows up as a reviewed snapshot diff.
+
+## CI runners
+
+Linux jobs run on Blacksmith runners, following the andryorelabs CI runner standard v1.1. The routing is temporary while the repository is private.
+
+The standard uses one plain repository variable, `BLACKSMITH_RUNNER` (value `blacksmith-2vcpu-ubuntu-2404`, an x64 runner), and no secrets and no Blacksmith actions. A routed job uses:
+
+```yaml
+runs-on: ${{ github.event.pull_request.head.repo.fork && 'ubuntu-latest' || vars.BLACKSMITH_RUNNER || 'ubuntu-latest' }}
+```
+
+A job with an `os` matrix uses the matrix form, so only the Linux leg is routed:
+
+```yaml
+runs-on: ${{ matrix.os == 'ubuntu-latest' && (github.event.pull_request.head.repo.fork && 'ubuntu-latest' || vars.BLACKSMITH_RUNNER || 'ubuntu-latest') || matrix.os }}
+```
+
+A pull request from a fork, or a repository without the variable, falls back to `ubuntu-latest`. The standard routes only light jobs in public repositories, where the variable is left unset. The private-repo amendment routes every Linux job.
+
+Routed jobs:
+
+| Workflow           | Job                          | Form   |
+| ------------------ | ---------------------------- | ------ |
+| `ci.yml`           | `check-and-test` (Linux leg) | matrix |
+| `determinism.yml`  | `digest` (Linux leg)         | matrix |
+| `determinism.yml`  | `compare`                    | plain  |
+| `distribution.yml` | `linux-x64`                  | plain  |
+| `docker.yml`       | `smoke`                      | plain  |
+| `real-build.yml`   | `build`                      | plain  |
+| `upgrade.yml`      | `upgrade`                    | plain  |
+
+Never routed: the macOS legs of `ci.yml` and `determinism.yml`, and any Windows, release, deploy, CodeQL, Scorecard or Lighthouse job. No VPS or self-hosted runners. `tools/workflows/runner-routing.test.ts` holds the `routedJobs` list and fails when a listed job lacks the expression, an unlisted job uses anything but a literal `ubuntu-latest` or `macos-*` label, a label matches `vps-*` or `self-hosted`, or `vars.BLACKSMITH_RUNNER` appears outside these expressions.
+
+macOS stays on GitHub-hosted runners: Blacksmith macOS costs $0.08/min, 20x its Linux rate, and the macOS legs exist to catch OS differences, not to run fast.
+
+Baseline on GitHub-hosted `ubuntu-latest` (the `main` runs on `b370cb1`, job durations):
+
+| Job                                | Duration     |
+| ---------------------------------- | ------------ |
+| `check and test (ubuntu-latest)`   | 38 s         |
+| `digest (ubuntu-latest)`           | 12 s         |
+| `compare digests`                  | 6 s          |
+| `package and binary (linux-x64)`   | 49 s         |
+| `smoke` (per Layout)               | 16 s to 25 s |
+| `build` (per Layout and selection) | 9 s to 11 s  |
+| `upgrade`                          | 11 s         |
+
+Enable routing:
+
+```sh
+gh variable set BLACKSMITH_RUNNER --body blacksmith-2vcpu-ubuntu-2404
+```
+
+Roll back to GitHub-hosted runners, with no workflow change:
+
+```sh
+gh variable delete BLACKSMITH_RUNNER
+```
+
+When aokit goes public, run `gh variable delete BLACKSMITH_RUNNER` and narrow the routing to the light jobs: `ci.yml` `check-and-test` (Linux leg) and `determinism.yml` `compare`. The other workflows go back to a literal `ubuntu-latest`, and `routedJobs` is updated to match.

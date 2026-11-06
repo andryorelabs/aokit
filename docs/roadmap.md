@@ -171,7 +171,7 @@ Exit criteria:
 
 #### 7b. Release pipeline
 
-Scope: the release workflow with bumpp and changelogithub, npm trusted publishing with provenance, the five-target build matrix, `SHA256SUMS` and attestations, e2e on native linux-x64, linux-arm64 and macOS arm64 runners, publishing the Registry release with the CLI. It starts after the repository is public and the first `0.1.0-next.0` publish by token is done.
+Scope: the release workflow with bumpp and changelogithub, npm trusted publishing with provenance, the five-target build matrix, `SHA256SUMS` and attestations, e2e on native linux-x64, linux-arm64 and macOS arm64 runners, publishing the Registry release with the CLI. It starts after the repository is public and the first `0.1.0-next.0` publish by token is done. Going public also runs `gh variable delete BLACKSMITH_RUNNER` and narrows the Blacksmith routing to the light jobs, `ci.yml` `check-and-test` (Linux leg) and `determinism.yml` `compare`; the other workflows go back to a literal `ubuntu-latest` and the `routedJobs` list in `tools/workflows/runner-routing.test.ts` is updated to match ([CI runners](architecture/distribution.md#ci-runners)).
 
 Exit criteria:
 
