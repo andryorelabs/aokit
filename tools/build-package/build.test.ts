@@ -1,6 +1,16 @@
 import { expect, test } from "bun:test";
 import { access, constants, readFile, stat } from "node:fs/promises";
 import { join } from "node:path";
+import type { ExitCode as SourceExitCode } from "../../packages/aokit/src/cli/exit-codes.ts";
+import type {
+  run as sourceRun,
+  RunOptions as SourceRunOptions,
+} from "../../packages/aokit/src/cli/run.ts";
+import type {
+  ExitCode as DeclaredExitCode,
+  run as declaredRun,
+  RunOptions as DeclaredRunOptions,
+} from "./assets/run.d.ts";
 import { buildPackage } from "./build.ts";
 
 const repoRoot = join(import.meta.dir, "..", "..");
@@ -34,4 +44,17 @@ test("create-aokit has the version of aokit and depends on exactly that version"
   );
   expect(createAokit["version"]).toBe(aokit["version"]);
   expect(createAokit["dependencies"]).toMatchObject({ aokit: aokit["version"] });
+});
+
+type MutuallyAssignable<Left, Right> = [Left] extends [Right]
+  ? [Right] extends [Left]
+    ? true
+    : false
+  : false;
+
+test("dist/run.d.ts declares the same run, RunOptions and ExitCode as the source", () => {
+  const sameRun: MutuallyAssignable<typeof declaredRun, typeof sourceRun> = true;
+  const sameOptions: MutuallyAssignable<DeclaredRunOptions, SourceRunOptions> = true;
+  const sameExitCode: MutuallyAssignable<DeclaredExitCode, SourceExitCode> = true;
+  expect([sameRun, sameOptions, sameExitCode]).toEqual([true, true, true]);
 });

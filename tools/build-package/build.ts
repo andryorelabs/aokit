@@ -4,18 +4,7 @@ import { oxfmtStubPlugin } from "../build-shared/oxfmt-stubs.ts";
 
 const shebang = "#!/usr/bin/env bun\n";
 
-const runDeclarations = `/** Options of {@link run}. */
-export interface RunOptions {
-  /** Whether the update notice may run; true by default. */
-  readonly updateNotice?: boolean;
-}
-
-/** Exit codes a command run can produce. */
-export type ExitCode = 0 | 1 | 2 | 3 | 4 | 5 | 6 | 130;
-
-/** Runs the aokit CLI in-process with \`argv\` (without the executable and script) and returns its exit code. */
-export function run(argv: string[], options?: RunOptions): Promise<ExitCode>;
-`;
+const runDeclarationsPath = join(import.meta.dir, "assets", "run.d.ts");
 
 async function bundleEntry(packageDir: string, entry: string, outputName: string): Promise<void> {
   const result = await Bun.build({
@@ -49,7 +38,7 @@ export async function buildPackage(packageDir: string, registryDir: string): Pro
   await bundleEntry(packageDir, "main.ts", "cli.js");
   await bundleEntry(packageDir, "run.ts", "run.js");
   await ensureShebang(join(packageDir, "dist", "cli.js"), shebang);
-  await Bun.write(join(packageDir, "dist", "run.d.ts"), runDeclarations);
+  await cp(runDeclarationsPath, join(packageDir, "dist", "run.d.ts"));
   await mkdir(join(packageDir, "registry"), { recursive: true });
   await cp(registryDir, join(packageDir, "registry"), { recursive: true });
 }

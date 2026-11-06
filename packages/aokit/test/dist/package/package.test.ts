@@ -45,6 +45,19 @@ function findTarball(prefix: string): string {
   return found;
 }
 
+type ShimChild = Bun.Subprocess<"ignore", "pipe", "pipe">;
+
+interface ShimRun {
+  readonly exitCode: number | null;
+  readonly signalCode: string | number | null;
+  readonly stdout: string;
+}
+
+async function collectShimRun(child: ShimChild): Promise<ShimRun> {
+  const [stdout] = await Promise.all([new Response(child.stdout).text(), child.exited]);
+  return { exitCode: child.exitCode, signalCode: child.signalCode, stdout };
+}
+
 describeWithTarballs("the installed aokit and create-aokit tarballs", () => {
   let scratchRoot = "";
   let installDirectory = "";
@@ -119,6 +132,61 @@ describeWithTarballs("the installed aokit and create-aokit tarballs", () => {
     const result = await spawnIn(["node", binPath, "--help"], await freshDirectory("node-help"));
     expect(result.exitCode, result.stderr).toBe(0);
     expect(result.stdout).toContain("create");
+  });
+
+  async function startShimWithFakeBun(
+    script: string,
+    args: readonly string[],
+    name: string,
+  ): Promise<ShimChild> {
+    const work = await freshDirectory(name);
+    const fakeBin = join(work, "bin");
+    await mkdir(fakeBin, { recursive: true });
+    await writeFile(join(fakeBin, "bun"), script, { mode: 0o755 });
+    const createRoot = join(installDirectory, "node_modules", "create-aokit");
+    const manifest = binSchema.parse(
+      JSON.parse(await readFile(join(createRoot, "package.json"), "utf8")),
+    );
+    return Bun.spawn(["node", join(createRoot, manifest.bin["create-aokit"] ?? ""), ...args], {
+      cwd: work,
+      env: { ...process.env, PATH: `${fakeBin}:${process.env["PATH"] ?? ""}` },
+      stdout: "pipe",
+      stderr: "pipe",
+    });
+  }
+
+  test("the create-aokit bin disables the update notice, passes its arguments and relays the exit code", async () => {
+    const script = '#!/bin/sh\necho "notifier=$AOKIT_NO_UPDATE_NOTIFIER"\necho "args=$*"\nexit 7\n';
+    const result = await collectShimRun(await startShimWithFakeBun(script, ["my-app"], "shim-env"));
+    expect(result.stdout).toContain("notifier=1");
+    expect(result.stdout).toMatch(/args=.*cli\.js create my-app/);
+    expect(result.exitCode).toBe(7);
+  });
+
+  test("the create-aokit bin dies by the same signal as its child", async () => {
+    const child = await startShimWithFakeBun("#!/bin/sh\nkill -TERM $$\n", [], "shim-signal");
+    const result = await collectShimRun(child);
+    expect(result.signalCode ?? `exit ${String(result.exitCode)}`).toBe("SIGTERM");
+  });
+
+  test("the create-aokit bin passes SIGTERM on to its child and waits for it", async () => {
+    const script =
+      "#!/bin/sh\ntrap 'echo got-term; exit 0' TERM\necho ready\nwhile :; do sleep 0.1; done\n";
+    const child = await startShimWithFakeBun(script, [], "shim-forward");
+    const decoder = new TextDecoder();
+    let seen = "";
+    let signalled = false;
+    for await (const chunk of child.stdout) {
+      seen += decoder.decode(chunk, { stream: true });
+      if (!signalled && seen.includes("ready")) {
+        signalled = true;
+        child.kill("SIGTERM");
+      }
+    }
+    await child.exited;
+    expect(signalled).toBe(true);
+    expect(seen).toContain("got-term");
+    expect(child.exitCode).toBe(0);
   });
 
   test("S2: create resolves the Registry shipped inside the package", async () => {
