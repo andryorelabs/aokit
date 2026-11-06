@@ -12,11 +12,11 @@ const serverName = "aokit";
 
 /** A client config that is not valid JSONC, or whose root is not an object. */
 export class InvalidClientConfigError extends Error {
-  constructor(
-    readonly path: string,
-    detail: string,
-  ) {
+  readonly path: string;
+
+  constructor(path: string, detail: string) {
     super(`${path} is not valid JSONC: ${detail}`);
+    this.path = path;
     this.name = "InvalidClientConfigError";
   }
 }
