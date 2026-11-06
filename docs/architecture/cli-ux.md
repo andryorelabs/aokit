@@ -12,17 +12,17 @@ Rules for how the `aokit` CLI behaves in a terminal, in CI and under a coding ag
 
 ## Flags common to all commands
 
-| Flag | Meaning |
-| --- | --- |
-| `--yes`, `-y` | Accept defaults for every unanswered prompt; never prompt. |
-| `--json` | Machine-readable result on stdout, nothing else on stdout. |
-| `--dry-run` | Build the Plan, print it, write nothing. |
-| `--diff` | Print the Plan as unified diffs per file (implies `--dry-run`). |
-| `--no-color` | Disable color (same as `NO_COLOR`). |
-| `--quiet`, `-q` | Only errors. |
-| `--verbose`, `-v` | Print resolver decisions and per-Module timings to stderr. |
-| `--help`, `-h` | Help with examples. |
-| `--version`, `-V` | Print the CLI version only. |
+| Flag              | Meaning                                                         |
+| ----------------- | --------------------------------------------------------------- |
+| `--yes`, `-y`     | Accept defaults for every unanswered prompt; never prompt.      |
+| `--json`          | Machine-readable result on stdout, nothing else on stdout.      |
+| `--dry-run`       | Build the Plan, print it, write nothing.                        |
+| `--diff`          | Print the Plan as unified diffs per file (implies `--dry-run`). |
+| `--no-color`      | Disable color (same as `NO_COLOR`).                             |
+| `--quiet`, `-q`   | Only errors.                                                    |
+| `--verbose`, `-v` | Print resolver decisions and per-Module timings to stderr.      |
+| `--help`, `-h`    | Help with examples.                                             |
+| `--version`, `-V` | Print the CLI version only.                                     |
 
 ### `create` flags
 
@@ -30,7 +30,7 @@ Rules for how the `aokit` CLI behaves in a terminal, in CI and under a coding ag
 
 ### Lifecycle flags
 
-Commands that write project files to an existing Project (`add`, `remove`, `recopy`, `restore`, later `update`) also accept `--allow-dirty` (skip the [clean-tree check](lifecycle.md#clean-tree-precondition)) and `--no-install` where a dependency install can follow. `add` takes `--answer` only for the Modules it adds; `remove` takes `--cascade` to remove the dependents in the same Plan. `doctor` has no `--fix`: it reports, and prints the command that fixes each problem.
+Commands that write project files to an existing Project (`add`, `remove`, `recopy`, `restore`, `update`, `layout migrate`) also accept `--allow-dirty` (skip the [clean-tree check](lifecycle.md#clean-tree-precondition)) and `--no-install` where a dependency install can follow. `add` takes `--answer` only for the Modules it adds; `remove` takes `--cascade` to remove the dependents in the same Plan. `doctor` has no `--fix`: it reports, and prints the command that fixes each problem.
 
 ## Non-interactive mode
 
@@ -52,13 +52,25 @@ With `--json`, stdout carries exactly one JSON document and nothing else, using 
 ```
 
 ```json
-{ "ok": false, "data": null, "error": { "code": "CAPABILITY_CONFLICT", "message": "...", "fix": "aokit remove prisma && aokit add drizzle" } }
+{
+  "ok": false,
+  "data": null,
+  "error": {
+    "code": "CAPABILITY_CONFLICT",
+    "message": "...",
+    "fix": "aokit remove prisma && aokit add drizzle"
+  }
+}
 ```
 
 An outcome that is not a success but still carries a report uses `ok: false` with a non-null `data` ([lifecycle outcomes](#lifecycle-outcomes)):
 
 ```json
-{ "data": { "files": [] }, "error": { "code": "DRIFT", "message": "...", "fix": "aokit restore <path>" }, "ok": false }
+{
+  "data": { "files": [] },
+  "error": { "code": "DRIFT", "message": "...", "fix": "aokit restore <path>" },
+  "ok": false
+}
 ```
 
 - Keys are stable and sorted; the shape per command is the output schema exposed by [`aokit schema`](interfaces.md#aokit-schema).
@@ -69,41 +81,41 @@ An outcome that is not a success but still carries a report uses `ok: false` wit
 
 One table for every command. Codes are stable; new conditions get new numbers, never a reused one.
 
-| Code | Name | When |
-| --- | --- | --- |
-| `0` | success | The command did what it was asked. For `check`: the Project is up to date. |
-| `1` | failure | Unexpected runtime error, I/O error, network or integrity failure, a Registry that cannot be read, a failed apply that was rolled back, or an error raised inside the Engine. Also the `DRIFT` outcome of `doctor`. The Project is unchanged. |
-| `2` | update available | **Only** `check`, as the `UPDATE_AVAILABLE` outcome: a newer Registry release or Module version exists. Used by CI as a gate. No other command exits `2`. |
-| `3` | usage error | Unknown flag, invalid value, missing required value in non-interactive mode, schema validation failure, a path that is not in the Lockfile (`NOT_IN_LOCKFILE`), removing a Module that was not selected (`NOT_SELECTED`), an `http://` URL given as a Registry source. |
-| `4` | resolution error | The Resolver rejected the selection (`requires` unmet, `conflicts`, [Cardinality](capabilities.md#cardinality) exceeded), or `remove` found remaining dependents (`DEPENDENTS_EXIST`). Nothing was built. |
-| `5` | precondition failed | Dirty working tree for any command that writes project files (`add`, `remove`, `recopy`, `restore`, `update`), missing or unreadable Lockfile, `minCliVersion` newer than the CLI (`MIN_CLI_VERSION`). |
-| `6` | merge conflicts | **Any** writing command (`add`, `remove`, `recopy`, `update`) completed the merge but left conflict markers or `.aokit-new` copies; the user must resolve them. A file kept with a warning (delete versus modify) is not a conflict. For `update`, resumable with `update --apply` or abandoned with `update --abort`. |
-| `130` | interrupted | Ctrl+C or SIGTERM; the temporary directory was removed and the Project is unchanged. |
+| Code  | Name                | When                                                                                                                                                                                                                                                                                                                                                                            |
+| ----- | ------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `0`   | success             | The command did what it was asked. For `check`: the Project is up to date.                                                                                                                                                                                                                                                                                                      |
+| `1`   | failure             | Unexpected runtime error, I/O error, network or integrity failure, a Registry that cannot be read, a failed apply that was rolled back, or an error raised inside the Engine. Also the `DRIFT` outcome of `doctor`. The Project is unchanged.                                                                                                                                   |
+| `2`   | update available    | **Only** `check`, as the `UPDATE_AVAILABLE` outcome: a newer Registry release or Module version exists. Used by CI as a gate. No other command exits `2`.                                                                                                                                                                                                                       |
+| `3`   | usage error         | Unknown flag, invalid value, missing required value in non-interactive mode, schema validation failure, a path that is not in the Lockfile (`NOT_IN_LOCKFILE`), `update --abort` or `layout migrate --abort` on an undo marker the other command owns (`INVALID_INPUT`), removing a Module that was not selected (`NOT_SELECTED`), an `http://` URL given as a Registry source. |
+| `4`   | resolution error    | The Resolver rejected the selection (`requires` unmet, `conflicts`, [Cardinality](capabilities.md#cardinality) exceeded), or `remove` found remaining dependents (`DEPENDENTS_EXIST`). Nothing was built.                                                                                                                                                                       |
+| `5`   | precondition failed | Dirty working tree for any command that writes project files (`add`, `remove`, `recopy`, `restore`, `update`, `layout migrate`), missing or unreadable Lockfile, `minCliVersion` newer than the CLI (`MIN_CLI_VERSION`).                                                                                                                                                        |
+| `6`   | merge conflicts     | **Any** writing command (`add`, `remove`, `recopy`, `update`, `layout migrate`) completed the merge but left conflict markers or `.aokit-new` copies; the user must resolve them. A file kept with a warning (delete versus modify) is not a conflict. For `update`, resumable with `update --apply` or abandoned with `update --abort`.                                        |
+| `130` | interrupted         | Ctrl+C or SIGTERM; the temporary directory was removed and the Project is unchanged.                                                                                                                                                                                                                                                                                            |
 
 ### Lifecycle outcomes
 
 Some results are neither a plain success nor an unexpected failure: `doctor` found drift, `check` found an update, a merge left conflicts. They are **error codes that carry data**, not a separate channel. The envelope allows `ok: false` with a non-null `data` report, and the exit code is derived only from `error.code` ([ADR 0015](../adr/0015-lifecycle-outcomes-are-error-codes-with-data.md)).
 
-| Code | Exit | Carries |
-| --- | --- | --- |
-| `DRIFT` | `1` | The `doctor` report. |
-| `UPDATE_AVAILABLE` | `2` | `{ modules: [{ name, current, available, migration }] }`. |
-| `MERGE_CONFLICTS` | `6` | The conflicted paths with provenance. |
-| `DIRTY_TREE` | `5` | The dirty paths. |
-| `MIN_CLI_VERSION` | `5` | The CLI version the Registry release needs. The Registry error `REGISTRY_CLI_TOO_OLD` maps here. |
-| `LOCKFILE_MISSING` | `5` | None. |
-| `NOT_IN_LOCKFILE`, `NOT_SELECTED` | `3` | None. |
-| `DEPENDENTS_EXIST` | `4` | The dependents that block the removal. |
-| `REGISTRY_UNTRUSTED` | `5` | The Registry and the exact `--trust` form. |
-| `REGISTRY_FETCH_FAILED` | `1` | The Registry, the URL and the cause. |
-| `REGISTRY_INTEGRITY_MISMATCH` | `1` | The Registry, the Module and both values. |
-| `REGISTRY_ITEM_UNSUPPORTED` | `1` | The shadcn item and its unsupported type. |
-| `REGISTRY_ITEM_CHANGED` | `1` | The item, the recorded integrity and the `aokit update` fix. |
-| `REGISTRY_ENV_UNSET` | `2` | The unset environment variable name, never a value. |
-| `MODULE_VERSION_UNAVAILABLE` | `1` | Module, version and the `aokit recopy` fix (`aokit remove <module>` for `update`). |
-| `MIGRATION_FAILED` | `1` | Module, script and the `from` to `to` jump. |
-| `PLAN_STALE` | `5` | The files whose hash changed since `update --plan`. |
-| `PLAN_MISSING` | `5` | None. |
+| Code                              | Exit | Carries                                                                                          |
+| --------------------------------- | ---- | ------------------------------------------------------------------------------------------------ |
+| `DRIFT`                           | `1`  | The `doctor` report.                                                                             |
+| `UPDATE_AVAILABLE`                | `2`  | `{ modules: [{ name, current, available, migration }] }`.                                        |
+| `MERGE_CONFLICTS`                 | `6`  | The conflicted paths with provenance.                                                            |
+| `DIRTY_TREE`                      | `5`  | The dirty paths.                                                                                 |
+| `MIN_CLI_VERSION`                 | `5`  | The CLI version the Registry release needs. The Registry error `REGISTRY_CLI_TOO_OLD` maps here. |
+| `LOCKFILE_MISSING`                | `5`  | None.                                                                                            |
+| `NOT_IN_LOCKFILE`, `NOT_SELECTED` | `3`  | None.                                                                                            |
+| `DEPENDENTS_EXIST`                | `4`  | The dependents that block the removal.                                                           |
+| `REGISTRY_UNTRUSTED`              | `5`  | The Registry and the exact `--trust` form.                                                       |
+| `REGISTRY_FETCH_FAILED`           | `1`  | The Registry, the URL and the cause.                                                             |
+| `REGISTRY_INTEGRITY_MISMATCH`     | `1`  | The Registry, the Module and both values.                                                        |
+| `REGISTRY_ITEM_UNSUPPORTED`       | `1`  | The shadcn item and its unsupported type.                                                        |
+| `REGISTRY_ITEM_CHANGED`           | `1`  | The item, the recorded integrity and the `aokit update` fix.                                     |
+| `REGISTRY_ENV_UNSET`              | `2`  | The unset environment variable name, never a value.                                              |
+| `MODULE_VERSION_UNAVAILABLE`      | `1`  | Module, version and the `aokit recopy` fix (`aokit remove <module>` for `update`).               |
+| `MIGRATION_FAILED`                | `1`  | Module, script and the `from` to `to` jump.                                                      |
+| `PLAN_STALE`                      | `5`  | The files whose hash changed since `update --plan`.                                              |
+| `PLAN_MISSING`                    | `5`  | None.                                                                                            |
 
 A Resolver rejection keeps its raw Resolver code in `error.data.resolverCode`, so tools can branch on it without parsing the message. These codes are defined together, so adding a command never changes the code table.
 
@@ -197,14 +209,15 @@ Unknown commands suggest the closest match. `-h` never starts a prompt.
 
 ## Command summary
 
-| Command | Interactive | Writes | Notable exit codes |
-| --- | --- | --- | --- |
-| `create` | yes | Project directory | `0`, `3`, `4`, `130` |
-| `add` / `remove` | yes | Project files, Lockfile | `0`, `3`, `4`, `5`, `6`, `130` |
-| `recopy` / `restore` | confirm only | Project files, Lockfile | `0`, `3`, `5`, `6`, `130` |
-| `eject` | no | Lockfile | `0`, `3`, `5` |
-| `update` | confirm only | Project files, Lockfile | `0`, `5`, `6`, `130` |
-| `check` | no | nothing | `0`, `1`, `2` |
-| `doctor` | no | nothing (read-only, no `--fix`) | `0`, `1`, `5` |
-| `diff`, `schema`, `completion` | no | nothing | `0`, `3` |
-| `mcp init` | yes | client config file | `0`, `3`, `130` |
+| Command                        | Interactive  | Writes                          | Notable exit codes             |
+| ------------------------------ | ------------ | ------------------------------- | ------------------------------ |
+| `create`                       | yes          | Project directory               | `0`, `3`, `4`, `130`           |
+| `add` / `remove`               | yes          | Project files, Lockfile         | `0`, `3`, `4`, `5`, `6`, `130` |
+| `recopy` / `restore`           | confirm only | Project files, Lockfile         | `0`, `3`, `5`, `6`, `130`      |
+| `eject`                        | no           | Lockfile                        | `0`, `3`, `5`                  |
+| `update`                       | confirm only | Project files, Lockfile         | `0`, `5`, `6`, `130`           |
+| `layout migrate`               | confirm only | Project files, Lockfile         | `0`, `3`, `5`, `6`, `130`      |
+| `check`                        | no           | nothing                         | `0`, `1`, `2`                  |
+| `doctor`                       | no           | nothing (read-only, no `--fix`) | `0`, `1`, `5`                  |
+| `diff`, `schema`, `completion` | no           | nothing                         | `0`, `3`                       |
+| `mcp init`                     | yes          | client config file              | `0`, `3`, `130`                |

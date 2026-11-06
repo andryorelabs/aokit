@@ -21,21 +21,23 @@ flowchart LR
   P6B --> P7A
   P5B --> P7A
   P7A --> P7B[7b Release pipeline]
+  P4B --> P8[8 Layout migration and engine debt]
 ```
 
-| Phase | Depends on | Delivers |
-| --- | --- | --- |
-| 1. Core + schema + VFS | none | Manifest schema, Resolver, VFS and Plan, command layer, Lockfile read/write. |
-| 2. Engine ops | 1 | Edit engine and Ops catalog. |
-| 3. First modules | 1, 2 | A curated set of Modules and an end-to-end `create`. |
-| 4a. Lifecycle foundations | 3 | Merger, merge procedure, `add`, `remove`, `recopy`, `doctor`, `diff`, `check`, `eject`, `restore`, `create --from`. |
-| 4b. Updates and migrations | 4a | `update`, migrations, renames, upgrade job. |
-| 5a. Registry client | 3, 4a | Remote and `github:` Registries, cache, Pins, trust, yank, `create --from <url>`. |
-| 5b. shadcn adapter | 5a | Adapter, namespaces, `registryDependencies`. |
-| 6a. MCP server | 4b, 5b | MCP server, `aokit schema`, `aokit mcp init`. |
-| 6b. Agent files | 4b, 5b | Agent files in generated Projects. |
-| 7a. Distributable CLI | 5b, 6a, 6b | npm packages, standalone binary, update notices, binary tests. |
-| 7b. Release pipeline | 7a | Publishing, provenance, checksums, attestations, releases. |
+| Phase                               | Depends on | Delivers                                                                                                                                |
+| ----------------------------------- | ---------- | --------------------------------------------------------------------------------------------------------------------------------------- |
+| 1. Core + schema + VFS              | none       | Manifest schema, Resolver, VFS and Plan, command layer, Lockfile read/write.                                                            |
+| 2. Engine ops                       | 1          | Edit engine and Ops catalog.                                                                                                            |
+| 3. First modules                    | 1, 2       | A curated set of Modules and an end-to-end `create`.                                                                                    |
+| 4a. Lifecycle foundations           | 3          | Merger, merge procedure, `add`, `remove`, `recopy`, `doctor`, `diff`, `check`, `eject`, `restore`, `create --from`.                     |
+| 4b. Updates and migrations          | 4a         | `update`, migrations, renames, upgrade job.                                                                                             |
+| 5a. Registry client                 | 3, 4a      | Remote and `github:` Registries, cache, Pins, trust, yank, `create --from <url>`.                                                       |
+| 5b. shadcn adapter                  | 5a         | Adapter, namespaces, `registryDependencies`.                                                                                            |
+| 6a. MCP server                      | 4b, 5b     | MCP server, `aokit schema`, `aokit mcp init`.                                                                                           |
+| 6b. Agent files                     | 4b, 5b     | Agent files in generated Projects.                                                                                                      |
+| 7a. Distributable CLI               | 5b, 6a, 6b | npm packages, standalone binary, update notices, binary tests.                                                                          |
+| 7b. Release pipeline                | 7a         | Publishing, provenance, checksums, attestations, releases.                                                                              |
+| 8. Layout migration and engine debt | 4b         | `layout migrate`, one edit batch per file, one Extension point resolver, formatter support by extension, the docs index invariant test. |
 
 ### 1. Core + schema + VFS
 
@@ -98,7 +100,7 @@ Exit criteria:
 - `update --plan` followed by `--apply` writes exactly the reviewed Plan, and `--abort` restores the pre-update state.
 - A Module migration can rename an answer and a renames manifest carries a user's edit across a moved file.
 
-`layout migrate` stays deferred until `update` works, since it reuses the merge procedure ([Deliberately deferred](#deliberately-deferred)).
+`layout migrate` follows in [phase 8](#8-layout-migration-and-engine-debt), since it reuses the merge procedure.
 
 ### 5. Registry
 
@@ -177,22 +179,35 @@ Exit criteria:
 - `bunx create-aokit` and `bunx aokit add` work from a published pre-release.
 - Windows and darwin-x64 binaries are published without an e2e run, and the release notes say so.
 
+### 8. Layout migration and engine debt
+
+Phase 8 needs only phase 4b, so it ships before or after 7b.
+
+Scope: `aokit layout migrate <single|monorepo>` with `--dry-run`, `--diff`, `--yes`, `--json`, `--allow-dirty` and `--abort`, built on the lifecycle orchestrator and the merge procedure, with files paired by Provenance and seed files moved as they are ([Layouts](architecture/layouts.md#layout-migrate), [ADR 0021](adr/0021-layout-migration-pairs-files-by-provenance.md)); an undo marker with a `kind`; one edit batch per file across Modules ([ADR 0010](adr/0010-locate-and-splice-edit-engine.md)); one Extension point resolver for data and code Ops; formatter support decided by an extension allowlist and ordered `ignorePatterns` with `!`; the docs index invariant test.
+
+Exit criteria:
+
+- A Project with no user edits migrated in either direction equals a fresh `create` at the new Layout, for every curated selection.
+- A managed edit and a seed edit survive `single` to `monorepo` to `single` with zero Conflicts.
+- A conflicted migration is undone by `layout migrate --abort`, and `update --abort` refuses its marker.
+- Matrix snapshots and determinism digests are unchanged by the edit batching.
+- A new ADR file without an index row, or a link to a missing heading, fails `bun run test`.
+
 ## Testing strategy
 
-| Layer | What it proves | Runs |
-| --- | --- | --- |
-| Per-Module VFS tests | A Module's files, deps, env and Ops produce the expected tree in the VFS, alone and on a minimal base, with no disk or network. | Every PR. |
-| Capability-derived matrix with snapshots | Valid selections (pairwise) crossed with both Layouts generate a stable tree; an unintended output change shows as a reviewed snapshot diff ([versions](architecture/versions.md#ci)). | Every PR. |
-| Generate-twice determinism hash | Two runs give one digest, and the digest is the same on Linux and macOS, for the npm build and the binary ([Distribution](architecture/distribution.md#ci-determinism-on-linux-and-macos)). | Every PR, on both operating systems. |
-| Real build and typecheck of a curated set | Generated Projects install, build and type-check. Slower, so a subset. | Every PR for the core set; the wider set on release. |
-| Upgrade job | Release N-1 to N produces zero conflicts after representative edits. | Every Registry release. |
-| Binary e2e with `--yes --json` | The compiled binary runs `create`, `add`, `remove` and `update` non-interactively and returns valid envelopes and exit codes. | Every release. |
-| Docs index invariant | Every ADR is indexed, every link exists, required sections are present ([docs and forge](standards/docs-and-forge.md#living-adrs)). | Every PR. |
+| Layer                                     | What it proves                                                                                                                                                                              | Runs                                                 |
+| ----------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------- |
+| Per-Module VFS tests                      | A Module's files, deps, env and Ops produce the expected tree in the VFS, alone and on a minimal base, with no disk or network.                                                             | Every PR.                                            |
+| Capability-derived matrix with snapshots  | Valid selections (pairwise) crossed with both Layouts generate a stable tree; an unintended output change shows as a reviewed snapshot diff ([versions](architecture/versions.md#ci)).      | Every PR.                                            |
+| Generate-twice determinism hash           | Two runs give one digest, and the digest is the same on Linux and macOS, for the npm build and the binary ([Distribution](architecture/distribution.md#ci-determinism-on-linux-and-macos)). | Every PR, on both operating systems.                 |
+| Real build and typecheck of a curated set | Generated Projects install, build and type-check. Slower, so a subset.                                                                                                                      | Every PR for the core set; the wider set on release. |
+| Upgrade job                               | Release N-1 to N produces zero conflicts after representative edits.                                                                                                                        | Every Registry release.                              |
+| Binary e2e with `--yes --json`            | The compiled binary runs `create`, `add`, `remove` and `update` non-interactively and returns valid envelopes and exit codes.                                                               | Every release.                                       |
+| Docs index invariant                      | Every ADR is indexed, every link exists, required sections are present ([docs and forge](standards/docs-and-forge.md#living-adrs)).                                                         | Every PR.                                            |
 
 ## Deliberately deferred
 
 - A web UI. The schema is the only contract it would need ([Interfaces](architecture/interfaces.md#surfaces)).
-- `layout migrate`. It is specified, but it follows phase 4b once `update` works, since it reuses the merge procedure.
 - Telemetry ([ADR 0013](adr/0013-no-telemetry-in-v1.md)).
 - A supported Node install path. Bun APIs sit behind an adapter, but generated Projects require Bun ([ADR 0006](adr/0006-bun-only.md)).
 - Modules outside the first curated set. The catalog is illustrative, not a commitment.

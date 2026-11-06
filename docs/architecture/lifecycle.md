@@ -4,22 +4,22 @@
 
 ## Command reference
 
-| Command | Purpose | Writes |
-| --- | --- | --- |
-| `create [dir]` | Build a new Project from a selection. | Whole Project and Lockfile. |
-| `create --from <lockfile\|url>` | Same, replaying another Project's Lockfile. A local path or a URL. | Whole Project and Lockfile. |
-| `add <module>` | Add a Module, plus any Modules it requires. | Plan changes, Lockfile. |
-| `remove <module>` | Remove a Module. | Plan changes, Lockfile. |
-| `update` | Move Modules to newer versions. | Plan changes, Lockfile. |
-| `update --plan` / `--apply` / `--abort` | Two-phase update. | Plan file / Plan changes / nothing. |
-| `doctor` | Report drift and Lockfile health. Read-only; there is no `--fix`. | Nothing. |
-| `eject <path>` | Hand a file to the user for good. Needs no clean tree. | Lockfile only. |
-| `restore <path>` | Bring a file back to the rendered state. | One file, Lockfile. |
-| `diff` | Show how the working tree differs from a fresh render. | Nothing. |
-| `check` | Say whether an update is available (CI). | Nothing. |
-| `recopy` | Re-render everything at the Lockfile versions, ignoring history. | Plan changes, Lockfile. |
+| Command                                 | Purpose                                                            | Writes                              |
+| --------------------------------------- | ------------------------------------------------------------------ | ----------------------------------- |
+| `create [dir]`                          | Build a new Project from a selection.                              | Whole Project and Lockfile.         |
+| `create --from <lockfile\|url>`         | Same, replaying another Project's Lockfile. A local path or a URL. | Whole Project and Lockfile.         |
+| `add <module>`                          | Add a Module, plus any Modules it requires.                        | Plan changes, Lockfile.             |
+| `remove <module>`                       | Remove a Module.                                                   | Plan changes, Lockfile.             |
+| `update`                                | Move Modules to newer versions.                                    | Plan changes, Lockfile.             |
+| `update --plan` / `--apply` / `--abort` | Two-phase update.                                                  | Plan file / Plan changes / nothing. |
+| `doctor`                                | Report drift and Lockfile health. Read-only; there is no `--fix`.  | Nothing.                            |
+| `eject <path>`                          | Hand a file to the user for good. Needs no clean tree.             | Lockfile only.                      |
+| `restore <path>`                        | Bring a file back to the rendered state.                           | One file, Lockfile.                 |
+| `diff`                                  | Show how the working tree differs from a fresh render.             | Nothing.                            |
+| `check`                                 | Say whether an update is available (CI).                           | Nothing.                            |
+| `recopy`                                | Re-render everything at the Lockfile versions, ignoring history.   | Plan changes, Lockfile.             |
 
-The commands ship in two phases. Phase 4a (foundations): `doctor`, `diff`, `check`, `eject`, `restore`, `add`, `remove`, `recopy` and `create --from <path>`. Phase 4b: `update` and its `--plan` / `--apply` / `--abort` flags, Module migrations, the renames manifest and the N-1 to N upgrade job. Phase 5a: `create --from <url>` and remote Registries. `layout migrate` stays deferred until `update` works ([roadmap](../roadmap.md#4a-lifecycle-foundations)). Sections below that describe `update`, [Migrations](#migrations) and [Renames manifest](#renames-manifest) are the design that phase 4b implements.
+The commands ship in two phases. Phase 4a (foundations): `doctor`, `diff`, `check`, `eject`, `restore`, `add`, `remove`, `recopy` and `create --from <path>`. Phase 4b: `update` and its `--plan` / `--apply` / `--abort` flags, Module migrations, the renames manifest and the N-1 to N upgrade job. Phase 5a: `create --from <url>` and remote Registries. `layout migrate` follows in phase 8 ([roadmap](../roadmap.md#8-layout-migration-and-engine-debt)). Sections below that describe `update`, [Migrations](#migrations) and [Renames manifest](#renames-manifest) are the design that phase 4b implements.
 
 Every command that builds a Plan accepts `--dry-run` and `--diff` ([Engine](engine.md#vfs-and-plan-before-apply)). Flags, `--json`, `--yes` and the full exit-code table belong to the CLI UX design; this page names only the exit codes that carry lifecycle meaning.
 
@@ -67,10 +67,10 @@ Because the Module reaches others only through Capabilities and Extension points
 `update` is Copier-style: it renders what aokit would have produced, compares that with what the user has, and merges.
 
 1. **Clean tree**, then read the Lockfile and resolve the **target** Release: the latest Release in the Registry index, or `--to <release>`. The target Release fixes every Module version ([ADR 0016](../adr/0016-update-moves-a-project-between-releases.md)). A target older than the Lockfile's Release is a usage error (exit `3`), and a Module absent from the target Release fails with `MODULE_VERSION_UNAVAILABLE`. Check `minCliVersion`. A Project already at the target exits `0` with "nothing to update" and writes nothing.
-2. **Render the old state** in a VFS: the Modules at the versions and answers recorded in the Lockfile, same Layout, same pinned format phase. This is the *base*. Old versions are fetchable by design ([Lockfile](lockfile.md#old-module-versions-stay-fetchable)).
+2. **Render the old state** in a VFS: the Modules at the versions and answers recorded in the Lockfile, same Layout, same pinned format phase. This is the _base_. Old versions are fetchable by design ([Lockfile](lockfile.md#old-module-versions-stay-fetchable)).
 3. **Diff old to user.** For each file, compare the base with the working tree. The recorded `hash` makes this cheap: a `pristine` file equals its base without rendering it, so the render is only needed for `modified` files ([hashes](lockfile.md#per-file-hashes)).
-4. **Run `before` migrations** for each Module whose version crosses a migration range ([Migrations](#migrations)). They run on the *user's* VFS and can rewrite answers, so the new render uses the migrated answers.
-5. **Render the new state** in a VFS: target versions, migrated answers. This is *theirs*.
+4. **Run `before` migrations** for each Module whose version crosses a migration range ([Migrations](#migrations)). They run on the _user's_ VFS and can rewrite answers, so the new render uses the migrated answers.
+5. **Render the new state** in a VFS: target versions, migrated answers. This is _theirs_.
 6. **Merge** base, user and new through the [merge procedure](#the-merge-procedure), with the [Renames manifest](#renames-manifest) of every version crossed. Dependencies with `pinned: true` or `source: "user"` are never changed; the Plan lists them as kept.
 7. **Run `after` migrations** on the merged VFS.
 8. **Plan.** `--dry-run`, `--diff` or `--plan` stop here.
@@ -89,8 +89,9 @@ When the `Merger` cannot reconcile a file, `update` leaves the conflict **in the
 - In a git repository, the index gets the three **stages** for the path (1 base, 2 user, 3 new), so `git status` shows the file as unmerged and `git mergetool` works. Resolving it and running `git add` is the user's way to finish; aokit never stages anything on its own.
 - Binary conflicts leave the user's file and write `<name>.aokit-new` beside it.
 - The Lockfile is written for the non-conflicted state; conflicted files keep their previous `hash`, so `doctor` reports them as `modified` until resolved, and `update` can be re-run.
-- The exit code is `6` and the output lists the conflicted paths with their provenance (which Module and version). Exit `6` applies to every writing command that leaves a Conflict (`add`, `remove`, `recopy`, `update`), not only `update`.
+- The exit code is `6` and the output lists the conflicted paths with their provenance (which Module and version). Exit `6` applies to every writing command that leaves a Conflict (`add`, `remove`, `recopy`, `update`, `layout migrate`), not only `update`.
 - For `update`, the [stash of originals](#transactional-apply) is **kept** and a marker `<git-dir>/aokit/update.json` (`.aokit/update.json` outside git) records the stash directory, the conflicted paths, the `.aokit-new` files written and the previous Lockfile. `doctor` reports the marker with the fix `aokit update --abort` and never deletes a marked stash.
+- The marker has a `kind`: `update` (also when the field is absent, as in markers written before `layout migrate`) or `layout-migrate`. `layout migrate` keeps its stash the same way, and `doctor` names the command that owns the marker. `update --abort` on a `layout-migrate` marker, and `layout migrate --abort` on an `update` marker, fail with `INVALID_INPUT` (exit `3`) naming the owning command and touch nothing.
 
 ### `update --plan`, `--apply`, `--abort`
 
@@ -140,13 +141,13 @@ The user side is read only for paths that are in the Lockfile or in either rende
 6. **Package-manager lockfile** is never merged; `bun install` regenerates it.
 7. **Emit** the result as a Plan, with create, update, delete and rename changes and per-Module provenance ([Engine](engine.md#change-types-and-provenance)).
 
-| Command | base | new |
-| --- | --- | --- |
-| `add` | Lockfile render | render with the Module added |
-| `remove` | Lockfile render | render without the Module |
-| `update` | Lockfile render (old versions) | render at target versions, migrated answers |
-| `recopy` | none (empty) | render at the Lockfile versions |
-| `layout migrate` | Lockfile render, old Layout | render, new Layout |
+| Command          | base                           | new                                         |
+| ---------------- | ------------------------------ | ------------------------------------------- |
+| `add`            | Lockfile render                | render with the Module added                |
+| `remove`         | Lockfile render                | render without the Module                   |
+| `update`         | Lockfile render (old versions) | render at target versions, migrated answers |
+| `recopy`         | none (empty)                   | render at the Lockfile versions             |
+| `layout migrate` | Lockfile render, old Layout    | render, new Layout                          |
 
 A Module's declarative Ops are applied by the Engine only while building a render; the merge procedure never replays or reverses an Op. That is why no Op has an inverse.
 
