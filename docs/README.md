@@ -8,6 +8,14 @@ Every Markdown file under `docs/` has a row here; a test fails when one is missi
 | ------------------------ | ------- |
 | [roadmap.md](roadmap.md) | Roadmap |
 
+## Reference
+
+| Doc                                      | Title           |
+| ---------------------------------------- | --------------- |
+| [reference/cli.md](reference/cli.md)     | CLI reference   |
+| [security.md](security.md)               | Security model  |
+| [troubleshooting.md](troubleshooting.md) | Troubleshooting |
+
 ## Architecture
 
 | Doc                                                                | Title                             |
