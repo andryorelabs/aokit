@@ -19,11 +19,19 @@ test("buildPackage emits an executable bundle with the shebang and a Registry co
   );
 }, 120_000);
 
+async function readManifest(path: string): Promise<Record<string, unknown>> {
+  const manifest: unknown = await Bun.file(path).json();
+  if (typeof manifest !== "object" || manifest === null) {
+    throw new Error(`${path} is not a JSON object.`);
+  }
+  return Object.fromEntries(Object.entries(manifest));
+}
+
 test("create-aokit has the version of aokit and depends on exactly that version", async () => {
-  const aokit: { version: string } = await Bun.file(join(packageDirectory, "package.json")).json();
-  const createAokit: { version: string; dependencies: Record<string, string> } = await Bun.file(
+  const aokit = await readManifest(join(packageDirectory, "package.json"));
+  const createAokit = await readManifest(
     join(repoRoot, "packages", "create-aokit", "package.json"),
-  ).json();
-  expect(createAokit.version).toBe(aokit.version);
-  expect(createAokit.dependencies["aokit"]).toBe(aokit.version);
+  );
+  expect(createAokit["version"]).toBe(aokit["version"]);
+  expect(createAokit["dependencies"]).toMatchObject({ aokit: aokit["version"] });
 });

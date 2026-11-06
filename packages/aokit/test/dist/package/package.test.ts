@@ -2,6 +2,20 @@ import { afterAll, beforeAll, describe, expect, test } from "bun:test";
 import { cp, mkdir, mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { basename, join } from "node:path";
+import { z } from "zod";
+
+const versionSchema = z.object({ version: z.string() });
+const typesExportSchema = z.object({
+  exports: z.record(z.string(), z.object({ types: z.string() })),
+});
+const binSchema = z.object({ bin: z.record(z.string(), z.string()) });
+const releaseSchema = z.object({ release: z.string() });
+const lockfileSchema = z.object({ registries: z.record(z.string(), releaseSchema) });
+const registryIndexSchema = z.looseObject({
+  release: z.string(),
+  releases: z.record(z.string(), z.looseObject({ integrity: z.string(), path: z.string() })),
+});
+const catalogSchema = z.looseObject({ dependencies: z.record(z.string(), z.string()) });
 
 const tarballVariable = process.env["AOKIT_DIST_TARBALLS"];
 const describeWithTarballs = tarballVariable === undefined ? describe.skip : describe;
@@ -67,8 +81,8 @@ describeWithTarballs("the installed aokit and create-aokit tarballs", () => {
     aokitBin = join(installDirectory, "node_modules", ".bin", "aokit");
     createAokitBin = join(installDirectory, "node_modules", ".bin", "create-aokit");
     packageRoot = join(installDirectory, "node_modules", "aokit");
-    const manifest: { version: string } = JSON.parse(
-      await readFile(join(packageRoot, "package.json"), "utf8"),
+    const manifest = versionSchema.parse(
+      JSON.parse(await readFile(join(packageRoot, "package.json"), "utf8")),
     );
     aokitVersion = manifest.version;
   }, 120_000);
@@ -85,6 +99,28 @@ describeWithTarballs("the installed aokit and create-aokit tarballs", () => {
     expect(bundle.startsWith("#!/usr/bin/env bun\n")).toBe(true);
   });
 
+  test("S7: aokit/cli types resolve to an emitted declaration file", async () => {
+    const manifest = typesExportSchema.parse(
+      JSON.parse(await readFile(join(packageRoot, "package.json"), "utf8")),
+    );
+    const typesPath = manifest.exports["./cli"]?.types ?? "";
+    expect(typesPath.endsWith(".d.ts")).toBe(true);
+    expect(typesPath.startsWith("./dist/")).toBe(true);
+    expect(await Bun.file(join(packageRoot, typesPath)).exists()).toBe(true);
+  });
+
+  test("S7: the create-aokit bin runs under Node", async () => {
+    const createRoot = join(installDirectory, "node_modules", "create-aokit");
+    const manifest = binSchema.parse(
+      JSON.parse(await readFile(join(createRoot, "package.json"), "utf8")),
+    );
+    const binPath = join(createRoot, manifest.bin["create-aokit"] ?? "");
+    expect((await readFile(binPath, "utf8")).startsWith("#!/usr/bin/env node\n")).toBe(true);
+    const result = await spawnIn(["node", binPath, "--help"], await freshDirectory("node-help"));
+    expect(result.exitCode, result.stderr).toBe(0);
+    expect(result.stdout).toContain("create");
+  });
+
   test("S2: create resolves the Registry shipped inside the package", async () => {
     const workDirectory = await freshDirectory("create-bundled");
     const result = await spawnIn(
@@ -92,11 +128,11 @@ describeWithTarballs("the installed aokit and create-aokit tarballs", () => {
       workDirectory,
     );
     expect(result.exitCode, result.stderr).toBe(0);
-    const index: { release: string } = JSON.parse(
-      await readFile(join(packageRoot, "registry", "index.json"), "utf8"),
+    const index = releaseSchema.parse(
+      JSON.parse(await readFile(join(packageRoot, "registry", "index.json"), "utf8")),
     );
-    const lockfile: { registries: Record<string, { release: string }> } = JSON.parse(
-      await readFile(join(workDirectory, "my-app", "aokit.lock.json"), "utf8"),
+    const lockfile = lockfileSchema.parse(
+      JSON.parse(await readFile(join(workDirectory, "my-app", "aokit.lock.json"), "utf8")),
     );
     expect(lockfile.registries["official"]?.release).toBe(index.release);
   }, 120_000);
@@ -105,17 +141,14 @@ describeWithTarballs("the installed aokit and create-aokit tarballs", () => {
     const registryCopy = join(await freshDirectory("mismatch"), "registry");
     await cp(join(packageRoot, "registry"), registryCopy, { recursive: true });
     const indexPath = join(registryCopy, "index.json");
-    const index: {
-      release: string;
-      releases: Record<string, { integrity: string; path: string }>;
-    } = JSON.parse(await readFile(indexPath, "utf8"));
+    const index = registryIndexSchema.parse(JSON.parse(await readFile(indexPath, "utf8")));
     const entry = index.releases[index.release];
     if (entry === undefined) {
       throw new Error("the packaged Registry index lacks its own latest Release.");
     }
     const catalogPath = join(registryCopy, entry.path);
-    const catalog = JSON.parse(await readFile(catalogPath, "utf8"));
-    catalog.dependencies.oxfmt = "0.1.0";
+    const catalog = catalogSchema.parse(JSON.parse(await readFile(catalogPath, "utf8")));
+    catalog.dependencies["oxfmt"] = "0.1.0";
     const catalogText = `${JSON.stringify(catalog, null, 2)}\n`;
     await writeFile(catalogPath, catalogText);
     const digest = new Bun.CryptoHasher("sha256").update(catalogText).digest("hex");

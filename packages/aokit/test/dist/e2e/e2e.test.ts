@@ -2,6 +2,7 @@ import { afterAll, beforeAll, describe, expect, setDefaultTimeout, test } from "
 import { mkdir, mkdtemp, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { basename, join } from "node:path";
+import { z } from "zod";
 import { aokitCommand, spawnAokit } from "../../helpers/aokit-process.ts";
 import { differingPaths, treeDigests } from "./tree-digest.ts";
 
@@ -26,14 +27,16 @@ const curatedProjects: readonly CuratedProject[] = [
   },
 ];
 
-interface Envelope {
-  readonly ok: boolean;
-  readonly data: unknown;
-  readonly error: { readonly code: string } | null;
-}
+const envelopeSchema = z.object({
+  ok: z.boolean(),
+  data: z.unknown(),
+  error: z.object({ code: z.string() }).nullable(),
+});
+
+type Envelope = z.infer<typeof envelopeSchema>;
 
 function parseEnvelope(stdout: string): Envelope {
-  return JSON.parse(stdout);
+  return envelopeSchema.parse(JSON.parse(stdout));
 }
 
 async function git(directory: string, ...args: string[]): Promise<void> {
