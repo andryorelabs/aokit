@@ -82,6 +82,21 @@ function matchesAny(path: string, patterns: readonly string[] | undefined): bool
   return (patterns ?? []).some((pattern) => matchesPattern(path, pattern));
 }
 
+/** Gitignore ordering: patterns apply in order, the last match wins, and `!` re-includes. */
+export function matchesIgnore(path: string, patterns: readonly string[]): boolean {
+  let ignored = false;
+  for (const pattern of patterns) {
+    const negated = pattern.startsWith("!");
+    if (negated !== ignored) {
+      continue;
+    }
+    if (matchesPattern(path, negated ? pattern.slice(1) : pattern)) {
+      ignored = !negated;
+    }
+  }
+  return ignored;
+}
+
 /**
  * The options for one file from its nearest config, or `undefined` when the config ignores it.
  * `ignorePatterns` and `overrides` resolve here because Oxfmt's `format` API takes plain options.
@@ -95,7 +110,7 @@ export function optionsFor(
     if (relative === undefined) {
       continue;
     }
-    if (matchesAny(relative, config.ignorePatterns)) {
+    if (matchesIgnore(relative, config.ignorePatterns ?? [])) {
       return undefined;
     }
     const { $schema: _schema, ignorePatterns: _ignore, overrides, ...base } = config;
