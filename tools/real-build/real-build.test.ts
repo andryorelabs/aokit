@@ -5,10 +5,11 @@ import { dirname, join } from "node:path";
 import { combinationLabel, curatedCombinations, planSteps } from "./plan.ts";
 import { type Exec, runCombination } from "./run.ts";
 
-const failingCreate: Exec = async () => ({
-  exitCode: 4,
-  output: JSON.stringify({ ok: false, data: null, error: { code: "x" } }),
-});
+const failingCreate: Exec = () =>
+  Promise.resolve({
+    exitCode: 4,
+    output: JSON.stringify({ ok: false, data: null, error: { code: "x" } }),
+  });
 
 describe("curatedCombinations", () => {
   test("covers both required selections on both Layouts", () => {
@@ -96,9 +97,9 @@ describe("runCombination", () => {
       failedStep: "typecheck .",
       output: "src/routes.tsx(1,14): error TS2322",
     });
-    expect(commands[0]).toEqual(
-      expect.arrayContaining(["create", "--yes", "--json", "--no-install", "--layout", "single"]),
-    );
+    for (const argument of ["create", "--yes", "--json", "--no-install", "--layout", "single"]) {
+      expect(commands[0]).toContain(argument);
+    }
     expect(commands.slice(1).map((command) => command.slice(1).join(" "))).toEqual([
       "install",
       "run build",

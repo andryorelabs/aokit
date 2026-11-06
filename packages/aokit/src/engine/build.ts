@@ -205,7 +205,7 @@ function opOverrideKeys(manifest: ModuleManifest): ReadonlySet<string> {
 
 function opKeysOf(op: ModuleManifest["ops"][number]): string[] {
   const location = "extensionPoint" in op ? op.extensionPoint : "file" in op ? op.file : "";
-  return [op.op, `${op.op}:${"target" in op ? (op.target ?? "") : ""}:${location ?? ""}`];
+  return [op.op, `${op.op}:${"target" in op ? op.target : ""}:${location ?? ""}`];
 }
 
 function opKeysOverlap(first: string, second: string): boolean {

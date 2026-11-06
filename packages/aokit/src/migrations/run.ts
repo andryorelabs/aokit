@@ -85,7 +85,11 @@ function describeThrown(thrown: unknown): string {
 async function loadScript(path: string, provenance: MigrationProvenance): Promise<MigrationFn> {
   let exported: unknown;
   try {
-    exported = (await import(path)).default;
+    const loaded: unknown = await import(path);
+    exported =
+      typeof loaded === "object" && loaded !== null && "default" in loaded
+        ? loaded.default
+        : undefined;
   } catch (thrown) {
     throw failure(provenance, describeThrown(thrown));
   }

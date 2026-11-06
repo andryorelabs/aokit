@@ -60,11 +60,11 @@ function mergeBlockRule(root: Root, patch: CssAtRulePatch) {
     root.append(block);
   }
   for (const [property, value] of declarations) {
-    let present = false;
+    const presence = { found: false };
     block.walkDecls(property, () => {
-      present = true;
+      presence.found = true;
     });
-    if (!present) block.append(decl({ prop: property, value }));
+    if (!presence.found) block.append(decl({ prop: property, value }));
   }
 }
 
@@ -104,11 +104,11 @@ function mergeNestedRule(root: Root, patch: CssAtRulePatch) {
 export function addCssAtRule(css: string, patch: CssAtRulePatch): string {
   const root = parse(css);
   if (HEADER_RULES.includes(patch.name)) {
-    let exists = false;
+    const existing = { found: false };
     root.walkAtRules(patch.name, (node) => {
-      if (sameRule(node, patch)) exists = true;
+      if (sameRule(node, patch)) existing.found = true;
     });
-    if (exists) return css;
+    if (existing.found) return css;
     insertHeaderRule(root, patch);
   } else if (patch.block !== undefined) {
     mergeNestedRule(root, patch);

@@ -338,7 +338,7 @@ async function openSource(
   }
   const { adapters } = options;
   const documents = join(xdgCacheDir(adapters?.env ?? process.env), "registry-index");
-  let indexKept = false;
+  const index = { kept: false };
   const captured: string[] = [];
   const synthesizeIndex =
     source.kind === "shadcn" &&
@@ -350,7 +350,7 @@ async function openSource(
       capturingItems(adapters?.fetch ?? fetch, captured, synthesizeIndex),
       documents,
       (url) => {
-        if (url.endsWith("/index.json")) indexKept = true;
+        if (url.endsWith("/index.json")) index.kept = true;
       },
     ),
     ...(adapters?.github === undefined ? {} : { github: { ...adapters.github } }),
@@ -374,7 +374,7 @@ async function openSource(
       extras.sourceSha,
     );
   }
-  if (!indexKept) return registry;
+  if (!index.kept) return registry;
   const guarded = pinnedToLockfile(registry, pinned, extras.lockedRelease);
   keptIndexRegistries.add(guarded);
   return guarded;
@@ -642,16 +642,16 @@ async function openNonGithub(
 ): Promise<Registry> {
   const { adapters } = options;
   const documents = join(xdgCacheDir(adapters?.env ?? process.env), "registry-index");
-  let indexKept = false;
+  const index = { kept: false };
   const registry = await openRegistry(source, {
     cliVersion: options.cliVersion,
     cache,
     fetch: keepingIndexDocuments(adapters?.fetch ?? fetch, documents, (url) => {
-      if (url.endsWith("/index.json")) indexKept = true;
+      if (url.endsWith("/index.json")) index.kept = true;
     }),
     ...(adapters?.github === undefined ? {} : { github: { ...adapters.github } }),
   });
-  if (!indexKept) return registry;
+  if (!index.kept) return registry;
   const guarded = pinnedToLockfile(registry, extras.pinned ?? new Map(), extras.lockedRelease);
   keptIndexRegistries.add(guarded);
   return guarded;

@@ -56,8 +56,11 @@ export async function compileModule(
 ): Promise<CompiledModule> {
   let declared: unknown = source;
   if (typeof source === "string") {
-    const evaluated: { default?: unknown } = await import(pathToFileURL(resolve(source)).href);
-    declared = evaluated.default;
+    const evaluated: unknown = await import(pathToFileURL(resolve(source)).href);
+    declared =
+      typeof evaluated === "object" && evaluated !== null && "default" in evaluated
+        ? evaluated.default
+        : undefined;
   }
   const manifest = parseManifest(declared);
   const json = stableStringify(manifest);

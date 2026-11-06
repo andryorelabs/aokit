@@ -101,7 +101,7 @@ function toParserSchema(input: z.ZodType): z.ZodType {
   if (!(input instanceof z.ZodObject)) {
     return input;
   }
-  const fields = Object.entries(input.shape);
+  const fields: [string, z.ZodType][] = Object.entries<z.ZodType>(input.shape);
   const positionalFirst = fields.toSorted(([, left], [, right]) => {
     const leftPosition = aokitMeta.get(left)?.positional ?? Number.POSITIVE_INFINITY;
     const rightPosition = aokitMeta.get(right)?.positional ?? Number.POSITIVE_INFINITY;
