@@ -80,6 +80,7 @@ test("a missing Extension point fails naming the Module and the point", async ()
   expect(error.code).toBe("ops.extension-point-missing");
   expect(error.message).toContain("knip");
   expect(error.message).toContain("lint.ignores");
+  expect(error.message).toContain("fix: select the Module that declares");
 });
 
 test("a range mismatch names the Module, the point and the declared version", async () => {

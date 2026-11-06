@@ -1,6 +1,7 @@
 import type { Op } from "@aokit/module";
 import { type Node, findNodeAtLocation, parseTree } from "jsonc-parser";
 import type { DeclaredExtensionPoint, OpContext } from "../../engine/ops.ts";
+import { resolveExtensionPoint } from "../extension-point.ts";
 import { DataOpError } from "./errors.ts";
 
 import type { Target } from "../../engine/layout.ts";
@@ -56,22 +57,9 @@ function requirePoint(
   context: OpContext,
   op: Extract<DataOp, { extensionPoint: string }>,
 ): DeclaredExtensionPoint {
-  const point = context.extensionPoints.get(op.extensionPoint);
-  if (!point) {
-    throw new DataOpError(
-      "ops.extension-point-missing",
-      `Module "${context.module}" uses extension point "${op.extensionPoint}@${op.range}" but no selected Module declares it.\n  fix: select the Module that declares "${op.extensionPoint}".`,
-      context.module,
-    );
-  }
-  if (!Bun.semver.satisfies(point.version, op.range)) {
-    throw new DataOpError(
-      "ops.extension-point-range",
-      `Module "${context.module}" requires extension point "${op.extensionPoint}@${op.range}" but "${point.module}" provides ${point.version}.\n  fix: use a ${context.module} release that supports ${op.extensionPoint}@${point.version}, or update ${point.module}.`,
-      context.module,
-    );
-  }
-  return point;
+  return resolveExtensionPoint(context, op.extensionPoint, op.range, (code, message) => {
+    throw new DataOpError(`ops.${code}`, message, context.module);
+  });
 }
 
 function declaredFile(context: OpContext, point: DeclaredExtensionPoint, op: DataOp): string {
