@@ -27,7 +27,7 @@ Tooling follows [`docs/standards`](docs/standards/README.md): Oxfmt and Oxlint (
 
 ## Contributing
 
-Agents start at [AGENTS.md](AGENTS.md). Contributors read [CONTRIBUTING.md](CONTRIBUTING.md), [GOVERNANCE.md](GOVERNANCE.md), [CODE_OF_CONDUCT.md](CODE_OF_CONDUCT.md), [SUPPORT.md](SUPPORT.md) and the [roadmap](ROADMAP.md).
+Agents start at [AGENTS.md](AGENTS.md). Contributors read [CONTRIBUTING.md](CONTRIBUTING.md), [GOVERNANCE.md](GOVERNANCE.md), [CODE_OF_CONDUCT.md](CODE_OF_CONDUCT.md), [SUPPORT.md](SUPPORT.md), the [roadmap](ROADMAP.md) and the [blame ignore list](.git-blame-ignore-revs).
 
 ## License
 

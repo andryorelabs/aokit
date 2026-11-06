@@ -52,7 +52,7 @@ jobs:
         env:
           # renovate: datasource=pypi depName=zizmor
           ZIZMOR_VERSION: 1.32.0
-        run: python3 -m pip install --user "zizmor==${ZIZMOR_VERSION}"
+        run: pipx install "zizmor==${ZIZMOR_VERSION}"
 
       - name: Run zizmor
-        run: python3 -m zizmor --offline --no-progress .github/workflows
+        run: zizmor --offline --no-progress .github/workflows
