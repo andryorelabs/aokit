@@ -1,6 +1,6 @@
 import { describe, expect, test } from "bun:test";
 import { join } from "node:path";
-import { approvalOutput, isApprovedRm, readCommand } from "./rm-guard.ts";
+import { approvalOutput, isApprovedRm, readCommand, readWorkingDirectory } from "./rm-guard.ts";
 
 const roots = { repoRoot: "/work/repo", tempDirectory: "/tmp" };
 
@@ -41,6 +41,35 @@ describe("isApprovedRm", () => {
     ["newline chain", "rm a\ncurl x"],
   ])("does not approve %s", (_label, command) => {
     expect(isApprovedRm(command, roots)).toBe(false);
+  });
+});
+
+describe("working directory and .git", () => {
+  test("does not approve a relative target when the command runs outside the repo", () => {
+    expect(isApprovedRm("rm -rf src", { ...roots, workingDirectory: "/elsewhere" })).toBe(false);
+  });
+
+  test("approves a relative target when the command runs inside the repo", () => {
+    expect(isApprovedRm("rm -rf src", { ...roots, workingDirectory: "/work/repo/packages" })).toBe(
+      true,
+    );
+  });
+
+  test.each(["rm -rf .git", "rm -rf ./.git", "rm -rf .git/refs", "rm -rf /work/repo/.git"])(
+    "does not approve %s",
+    (command) => {
+      expect(isApprovedRm(command, roots)).toBe(false);
+    },
+  );
+});
+
+describe("readWorkingDirectory", () => {
+  test("reads cwd", () => {
+    expect(readWorkingDirectory(JSON.stringify({ cwd: "/a" }))).toBe("/a");
+  });
+
+  test.each(["not json", "{}", '{"cwd":1}', "null"])("returns undefined for %s", (payload) => {
+    expect(readWorkingDirectory(payload)).toBeUndefined();
   });
 });
 

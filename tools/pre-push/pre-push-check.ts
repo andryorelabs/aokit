@@ -4,7 +4,7 @@ export type PushVerdict = { ok: true } | { ok: false; reason: string };
 const zeroSha = /^0+$/;
 const conventionalBranch =
   /^(?:feat|fix|docs|style|refactor|perf|test|build|ci|chore|revert)\/[a-z0-9]+(?:-[a-z0-9]+)*$/;
-const ticketBranch = /^ao-\d+(?:-[a-z0-9]+)*$/;
+const ticketBranch = /^ao-\d+(?:-[a-z0-9]+)+$/;
 const renovateBranch = /^renovate\/.+$/;
 const branchPrefix = "refs/heads/";
 

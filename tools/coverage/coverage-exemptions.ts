@@ -1,6 +1,8 @@
 /**
  * Reason for internal modules that tests reach only through a sibling entry point.
  */
+const reachedOnlyThroughCommands =
+  "directory entry point that no test imports directly; reached through the CLI and MCP command tests and measured by the coverage threshold";
 const reachedThroughEntryPoint =
   "internal module with no direct test; exercised through its directory entry point, which tests import, and measured by the coverage threshold";
 
@@ -30,7 +32,7 @@ export const coverageExemptions: Readonly<Record<string, string>> = {
   "packages/aokit/src/cli/update-notice/spawn.ts": spawnedProcessEntry,
   "packages/aokit/src/create/target.ts": reachedThroughEntryPoint,
   "packages/aokit/src/drift/checks.ts": reachedThroughEntryPoint,
-  "packages/aokit/src/drift/index.ts": reachedThroughEntryPoint,
+  "packages/aokit/src/drift/index.ts": reachedOnlyThroughCommands,
   "packages/aokit/src/drift/unknown.ts": reachedThroughEntryPoint,
   "packages/aokit/src/engine/build.ts": reachedThroughEntryPoint,
   "packages/aokit/src/engine/errors.ts": reachedThroughEntryPoint,
@@ -48,12 +50,12 @@ export const coverageExemptions: Readonly<Record<string, string>> = {
   "packages/aokit/src/lockfile/read.ts": reachedThroughEntryPoint,
   "packages/aokit/src/mcp/guidance/static.ts": reachedThroughEntryPoint,
   "packages/aokit/src/mcp/init/client-config.ts": reachedThroughEntryPoint,
-  "packages/aokit/src/mcp/init/index.ts": reachedThroughEntryPoint,
+  "packages/aokit/src/mcp/init/index.ts": reachedOnlyThroughCommands,
   "packages/aokit/src/mcp/init/init.ts": reachedThroughEntryPoint,
   "packages/aokit/src/mcp/result.ts": reachedThroughEntryPoint,
   "packages/aokit/src/mcp/server.ts": reachedThroughEntryPoint,
   "packages/aokit/src/mcp/tools/guidance.ts": reachedThroughEntryPoint,
-  "packages/aokit/src/mcp/tools/index.ts": reachedThroughEntryPoint,
+  "packages/aokit/src/mcp/tools/index.ts": reachedOnlyThroughCommands,
   "packages/aokit/src/mcp/tools/plan-add.ts": reachedThroughEntryPoint,
   "packages/aokit/src/mcp/tools/plan-create.ts": reachedThroughEntryPoint,
   "packages/aokit/src/merge/content.ts": reachedThroughEntryPoint,

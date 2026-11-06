@@ -26,7 +26,7 @@ describe("checkPushLine", () => {
     }
   });
 
-  test.each(["Bad_Name", "feat/Bad", "feature/x", "ao-x", "develop", "feat/"])(
+  test.each(["Bad_Name", "feat/Bad", "feature/x", "ao-x", "ao-12", "develop", "feat/"])(
     "refuses %s",
     (branch) => {
       const verdict = checkPushLine(push(branch));

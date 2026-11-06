@@ -4,6 +4,8 @@ import { isAbsolute, relative, resolve, sep } from "node:path";
 export interface RmGuardRoots {
   repoRoot: string;
   tempDirectory: string;
+  /** Directory the command runs in; relative targets resolve against it. Defaults to `repoRoot`. */
+  workingDirectory?: string;
 }
 
 /** The PreToolUse output that approves a command without a prompt. */
@@ -25,10 +27,11 @@ function isInside(root: string, candidate: string): boolean {
 }
 
 function isSafeTarget(target: string, roots: RmGuardRoots): boolean {
-  if (target.split("/").includes("..")) {
+  const segments = target.split("/");
+  if (segments.includes("..") || segments.includes(".git")) {
     return false;
   }
-  const resolved = resolve(roots.repoRoot, target);
+  const resolved = resolve(roots.workingDirectory ?? roots.repoRoot, target);
   return isInside(roots.repoRoot, resolved) || isInside(roots.tempDirectory, resolved);
 }
 
@@ -51,6 +54,19 @@ export function isApprovedRm(command: string, roots: RmGuardRoots): boolean {
     return false;
   }
   return targets.every((target) => isSafeTarget(target, roots));
+}
+
+/** Extracts the string `cwd` field from the PreToolUse payload, if present. */
+export function readWorkingDirectory(rawPayload: string): string | undefined {
+  try {
+    const payload: unknown = JSON.parse(rawPayload);
+    if (typeof payload === "object" && payload !== null && "cwd" in payload) {
+      return typeof payload.cwd === "string" ? payload.cwd : undefined;
+    }
+  } catch {
+    return undefined;
+  }
+  return undefined;
 }
 
 /** Extracts `tool_input.command` from the PreToolUse payload, if it is a string. */

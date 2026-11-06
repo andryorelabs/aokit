@@ -56,7 +56,7 @@ Each entry gives the symptom you see, its cause and the fix. Error codes and exi
 
 **Cause:** The Registry release declares a `minCliVersion` above your CLI version.
 
-**Fix:** Run the version the error names with `bunx aokit@<minCliVersion>`, or download a newer binary from the [releases page](https://github.com/AndryOre/aokit/releases).
+**Fix:** Run the version the error names with `bunx aokit@<minCliVersion>`, or download a newer binary from the [releases page](https://github.com/andryorelabs/aokit/releases).
 
 ## The merge left conflicts
 
@@ -112,7 +112,7 @@ Each entry gives the symptom you see, its cause and the fix. Error codes and exi
 
 **Cause:** No TTY, `--yes`, `CI` or a detected coding agent switched the run to non-interactive mode, so a value without a default cannot be asked.
 
-**Fix:** Pass the flag the error names. To force prompts back on in a terminal, pass `--no-yes`.
+**Fix:** Pass the flag the error names. To get prompts back, run in a terminal without `--yes` and with `CI` unset.
 
 ## The update notice is unwanted
 
