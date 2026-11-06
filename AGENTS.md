@@ -38,7 +38,7 @@ Decisions live in [docs/adr/](docs/adr/README.md). Read those touching your area
 
 ## Branch and commit conventions
 
-- Feature branches always; never push to `main`. A pre-push hook refuses `main` and branch names that are not `<type>/<kebab-slug>`, `ao-<n>-<slug>` or `renovate/*`.
+- Feature branches always; never push to `main`. A pre-push hook refuses `main` and branch names that are not `<type>/<kebab-slug>`, `ao-<n>-<slug>` or `renovate/*`, then runs `bun run typecheck` and `bun run format:check`.
 - PRs squash into `main`. Worker branches are `ao-<n>-<slug>`.
 - Commits are gitmoji + conventional, in English, with a bullet body: `feat: ✨ add user authentication`.
 - A ticket's commit body ends with `Refs: AO-<n>`.

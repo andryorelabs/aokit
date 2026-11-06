@@ -1,6 +1,12 @@
 import { describe, expect, test } from "bun:test";
 import { join } from "node:path";
-import { checkPushLine } from "./pre-push-check.ts";
+import {
+  PRE_PUSH_GATES,
+  checkPushLine,
+  gateExitCode,
+  pushNeedsGates,
+  runGates,
+} from "./pre-push-check.ts";
 
 const sha = "1111111111111111111111111111111111111111";
 const zero = "0000000000000000000000000000000000000000";
@@ -51,6 +57,62 @@ describe("checkPushLine", () => {
   });
 });
 
+describe("pushNeedsGates", () => {
+  test("is true for a branch update", () => {
+    expect(pushNeedsGates([push("feat/x")])).toBe(true);
+  });
+
+  test("is false for deletions, tags and no lines", () => {
+    expect(pushNeedsGates([`(delete) ${zero} refs/heads/feat/x ${sha}`])).toBe(false);
+    expect(pushNeedsGates([`refs/tags/v1 ${sha} refs/tags/v1 ${zero}`])).toBe(false);
+    expect(pushNeedsGates([])).toBe(false);
+  });
+
+  test("is true for a mixed push of a deletion and a branch update", () => {
+    expect(pushNeedsGates([`(delete) ${zero} refs/heads/feat/old ${sha}`, push("feat/x")])).toBe(
+      true,
+    );
+  });
+});
+
+describe("runGates", () => {
+  test("defines typecheck then format:check", () => {
+    expect(PRE_PUSH_GATES).toEqual([
+      ["bun", "run", "typecheck"],
+      ["bun", "run", "format:check"],
+    ]);
+  });
+
+  test("runs every gate in order and returns 0 when all pass", () => {
+    const ran: string[] = [];
+    const code = runGates((command) => {
+      ran.push(command.join(" "));
+      return 0;
+    });
+    expect(code).toBe(0);
+    expect(ran).toEqual(["bun run typecheck", "bun run format:check"]);
+  });
+
+  test("stops at the first failure and returns its exit code", () => {
+    const ran: string[] = [];
+    const code = runGates((command) => {
+      ran.push(command.join(" "));
+      return 2;
+    });
+    expect(code).toBe(2);
+    expect(ran).toEqual(["bun run typecheck"]);
+  });
+
+  test("returns the exit code of a later failing gate", () => {
+    const code = runGates((command) => (command[2] === "format:check" ? 3 : 0));
+    expect(code).toBe(3);
+  });
+
+  test("accepts custom gates", () => {
+    expect(runGates(() => 0, [])).toBe(0);
+  });
+});
+
 async function runScript(stdin: string): Promise<{ code: number; stderr: string }> {
   const scriptProcess = Bun.spawn(["bun", join(import.meta.dir, "main.ts")], {
     stdin: new Blob([stdin]),
@@ -61,8 +123,8 @@ async function runScript(stdin: string): Promise<{ code: number; stderr: string 
 }
 
 describe("script process", () => {
-  test("exits 0 for a valid branch", async () => {
-    expect((await runScript(`${push("feat/x")}\n`)).code).toBe(0);
+  test("exits 0 without gates for a tag push", async () => {
+    expect((await runScript(`refs/tags/v1 ${sha} refs/tags/v1 ${zero}\n`)).code).toBe(0);
   });
 
   test("exits non-zero with one reason line for main", async () => {
@@ -73,5 +135,16 @@ describe("script process", () => {
 
   test("exits non-zero for Bad_Name", async () => {
     expect((await runScript(`${push("Bad_Name")}\n`)).code).not.toBe(0);
+  });
+});
+
+describe("gateExitCode", () => {
+  test("keeps numeric exit codes", () => {
+    expect(gateExitCode(0)).toBe(0);
+    expect(gateExitCode(2)).toBe(2);
+  });
+
+  test("maps a signal-killed process (null) to a non-zero code", () => {
+    expect(gateExitCode(null)).toBe(1);
   });
 });
