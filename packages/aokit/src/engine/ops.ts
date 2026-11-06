@@ -1,4 +1,5 @@
 import type { ModuleManifest, Op } from "@aokit/module";
+import type { EditSession } from "../edit/session.ts";
 import { EngineError } from "./errors.ts";
 import type { AnswerValue } from "./interpolate.ts";
 import type { LayoutName, Target } from "./layout.ts";
@@ -47,6 +48,8 @@ export interface OpContext {
   /** Whether the Module declares an `override` that covers this Op. */
   readonly overriding: boolean;
   readonly extensionPoints: ReadonlyMap<string, DeclaredExtensionPoint>;
+  /** The build's per-file edit batches; code Ops queue their edits here. */
+  readonly edits: EditSession;
   /** Names of the Modules whose Ops have written `path` so far in this run. */
   modulesOf(path: string): readonly string[];
   /** Joins a Target's Layout directory with a path relative to it. */

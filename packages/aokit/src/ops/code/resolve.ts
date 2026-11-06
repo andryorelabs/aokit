@@ -1,6 +1,6 @@
 import { posix } from "node:path";
 import type { Op } from "@aokit/module";
-import { createEditBatch } from "../../edit/batch.ts";
+import type { EditBatch } from "../../edit/batch.ts";
 import { EditError } from "../../edit/errors.ts";
 import { type LocatedAnchor, type ParsedSource, parseSource } from "../../edit/locate.ts";
 import type { DeclaredExtensionPoint, OpHandler } from "../../engine/ops.ts";
@@ -110,20 +110,16 @@ export function locateSite(
   return site;
 }
 
-/** Applies a single-Module edit batch to the site's file and writes it when it changed. */
+/** The build's shared edit batch of the site's file. */
+export function batchOf(context: OpContext, site: AnchorSite): EditBatch {
+  return context.edits.batchFor(site.path, context.module);
+}
+
+/** Queues edits to the site's file in the shared batch; the session writes it on flush. */
 export function commitEdits(
   context: OpContext,
   site: AnchorSite,
-  edit: (batch: ReturnType<typeof createEditBatch>) => void,
+  edit: (batch: EditBatch) => void,
 ): void {
-  const batch = createEditBatch({
-    fileName: site.path,
-    source: site.source,
-    moduleOrder: [context.module],
-  });
-  edit(batch);
-  const result = batch.apply();
-  if (result !== site.source) {
-    context.vfs.write(site.path, result);
-  }
+  edit(batchOf(context, site));
 }
