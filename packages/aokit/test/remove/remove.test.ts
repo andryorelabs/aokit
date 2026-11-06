@@ -12,6 +12,7 @@ import { cliVersion } from "../../src/cli/version.ts";
 import { runGitChecked } from "../../src/git/run.ts";
 import { parseLockfile } from "../../src/lockfile/index.ts";
 import { serializeLockfile } from "../../src/lockfile/serialize.ts";
+import { objectAt, parseJsonObject } from "../helpers/update-json.ts";
 
 const context = { version: cliVersion, env: {}, commands: [] };
 const workspace = mkdtempSync(join(tmpdir(), "aokit-remove-"));
@@ -70,7 +71,9 @@ async function tree(directory: string, prefix = ""): Promise<Record<string, stri
           : { [path]: await readFile(join(directory, path), "utf8") };
       }),
   );
-  return Object.assign({}, ...parts);
+  const merged: Record<string, string> = {};
+  for (const part of parts) Object.assign(merged, part);
+  return merged;
 }
 
 async function lockOf(directory: string) {
@@ -213,8 +216,8 @@ test("a user-edited seed file is kept with a warning and no Conflict", async () 
 test("a Conflict after removal exits 6 and keeps the conflicted Lockfile hash", async () => {
   const directory = await create(["oxc", "knip"], "single");
   const manifestPath = join(directory, "package.json");
-  const manifest = JSON.parse(await readFile(manifestPath, "utf8"));
-  manifest.scripts.knip = "my own knip";
+  const manifest = parseJsonObject(await readFile(manifestPath, "utf8"));
+  objectAt(manifest, "scripts")["knip"] = "my own knip";
   await writeFile(manifestPath, `${JSON.stringify(manifest, null, 2)}\n`);
   await commitAll(directory);
   const before = await lockOf(directory);

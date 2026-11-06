@@ -6,6 +6,7 @@ import { addCommand } from "../../src/cli/commands/add.ts";
 import { createCommand } from "../../src/cli/commands/create.ts";
 import { updateCommand } from "../../src/cli/commands/update.ts";
 import { cleanTemporaryDirectories, commandContext, temporaryDirectory } from "../diff/support.ts";
+import { parseJson, stringAt } from "../helpers/update-json.ts";
 import {
   type FixtureItem,
   removeShadcnFixtures,
@@ -103,8 +104,8 @@ async function mixedProject(): Promise<{ directory: string; served: ServedShadcn
 }
 
 async function lockedVersion(directory: string): Promise<string> {
-  const lockfile = JSON.parse(await read(directory, "aokit.lock.json"));
-  return lockfile.modules["@fixture/button"].version;
+  const lockfile = parseJson(await read(directory, "aokit.lock.json"));
+  return stringAt(lockfile, "modules", "@fixture/button", "version");
 }
 
 const changedButton = `${originalButton}\nexport const upstreamAddition = true;\n`;
@@ -126,8 +127,8 @@ describe("update for Adapted Modules", () => {
     expect(data.plan.changes.map((change) => change.path)).toContain(buttonPath);
     expect(await read(directory, buttonPath)).toBe(edited);
     expect(await lockedVersion(directory)).toBe(oldVersion);
-    const saved = JSON.parse(await read(join(directory, ".git"), "aokit/plan.json"));
-    const newVersion: string = saved.targetLockfile.modules["@fixture/button"].version;
+    const saved = parseJson(await read(join(directory, ".git"), "aokit/plan.json"));
+    const newVersion = stringAt(saved, "targetLockfile", "modules", "@fixture/button", "version");
     expect(newVersion).toMatch(/^0\.0\.0-shadcn\.[0-9a-f]{12}$/);
     expect(newVersion).not.toBe(oldVersion);
 
@@ -144,8 +145,8 @@ describe("update for Adapted Modules", () => {
     await served.writeItem(buttonItem(changedButton));
     const planned = await run({ directory, plan: true, install: false });
     if (!planned.ok) throw new Error(planned.error.message);
-    const saved = JSON.parse(await read(join(directory, ".git"), "aokit/plan.json"));
-    const reviewed: string = saved.targetLockfile.modules["@fixture/button"].version;
+    const saved = parseJson(await read(join(directory, ".git"), "aokit/plan.json"));
+    const reviewed = stringAt(saved, "targetLockfile", "modules", "@fixture/button", "version");
     await served.writeItem(buttonItem(`${changedButton}export const later = 1;\n`));
     const applied = await run({ directory, apply: true, yes: true, install: false });
     if (!applied.ok) throw new Error(applied.error.message);
@@ -167,8 +168,12 @@ describe("update for Adapted Modules", () => {
 
   test("in a Project of native Modules, an added item's upstream change is an update", async () => {
     const { directory, served } = await mixedProject();
-    const nativeVersion = JSON.parse(await read(directory, "aokit.lock.json")).modules["oxc"]
-      .version;
+    const nativeVersion = stringAt(
+      parseJson(await read(directory, "aokit.lock.json")),
+      "modules",
+      "oxc",
+      "version",
+    );
     const oldVersion = await lockedVersion(directory);
     const edited = `// my note\n${originalButton}`;
     await writeFile(join(directory, buttonPath), edited);
@@ -180,8 +185,8 @@ describe("update for Adapted Modules", () => {
     const data = updateCommand.output.parse(planned.data);
     expect(data.upToDate).toBe(false);
     expect(data.plan.changes.map((change) => change.path)).toContain(buttonPath);
-    const saved = JSON.parse(await read(join(directory, ".git"), "aokit/plan.json"));
-    const newVersion: string = saved.targetLockfile.modules["@fixture/button"].version;
+    const saved = parseJson(await read(join(directory, ".git"), "aokit/plan.json"));
+    const newVersion = stringAt(saved, "targetLockfile", "modules", "@fixture/button", "version");
     expect(newVersion).toMatch(/^0\.0\.0-shadcn\.[0-9a-f]{12}$/);
     expect(newVersion).not.toBe(oldVersion);
 
@@ -190,9 +195,9 @@ describe("update for Adapted Modules", () => {
     const merged = await read(directory, buttonPath);
     expect(merged).toContain("// my note");
     expect(merged).toContain("upstreamAddition");
-    const lockfile = JSON.parse(await read(directory, "aokit.lock.json"));
-    expect(lockfile.modules["@fixture/button"].version).toBe(newVersion);
-    expect(lockfile.modules["oxc"].version).toBe(nativeVersion);
+    const lockfile = parseJson(await read(directory, "aokit.lock.json"));
+    expect(stringAt(lockfile, "modules", "@fixture/button", "version")).toBe(newVersion);
+    expect(stringAt(lockfile, "modules", "oxc", "version")).toBe(nativeVersion);
   });
 
   test("in a Project of native Modules, an unchanged added item yields no update", async () => {

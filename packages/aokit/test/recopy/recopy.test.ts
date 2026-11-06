@@ -4,6 +4,7 @@ import { join } from "node:path";
 import { runCommand } from "../../src/cli/command.ts";
 import { ejectCommand } from "../../src/cli/commands/eject.ts";
 import { recopyCommand } from "../../src/cli/commands/recopy.ts";
+import { type JsonObject, objectAt, parseJsonObject } from "../helpers/update-json.ts";
 import { commitAll, context, createProject, newWorkspace, readLock } from "../restore/helpers.ts";
 
 const workspace = newWorkspace();
@@ -16,9 +17,9 @@ function recopy(directory: string, extra: Record<string, unknown> = {}) {
   return runCommand(recopyCommand, context, { directory, yes: true, install: false, ...extra });
 }
 
-async function lockWith(directory: string, change: (lock: Record<string, any>) => void) {
+async function lockWith(directory: string, change: (lock: JsonObject) => void) {
   const path = join(directory, "aokit.lock.json");
-  const lock = JSON.parse(await readFile(path, "utf8"));
+  const lock = parseJsonObject(await readFile(path, "utf8"));
   change(lock);
   await writeFile(path, `${JSON.stringify(lock, null, 2)}\n`);
 }
@@ -27,7 +28,7 @@ test("a locked version missing from the Registry renders the latest and notes it
   const directory = await createProject(workspace);
   const latest = (await readLock(directory)).modules.oxc?.version;
   await lockWith(directory, (lock) => {
-    lock.modules.oxc.version = "0.0.1";
+    objectAt(lock, "modules", "oxc")["version"] = "0.0.1";
   });
   await commitAll(directory);
   const envelope = await recopy(directory);

@@ -74,25 +74,20 @@ describe("aokit diff --to", () => {
     const { directory } = await twoReleaseProject();
     const before = await readFile(join(directory, "aokit.lock.json"), "utf8");
     const envelope = await runDiffTo(directory, "2026.11.1");
-    expect(envelope).toMatchObject({
-      ok: true,
-      data: {
-        files: expect.arrayContaining([
-          expect.objectContaining({ path: ".oxlintrc.json", status: "modified" }),
-        ]),
-        diff: expect.stringContaining('+  "rules": { "no-debugger": "error" }'),
-      },
-    });
+    if (!envelope.ok) throw new Error(envelope.error.message);
+    const data = diffCommand.output.parse(envelope.data);
+    expect(
+      data.files.some((file) => file.path === ".oxlintrc.json" && file.status === "modified"),
+    ).toBe(true);
+    expect(data.diff).toContain('+  "rules": { "no-debugger": "error" }');
     expect(await readFile(join(directory, "aokit.lock.json"), "utf8")).toBe(before);
   });
 
   test("before-migrated answers feed the target Render", async () => {
     const { directory } = await twoReleaseProject();
     const envelope = await runDiffTo(directory, "2026.11.1");
-    expect(envelope).toMatchObject({
-      ok: true,
-      data: { diff: expect.stringContaining("+# {{name}} (tanstack)") },
-    });
+    if (!envelope.ok) throw new Error(envelope.error.message);
+    expect(diffCommand.output.parse(envelope.data).diff).toContain("+# {{name}} (tanstack)");
   });
 
   test("an older or unknown Release is invalid input", async () => {

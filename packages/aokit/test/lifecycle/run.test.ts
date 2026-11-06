@@ -73,8 +73,8 @@ function options(
     diff: false,
     install: false,
     render: {
-      base: async () => builtOf(base),
-      next: async () => builtOf(next),
+      base: () => Promise.resolve(builtOf(base)),
+      next: () => Promise.resolve(builtOf(next)),
     },
     ...extra,
   };
@@ -156,8 +156,9 @@ describe("runLifecycle", () => {
     const base = { "package.json": "{}\n" };
     await seedProject(base, { git: true });
     const calls: string[] = [];
-    const installer = async (directory: string) => {
+    const installer = (directory: string) => {
       calls.push(directory);
+      return Promise.resolve();
     };
     await runLifecycle(options(base, base, { install: true, installer }));
     expect(calls).toEqual([]);
@@ -172,8 +173,9 @@ describe("runLifecycle", () => {
     const base = { "apps/web/package.json": "{}\n" };
     await seedProject(base, { git: true });
     const calls: string[] = [];
-    const installer = async (directory: string) => {
+    const installer = (directory: string) => {
       calls.push(directory);
+      return Promise.resolve();
     };
     const result = await runLifecycle(
       options(base, { "apps/web/package.json": '{"a":1}\n' }, { install: true, installer }),
@@ -190,7 +192,10 @@ describe("runLifecycle", () => {
         base,
         { "a.txt": "two\n" },
         {
-          render: { base: async () => undefined, next: async () => builtOf({ "a.txt": "two\n" }) },
+          render: {
+            base: () => Promise.resolve(undefined),
+            next: () => Promise.resolve(builtOf({ "a.txt": "two\n" })),
+          },
         },
       ),
     );

@@ -8,9 +8,10 @@ import {
   cleanTemporaryDirectories,
   commandContext,
   createProject,
-  editLockfile,
+  editLockfileJson,
   temporaryDirectory,
 } from "./support.ts";
+import { objectAt } from "../helpers/update-json.ts";
 
 afterEach(cleanTemporaryDirectories);
 
@@ -29,25 +30,25 @@ describe("aokit diff", () => {
     const project = await createProject(await builtRegistry());
     await appendFile(join(project, "notes.md"), "local edit\n");
     const envelope = await runDiff(project);
-    expect(envelope).toMatchObject({
-      ok: true,
-      data: {
-        files: [{ path: "notes.md", hunks: [{ lines: expect.arrayContaining(["+local edit"]) }] }],
-        diff: expect.stringContaining("+local edit"),
-      },
-    });
+    if (!envelope.ok) throw new Error(envelope.error.message);
+    const data = diffCommand.output.parse(envelope.data);
+    expect(data.files).toHaveLength(1);
+    expect(data.files[0]?.path).toBe("notes.md");
+    expect(data.files[0]?.hunks).toHaveLength(1);
+    expect(data.files[0]?.hunks[0]?.lines).toContain("+local edit");
+    expect(data.diff).toContain("+local edit");
   });
 
   test("a seed or ejected file that differs is not listed", async () => {
     const project = await createProject(await builtRegistry());
-    await editLockfile(project, (lockfile) => {
-      lockfile["files"]["notes.md"].mode = "seed";
+    await editLockfileJson(project, (lockfile) => {
+      objectAt(lockfile, "files", "notes.md")["mode"] = "seed";
     });
     await writeFile(join(project, "notes.md"), "mine\n");
     const seed = await runDiff(project);
     expect(seed).toMatchObject({ ok: true, data: { files: [] } });
-    await editLockfile(project, (lockfile) => {
-      lockfile["files"]["notes.md"].mode = "ejected";
+    await editLockfileJson(project, (lockfile) => {
+      objectAt(lockfile, "files", "notes.md")["mode"] = "ejected";
     });
     const ejected = await runDiff(project);
     expect(ejected).toMatchObject({ ok: true, data: { files: [] } });
@@ -70,8 +71,8 @@ describe("aokit diff", () => {
 
   test("a URL Registry source is invalid input", async () => {
     const project = await createProject(await builtRegistry());
-    await editLockfile(project, (lockfile) => {
-      lockfile["registries"]["official"].source = "https://example.com/registry";
+    await editLockfileJson(project, (lockfile) => {
+      objectAt(lockfile, "registries", "official")["source"] = "https://example.com/registry";
     });
     const envelope = await runDiff(project);
     expect(envelope).toMatchObject({ ok: false, error: { code: "INVALID_INPUT" } });
