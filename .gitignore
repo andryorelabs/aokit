@@ -4,7 +4,7 @@
 !.emet/tickets/
 
 node_modules/
-coverage/
+/coverage/
 /dist/
 /packages/*/dist/
 /packages/aokit/registry/

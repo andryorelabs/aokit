@@ -2,6 +2,8 @@
 
 The `renovate` Module ships this policy. It implements the default dependency policy: ranges plus a lockfile, with exact pins only for Toolchain pin groups. Related: [typescript](typescript.md), [tooling](tooling.md), index in [standards](README.md).
 
+The policy is implemented in [`renovate.json5`](../../renovate.json5) and checked by `tools/renovate/renovate-config.test.ts`. Versions in workflows are bumped through `# renovate: datasource=<ds> depName=<name>` comments placed on the line above a `VERSION: x.y.z` entry. The comment form only exists in YAML, so tool pins that live in TypeScript under `tools/` (for example the lychee version in `tools/lint-docs/args.ts`, which carries a sha256 table) are bumped by hand together with their checksums.
+
 ## Defaults
 
 | Setting             | Value                                                     | Reason                                                                                                    |

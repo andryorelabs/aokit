@@ -1,0 +1,45 @@
+{
+  "$schema": "https://json.schemastore.org/claude-code-settings.json",
+  "permissions": {
+    "allow": [
+      "Bash(bun run check)",
+      "Bash(bun run test)",
+      "Bash(bun run test *)",
+      "Bash(bun run format)",
+      "Bash(gh pr view *)",
+      "Bash(gh pr list *)",
+      "Bash(gh pr diff *)",
+      "Bash(gh pr checks *)",
+      "Bash(gh issue view *)",
+      "Bash(gh issue list *)",
+      "Bash(gh run view *)",
+      "Bash(gh run list *)",
+      "Bash(gh repo view *)"
+    ],
+    "deny": [
+      "Bash(git push origin main)",
+      "Bash(git push origin main *)",
+      "Bash(git push * main)",
+      "Bash(git push * HEAD:main)",
+      "Bash(git push * :main)",
+      "mcp__linear-server__delete_attachment",
+      "mcp__linear-server__delete_comment",
+      "mcp__linear-server__delete_diff_comment",
+      "mcp__linear-server__delete_status_update"
+    ]
+  },
+  "hooks": {
+    "PreToolUse": [
+      {
+        "matcher": "Bash",
+        "hooks": [
+          {
+            "type": "command",
+            "if": "Bash(rm *)",
+            "command": "bun \"$CLAUDE_PROJECT_DIR/tools/claude/main.ts\""
+          }
+        ]
+      }
+    ]
+  }
+}

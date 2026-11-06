@@ -1,0 +1,22 @@
+# aokit
+
+> aokit is a Bun-only CLI that creates and evolves TypeScript Projects from composable Modules served by Registries. It keeps a Lockfile with per-file hashes so updates merge with your edits instead of overwriting them.
+
+## Reference
+
+- [CLI reference](https://github.com/andryorelabs/aokit/blob/main/docs/reference/cli.md): every command, its flags, the exit codes, the error codes and the `AOKIT_*` environment variables.
+- [Troubleshooting](https://github.com/andryorelabs/aokit/blob/main/docs/troubleshooting.md): symptom, cause and fix for the common failures.
+- [Security model](https://github.com/andryorelabs/aokit/blob/main/docs/security.md): Registry integrity, the trust gate, hostile Modules, generated output and known limits.
+
+## Architecture
+
+- [Architecture overview](https://github.com/andryorelabs/aokit/blob/main/docs/architecture/overview.md): the components and how they fit together.
+- [CLI UX](https://github.com/andryorelabs/aokit/blob/main/docs/architecture/cli-ux.md): flags, non-interactive mode, JSON output and exit codes.
+- [Lifecycle](https://github.com/andryorelabs/aokit/blob/main/docs/architecture/lifecycle.md): create, add, update, remove and the merge procedure.
+- [Registry protocol and trust model](https://github.com/andryorelabs/aokit/blob/main/docs/architecture/registry.md): how Registries are read, verified and trusted.
+
+## Optional
+
+- [Documentation index](https://github.com/andryorelabs/aokit/blob/main/docs/README.md): every page under `docs/`.
+- [Glossary](https://github.com/andryorelabs/aokit/blob/main/GLOSSARY.md): the vocabulary used across the docs.
+- [Roadmap](https://github.com/andryorelabs/aokit/blob/main/ROADMAP.md): what is planned and out of scope.
