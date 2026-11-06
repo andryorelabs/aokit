@@ -23,7 +23,7 @@ export const routedJobs: readonly string[] = [
 const jobLine = /^ {2}([A-Za-z0-9_-]+):\s*$/;
 const topLevelLine = /^\S/;
 const runsOnLine = /^ {4}runs-on:\s*(.*?)\s*$/;
-const osMatrixLine = /^\s+os:\s*\[/;
+const osMatrixLine = /^\s+os:\s*(?:\[|$)/;
 const literalLabel = /^(?:ubuntu-latest|macos-[A-Za-z0-9.-]+)$/;
 const forbiddenLabel = /vps-|self-hosted/;
 
@@ -152,6 +152,15 @@ describe("CI runner routing", () => {
 
   test("an os matrix job using the plain expression fails so macOS never reaches Blacksmith", () => {
     const text = workflow("check-and-test", routedExpression, osMatrix);
+    expect(findRunnerRoutingProblems("ci.yml", text)).toEqual([
+      "ci.yml:check-and-test is routed and must use the os matrix form of the BLACKSMITH_RUNNER expression",
+    ]);
+  });
+
+  test("a block-style os matrix using the plain expression fails", () => {
+    const blockMatrix =
+      "    strategy:\n      matrix:\n        os:\n          - ubuntu-latest\n          - macos-latest\n";
+    const text = workflow("check-and-test", routedExpression, blockMatrix);
     expect(findRunnerRoutingProblems("ci.yml", text)).toEqual([
       "ci.yml:check-and-test is routed and must use the os matrix form of the BLACKSMITH_RUNNER expression",
     ]);
