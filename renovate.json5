@@ -1,0 +1,56 @@
+{
+  $schema: "https://docs.renovatebot.com/renovate-schema.json",
+  extends: ["config:best-practices"],
+  rangeStrategy: "bump",
+  minimumReleaseAge: "3 days",
+  osvVulnerabilityAlerts: true,
+  lockFileMaintenance: {
+    enabled: true,
+    automerge: true,
+  },
+  customManagers: [
+    {
+      customType: "regex",
+      description: "Versions annotated with a '# renovate: datasource=<ds> depName=<name>' comment",
+      managerFilePatterns: ["/\\.ya?ml$/"],
+      matchStrings: [
+        "#\\s*renovate:\\s*datasource=(?<datasource>[^\\s]+)\\s+depName=(?<depName>[^\\s]+)\\s*\\n\\s*[A-Za-z0-9_]*VERSION:\\s*[\"']?(?<currentValue>[^\\s\"']+)[\"']?",
+      ],
+    },
+  ],
+  packageRules: [
+    {
+      description: "Automerge patch and minor devDependency updates",
+      matchDepTypes: ["devDependencies"],
+      matchUpdateTypes: ["patch", "minor"],
+      automerge: true,
+      minimumReleaseAge: "7 days",
+    },
+    {
+      description: "Automerge patch and minor GitHub Actions updates",
+      matchManagers: ["github-actions"],
+      matchUpdateTypes: ["patch", "minor"],
+      automerge: true,
+      minimumReleaseAge: "7 days",
+    },
+    {
+      description: "Toolchain pin group: oxc, exact pins, never automerged",
+      groupName: "oxc",
+      matchPackageNames: ["oxlint", "oxfmt", "oxlint-tsgolint", "@oxlint/plugins", "oxc-parser"],
+      rangeStrategy: "pin",
+      automerge: false,
+    },
+    {
+      description: "Toolchain pin group: typescript7, exact pin, never automerged",
+      groupName: "typescript7",
+      matchDepNames: ["typescript7"],
+      rangeStrategy: "pin",
+      automerge: false,
+    },
+    {
+      description: "The real typescript dependency stays below 7",
+      matchDepNames: ["typescript"],
+      allowedVersions: "<7",
+    },
+  ],
+}

@@ -2,6 +2,8 @@
 
 The `renovate` Module ships this policy. It implements the default dependency policy: ranges plus a lockfile, with exact pins only for Toolchain pin groups. Related: [typescript](typescript.md), [tooling](tooling.md), index in [standards](README.md).
 
+The policy is implemented in [`renovate.json5`](../../renovate.json5) and checked by `tools/renovate/renovate-config.test.ts`. Versions in workflows are bumped through `# renovate: datasource=<ds> depName=<name>` comments placed on the line above a `VERSION: x.y.z` entry.
+
 ## Defaults
 
 | Setting             | Value                                                     | Reason                                                                                                    |
