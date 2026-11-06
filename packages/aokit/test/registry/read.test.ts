@@ -9,6 +9,7 @@ import {
 } from "../../../../tools/registry-build/fixture.ts";
 import { stableStringify } from "@aokit/module";
 import { z } from "zod";
+import { parseJsonRecord } from "../helpers/registry-json.ts";
 import { registryIndexSchema } from "../../src/registry/schema.ts";
 import {
   computeIntegrity,
@@ -18,6 +19,9 @@ import {
 } from "../../src/registry/index.ts";
 
 const options = { cliVersion: "0.1.0" };
+const loadedScriptSchema = z.object({
+  default: z.custom<(input: unknown) => unknown>((value) => typeof value === "function"),
+});
 const registryIndexShape = z.looseObject({
   modules: z.record(
     z.string(),
@@ -44,7 +48,7 @@ async function editJson(
   path: string,
   edit: (value: Record<string, unknown>) => void,
 ): Promise<void> {
-  const value = JSON.parse(await readFile(path, "utf8"));
+  const value = parseJsonRecord(await readFile(path, "utf8"));
   edit(value);
   await writeFile(path, `${JSON.stringify(value, null, 2)}\n`, "utf8");
 }
@@ -215,7 +219,7 @@ test("the reader exposes a version's migration scripts and renames", async () =>
   const scriptPath = oxc?.migrationScript("migrations/1-to-2.before.js") ?? "";
   expect(isAbsolute(scriptPath)).toBe(true);
   expect(scriptPath).toBe(join(root, "modules/oxc/2.0.0/migrations/1-to-2.before.js"));
-  const loaded: { default: (input: unknown) => unknown } = await import(scriptPath);
+  const loaded = loadedScriptSchema.parse(await import(scriptPath));
   expect(loaded.default({ answers: { appRouter: "tanstack" } })).toEqual({ router: "tanstack" });
   expect(() => oxc?.migrationScript("migrations/missing.js")).toThrow(RegistryError);
   expect(registry.version("knip", "2.1.0")?.renames).toEqual({});

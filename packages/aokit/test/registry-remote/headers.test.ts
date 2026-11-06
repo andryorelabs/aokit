@@ -144,15 +144,17 @@ test("a chain that leaves the origin and returns to it does not get the headers 
 test("an http to https redirect on the same host and port is another origin", async () => {
   const seen: { url: string; authorization: string | null }[] = [];
   const recordingFetch: typeof fetch = Object.assign(
-    async (input: string | URL | Request, init?: RequestInit) => {
+    (input: string | URL | Request, init?: RequestInit) => {
       const url = input instanceof Request ? input.url : input.toString();
       seen.push({ url, authorization: new Headers(init?.headers).get("authorization") });
-      return url.startsWith("http:")
-        ? new Response(null, {
-            status: 302,
-            headers: { location: url.replace("http:", "https:") },
-          })
-        : new Response(itemJson);
+      return Promise.resolve(
+        url.startsWith("http:")
+          ? new Response(null, {
+              status: 302,
+              headers: { location: url.replace("http:", "https:") },
+            })
+          : new Response(itemJson),
+      );
     },
     { preconnect: fetch.preconnect },
   );
@@ -221,9 +223,7 @@ test("the expanded token never reaches an error, the --json envelope or a writte
 
 test("a header value is redacted from a fetch failure message", async () => {
   const failingFetch: typeof fetch = Object.assign(
-    async () => {
-      throw new Error(`socket closed while sending Bearer ${token}`);
-    },
+    () => Promise.reject(new Error(`socket closed while sending Bearer ${token}`)),
     { preconnect: fetch.preconnect },
   );
   const transport = urlTransport("https://r.test/r", failingFetch, {
@@ -237,9 +237,7 @@ test("a header value is redacted from a fetch failure message", async () => {
 
 test("the bare token and not a short header value is redacted from a failure message", async () => {
   const failingFetch: typeof fetch = Object.assign(
-    async () => {
-      throw new Error(`rejected token ${token} for version 1`);
-    },
+    () => Promise.reject(new Error(`rejected token ${token} for version 1`)),
     { preconnect: fetch.preconnect },
   );
   const transport = urlTransport("https://r.test/r", failingFetch, {

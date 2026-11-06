@@ -3,6 +3,7 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { buildRegistry } from "../../../../tools/registry-build/build.ts";
 import { writeRegistrySourceFixture } from "../../../../tools/registry-build/fixture.ts";
+import { parseJsonRecord } from "../helpers/registry-json.ts";
 
 /** One request a {@link ServedRegistry} received: its path and its headers, names lowercased. */
 interface ReceivedRequest {
@@ -47,7 +48,7 @@ export async function editJson(
   path: string,
   edit: (value: Record<string, unknown>) => void,
 ): Promise<void> {
-  const value = JSON.parse(await readFile(path, "utf8"));
+  const value = parseJsonRecord(await readFile(path, "utf8"));
   edit(value);
   await writeFile(path, `${JSON.stringify(value, null, 2)}\n`, "utf8");
 }

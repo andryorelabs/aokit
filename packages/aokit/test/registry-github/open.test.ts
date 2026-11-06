@@ -45,9 +45,9 @@ async function servedRepository(): Promise<ServedRegistry> {
 function countingLsRemote(output: string) {
   const adapter = {
     calls: 0,
-    lsRemote: async () => {
+    lsRemote: () => {
       adapter.calls += 1;
-      return output;
+      return Promise.resolve(output);
     },
   };
   return adapter;
@@ -105,9 +105,9 @@ test("a git ls-remote failure while opening is REGISTRY_FETCH_FAILED, exit 1", a
 });
 
 test("a ref the repository lacks, or one shaped like a git option, is INVALID_INPUT", async () => {
-  const missing = await openFailure("github:acme/mods#main", async () => "");
+  const missing = await openFailure("github:acme/mods#main", () => Promise.resolve(""));
   expect(missing.code).toBe("INVALID_INPUT");
-  const option = await openFailure("github:acme/mods#-x", async () => "");
+  const option = await openFailure("github:acme/mods#-x", () => Promise.resolve(""));
   expect(option.code).toBe("INVALID_INPUT");
 });
 

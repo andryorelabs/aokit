@@ -31,9 +31,9 @@ async function githubFixture() {
   const adapters: RegistryAdapters = {
     github: {
       rawBaseUrl: server.url,
-      lsRemote: async (_url, ref) => {
+      lsRemote: (_url, ref) => {
         git.calls.push(ref);
-        return `${v1}\trefs/tags/v1\n${v2}\trefs/tags/v2\n`;
+        return Promise.resolve(`${v1}\trefs/tags/v1\n${v2}\trefs/tags/v2\n`);
       },
     },
   };
@@ -72,7 +72,7 @@ test("a github: Pin is recorded, a plain update never re-resolves it, update --r
   const { directory, context, result } = await createFromGithub(adapters, ["github:acme/mods"]);
   await result;
   const created = await readLockfileJson(directory);
-  expect(created["registries"]["acme"]).toMatchObject({
+  expect(created.registries["acme"]).toMatchObject({
     source: `github:acme/mods#${v1}`,
     trusted: true,
   });
@@ -91,7 +91,7 @@ test("a github: Pin is recorded, a plain update never re-resolves it, update --r
   const plain = await runUpdate(update);
   expect(plain.pins).toEqual([]);
   expect(git.calls).toEqual(["v1"]);
-  expect((await readLockfileJson(directory))["registries"]["acme"]["source"]).toBe(
+  expect((await readLockfileJson(directory)).registries["acme"]?.["source"]).toBe(
     `github:acme/mods#${v1}`,
   );
 
@@ -99,14 +99,14 @@ test("a github: Pin is recorded, a plain update never re-resolves it, update --r
   expect(planned.pins).toEqual([
     { registry: "acme", from: `github:acme/mods#${v1}`, to: `github:acme/mods#${v2}` },
   ]);
-  expect((await readLockfileJson(directory))["registries"]["acme"]["source"]).toBe(
+  expect((await readLockfileJson(directory)).registries["acme"]?.["source"]).toBe(
     `github:acme/mods#${v1}`,
   );
 
   const moved = await runUpdate({ ...update, registry: "github:acme/mods#v2" });
   expect(moved.applied).toBe(true);
   expect(moved.pins).toEqual(planned.pins);
-  expect((await readLockfileJson(directory))["registries"]["acme"]).toMatchObject({
+  expect((await readLockfileJson(directory)).registries["acme"]).toMatchObject({
     source: `github:acme/mods#${v2}`,
     trusted: true,
   });
@@ -144,7 +144,7 @@ test("add --registry github:…#<other ref> never moves the Pin of the primary R
     runAdd(context, addInput(directory, ["knip"], "github:acme/mods#v2"), adapters),
   );
   expect(error).toMatchObject({ code: "INVALID_INPUT" });
-  expect(error).toMatchObject({ fix: expect.stringContaining("update --registry") });
+  expect(String(Reflect.get(Object(error), "fix"))).toContain("update --registry");
   expect(await snapshotTree(directory)).toEqual(before);
 });
 
@@ -154,7 +154,7 @@ test("add --registry github:…#<other ref> never moves the Pin of a secondary R
   const project = await createBundledProject(context);
   await runAdd(context, addInput(project, ["knip"], "github:acme/mods#v1"), adapters);
   const pinned = await readLockfileJson(project);
-  expect(pinned["registries"]["acme"]["source"]).toBe(`github:acme/mods#${v1}`);
+  expect(pinned.registries["acme"]?.["source"]).toBe(`github:acme/mods#${v1}`);
   const before = await snapshotTree(project);
   const error = await failureOf(
     runAdd(context, addInput(project, ["docker"], "github:acme/mods#v2"), adapters),
@@ -163,6 +163,6 @@ test("add --registry github:…#<other ref> never moves the Pin of a secondary R
   expect(await snapshotTree(project)).toEqual(before);
   await runAdd(context, addInput(project, ["docker"], "github:acme/mods#v1"), adapters);
   const after = await readLockfileJson(project);
-  expect(after["registries"]["acme"]["source"]).toBe(`github:acme/mods#${v1}`);
-  expect(after["modules"]["docker"]["registry"]).toBe("acme");
+  expect(after.registries["acme"]?.["source"]).toBe(`github:acme/mods#${v1}`);
+  expect(after.modules["docker"]?.["registry"]).toBe("acme");
 });

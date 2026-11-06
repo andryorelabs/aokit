@@ -48,9 +48,10 @@ function memoryCache(): RegistryCache & { entries: Map<string, CachedModuleVersi
   const entries = new Map<string, CachedModuleVersion>();
   return {
     entries,
-    get: async (integrity) => entries.get(integrity),
-    put: async (integrity, content) => {
+    get: (integrity) => Promise.resolve(entries.get(integrity)),
+    put: (integrity, content) => {
       entries.set(integrity, content);
+      return Promise.resolve();
     },
   };
 }
