@@ -12,7 +12,7 @@
   "type": "module",
   "exports": {
     "./cli": {
-      "types": "./src/cli/run.ts",
+      "types": "./dist/run.d.ts",
       "default": "./dist/run.js"
     }
   },

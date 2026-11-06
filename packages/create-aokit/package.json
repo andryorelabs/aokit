@@ -3,10 +3,10 @@
   "version": "0.1.0",
   "license": "MIT",
   "bin": {
-    "create-aokit": "./src/main.ts"
+    "create-aokit": "./dist/main.js"
   },
   "files": [
-    "src"
+    "dist"
   ],
   "type": "module",
   "publishConfig": {
