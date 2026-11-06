@@ -1,0 +1,39 @@
+- name: bug
+  color: d73a4a
+  description: Something does not work as documented
+- name: enhancement
+  color: a2eeef
+  description: A new feature or an improvement
+- name: documentation
+  color: 0075ca
+  description: Docs, ADRs or guides
+- name: dependencies
+  color: 0366d6
+  description: Dependency updates
+- name: security
+  color: b60205
+  description: A security fix or hardening
+- name: breaking-change
+  color: e11d21
+  description: Changes the CLI, the Module contract or generated output incompatibly
+- name: good first issue
+  color: 7057ff
+  description: A small, well-scoped change for a first contribution
+- name: help wanted
+  color: "008672"
+  description: Extra attention or outside help is welcome
+- name: needs-triage
+  color: fbca04
+  description: Freshly captured, not yet reviewed or spec'd
+- name: needs-info
+  color: d876e3
+  description: Waiting on more information before it can proceed
+- name: ready-for-agent
+  color: 0e8a16
+  description: Spec'd and unblocked, eligible for automatic agent dispatch
+- name: ready-for-human
+  color: 1d76db
+  description: Needs a human decision or judgment call before continuing
+- name: wontfix
+  color: ffffff
+  description: Reviewed and deliberately not going to be worked on
