@@ -1,5 +1,6 @@
 import { posix } from "node:path";
 import type { Catalog, ModuleManifest } from "@aokit/module";
+import { createEditSession } from "../edit/session.ts";
 import { codeOpHandlers } from "../ops/code/index.ts";
 import { applyDeps, applyEnv, dataOpHandlers, wireWorkspaces } from "../ops/data/index.ts";
 import { coreOwner, writeAgentFiles } from "./agent-files.ts";
@@ -193,6 +194,11 @@ class ProvenanceLog {
   }
 }
 
+function textOf(vfs: Vfs, path: string): string | undefined {
+  const content = vfs.read(path);
+  return typeof content === "string" ? content : undefined;
+}
+
 function opOverrideKeys(manifest: ModuleManifest): ReadonlySet<string> {
   return new Set(manifest.override.flatMap((entry) => ("op" in entry ? [entry.op] : [])));
 }
@@ -301,6 +307,15 @@ export async function buildPlan(options: BuildPlanOptions): Promise<BuiltPlan> {
     layout,
   );
 
+  const moduleOrder = modules.map(({ manifest }) => manifest.name);
+  let currentOp = "";
+  const sharedEdits = createEditSession({
+    moduleOrder,
+    read: (path) => textOf(work, path),
+    write: (path, content) => work.write(path, content),
+    onEdit: (path, module) => log.add(path, module, { kind: "op", op: currentOp }),
+  });
+
   for (const module of modules) {
     const { manifest } = module;
     const answers = defaultAnswers(manifest, options.answers[manifest.name] ?? {});
@@ -347,6 +362,7 @@ export async function buildPlan(options: BuildPlanOptions): Promise<BuiltPlan> {
         log.add(path, incoming.module, entry);
       }
       producers.set(path, incoming);
+      sharedEdits.flush(path);
       work.write(path, content, {
         ownership,
         ...(file.mode === undefined ? {} : { mode: file.mode }),
@@ -361,12 +377,34 @@ export async function buildPlan(options: BuildPlanOptions): Promise<BuiltPlan> {
         const overrider = overriders.get(key);
         return overrider !== undefined && overrider !== manifest.name;
       });
+      const isCodeOp = "extensionPoint" in op;
+      currentOp = op.op;
+      if (overridden) {
+        sharedEdits.flush();
+      }
       const scratch = overridden ? work.clone() : work;
+      const edits = overridden
+        ? createEditSession({
+            moduleOrder: [manifest.name],
+            read: (path) => textOf(scratch, path),
+            write: (path, content) => scratch.write(path, content),
+            onEdit: (path, editor) => log.addOverridden(path, editor, { kind: "op", op: op.op }),
+          })
+        : sharedEdits;
+      const flushBeforeAccess = (path: string): void => {
+        if (!isCodeOp) {
+          edits.flush(normalizeProjectPath(path));
+        }
+      };
       const opVfs: OpVfs = {
         has: (path) => scratch.has(path),
         paths: () => scratch.paths(),
-        read: (path) => scratch.read(path),
+        read: (path) => {
+          flushBeforeAccess(path);
+          return scratch.read(path);
+        },
         write: (path, content, writeOptions) => {
+          flushBeforeAccess(path);
           scratch.write(path, content, writeOptions);
           const normalized = normalizeProjectPath(path);
           if (overridden) {
@@ -387,6 +425,7 @@ export async function buildPlan(options: BuildPlanOptions): Promise<BuiltPlan> {
           vfs: opVfs,
           overriding: keys.some((key) => ownOverrides.has(key)),
           extensionPoints,
+          edits,
           modulesOf: (path) => [
             ...new Set(
               log
@@ -399,8 +438,12 @@ export async function buildPlan(options: BuildPlanOptions): Promise<BuiltPlan> {
         },
         op,
       );
+      if (overridden) {
+        edits.flush();
+      }
     }
   }
+  sharedEdits.flush();
 
   const deps: Record<string, { entry: Omit<PlanDependency, "owners">; owners: Set<string> }> = {};
   const dataVfs = (module: string, op: string): OpVfs => ({
