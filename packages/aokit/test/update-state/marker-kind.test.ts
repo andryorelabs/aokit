@@ -33,6 +33,28 @@ describe("undo marker kind", () => {
     expect(await readFile(markerFile(), "utf8")).toBe(legacy);
   });
 
+  test("update abort restores a marker written without a kind by the previous CLI", async () => {
+    const stash = await mkdtemp(join(tmpdir(), "aokit-marker-stash-"));
+    await mkdir(join(project, ".aokit"));
+    await writeFile(
+      markerFile(),
+      `${JSON.stringify({ ...baseMarker, stashDirectory: stash, previousLockfile: '{"old":true}\n' })}\n`,
+    );
+    const result = await abortLifecycle(project, "update");
+    expect(result).not.toBeNull();
+    expect(await readUpdateMarker(project, undefined)).toBeNull();
+    expect(await readFile(join(project, "aokit.lock.json"), "utf8")).toBe('{"old":true}\n');
+    await rm(stash, { recursive: true, force: true });
+  });
+
+  test("a layout-migrate abort leaves a saved update Plan in place", async () => {
+    await mkdir(join(project, ".aokit"));
+    const plan = join(project, ".aokit", "plan.json");
+    await writeFile(plan, "{}\n");
+    expect(await abortLifecycle(project, "layout-migrate")).toBeNull();
+    expect(await readFile(plan, "utf8")).toBe("{}\n");
+  });
+
   test("the kind is recorded and read back", async () => {
     await writeUpdateMarker(project, undefined, { ...baseMarker, kind: "layout-migrate" });
     expect((await readUpdateMarker(project, undefined))?.kind).toBe("layout-migrate");

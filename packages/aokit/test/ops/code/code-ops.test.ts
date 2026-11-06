@@ -149,7 +149,7 @@ test("an unknown Extension point is an error", async () => {
     contributor("auth", [{ op: "addToArray", ...point("web.nope"), element: "x" }]),
   ]);
   expect(error.code).toBe("ops.extension-point-missing");
-  expect(error.message).toContain("web.nope");
+  expect(error.message).toContain("web.nope@");
   expect(error.message).toContain("fix: select the Module that declares");
 });
 

@@ -162,11 +162,11 @@ export async function abortUpdate(
   if (marker !== null && marker.kind !== kind) {
     throw new AokitError(
       "INVALID_INPUT",
-      `The undo marker in progress belongs to a ${marker.kind === "update" ? "update" : "layout migration"}, not to this command.`,
+      `The undo marker in progress belongs to ${marker.kind === "update" ? "an update" : "a layout migration"}, not to this command.`,
       `Run "${abortCommands[marker.kind]}" to undo it.`,
     );
   }
-  const hadPlan = await removePlan(projectDirectory, git);
+  const hadPlan = kind === "update" && (await removePlan(projectDirectory, git));
   const stateDirectory = await updateStateDirectory(projectDirectory, git);
   if (marker === null) {
     await removeEmptyDirectory(stateDirectory);

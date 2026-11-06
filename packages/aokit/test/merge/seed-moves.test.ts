@@ -41,6 +41,13 @@ describe("mergeProject seedMoves", () => {
     expect(result.plan.changes).toEqual([]);
   });
 
+  test("on a Conflict the old seed stays tracked and the destination is not recorded", async () => {
+    const result = await run({ "src/seed.ts": "my edit\n", "app/seed.ts": "already here\n" });
+    expect(result.vfs.has("src/seed.ts")).toBe(true);
+    expect(result.lockfile.files["src/seed.ts"]).toBeDefined();
+    expect(result.lockfile.files["app/seed.ts"]).toBeUndefined();
+  });
+
   test("a seed the user deleted is not moved", async () => {
     const result = await run({});
     expect(result.plan.changes.map((change) => change.type)).not.toContain("rename");

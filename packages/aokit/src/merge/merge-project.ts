@@ -430,6 +430,9 @@ function recordSeedMove(
   if (existing !== undefined) {
     state.conflicts.push({ path: to, next: content, base: "", user: textOf(existing) });
     state.vfs.write(to, existing, mode);
+    state.vfs.write(from, content, { ownership: "seed" });
+    if (previous !== undefined) state.files[from] = previous;
+    return;
   } else {
     state.vfs.write(to, content, { ownership: "seed", ...mode });
     state.changes.push({
