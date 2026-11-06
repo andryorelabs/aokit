@@ -1,0 +1,9 @@
+# Squash commits that only pay down lint debt (AO-2855..AO-2859). Hide them from blame:
+#   git config blame.ignoreRevsFile .git-blame-ignore-revs
+# GitHub reads this file by itself. CONTRIBUTING.md and README.md should link it.
+
+# chore: package exports fix and strict lint debt (AO-2853 wave 1, #59)
+1c6f5e42903b3106aa6aa2fabc9d62c4767679de
+
+# chore: strict lint debt, docs gates and community files (AO-2853 wave 2, #60)
+efd6ab9d7e39dec8320853b944e16dc8321b1054

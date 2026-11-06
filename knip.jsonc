@@ -1,0 +1,39 @@
+{
+  "$schema": "https://unpkg.com/knip@6/schema.json",
+  // The built Registry and the Module file payloads ship as data, not as imported source.
+  "ignore": ["registry/**", "registry-src/*/files/**"],
+  "workspaces": {
+    ".": {
+      "entry": [
+        // Test files are run by `bun test`, nothing imports them.
+        "tools/**/*.test.ts",
+        // The Claude hook entry point is run by path from .claude/settings.json.
+        "tools/claude/main.ts",
+        // Module manifests are loaded dynamically by the Registry build.
+        "registry-src/*/module.ts",
+        // Module migrations are loaded dynamically by `aokit update`.
+        "registry-src/*/migrations/*.ts",
+      ],
+      "ignoreDependencies": [
+        // Run by path (node_modules/typescript7/bin/tsc), never imported.
+        "typescript7",
+        // Run through its CLI by the package lint step, never imported.
+        "publint",
+        // Run through its CLI by the package lint step, never imported.
+        "@arethetypeswrong/cli",
+      ],
+    },
+    "packages/aokit": {
+      "entry": [
+        // Test files are run by `bun test`, nothing imports them.
+        "test/**/*.test.ts",
+        // The CLI entry point is named by the build scripts, not imported.
+        "src/cli/main.ts",
+      ],
+    },
+    "packages/module": {
+      // Test files are run by `bun test`, nothing imports them.
+      "entry": ["test/**/*.test.ts"],
+    },
+  },
+}

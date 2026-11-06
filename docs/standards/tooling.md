@@ -26,6 +26,20 @@ ESLint stays as a companion, not as the main linter. It runs with the full proje
 
 A repository without `.astro` files may instead use a type-program shim for such a rule and drop the companion. The companion reads the same `ignorePatterns` as Oxlint where possible, and its rule list shrinks as Oxlint gains support. The companion's `lint` runs in the same hook and CI step as Oxlint.
 
+## The aokit repo's own lint config
+
+The aokit repo configures Oxlint in `oxlint.config.ts` (`defineConfig`) and Knip in `knip.jsonc`. Generated Projects keep `.oxlintrc.json` and `knip.json` from the `oxc` and `knip` Modules. The two are independent ([ADR 0022](../adr/0022-repo-lint-config-is-typescript.md)).
+
+- **Rule groups:** every group in `oxlint.config.ts` is an exported constant with a TSDoc rationale: promise safety, no unsafe `any`, exhaustiveness, API hygiene, suppression and test integrity. A test imports the config and asserts these policies.
+- **Strict rule set:** the type-aware `typescript/*` rules above, plus `unicorn/no-abusive-eslint-disable`, are errors. The categories `correctness`, `suspicious` and `perf` are errors, and `options` turns on type-aware linting and warnings-as-errors.
+- **Unused directives are errors:** `options.reportUnusedDisableDirectives` is `"error"`, so a suppression that stops being needed is deleted.
+- **Every disable directive needs a reason:** `local/require-description` requires ` -- <reason>` on each `oxlint-disable` or `eslint-disable` comment. A file-level blanket disable also suppresses this rule, which is why `unicorn/no-abusive-eslint-disable` is on.
+- **Test files only:** `jest/no-focused-tests`, `jest/no-disabled-tests` and `local/no-unawaited-async-matcher` (an `expect(...).rejects` or `.resolves` must be awaited or returned). Oxlint's jest rules do not see `test.only` when `test` is imported from `bun:test`, so that import form is not covered by the jest rules.
+- **Local rules** live in `tools/oxlint/local-plugin.ts` with a test per rule, and load as the `local` jsPlugin.
+- **Knip:** `knip.jsonc` carries a reason on every entry, ignore and `ignoreDependencies` line.
+- **TypeScript:** `tsconfig.base.json` sets `erasableSyntaxOnly`, so enums, namespaces and parameter properties are rejected.
+- **Blame:** `.git-blame-ignore-revs` lists the lint-debt squash commits; enable it with `git config blame.ignoreRevsFile .git-blame-ignore-revs`.
+
 ## Git hooks and commit messages
 
 - `husky` runs the hooks, `lint-staged` runs Oxfmt and Oxlint on staged files, `commitlint` checks the commit message.
@@ -45,5 +59,6 @@ A repository without `.astro` files may instead use a type-program shim for such
 Source comments are TSDoc blocks on declarations. Inline explanatory comments are not allowed: if code needs one, it needs a better name or a smaller function.
 
 - Enforced by a project-local rule, `local/no-non-doc-comments`, loaded as a jsPlugin.
+- Tool directives that disable a rule need a reason: `// oxlint-disable-next-line <rule> -- <reason>`.
 - The rule **exempts tool directive comments** (for example `oxlint-disable`, `eslint-disable`, `@ts-expect-error`, `istanbul ignore`), because tools read them.
 - The rule is an optional Module setting: a Project can omit it.
