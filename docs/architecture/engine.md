@@ -37,11 +37,11 @@ sequenceDiagram
 
 The Plan is a list of changes:
 
-| Type | Meaning |
-| --- | --- |
-| `create` | New file. |
-| `update` | Existing file with new content. |
-| `delete` | File removed. |
+| Type     | Meaning                              |
+| -------- | ------------------------------------ |
+| `create` | New file.                            |
+| `update` | Existing file with new content.      |
+| `delete` | File removed.                        |
 | `rename` | File moved; content may also change. |
 
 Each change records its provenance: the Module (and the file entry or Op) that caused it. When two Modules touch the same file, both appear in its provenance. Conflicting changes, such as two Modules creating the same path without an [`override`](module-contract.md#override), fail the Plan by default and name both Modules.
@@ -63,14 +63,14 @@ Further rules:
 
 ## Non-TS patchers
 
-| File | Patcher | Rule |
-| --- | --- | --- |
-| `tsconfig.json`, other JSONC | `jsonc-parser` | Edits preserve comments and formatting. |
-| `package.json` | structural JSON merge plus sorted keys | Dependencies merged by name; keys emitted sorted. |
-| YAML (workflows, compose) | `yaml` Document API | Edits keep comments and anchors. |
-| Tailwind v4 CSS | postcss | Edits `@import`, `@plugin`, `@theme` at-rules and adds nested `@layer`, `@utility`, `@keyframes` and `@custom-variant` rules without duplicating existing content. |
-| `.env*` | line-based | Adds missing keys; **never overwrites** an existing key. |
-| Markdown (`AGENTS.md`, docs) | marker regions | A Module owns the lines between its own start and end markers and nothing else. See [Marker regions](#marker-regions). |
+| File                         | Patcher                                | Rule                                                                                                                                                               |
+| ---------------------------- | -------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `tsconfig.json`, other JSONC | `jsonc-parser`                         | Edits preserve comments and formatting.                                                                                                                            |
+| `package.json`               | structural JSON merge plus sorted keys | Dependencies merged by name; keys emitted sorted.                                                                                                                  |
+| YAML (workflows, compose)    | `yaml` Document API                    | Edits keep comments and anchors.                                                                                                                                   |
+| Tailwind v4 CSS              | postcss                                | Edits `@import`, `@plugin`, `@theme` at-rules and adds nested `@layer`, `@utility`, `@keyframes` and `@custom-variant` rules without duplicating existing content. |
+| `.env*`                      | line-based                             | Adds missing keys; **never overwrites** an existing key.                                                                                                           |
+| Markdown (`AGENTS.md`, docs) | marker regions                         | A Module owns the lines between its own start and end markers and nothing else. See [Marker regions](#marker-regions).                                             |
 
 ### Marker regions
 
@@ -94,17 +94,17 @@ Variants are separate files selected by `files` entries, not branches inside one
 
 An Op is a declarative edit applied at an Extension point or to a file. There are no inverse Ops: `remove` re-renders the Project without the Module and merges.
 
-| Op | Effect |
-| --- | --- |
-| `addImport` | Adds a named, default or namespace import to a TS file, deduplicated. |
-| `addToArray` | Appends or inserts an element in an array at an Extension point (`kind: array`). |
-| `registerAt` | Registers an expression or call at an Extension point (provider, middleware, tool entry). |
-| `mergeJson` | Deep-merges a value into a JSON/JSONC file; arrays union by value, keys sorted. |
-| `mergeYaml` | Same for YAML through the Document API. |
-| `addEnv` | Adds env keys without overwriting (also used by `env`). |
-| `addCssAtRule` | Adds a Tailwind v4 at-rule through postcss. |
+| Op                | Effect                                                                                                                                                                     |
+| ----------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `addImport`       | Adds a named, default or namespace import to a TS file, deduplicated.                                                                                                      |
+| `addToArray`      | Appends or inserts an element in an array at an Extension point (`kind: array`).                                                                                           |
+| `registerAt`      | Registers an expression or call at an Extension point (provider, middleware, tool entry).                                                                                  |
+| `mergeJson`       | Deep-merges a value into a JSON/JSONC file; arrays union by value, keys sorted.                                                                                            |
+| `mergeYaml`       | Same for YAML through the Document API.                                                                                                                                    |
+| `addEnv`          | Adds env keys without overwriting (also used by `env`).                                                                                                                    |
+| `addCssAtRule`    | Adds a Tailwind v4 at-rule through postcss.                                                                                                                                |
 | `addCssVariables` | Sets CSS custom properties in the `theme`, `light` or `dark` group of a stylesheet through postcss; an existing variable is kept unless the Module declares an `override`. |
-| `appendRegion` | Writes a marker region in a Markdown file. |
+| `appendRegion`    | Writes a marker region in a Markdown file.                                                                                                                                 |
 
 Every Op names its `target` (see [Layouts](layouts.md#targets)) and, for code Ops, the Extension point and the version range it supports.
 

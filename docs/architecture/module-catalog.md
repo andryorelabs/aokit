@@ -21,29 +21,29 @@ Only current best practice is listed:
 
 ## Application bases
 
-| Module | Provides (Cardinality) | Requires | Declares / contributes to |
-| --- | --- | --- | --- |
-| `next` | `web` (1), `web:ssr` (1) | none | declares `web.providers`, `web.layout`, `web.routes` on target `web` |
-| `vite-react` | `web` (1), `web:spa` (1) | none | declares `web.providers`, `web.routes` on target `web` |
-| `astro` | `web` (1), `web:ssr` (1) | none | declares `web.integrations`, `web.layout` on target `web` |
-| `hono` | `server` (1), `api:http` (1) | none | declares `server.middleware`, `server.routes` on target `server` |
-| `tsdown` | `bundler` (1) | `server` | contributes to `server.build` (declared by `hono`) |
+| Module       | Provides (Cardinality)       | Requires | Declares / contributes to                                            |
+| ------------ | ---------------------------- | -------- | -------------------------------------------------------------------- |
+| `next`       | `web` (1), `web:ssr` (1)     | none     | declares `web.providers`, `web.layout`, `web.routes` on target `web` |
+| `vite-react` | `web` (1), `web:spa` (1)     | none     | declares `web.providers`, `web.routes` on target `web`               |
+| `astro`      | `web` (1), `web:ssr` (1)     | none     | declares `web.integrations`, `web.layout` on target `web`            |
+| `hono`       | `server` (1), `api:http` (1) | none     | declares `server.middleware`, `server.routes` on target `server`     |
+| `tsdown`     | `bundler` (1)                | `server` | contributes to `server.build` (declared by `hono`)                   |
 
 `next`, `vite-react` and `astro` all provide `web` with Cardinality one, so a Project has one front-end framework. `hono` is bundled with `tsdown` for publishable servers and libraries; they are two Modules because `tsdown` can serve other bases.
 
 ## Data, auth, environment and jobs
 
-| Module | Provides (Cardinality) | Requires | Declares / contributes to |
-| --- | --- | --- | --- |
-| `prisma` | `orm` (1), `db:postgres` (1) | none | declares `db.schema` on target `db`; contributes to `env.schema` (`DATABASE_URL`) |
-| `better-auth` | `auth` (1) | `orm`, `ext:web.providers@^1`, `ext:server.routes@^1` | contributes to `web.providers`, `server.routes`, `env.schema`, `db.schema` |
-| `t3-env` | `env:validation` (1) | none | declares `env.schema` on target `config`; other Modules add keys there |
-| `dotenvx` | `env:encryption` (1) | none | contributes to `env.schema` file handling (`.env` files, scripts) |
-| `trigger.dev` | `jobs` (1) | `ext:env.schema@^1` | contributes to `env.schema`; declares `jobs.tasks` on target `server` |
-| `posthog` | `analytics` (1) | `web`, `ext:web.providers@^1`, `ext:env.schema@^1` | contributes to `web.providers`, `env.schema` |
-| `next-intl` | `i18n` (1) | `ext:web.providers@^1`, `ext:web.routes@^1` | contributes to `web.providers`, `web.routes` |
-| `resend` | `email:send` (1) | `ext:env.schema@^1` | contributes to `env.schema` |
-| `react-email` | `email:templates` (1) | `email:send` | declares `email.templates` on target `server` |
+| Module        | Provides (Cardinality)       | Requires                                              | Declares / contributes to                                                         |
+| ------------- | ---------------------------- | ----------------------------------------------------- | --------------------------------------------------------------------------------- |
+| `prisma`      | `orm` (1), `db:postgres` (1) | none                                                  | declares `db.schema` on target `db`; contributes to `env.schema` (`DATABASE_URL`) |
+| `better-auth` | `auth` (1)                   | `orm`, `ext:web.providers@^1`, `ext:server.routes@^1` | contributes to `web.providers`, `server.routes`, `env.schema`, `db.schema`        |
+| `t3-env`      | `env:validation` (1)         | none                                                  | declares `env.schema` on target `config`; other Modules add keys there            |
+| `dotenvx`     | `env:encryption` (1)         | none                                                  | contributes to `env.schema` file handling (`.env` files, scripts)                 |
+| `trigger.dev` | `jobs` (1)                   | `ext:env.schema@^1`                                   | contributes to `env.schema`; declares `jobs.tasks` on target `server`             |
+| `posthog`     | `analytics` (1)              | `web`, `ext:web.providers@^1`, `ext:env.schema@^1`    | contributes to `web.providers`, `env.schema`                                      |
+| `next-intl`   | `i18n` (1)                   | `ext:web.providers@^1`, `ext:web.routes@^1`           | contributes to `web.providers`, `web.routes`                                      |
+| `resend`      | `email:send` (1)             | `ext:env.schema@^1`                                   | contributes to `env.schema`                                                       |
+| `react-email` | `email:templates` (1)        | `email:send`                                          | declares `email.templates` on target `server`                                     |
 
 Notes:
 
@@ -54,41 +54,41 @@ Notes:
 
 ## UI and styling
 
-| Module | Provides (Cardinality) | Requires | Declares / contributes to |
-| --- | --- | --- | --- |
-| `base-ui` | `ui:primitives` (1) | `web` | declares `ui.primitives` on target `shared-ui` |
-| `shadcn` | `ui:components` (1) | `ui:primitives`, `styling`, `ext:web.layout@^1` | contributes to `web.layout`; consumes the shadcn [Registry](../../GLOSSARY.md) adapter |
-| `tailwind4` | `styling` (1) | `web` | declares `styles.theme` on target `web`; uses the `addCssAtRule` Op |
+| Module      | Provides (Cardinality) | Requires                                        | Declares / contributes to                                                              |
+| ----------- | ---------------------- | ----------------------------------------------- | -------------------------------------------------------------------------------------- |
+| `base-ui`   | `ui:primitives` (1)    | `web`                                           | declares `ui.primitives` on target `shared-ui`                                         |
+| `shadcn`    | `ui:components` (1)    | `ui:primitives`, `styling`, `ext:web.layout@^1` | contributes to `web.layout`; consumes the shadcn [Registry](../../GLOSSARY.md) adapter |
+| `tailwind4` | `styling` (1)          | `web`                                           | declares `styles.theme` on target `web`; uses the `addCssAtRule` Op                    |
 
 `shadcn` is always on Base UI. `base-ui` and `shadcn` are separate Modules so the primitives can be used without the component set. The shadcn lint rules ship with `shadcn`'s tooling files, not as a separate Module.
 
 ## Deployment
 
-| Module | Provides (Cardinality) | Requires | Declares / contributes to |
-| --- | --- | --- | --- |
-| `docker` | `deploy` (many), `container` (1) | none | contributes to `env.schema` for build args |
-| `coolify` | `deploy` (many) | `container` | contributes to `root` files only |
+| Module    | Provides (Cardinality)           | Requires    | Declares / contributes to                  |
+| --------- | -------------------------------- | ----------- | ------------------------------------------ |
+| `docker`  | `deploy` (many), `container` (1) | none        | contributes to `env.schema` for build args |
+| `coolify` | `deploy` (many)                  | `container` | contributes to `root` files only           |
 
 `deploy` has Cardinality many, so `docker` and `coolify` coexist ([Capabilities](capabilities.md#cardinality)). `coolify` deploys a container image, so it requires `container` and does not care which base produced the image.
 
 ## Quality and tooling
 
-| Module | Provides (Cardinality) | Requires | Declares / contributes to |
-| --- | --- | --- | --- |
-| `oxc` | `lint` (1), `format` (1) | none | declares `lint.ignores`; see the worked example in [Module contract](module-contract.md#worked-example-oxc) |
-| `eslint` companion | `lint:companion` (many) | `lint` | contributes to `lint.ignores`; runs the full project rule set on `**/*.astro` and the type-aware rules Oxlint cannot run |
-| `commitlint` | `commit-lint` (1) | `git-hooks` | contributes to `git.hooks` |
-| `husky` | `git-hooks` (1) | none | declares `git.hooks` on target `root` |
-| `lint-staged` | `staged-checks` (1) | `git-hooks`, `lint`, `format` | contributes to `git.hooks` |
-| `knip` | `unused-code` (1) | none | contributes to `lint.ignores` |
-| `playwright` | `e2e` (1) | `web` | declares `test.e2e` on target `web` |
-| `axe` | `a11y-test` (1) | `e2e` | contributes to `test.e2e` |
-| `vitest` | `test-runner` (1) | none | declares `test.unit` |
-| `bun-test` | `test-runner` (1) | none | declares `test.unit` |
-| `turborepo` | `task-runner` (1) | none | declares `workspace.tasks` on target `root` |
-| `catalog` | `dep-catalog` (1) | `task-runner` | contributes to `workspace.tasks`; writes the Bun catalog |
-| `renovate` | `dep-updates` (1) | none | contributes to `root` files only |
-| `adr-docs` | `docs:adr` (1) | none | declares `docs.index`; writes `GLOSSARY.md` and its own skills, and contributes a Region to `AGENTS.md` (the header and `CLAUDE.md` belong to aokit) |
+| Module             | Provides (Cardinality)   | Requires                      | Declares / contributes to                                                                                                                            |
+| ------------------ | ------------------------ | ----------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `oxc`              | `lint` (1), `format` (1) | none                          | declares `lint.ignores`; see the worked example in [Module contract](module-contract.md#worked-example-oxc)                                          |
+| `eslint` companion | `lint:companion` (many)  | `lint`                        | contributes to `lint.ignores`; runs the full project rule set on `**/*.astro` and the type-aware rules Oxlint cannot run                             |
+| `commitlint`       | `commit-lint` (1)        | `git-hooks`                   | contributes to `git.hooks`                                                                                                                           |
+| `husky`            | `git-hooks` (1)          | none                          | declares `git.hooks` on target `root`                                                                                                                |
+| `lint-staged`      | `staged-checks` (1)      | `git-hooks`, `lint`, `format` | contributes to `git.hooks`                                                                                                                           |
+| `knip`             | `unused-code` (1)        | none                          | contributes to `lint.ignores`                                                                                                                        |
+| `playwright`       | `e2e` (1)                | `web`                         | declares `test.e2e` on target `web`                                                                                                                  |
+| `axe`              | `a11y-test` (1)          | `e2e`                         | contributes to `test.e2e`                                                                                                                            |
+| `vitest`           | `test-runner` (1)        | none                          | declares `test.unit`                                                                                                                                 |
+| `bun-test`         | `test-runner` (1)        | none                          | declares `test.unit`                                                                                                                                 |
+| `turborepo`        | `task-runner` (1)        | none                          | declares `workspace.tasks` on target `root`                                                                                                          |
+| `catalog`          | `dep-catalog` (1)        | `task-runner`                 | contributes to `workspace.tasks`; writes the Bun catalog                                                                                             |
+| `renovate`         | `dep-updates` (1)        | none                          | contributes to `root` files only                                                                                                                     |
+| `adr-docs`         | `docs:adr` (1)           | none                          | declares `docs.index`; writes `GLOSSARY.md` and its own skills, and contributes a Region to `AGENTS.md` (the header and `CLAUDE.md` belong to aokit) |
 
 Notes:
 

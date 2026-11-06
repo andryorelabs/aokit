@@ -4,13 +4,13 @@ Findings only. Decisions are in [`docs/architecture/`](../architecture/overview.
 
 ## Command frameworks and completion (raw-notes.md L26)
 
-| Tool | Finding | Link |
-| --- | --- | --- |
-| trpc-cli | Turns a schema into flags, prompts, `--json` and completion; has agent detection (v0). Better-T-Stack uses it | <https://github.com/mmkal/trpc-cli> |
-| citty | No shell completion, weak help output | <https://github.com/unjs/citty> |
-| gunshi | Release candidate at research time | <https://github.com/kazupon/gunshi> |
-| stricli | Listed as evaluated; no finding recorded (unverified) | <https://github.com/bloomberg/stricli> |
-| `@bomb.sh/tab` | Shell completion library | <https://github.com/bombshell-dev/tab> |
+| Tool           | Finding                                                                                                       | Link                                   |
+| -------------- | ------------------------------------------------------------------------------------------------------------- | -------------------------------------- |
+| trpc-cli       | Turns a schema into flags, prompts, `--json` and completion; has agent detection (v0). Better-T-Stack uses it | <https://github.com/mmkal/trpc-cli>    |
+| citty          | No shell completion, weak help output                                                                         | <https://github.com/unjs/citty>        |
+| gunshi         | Release candidate at research time                                                                            | <https://github.com/kazupon/gunshi>    |
+| stricli        | Listed as evaluated; no finding recorded (unverified)                                                         | <https://github.com/bloomberg/stricli> |
+| `@bomb.sh/tab` | Shell completion library                                                                                      | <https://github.com/bombshell-dev/tab> |
 
 ## `@clack/prompts` v1 caveats (raw-notes.md L27)
 

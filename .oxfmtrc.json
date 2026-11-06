@@ -8,8 +8,6 @@
     "coverage/**",
     "dist/**",
     "schema/**",
-    "docs/**",
-    "GLOSSARY.md",
     "registry/modules/**/migrations/**",
     "LICENSE"
   ]

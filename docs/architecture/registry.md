@@ -6,12 +6,12 @@ The Registry client (see the [overview](overview.md)) is the only component that
 
 ## Registry kinds
 
-| Kind | Source | Format | Trust by default |
-| --- | --- | --- | --- |
-| `official` | The first-party Registry, shipped with the CLI as the default. Until the distribution phase it lives in this repository as `registry/`, compiled from `registry-src/` and read as a local directory; its public host will be `https://registry-aokit.andryore.dev`. The Lockfile records its source as `"bundled"`. | aokit index | Trusted. |
-| `local` | A directory on disk (`./registry`, `file:` path). The Lockfile records a path relative to the Project directory, resolved from there. | aokit index | Trusted: it is code the user already has. |
-| `remote` | An `https://` URL that serves the layout below, or a `github:owner/repo#ref` source. | aokit index | Not trusted. See [Trust model](#trust-model). |
-| `shadcn` | A shadcn registry (URL or namespace) read through the [adapter](#shadcn-adapter). | shadcn registry items | Not trusted, and declarative-only. |
+| Kind       | Source                                                                                                                                                                                                                                                                                                              | Format                | Trust by default                              |
+| ---------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | --------------------- | --------------------------------------------- |
+| `official` | The first-party Registry, shipped with the CLI as the default. Until the distribution phase it lives in this repository as `registry/`, compiled from `registry-src/` and read as a local directory; its public host will be `https://registry-aokit.andryore.dev`. The Lockfile records its source as `"bundled"`. | aokit index           | Trusted.                                      |
+| `local`    | A directory on disk (`./registry`, `file:` path). The Lockfile records a path relative to the Project directory, resolved from there.                                                                                                                                                                               | aokit index           | Trusted: it is code the user already has.     |
+| `remote`   | An `https://` URL that serves the layout below, or a `github:owner/repo#ref` source.                                                                                                                                                                                                                                | aokit index           | Not trusted. See [Trust model](#trust-model). |
+| `shadcn`   | A shadcn registry (URL or namespace) read through the [adapter](#shadcn-adapter).                                                                                                                                                                                                                                   | shadcn registry items | Not trusted, and declarative-only.            |
 
 ### Resolution order
 
@@ -69,14 +69,14 @@ The migration scripts and `renames.json` are listed in the version's `files` has
 }
 ```
 
-| Field | Meaning |
-| --- | --- |
-| `$schema`, `schemaVersion` | Versioned like Module manifests: a CLI reads indexes up to the `schemaVersion` it supports; a newer one fails with an error that tells the user to update the CLI, and unknown fields are an error ([Schema versioning](module-contract.md#schema-versioning)). |
-| `name` | The Registry name, used in `@name/module` addresses and recorded in the Lockfile `registry` field. |
-| `release` | Identifier of the current Release, which is also the stem of `catalog/<release>.json`. |
-| `releases` | Every Release the Registry has published, each with the path and integrity of its own Catalog file, so a Project can be rendered at the Release its Lockfile records. |
-| `minCliVersion` | Lowest CLI version able to use this release. The Lockfile records it per release ([Lockfile](lockfile.md)); a CLI below it stops with an update instruction before any fetch. |
-| `modules.<name>.latest` | The version `add` selects when the user gives none. |
+| Field                         | Meaning                                                                                                                                                                                                                                                                                                |
+| ----------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `$schema`, `schemaVersion`    | Versioned like Module manifests: a CLI reads indexes up to the `schemaVersion` it supports; a newer one fails with an error that tells the user to update the CLI, and unknown fields are an error ([Schema versioning](module-contract.md#schema-versioning)).                                        |
+| `name`                        | The Registry name, used in `@name/module` addresses and recorded in the Lockfile `registry` field.                                                                                                                                                                                                     |
+| `release`                     | Identifier of the current Release, which is also the stem of `catalog/<release>.json`.                                                                                                                                                                                                                 |
+| `releases`                    | Every Release the Registry has published, each with the path and integrity of its own Catalog file, so a Project can be rendered at the Release its Lockfile records.                                                                                                                                  |
+| `minCliVersion`               | Lowest CLI version able to use this release. The Lockfile records it per release ([Lockfile](lockfile.md)); a CLI below it stops with an update instruction before any fetch.                                                                                                                          |
+| `modules.<name>.latest`       | The version `add` selects when the user gives none.                                                                                                                                                                                                                                                    |
 | `modules.<name>.versions.<v>` | A version entry: `manifest` path, `integrity` over the manifest and the Module's files ([Trust model](#integrity)), and a summary (`provides`) so the Resolver can list candidates without downloading every manifest. The manifest is authoritative; a mismatch with the summary is a Registry error. |
 
 The index lists first-party Capability names too, so errors can suggest providers ([Capabilities](capabilities.md#error-messages)).
@@ -121,20 +121,20 @@ Adapted items are declarative only. They map to `files`, `deps`, `env`, and a sm
 
 shadcn's twelve item types map to aokit concepts as follows.
 
-| shadcn item type | aokit concept | Notes |
-| --- | --- | --- |
-| `registry:ui` | Module `files` to Target `shared-ui` | A primitive component. |
-| `registry:component` | Module `files` to Target `shared-ui` | A composed component. |
-| `registry:block` | Module `files` to Targets `web` and `shared-ui` | Multi-file; each file keeps its own `target` field when given, else `web`. |
-| `registry:page` | Module `files` to Target `web` | A route file; its `target` path is a path inside the Target, not a repo path. |
-| `registry:hook` | Module `files` to Target `shared-ui` (`hooks/`) | Alias `@hooks/`. |
-| `registry:lib` | Module `files` to Target `shared-ui` (`lib/`) | Alias `@lib/`. |
-| `registry:file` | Module `files` to the Target implied by its `target` field, else `root` | An arbitrary file; `target` paths starting `~/` resolve against `root`. |
-| `registry:theme` | Ops on the Tailwind entry CSS (`css`, `cssVars`) | Contributes to the CSS Extension point of the `tailwind4` Module. |
-| `registry:style` | Ops on the Tailwind entry CSS plus `deps` | A style bundle: `css`, `cssVars`, `registryDependencies`, `dependencies`. |
-| `registry:base` | Module `deps` plus `base.config` handling | The base a style set builds on; see [`base.config`](#css-cssvars-envvars-font-baseconfig). |
-| `registry:font` | `font` handling | See below. |
-| `registry:item` | A generic Module built only from the generic fields | Used when no more specific type applies. |
+| shadcn item type     | aokit concept                                                           | Notes                                                                                      |
+| -------------------- | ----------------------------------------------------------------------- | ------------------------------------------------------------------------------------------ |
+| `registry:ui`        | Module `files` to Target `shared-ui`                                    | A primitive component.                                                                     |
+| `registry:component` | Module `files` to Target `shared-ui`                                    | A composed component.                                                                      |
+| `registry:block`     | Module `files` to Targets `web` and `shared-ui`                         | Multi-file; each file keeps its own `target` field when given, else `web`.                 |
+| `registry:page`      | Module `files` to Target `web`                                          | A route file; its `target` path is a path inside the Target, not a repo path.              |
+| `registry:hook`      | Module `files` to Target `shared-ui` (`hooks/`)                         | Alias `@hooks/`.                                                                           |
+| `registry:lib`       | Module `files` to Target `shared-ui` (`lib/`)                           | Alias `@lib/`.                                                                             |
+| `registry:file`      | Module `files` to the Target implied by its `target` field, else `root` | An arbitrary file; `target` paths starting `~/` resolve against `root`.                    |
+| `registry:theme`     | Ops on the Tailwind entry CSS (`css`, `cssVars`)                        | Contributes to the CSS Extension point of the `tailwind4` Module.                          |
+| `registry:style`     | Ops on the Tailwind entry CSS plus `deps`                               | A style bundle: `css`, `cssVars`, `registryDependencies`, `dependencies`.                  |
+| `registry:base`      | Module `deps` plus `base.config` handling                               | The base a style set builds on; see [`base.config`](#css-cssvars-envvars-font-baseconfig). |
+| `registry:font`      | `font` handling                                                         | See below.                                                                                 |
+| `registry:item`      | A generic Module built only from the generic fields                     | Used when no more specific type applies.                                                   |
 
 Unknown types fail with an error naming the item, they are never skipped silently.
 
@@ -142,39 +142,39 @@ Unknown types fail with an error naming the item, they are never skipped silentl
 
 Item file paths and content may use alias placeholders. The adapter resolves them to Targets, never to paths, so the [Layout](layouts.md) decides the final location ([Layouts](layouts.md#targets)).
 
-| Placeholder | Resolves to |
-| --- | --- |
+| Placeholder    | Resolves to                               |
+| -------------- | ----------------------------------------- |
 | `@components/` | Target `shared-ui`, subpath `components/` |
-| `@ui/` | Target `shared-ui`, subpath `ui/` |
-| `@lib/` | Target `shared-ui`, subpath `lib/` |
-| `@hooks/` | Target `shared-ui`, subpath `hooks/` |
-| `~/` | Target `root` |
+| `@ui/`         | Target `shared-ui`, subpath `ui/`         |
+| `@lib/`        | Target `shared-ui`, subpath `lib/`        |
+| `@hooks/`      | Target `shared-ui`, subpath `hooks/`      |
+| `~/`           | Target `root`                             |
 
 Placeholders in file content (imports) are rewritten to the import specifier that matches the resolved location in the chosen Layout (a relative or workspace-package specifier). A placeholder the adapter does not know is an error that names the item and the placeholder.
 
 ### `css`, `cssVars`, `envVars`, `font`, `base.config`
 
-| shadcn field | aokit mapping |
-| --- | --- |
-| `css` | A postcss-based Op on the Tailwind v4 entry file (`@import`, `@plugin`, `@theme`, rules), applied at the Tailwind Module's CSS Extension point ([Engine](engine.md#ops-catalog)). |
-| `cssVars` | CSS variable Ops under the `theme`, `light` and `dark` groups of the same Extension point; existing variables are never overwritten without an `override`. |
-| `envVars` | The Module `env` list, written by the line-based `.env` patcher that never overwrites existing keys. |
-| `font` | `deps` for the font package plus a CSS Op for the `--font-*` variable and the Extension point for loading it. |
-| `base.config` | Merged into the config of the UI Module the base targets (for shadcn, its component config) by `mergeJson`; it records the base choice in the Lockfile `answers`. |
-| `dependencies`, `devDependencies` | `deps`; ranges as given, since a shadcn registry has no Catalog. |
-| `files[].content` | Embedded file content, treated like `files[].from`; hashed per file. |
+| shadcn field                      | aokit mapping                                                                                                                                                                     |
+| --------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `css`                             | A postcss-based Op on the Tailwind v4 entry file (`@import`, `@plugin`, `@theme`, rules), applied at the Tailwind Module's CSS Extension point ([Engine](engine.md#ops-catalog)). |
+| `cssVars`                         | CSS variable Ops under the `theme`, `light` and `dark` groups of the same Extension point; existing variables are never overwritten without an `override`.                        |
+| `envVars`                         | The Module `env` list, written by the line-based `.env` patcher that never overwrites existing keys.                                                                              |
+| `font`                            | `deps` for the font package plus a CSS Op for the `--font-*` variable and the Extension point for loading it.                                                                     |
+| `base.config`                     | Merged into the config of the UI Module the base targets (for shadcn, its component config) by `mergeJson`; it records the base choice in the Lockfile `answers`.                 |
+| `dependencies`, `devDependencies` | `deps`; ranges as given, since a shadcn registry has no Catalog.                                                                                                                  |
+| `files[].content`                 | Embedded file content, treated like `files[].from`; hashed per file.                                                                                                              |
 
 ### `registryDependencies`: five address forms
 
 `registryDependencies` becomes `requires` between adapted Modules. Each entry is parsed into one of five address forms:
 
-| Form | Example | Resolved by |
-| --- | --- | --- |
-| Bare name | `button` | The same shadcn registry as the item that lists it. |
-| Namespaced | `@acme/button` | The Registry configured under the namespace `@acme` (see [Namespaced registries](#namespaced-registries-and-auth)). |
-| `owner/repo/item#ref` | `acme/ui/button#v2` | A GitHub repository through the `github:` transport; `#ref` is resolved to a full commit SHA (sha40) and pinned ([Pinning](#commit-sha-pinning)). |
-| URL | `https://example.com/r/button.json` | The URL of one registry-item JSON file; treated as a `remote` source. |
-| Local path | `./registry/button.json` | A file on disk; treated as `local`. |
+| Form                  | Example                             | Resolved by                                                                                                                                       |
+| --------------------- | ----------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Bare name             | `button`                            | The same shadcn registry as the item that lists it.                                                                                               |
+| Namespaced            | `@acme/button`                      | The Registry configured under the namespace `@acme` (see [Namespaced registries](#namespaced-registries-and-auth)).                               |
+| `owner/repo/item#ref` | `acme/ui/button#v2`                 | A GitHub repository through the `github:` transport; `#ref` is resolved to a full commit SHA (sha40) and pinned ([Pinning](#commit-sha-pinning)). |
+| URL                   | `https://example.com/r/button.json` | The URL of one registry-item JSON file; treated as a `remote` source.                                                                             |
+| Local path            | `./registry/button.json`            | A file on disk; treated as `local`.                                                                                                               |
 
 Each dependency is fetched and integrity-checked like any other Module. A dependency from a different Registry than its dependent is allowed but each Registry is checked against the [trust model](#trust-model) separately.
 
@@ -238,12 +238,12 @@ A remote source given as a mutable reference is resolved once and pinned:
 
 **Blocked by default for untrusted Registries:**
 
-| Capability | Default | How to enable |
-| --- | --- | --- |
-| Declarative content (`files`, `deps`, `env`, declarative `ops`) | Allowed after the trust prompt or allowlist | Prompt or allowlist |
-| Arbitrary transform code | Blocked | Trust the Registry (prompt or allowlist); shadcn-adapted items can never carry one |
-| Remote scripts (lifecycle or install hooks fetched from the Registry) | Blocked | Explicit per-script consent each time, not covered by the allowlist |
-| Running anything during the deterministic phase that installs or fetches | Never allowed | Not configurable ([Engine](engine.md#determinism)) |
+| Capability                                                               | Default                                     | How to enable                                                                      |
+| ------------------------------------------------------------------------ | ------------------------------------------- | ---------------------------------------------------------------------------------- |
+| Declarative content (`files`, `deps`, `env`, declarative `ops`)          | Allowed after the trust prompt or allowlist | Prompt or allowlist                                                                |
+| Arbitrary transform code                                                 | Blocked                                     | Trust the Registry (prompt or allowlist); shadcn-adapted items can never carry one |
+| Remote scripts (lifecycle or install hooks fetched from the Registry)    | Blocked                                     | Explicit per-script consent each time, not covered by the allowlist                |
+| Running anything during the deterministic phase that installs or fetches | Never allowed                               | Not configurable ([Engine](engine.md#determinism))                                 |
 
 Arbitrary transforms are honored only from a trusted Registry and are integrity-checked with the Module, as the [Module contract](module-contract.md#trusted-registries-and-arbitrary-code) states. No remote script runs without consent; "consent" means a prompt that shows the script, or the matching `--allow-script <module>` flag.
 

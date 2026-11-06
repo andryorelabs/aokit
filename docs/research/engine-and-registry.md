@@ -4,14 +4,14 @@ Findings only. Decisions are in [`docs/architecture/`](../architecture/overview.
 
 ## Code-editing libraries (TypeScript sources)
 
-| Tool | Finding | Source |
-| --- | --- | --- |
-| magicast | Suited to config-shaped objects (e.g. a default-exported config), not general source edits | raw-notes.md L33; <https://github.com/unjs/magicast> |
-| ts-morph | Full TypeScript AST manipulation; the notes flag a TypeScript 7 API gap, so it would have to be optional and lazily loaded. Better-T-Stack already uses it | raw-notes.md L26, L33; <https://github.com/dsherret/ts-morph> |
-| ast-grep | Structural locate; usable to find edit positions | raw-notes.md L33; <https://ast-grep.github.io> |
-| recast | Listed among the evaluated tools; no specific finding recorded in the notes (unverified beyond the name) | raw-notes.md L33 (via spec S1 list); <https://github.com/benjamn/recast> |
-| oxc-parser + magic-string | Locate a node with oxc-parser (or ast-grep), then splice text with magic-string; supports batch edits expressed in original offsets and overlap detection | raw-notes.md L33; <https://oxc.rs>, <https://github.com/Rich-Harris/magic-string> |
-| knitwork | Generating small code snippets | raw-notes.md L33; <https://github.com/unjs/knitwork> |
+| Tool                      | Finding                                                                                                                                                    | Source                                                                            |
+| ------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------- |
+| magicast                  | Suited to config-shaped objects (e.g. a default-exported config), not general source edits                                                                 | raw-notes.md L33; <https://github.com/unjs/magicast>                              |
+| ts-morph                  | Full TypeScript AST manipulation; the notes flag a TypeScript 7 API gap, so it would have to be optional and lazily loaded. Better-T-Stack already uses it | raw-notes.md L26, L33; <https://github.com/dsherret/ts-morph>                     |
+| ast-grep                  | Structural locate; usable to find edit positions                                                                                                           | raw-notes.md L33; <https://ast-grep.github.io>                                    |
+| recast                    | Listed among the evaluated tools; no specific finding recorded in the notes (unverified beyond the name)                                                   | raw-notes.md L33 (via spec S1 list); <https://github.com/benjamn/recast>          |
+| oxc-parser + magic-string | Locate a node with oxc-parser (or ast-grep), then splice text with magic-string; supports batch edits expressed in original offsets and overlap detection  | raw-notes.md L33; <https://oxc.rs>, <https://github.com/Rich-Harris/magic-string> |
+| knitwork                  | Generating small code snippets                                                                                                                             | raw-notes.md L33; <https://github.com/unjs/knitwork>                              |
 
 Additional notes: stable anchors at extension points are recommended by the research as the thing to locate (raw-notes.md L33). Native oxc in a Bun-compiled binary is a risk, see [cli-and-tooling.md](cli-and-tooling.md#bun---compile).
 
