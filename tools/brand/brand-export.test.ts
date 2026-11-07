@@ -4,7 +4,7 @@ import { readFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 
-import { exportBrand } from "./brand-export.ts";
+import { exportMarks } from "./brand-export.ts";
 import {
   assertSpec,
   encodeIco,
@@ -29,7 +29,9 @@ function requireSpec(spec: RasterSpec | undefined): RasterSpec {
   return spec;
 }
 
-const markSpecs = rasterSpecs.filter((spec) => spec.path.endsWith(".png"));
+const markSpecs = rasterSpecs.filter(
+  (spec) => spec.path.startsWith("logo/png/") && spec.path.endsWith(".png"),
+);
 const icoSpec = requireSpec(rasterSpecs.find((spec) => spec.path.endsWith(".ico")));
 
 describe("committed rasters", () => {
@@ -99,19 +101,20 @@ describe("encodeIco", () => {
   });
 });
 
-describe("exportBrand", () => {
+describe("exportMarks", () => {
   test("regenerates the committed bytes into a scratch root", async () => {
     const root = await mkdtemp(join(tmpdir(), "brand-export-"));
     try {
       await cp(new URL("logo/mark.svg", BRAND_DIR), join(root, "docs/brand/logo/mark.svg"), {
         recursive: true,
       });
-      await exportBrand({ root });
+      await exportMarks({ root });
+      const markPaths = [...markSpecs, icoSpec];
       const written = await Promise.all(
-        rasterSpecs.map((spec) => readFile(join(root, "docs/brand", spec.path))),
+        markPaths.map((spec) => readFile(join(root, "docs/brand", spec.path))),
       );
       written.forEach((bytes, index) => {
-        const spec = requireSpec(rasterSpecs[index]);
+        const spec = requireSpec(markPaths[index]);
         expect(bytes.equals(Buffer.from(readBrand(spec.path)))).toBe(true);
       });
     } finally {
@@ -121,7 +124,7 @@ describe("exportBrand", () => {
 
   test("fails when mark.svg is missing", async () => {
     const root = await mkdtemp(join(tmpdir(), "brand-export-"));
-    const outcome = await exportBrand({ root }).then(
+    const outcome = await exportMarks({ root }).then(
       () => "resolved",
       () => "rejected",
     );
