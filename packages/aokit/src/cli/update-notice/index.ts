@@ -116,7 +116,7 @@ export function maybeNotifyUpdate(input: UpdateNoticeInput): void {
     isOlderThanADay(cache.notifiedAt, now)
   ) {
     input.stderr(
-      `Update available: aokit ${input.version} -> ${cache.latest}. Run \`bunx aokit@latest\` or see https://github.com/AndryOre/aokit/releases\n`,
+      `Update available: aokit ${input.version} -> ${cache.latest}. Run \`bunx aokit@latest\` or see https://github.com/andryorelabs/aokit/releases\n`,
     );
     writeCache(path, { ...cache, notifiedAt: now });
   }
