@@ -16,6 +16,8 @@ Every `aokit` command, its flags, the exit codes and the environment variables t
 | `--help`, `-h`    | Help with examples.                                             |
 | `--version`, `-V` | Print the CLI version only.                                     |
 
+At the root, `aokit`, `aokit --help` and `aokit -h` print a short banner before the help when stdout is a terminal (plain text when color is off). The banner never appears when output is piped, with `--json`, for a subcommand's help or for `--version`.
+
 `--dry-run` and `--diff` are only accepted by commands that write. Commands that write to an existing Project also take `--directory <path>` (default `.`), and, where a dependency install can follow, `--install` (on by default; `--no-install` skips it).
 
 ## Commands

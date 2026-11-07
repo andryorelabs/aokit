@@ -1,4 +1,4 @@
-const releasesUrl = "https://github.com/AndryOre/aokit/releases";
+const releasesUrl = "https://github.com/andryorelabs/aokit/releases";
 
 /**
  * The fix shown whenever a Registry needs a newer CLI version: run that version through `bunx`
