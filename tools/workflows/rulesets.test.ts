@@ -83,14 +83,19 @@ function findAggregateJobProblems(text: string): string[] {
     if (id !== aggregateId && !needs.has(id))
       problems.push(`ci.yml:${aggregateId} does not need ${id}`);
   }
-  const scripts = asArray(aggregate["steps"])
-    .filter(isRecord)
-    .map((step) => step["run"])
-    .filter((run): run is string => typeof run === "string")
-    .join("\n");
-  for (const result of ["failure", "cancelled"]) {
-    if (!scripts.includes(result))
-      problems.push(`ci.yml:${aggregateId} does not fail on ${result}`);
+  const readResults = new Set(
+    asArray(aggregate["steps"])
+      .filter(isRecord)
+      .filter((step) => typeof step["run"] === "string")
+      .flatMap((step) => (isRecord(step["env"]) ? Object.values(step["env"]) : []))
+      .filter((value): value is string => typeof value === "string")
+      .flatMap((value) =>
+        [...value.matchAll(/needs\.([\w-]+)\.result\b/g)].map((match) => match[1]),
+      ),
+  );
+  for (const id of needs) {
+    if (typeof id === "string" && !readResults.has(id))
+      problems.push(`ci.yml:${aggregateId} does not check ${id}`);
   }
   return problems;
 }
@@ -102,7 +107,7 @@ function readJson(path: string): unknown {
 const ciText = readFileSync(join(workflowsDirectory, "ci.yml"), "utf8");
 
 describe("S9: CI passed aggregate job", () => {
-  test("ci.yml has a CI passed job that needs every CI job and fails on failure or cancelled", () => {
+  test("ci.yml has a CI passed job that needs every CI job and checks each result", () => {
     expect(findAggregateJobProblems(ciText)).toEqual([]);
   });
 
@@ -119,9 +124,9 @@ describe("S9: CI passed aggregate job", () => {
     expect(findAggregateJobProblems(text)).toEqual(["ci.yml:ci-passed must run with if: always()"]);
   });
 
-  test("an aggregate job that ignores cancelled fails", () => {
-    const text = ciText.replace(` | *" cancelled "*`, "");
-    expect(findAggregateJobProblems(text)).toEqual(["ci.yml:ci-passed does not fail on cancelled"]);
+  test("an aggregate job that does not read a needed job result fails", () => {
+    const text = ciText.replace("          TEST_RESULT: ${{ needs.test.result }}\n", "");
+    expect(findAggregateJobProblems(text)).toEqual(["ci.yml:ci-passed does not check test"]);
   });
 });
 
