@@ -1,0 +1,30 @@
+:root {
+  --bg: #0f0f0f;
+  --surface: #1a1a1a;
+  --border: #2c2c2c;
+  --text: #f2f2ee;
+  --muted: #a3a3a0;
+  --mark: #f2f2ee;
+  --font-sans: "Geist";
+  --font-mono: "Geist Mono";
+}
+
+.light {
+  --bg: #f5f5f3;
+  --surface: #ffffff;
+  --border: #d9d9d6;
+  --text: #151515;
+  --muted: #595957;
+  --mark: #151515;
+}
+
+@media (prefers-color-scheme: light) {
+  :root:not(.dark) {
+    --bg: #f5f5f3;
+    --surface: #ffffff;
+    --border: #d9d9d6;
+    --text: #151515;
+    --muted: #595957;
+    --mark: #151515;
+  }
+}

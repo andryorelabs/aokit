@@ -199,10 +199,12 @@ Examples:
 
 Unknown commands suggest the closest match. `-h` never starts a prompt.
 
+The root help (`aokit`, `aokit --help`, `aokit -h`) prints a two-line banner before the help, only when stdout is a TTY. It uses the same color decision as the rest of the output: the ANSI banner when color is enabled, the plain banner otherwise. It is never printed when stdout is not a TTY, with `--json`, for subcommand help or for `--version`. The banner constants in `packages/aokit/src/cli/banner.ts` are tested byte for byte against `docs/brand/terminal/banner.ansi` and `banner.txt`.
+
 ## Version and update notices
 
 - `aokit --version` prints only the CLI version (`0.1.0`), so it is script-safe. `--version --json` returns `data: { version, lockfileVersion, registryProtocolVersion }`: the CLI version, the Lockfile `lockfileVersion` and the Registry protocol version the CLI supports.
-- When a Registry requires a newer CLI version (`MIN_CLI_VERSION`, exit `5`), the fix names `bunx aokit@<minCliVersion>` and the binary download page (`https://github.com/AndryOre/aokit/releases`).
+- When a Registry requires a newer CLI version (`MIN_CLI_VERSION`, exit `5`), the fix names `bunx aokit@<minCliVersion>` and the binary download page (`https://github.com/andryorelabs/aokit/releases`).
 - **Update notices** tell the user a newer CLI exists. They are printed to stderr at most once per 24 hours, only on a TTY, never with `--json` or `--quiet`, in CI or in non-interactive mode, and never delay the command: the check reads a cached value and refreshes it in the background. `AOKIT_NO_UPDATE_NOTIFIER=1` disables them.
 - The notice is about the CLI. Project updates are `aokit check` (exit `2`) and `aokit update`.
 - There is no telemetry; see [Distribution](distribution.md#telemetry). The update check contacts only the npm registry for the `aokit` package and sends nothing beyond that request.

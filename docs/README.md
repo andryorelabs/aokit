@@ -65,9 +65,15 @@ Every Markdown file under `docs/` has a row here; a test fails when one is missi
 
 ## Brand
 
-| Doc                                | Title     |
-| ---------------------------------- | --------- |
-| [brand/README.md](brand/README.md) | Brand kit |
+| Doc                                          | Title              |
+| -------------------------------------------- | ------------------ |
+| [brand/README.md](brand/README.md)           | Brand kit          |
+| [brand/apply-spec.md](brand/apply-spec.md)   | Applying the brand |
+| [brand/brief.md](brand/brief.md)             | Brand brief        |
+| [brand/competitors.md](brand/competitors.md) | Competitors        |
+| [brand/copy.md](brand/copy.md)               | Copy               |
+| [brand/naming.md](brand/naming.md)           | Naming             |
+| [brand/voice.md](brand/voice.md)             | Voice              |
 
 ## Standards
 

@@ -28,6 +28,15 @@ Standalone HTML sheets. They load Geist from Google Fonts, so open them with net
 - [logo.html](explorations/logo.html): five marks with lockups, a size ladder down to 16 px, block-character banners and cover mocks.
 - [copy.html](explorations/copy.html): brand line options, the README top, claims with their sources, metadata strings and voice rules.
 
+## Documents
+
+- [brief.md](brief.md): position, audience, what aokit is and is not, what to avoid.
+- [naming.md](naming.md): why the name stays `aokit` and how it is written.
+- [competitors.md](competitors.md): the neighbouring tools and where aokit differs, with sources.
+- [voice.md](voice.md): voice rules, glossary terms and the avoid list.
+- [copy.md](copy.md): the approved strings and the "Claims checked" table.
+- [apply-spec.md](apply-spec.md): which asset feeds which surface, and what stays manual.
+
 ## Planned files
 
-These paths are created by the brand kit spec and linked here as they land: `brief.md`, `naming.md`, `competitors.md`, `voice.md`, `copy.md`, `apply-spec.md`, `tokens.css`, `logo/`, `brandbook/`, `og/` and `terminal/`.
+These paths are created by the brand kit spec and linked here as they land: `tokens.css`, `logo/`, `brandbook/`, `og/` and `terminal/`.

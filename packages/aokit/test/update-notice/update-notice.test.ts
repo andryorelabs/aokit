@@ -173,6 +173,6 @@ describe("minCliVersionFix", () => {
   test("names bunx and the releases page", () => {
     const fix = minCliVersionFix("99.0.0");
     expect(fix).toContain("bunx aokit@99.0.0");
-    expect(fix).toContain("https://github.com/AndryOre/aokit/releases");
+    expect(fix).toContain("https://github.com/andryorelabs/aokit/releases");
   });
 });
