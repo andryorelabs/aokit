@@ -13,6 +13,15 @@ export const MARK_SIZES = [16, 32, 48, 128, 512] as const;
 export const ICO_SIZES = [16, 32, 48] as const;
 
 const MARK_MAX_BYTES = 64 * 1024;
+const COVER_MAX_BYTES = 1024 * 1024;
+
+/** The cover and social preview PNGs, one per grade, with their pixel sizes. */
+export const COVER_SPECS = [
+  { name: "cover", width: 1280, height: 440 },
+  { name: "cover-light", width: 1280, height: 440 },
+  { name: "social-preview", width: 1280, height: 640 },
+  { name: "social-preview-light", width: 1280, height: 640 },
+] as const;
 
 /** Every raster the export writes, with its dimensions and byte budget. */
 export const rasterSpecs: readonly RasterSpec[] = [
@@ -28,6 +37,12 @@ export const rasterSpecs: readonly RasterSpec[] = [
     height: Math.max(...ICO_SIZES),
     maxBytes: MARK_MAX_BYTES,
   },
+  ...COVER_SPECS.map((cover) => ({
+    path: `og/${cover.name}.png`,
+    width: cover.width,
+    height: cover.height,
+    maxBytes: COVER_MAX_BYTES,
+  })),
 ];
 
 const PNG_SIGNATURE = [0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a];
