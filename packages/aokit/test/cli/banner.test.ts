@@ -68,6 +68,7 @@ test("NO_COLOR prints the plain banner", async () => {
 
 test("no banner when stdout is not a terminal, with --json, subcommand help or --version", async () => {
   expect(await runOnStream([], false)).not.toContain("██");
+  expect(await runOnStream([], false, { FORCE_COLOR: "1" })).not.toContain("██");
   expect(await runOnStream(["--help", "--json"], true)).not.toContain("██");
   expect(await runOnStream(["schema", "--help"], true)).not.toContain("██");
   expect(await runOnStream(["--version"], true)).toBe("9.9.9\n");

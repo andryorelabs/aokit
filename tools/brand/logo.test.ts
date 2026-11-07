@@ -77,7 +77,10 @@ describe("brand SVGs", () => {
 
   test("the lockup word is outlined to paths", () => {
     for (const file of ["lockup-horizontal.svg", "lockup-horizontal-dark.svg"]) {
-      expect(readSvg(file)).toMatch(/<path [^>]*d="M/);
+      const svg = readSvg(file);
+      expect(svg).toMatch(/<path [^>]*d="M/);
+      expect(svg).toContain('<g transform="scale(3.90625)">');
+      expect(svg).toContain('transform="translate(155 97.65)"');
     }
   });
 });
