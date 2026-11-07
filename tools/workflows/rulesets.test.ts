@@ -86,11 +86,21 @@ function findAggregateJobProblems(text: string): string[] {
   const readResults = new Set(
     asArray(aggregate["steps"])
       .filter(isRecord)
-      .filter((step) => typeof step["run"] === "string")
-      .flatMap((step) => (isRecord(step["env"]) ? Object.values(step["env"]) : []))
+      .flatMap((step) => {
+        const rawScript = step["run"];
+        const env = step["env"];
+        if (typeof rawScript !== "string" || !isRecord(env)) return [];
+        const script = rawScript
+          .split("\n")
+          .filter((line) => !/^\s*echo\b/.test(line))
+          .join("\n");
+        return Object.entries(env)
+          .filter(([name]) => new RegExp(`\\$(?:${name}\\b|\\{${name}[}:\\-+=?#%/])`).test(script))
+          .map(([, value]) => value);
+      })
       .filter((value): value is string => typeof value === "string")
       .flatMap((value) =>
-        [...value.matchAll(/needs\.([\w-]+)\.result\b/g)].map((match) => match[1]),
+        [...value.matchAll(/\$\{\{\s*needs\.([\w-]+)\.result\s*\}\}/g)].map((match) => match[1]),
       ),
   );
   for (const id of needs) {
@@ -122,6 +132,11 @@ describe("S9: CI passed aggregate job", () => {
   test("an aggregate job without if: always() fails", () => {
     const text = ciText.replace("    if: always()\n", "");
     expect(findAggregateJobProblems(text)).toEqual(["ci.yml:ci-passed must run with if: always()"]);
+  });
+
+  test("an env result the gate script never uses does not count as checked", () => {
+    const text = ciText.replace('[ "$TEST_RESULT" = success ] || exit 1\n', "");
+    expect(findAggregateJobProblems(text)).toEqual(["ci.yml:ci-passed does not check test"]);
   });
 
   test("an aggregate job that does not read a needed job result fails", () => {

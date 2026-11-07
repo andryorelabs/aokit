@@ -257,6 +257,9 @@ describe("CI runner routing", () => {
     ["success", "cancelled", "success", 1],
     ["failure", "success", "success", 1],
     ["", "success", "success", 1],
+    ["success", "success", "failure", 1],
+    ["success", "success", "cancelled", 1],
+    ["success", "success", "", 1],
   ])(
     'ci-passed treats check="%s" test="%s" commitlint="%s" as exit %d',
     (check, testResult, commitlint, expectedExit) => {
