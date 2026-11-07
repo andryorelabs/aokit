@@ -15,6 +15,7 @@
     "test": "bun test",
     "build:package": "bun tools/build-package/main.ts",
     "build:binary": "bun tools/build-binary/main.ts",
+    "brand:export": "bun tools/brand/brand-export.ts",
     "registry:build": "bun tools/registry-build/main.ts",
     "prepare": "husky",
     "lint:package": "bun tools/build-package/lint-main.ts",
@@ -34,6 +35,7 @@
     "oxlint": "1.90.0",
     "oxlint-tsgolint": "7.0.2005",
     "publint": "^0.3.25",
+    "sharp": "^0.35.5",
     "typescript": "npm:@typescript/typescript6@6.0.2",
     "typescript7": "npm:typescript@7.1.0-beta"
   },
