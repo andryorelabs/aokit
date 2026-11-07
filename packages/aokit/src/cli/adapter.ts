@@ -1,6 +1,7 @@
 import { createInterface } from "node:readline/promises";
 import { createCli, t, type CommanderProgramLike } from "trpc-cli";
 import { z } from "zod";
+import { renderBanner } from "./banner.ts";
 import { isColorEnabled } from "./color.ts";
 import { runCommand, type AnyCommand, type CommandContext } from "./command.ts";
 import { renderFailureReport, renderHuman } from "./human.ts";
@@ -284,6 +285,14 @@ function renderEnvelope(envelope: Envelope, json: boolean, color: boolean, io: C
   io.stderr(`${label}: ${envelope.error.message}\n  fix:  ${envelope.error.fix}\n`);
 }
 
+function shouldPrintBanner(flags: GlobalFlags, io: CliIo): boolean {
+  if (flags.json || !io.isTTY) {
+    return false;
+  }
+  const [only, ...others] = flags.rest;
+  return only === undefined || (others.length === 0 && (only === "--help" || only === "-h"));
+}
+
 function notifyAboutUpdate(
   options: RunCliOptions,
   flags: GlobalFlags,
@@ -354,6 +363,9 @@ export async function runCli(options: RunCliOptions): Promise<ExitCode> {
     envelope = await dispatchThroughParser(parserOptions, context, parserArgv);
   }
 
+  if (shouldPrintBanner(flags, options.io)) {
+    options.io.stdout(renderBanner({ color }));
+  }
   renderEnvelope(envelope, flags.json, color, options.io);
   notifyAboutUpdate(options, flags, context);
   return exitCodeForEnvelope(envelope);
