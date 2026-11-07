@@ -64,4 +64,11 @@ describe("covers and social previews", () => {
       expect(html).not.toMatch(/https?:\/\//);
     },
   );
+
+  test("og/og.css uses only token colours and no remote URLs", () => {
+    const css = new TextDecoder().decode(readBrand("og/og.css"));
+    expect(css).not.toMatch(/#[0-9a-f]{3,8}\b/i);
+    expect(css).not.toMatch(/\b(?:rgba?|hsla?|hwb|lab|lch|oklab|oklch)\(/i);
+    expect(css).not.toMatch(/https?:\/\//);
+  });
 });
