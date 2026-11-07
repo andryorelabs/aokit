@@ -1,0 +1,231 @@
+<!doctype html>
+<html lang="en" class="dark">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>aokit brandbook</title>
+    <link rel="stylesheet" href="fonts.css" />
+    <link rel="stylesheet" href="../tokens.css" />
+    <style>
+      * {
+        box-sizing: border-box;
+      }
+      body {
+        margin: 0;
+        background: var(--bg);
+        color: var(--text);
+        font-family: var(--font-sans), system-ui, sans-serif;
+        line-height: 1.5;
+      }
+      main {
+        max-width: 960px;
+        margin: 0 auto;
+        padding: 48px 16px;
+      }
+      h1 {
+        font-size: 2.25rem;
+        letter-spacing: -0.02em;
+        margin: 0 0 8px;
+      }
+      h2 {
+        font-size: 1.25rem;
+        margin: 48px 0 16px;
+        padding-top: 16px;
+        border-top: 1px solid var(--border);
+      }
+      p {
+        margin: 0 0 12px;
+      }
+      code,
+      .mono {
+        font-family: var(--font-mono), ui-monospace, monospace;
+      }
+      .muted {
+        color: var(--muted);
+      }
+      .grades {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+        gap: 16px;
+      }
+      .panel {
+        background: var(--bg);
+        color: var(--text);
+        border: 1px solid var(--border);
+        border-radius: 8px;
+        padding: 16px;
+      }
+      .grade-dark {
+        --bg: #0f0f0f;
+        --surface: #1a1a1a;
+        --border: #2c2c2c;
+        --text: #f2f2ee;
+        --muted: #a3a3a0;
+        --mark: #f2f2ee;
+      }
+      .swatch {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        margin: 8px 0;
+      }
+      .chip {
+        width: 40px;
+        height: 40px;
+        border-radius: 6px;
+        border: 1px solid var(--border);
+        flex: none;
+      }
+      .logo-row {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 16px;
+      }
+      .logo-card {
+        flex: 1 1 260px;
+        margin: 0;
+        border: 1px solid var(--border);
+        border-radius: 8px;
+        padding: 24px;
+        display: flex;
+        flex-direction: column;
+        gap: 12px;
+      }
+      .logo-card img {
+        max-width: 100%;
+        height: 64px;
+        object-fit: contain;
+        object-position: left;
+      }
+      .on-dark {
+        background: #0f0f0f;
+        color: #f2f2ee;
+      }
+      .on-light {
+        background: #f5f5f3;
+        color: #151515;
+      }
+      .copy {
+        background: var(--surface);
+        border: 1px solid var(--border);
+        border-radius: 6px;
+        padding: 12px 16px;
+        margin: 0 0 12px;
+        white-space: pre-wrap;
+        font-family: var(--font-mono), ui-monospace, monospace;
+        font-size: 0.875rem;
+        overflow-wrap: anywhere;
+      }
+    </style>
+  </head>
+  <body>
+    <main>
+      <h1>aokit brandbook</h1>
+      <p class="muted">Projects from Modules. Updates that merge.</p>
+      <p>A Bun-only CLI that creates TypeScript projects from composable Modules.</p>
+
+      <h2>Tokens</h2>
+      <div class="grades">
+        <section class="panel grade-dark">
+          <p><strong>Dark grade</strong></p>
+          <div class="swatch">
+            <span class="chip" style="background: var(--bg)"></span><code>--bg #0f0f0f</code>
+          </div>
+          <div class="swatch">
+            <span class="chip" style="background: var(--surface)"></span
+            ><code>--surface #1a1a1a</code>
+          </div>
+          <div class="swatch">
+            <span class="chip" style="background: var(--border)"></span
+            ><code>--border #2c2c2c</code>
+          </div>
+          <div class="swatch">
+            <span class="chip" style="background: var(--text)"></span><code>--text #f2f2ee</code>
+          </div>
+          <div class="swatch">
+            <span class="chip" style="background: var(--muted)"></span><code>--muted #a3a3a0</code>
+          </div>
+        </section>
+        <section class="panel light">
+          <p><strong>Light grade</strong></p>
+          <div class="swatch">
+            <span class="chip" style="background: var(--bg)"></span><code>--bg #f5f5f3</code>
+          </div>
+          <div class="swatch">
+            <span class="chip" style="background: var(--surface)"></span
+            ><code>--surface #ffffff</code>
+          </div>
+          <div class="swatch">
+            <span class="chip" style="background: var(--border)"></span
+            ><code>--border #d9d9d6</code>
+          </div>
+          <div class="swatch">
+            <span class="chip" style="background: var(--text)"></span><code>--text #151515</code>
+          </div>
+          <div class="swatch">
+            <span class="chip" style="background: var(--muted)"></span><code>--muted #595957</code>
+          </div>
+        </section>
+      </div>
+
+      <h2>Logo</h2>
+      <div class="logo-row">
+        <figure class="logo-card on-light">
+          <img src="../logo/mark.svg" alt="aokit mark" />
+          <figcaption class="mono">mark.svg</figcaption>
+        </figure>
+        <figure class="logo-card on-dark">
+          <img src="../logo/mark-white.svg" alt="aokit mark, white" />
+          <figcaption class="mono">mark-white.svg</figcaption>
+        </figure>
+        <figure class="logo-card on-light">
+          <img src="../logo/lockup-horizontal.svg" alt="aokit horizontal lockup" />
+          <figcaption class="mono">lockup-horizontal.svg</figcaption>
+        </figure>
+        <figure class="logo-card on-dark">
+          <img src="../logo/lockup-horizontal-dark.svg" alt="aokit horizontal lockup, dark" />
+          <figcaption class="mono">lockup-horizontal-dark.svg</figcaption>
+        </figure>
+      </div>
+
+      <h2>Type</h2>
+      <div class="grades">
+        <section class="panel">
+          <p class="muted mono">Geist</p>
+          <p style="font-size: 2rem; font-weight: 700; margin: 0">Projects from Modules.</p>
+          <p style="font-size: 1.25rem; font-weight: 500">Updates that merge.</p>
+          <p style="font-weight: 400">
+            ABCDEFGHIJKLMNOPQRSTUVWXYZ abcdefghijklmnopqrstuvwxyz 0123456789
+          </p>
+        </section>
+        <section class="panel">
+          <p class="muted mono">Geist Mono</p>
+          <p class="mono" style="font-size: 1.5rem; font-weight: 600; margin: 0">
+            bunx aokit create my-app
+          </p>
+          <p class="mono" style="font-weight: 400">
+            ABCDEFGHIJKLMNOPQRSTUVWXYZ abcdefghijklmnopqrstuvwxyz 0123456789
+          </p>
+        </section>
+      </div>
+
+      <h2>Copy</h2>
+      <p class="muted">Brand line</p>
+      <p class="copy">Projects from Modules. Updates that merge.</p>
+      <p class="muted">Plain line</p>
+      <p class="copy">A Bun-only CLI that creates TypeScript projects from composable Modules.</p>
+      <p class="muted">README intro</p>
+      <p class="copy">
+        aokit is a Bun-only CLI that creates TypeScript projects from composable Modules and keeps
+        them up to date. A Lockfile stores a hash for every generated file, so an update merges with
+        your edits and never overwrites them.
+      </p>
+      <p class="muted">Quickstart</p>
+      <p class="copy">
+        Run `bunx aokit create my-app`, pick your Modules, and start the dev server.
+      </p>
+      <p class="muted">CLI banner line</p>
+      <p class="copy">aokit Projects from Modules. Updates that merge.</p>
+    </main>
+  </body>
+</html>
