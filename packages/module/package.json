@@ -2,7 +2,22 @@
   "name": "@aokit/module",
   "version": "0.0.0",
   "private": true,
+  "description": "The Module manifest contract for aokit Module authors.",
+  "keywords": [
+    "aokit",
+    "manifest",
+    "module",
+    "typescript"
+  ],
+  "homepage": "https://github.com/andryorelabs/aokit#readme",
+  "bugs": "https://github.com/andryorelabs/aokit/issues",
   "license": "MIT",
+  "author": "Andry Orellana",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/andryorelabs/aokit.git",
+    "directory": "packages/module"
+  },
   "type": "module",
   "exports": {
     ".": "./src/index.ts"

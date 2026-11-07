@@ -1,7 +1,23 @@
 {
   "name": "create-aokit",
   "version": "0.1.0",
+  "description": "Scaffold a new aokit project with bun create aokit.",
+  "keywords": [
+    "aokit",
+    "bun",
+    "create",
+    "scaffolding",
+    "typescript"
+  ],
+  "homepage": "https://github.com/andryorelabs/aokit#readme",
+  "bugs": "https://github.com/andryorelabs/aokit/issues",
   "license": "MIT",
+  "author": "Andry Orellana",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/andryorelabs/aokit.git",
+    "directory": "packages/create-aokit"
+  },
   "bin": {
     "create-aokit": "./dist/main.js"
   },
