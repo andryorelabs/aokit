@@ -1,0 +1,589 @@
+<title>aokit Copy</title>
+<meta name="claude:viewport-fit-sides" content="cover" />
+<link
+  rel="stylesheet"
+  href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600&family=Geist+Mono:wght@400;500;600&display=swap"
+/>
+<style>
+  /* Layout: copy round 1. Tagline options first, then the README top as it will render, the claims behind it, the metadata strings and the voice rules. */
+  :root {
+    --pg: #0f0f0f;
+    --card: #161616;
+    --ink: #f2f2ee;
+    --soft: #a3a3a0;
+    --line: #2c2c2c;
+    --sans: "Geist", system-ui, sans-serif;
+    --mono: "Geist Mono", ui-monospace, monospace;
+    color-scheme: dark;
+  }
+  @media (prefers-color-scheme: light) {
+    :root:not([data-theme="dark"]) {
+      --pg: #f5f5f3;
+      --card: #ffffff;
+      --ink: #151515;
+      --soft: #595957;
+      --line: #d9d9d6;
+      color-scheme: light;
+    }
+  }
+  :root[data-theme="light"] {
+    --pg: #f5f5f3;
+    --card: #ffffff;
+    --ink: #151515;
+    --soft: #595957;
+    --line: #d9d9d6;
+    color-scheme: light;
+  }
+  * {
+    box-sizing: border-box;
+  }
+  body {
+    margin: 0;
+    background: var(--pg);
+    color: var(--ink);
+    font: 15px/1.6 var(--sans);
+    padding-block: 40px 72px;
+    padding-left: max(16px, env(safe-area-inset-left, 0px));
+    padding-right: max(16px, env(safe-area-inset-right, 0px));
+  }
+  main {
+    max-width: 1180px;
+    margin: 0 auto;
+    display: flex;
+    flex-direction: column;
+    gap: 28px;
+  }
+  h1 {
+    font-size: 2.1rem;
+    font-weight: 500;
+    letter-spacing: -0.035em;
+    margin: 0 0 8px;
+    text-wrap: balance;
+  }
+  h2 {
+    font-size: 1.3rem;
+    font-weight: 500;
+    letter-spacing: -0.02em;
+    margin: 0;
+  }
+  p {
+    margin: 0;
+    max-width: 68ch;
+  }
+  .lede,
+  .note {
+    color: var(--soft);
+  }
+  .note {
+    font-size: 0.86rem;
+  }
+  .sec {
+    background: var(--card);
+    border: 1px solid var(--line);
+    border-radius: 6px;
+    padding: 22px;
+    display: flex;
+    flex-direction: column;
+    gap: 18px;
+  }
+  @media (max-width: 700px) {
+    .sec {
+      padding: 16px;
+    }
+  }
+  .head {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: baseline;
+    gap: 6px 14px;
+  }
+  .id {
+    font: 600 0.8rem var(--mono);
+    background: var(--ink);
+    color: var(--pg);
+    padding: 2px 8px;
+    border-radius: 3px;
+  }
+  .grid2 {
+    display: grid;
+    gap: 16px;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+  @media (max-width: 760px) {
+    .grid2 {
+      grid-template-columns: minmax(0, 1fr);
+    }
+  }
+
+  .cover {
+    container-type: inline-size;
+    position: relative;
+    width: 100%;
+    aspect-ratio: 1280 / 440;
+    border-radius: 6px;
+    overflow: hidden;
+    background: #0f0f0f;
+    color: #f2f2ee;
+    border: 1px solid #2c2c2c;
+  }
+  .cover::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    background-image:
+      linear-gradient(#2c2c2c 1px, transparent 1px),
+      linear-gradient(90deg, #2c2c2c 1px, transparent 1px);
+    background-size: 6.25cqw 6.25cqw;
+    opacity: 0.6;
+    -webkit-mask-image: radial-gradient(ellipse 70% 90% at 80% 50%, #000, transparent);
+    mask-image: radial-gradient(ellipse 70% 90% at 80% 50%, #000, transparent);
+  }
+  .cover-in {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    align-items: center;
+    gap: 4cqw;
+    padding: 0 6cqw;
+  }
+  .cover svg {
+    width: 14cqw;
+    height: 14cqw;
+    flex: none;
+  }
+  .cover .wm {
+    font: 500 9cqw/1 var(--sans);
+    letter-spacing: -0.035em;
+  }
+  .cover .tag {
+    font-size: 2.7cqw;
+    color: #f2f2ee;
+    margin-top: 1.6cqw;
+    line-height: 1.25;
+    letter-spacing: -0.01em;
+  }
+  .cover .sub {
+    font-size: 2cqw;
+    color: #a3a3a0;
+    margin-top: 0.8cqw;
+  }
+  svg .i {
+    fill: #f2f2ee;
+  }
+  svg .m {
+    fill: #f2f2ee;
+    opacity: 0.42;
+  }
+  .opt-meta {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px 12px;
+    align-items: center;
+    margin-top: 8px;
+    font-size: 0.86rem;
+    color: var(--soft);
+  }
+  .badge {
+    font: 500 0.72rem var(--mono);
+    border: 1px solid var(--line);
+    border-radius: 3px;
+    padding: 1px 6px;
+    color: var(--soft);
+  }
+  .rec {
+    border-color: var(--ink);
+    color: var(--ink);
+  }
+
+  .readme {
+    background: #f5f5f3;
+    color: #151515;
+    border: 1px solid #d9d9d6;
+    border-radius: 6px;
+    padding: 26px;
+    --b: #d9d9d6;
+  }
+  .readme .top {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+  }
+  .readme .top svg {
+    width: 44px;
+    height: 44px;
+  }
+  .readme svg .i {
+    fill: #151515;
+  }
+  .readme svg .m {
+    fill: #151515;
+    opacity: 0.42;
+  }
+  .readme h4 {
+    font: 500 2rem/1.1 var(--sans);
+    letter-spacing: -0.035em;
+    margin: 0;
+  }
+  .readme .bl {
+    font: 500 1.05rem/1.35 var(--sans);
+    margin: 14px 0 0;
+    letter-spacing: -0.01em;
+  }
+  .readme p {
+    color: #151515;
+    font-size: 15px;
+    max-width: 64ch;
+    margin-top: 10px;
+  }
+  .readme h5 {
+    font: 500 1.2rem/1.3 var(--sans);
+    letter-spacing: -0.02em;
+    margin: 22px 0 6px;
+  }
+  .readme code {
+    font: 0.88em var(--mono);
+    background: #fff;
+    border: 1px solid var(--b);
+    border-radius: 3px;
+    padding: 1px 5px;
+  }
+  .readme pre {
+    font: 13px/1.55 var(--mono);
+    background: #fff;
+    border: 1px solid var(--b);
+    border-radius: 5px;
+    padding: 12px 14px;
+    margin: 10px 0 0;
+    overflow-x: auto;
+  }
+  .readme ul {
+    margin: 8px 0 0;
+    padding-left: 20px;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+  }
+  .readme li {
+    max-width: 66ch;
+  }
+  .readme li b {
+    font-weight: 600;
+  }
+  .shield {
+    display: inline-block;
+    font: 500 11px/1 var(--mono);
+    background: #151515;
+    color: #f5f5f3;
+    border-radius: 3px;
+    padding: 4px 7px;
+    margin-right: 6px;
+  }
+  .shields {
+    margin-top: 14px;
+  }
+
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.88rem;
+  }
+  th {
+    text-align: left;
+    font-weight: 500;
+    color: var(--soft);
+    padding: 0 12px 8px 0;
+    font-size: 0.8rem;
+  }
+  td {
+    padding: 8px 12px 8px 0;
+    border-top: 1px solid var(--line);
+    vertical-align: top;
+  }
+  td:first-child {
+    width: 40%;
+  }
+  code,
+  .mono {
+    font-family: var(--mono);
+    font-size: 0.82rem;
+  }
+  .wrapx {
+    overflow-x: auto;
+  }
+  .str {
+    font: 400 0.92rem/1.5 var(--mono);
+    background: var(--pg);
+    border: 1px solid var(--line);
+    border-radius: 5px;
+    padding: 10px 12px;
+    overflow-wrap: anywhere;
+  }
+  .chips {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+  .chip {
+    font: 500 0.8rem var(--mono);
+    border: 1px solid var(--line);
+    border-radius: 999px;
+    padding: 3px 11px;
+  }
+  .lab {
+    font: 500 0.78rem var(--mono);
+    color: var(--soft);
+    margin-bottom: 6px;
+  }
+  .rules {
+    display: grid;
+    gap: 8px 28px;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    font-size: 0.92rem;
+  }
+  @media (max-width: 760px) {
+    .rules {
+      grid-template-columns: minmax(0, 1fr);
+    }
+  }
+  .rules b {
+    font-weight: 600;
+  }
+  .rules span {
+    color: var(--soft);
+  }
+  .pick {
+    color: var(--soft);
+    font-size: 0.92rem;
+  }
+</style>
+
+<main>
+  <header>
+    <h1>aokit copy, round 1</h1>
+    <p class="lede">
+      The words for every surface, written to Taste Skill's copy rules: category first, one hard
+      fact, no metaphors, one brand line. Every claim below points to a command, an ADR or a file in
+      the repo, and the whole draft passed the skill's copy-lint with 0 failures and 0 warnings.
+    </p>
+  </header>
+
+  <section class="sec" aria-label="Tagline">
+    <div class="head">
+      <span class="id">1</span>
+      <h2>Brand line</h2>
+      <span class="note"
+        >One line, used on the cover and the banner. The plain category line sits under it
+        everywhere.</span
+      >
+    </div>
+    <div id="taglines" style="display: contents"></div>
+  </section>
+
+  <section class="sec" aria-label="README top">
+    <div class="head">
+      <span class="id">2</span>
+      <h2>README top</h2>
+      <span class="note"
+        >As it renders on GitHub, light mode. The cover image sits above this in the real
+        file.</span
+      >
+    </div>
+    <div class="readme" id="readme"></div>
+  </section>
+
+  <section class="sec" aria-label="Claims">
+    <div class="head">
+      <span class="id">3</span>
+      <h2>Claims checked</h2>
+      <span class="note">A claim stays public only while the source holds.</span>
+    </div>
+    <div class="wrapx"><table id="claims"></table></div>
+  </section>
+
+  <section class="sec" aria-label="Metadata">
+    <div class="head">
+      <span class="id">4</span>
+      <h2>Metadata strings</h2>
+      <span class="note"
+        >Written once, reused verbatim in package.json, llms.txt and the GitHub About box.</span
+      >
+    </div>
+    <div id="meta" style="display: flex; flex-direction: column; gap: 16px"></div>
+  </section>
+
+  <section class="sec" aria-label="Voice">
+    <div class="head">
+      <span class="id">5</span>
+      <h2>Voice rules</h2>
+      <span class="note">What goes into voice.md.</span>
+    </div>
+    <div class="rules">
+      <div>
+        <b>Plain, category first.</b>
+        <span
+          >Say what it is, then what it does. "A Bun-only CLI that creates TypeScript projects"
+          before any benefit.</span
+        >
+      </div>
+      <div>
+        <b>One brand line.</b>
+        <span>Cover and banner only. Never the h1, always with a fact under it.</span>
+      </div>
+      <div>
+        <b>Glossary terms.</b>
+        <span
+          >Project, Module, Registry and Lockfile are capitalised as in GLOSSARY.md. The tool is
+          always lowercase aokit.</span
+        >
+      </div>
+      <div>
+        <b>Commands in code.</b>
+        <span>Every command and flag in backticks, copied from the CLI reference.</span>
+      </div>
+      <div>
+        <b>Sentence case, active voice.</b>
+        <span>Buttons and headings name a thing or start with a verb. No exclamation marks.</span>
+      </div>
+      <div>
+        <b>Words we do not use.</b>
+        <span
+          >The slop-word list from the skill's copy-tells.md, kept in voice.md, and dashes used as
+          asides.</span
+        >
+      </div>
+      <div>
+        <b>No claim without a source.</b>
+        <span>Each public sentence maps to a command, an ADR or a file.</span>
+      </div>
+      <div>
+        <b>English only.</b> <span>The README, the CLI and the metadata stay in English.</span>
+      </div>
+    </div>
+  </section>
+
+  <p class="pick">
+    Reply with the brand line you want (A to D) and any edits to the README, the About text or the
+    voice rules. I will fold them into docs/brand/copy.md.
+  </p>
+</main>
+
+<script>
+  const MARK = `<svg viewBox="0 0 32 32" role="img" aria-label="aokit"><rect class="m" x="4" y="4" width="11" height="11" rx="3"/><rect class="m" x="17" y="4" width="11" height="11" rx="3"/><rect class="m" x="4" y="17" width="11" height="11" rx="3"/><rect class="i" x="18.5" y="18.5" width="11" height="11" rx="3"/></svg>`;
+  const PLAIN = "A Bun-only CLI that creates TypeScript projects from composable Modules.";
+
+  const TAGS = [
+    {
+      k: "A",
+      t: "Projects from Modules. Updates that merge.",
+      n: "Names both halves of what aokit does in six words. It reads as one idea: compose, then update.",
+      rec: true,
+    },
+    {
+      k: "B",
+      t: "Compose a project. Keep it updatable.",
+      n: "Plainer, but updatable is a stiff word and it never says what happens to your edits.",
+    },
+    {
+      k: "C",
+      t: "Scaffold once. Update for good.",
+      n: "Short and memorable, but for good is vague and scaffold sells it as one-time.",
+    },
+    {
+      k: "D",
+      t: "Build from Modules. Update without losing your edits.",
+      n: "The most exact. Too long for a cover at full size and for the banner line.",
+    },
+  ];
+  document.getElementById("taglines").innerHTML =
+    `<div class="grid2">` +
+    TAGS.map(
+      (o) =>
+        `<div><div class="cover"><div class="cover-in">${MARK}<div><div class="wm">aokit</div><div class="tag">${o.t}</div><div class="sub">${PLAIN}</div></div></div></div><div class="opt-meta"><span class="badge ${o.rec ? "rec" : ""}">${o.k}${o.rec ? " recommended" : ""}</span><span>${o.n}</span></div></div>`,
+    ).join("") +
+    `</div>`;
+
+  document.getElementById("readme").innerHTML = `
+    <div class="top">${MARK}<h4>aokit</h4></div>
+    <div class="bl">Projects from Modules. Updates that merge.</div>
+    <div class="shields"><span class="shield">CI</span><span class="shield">npm</span><span class="shield">license MIT</span></div>
+    <p>aokit is a Bun-only CLI that creates TypeScript projects from composable Modules and keeps them up to date. A Lockfile stores a hash for every generated file, so an update merges with your edits and never overwrites them.</p>
+    <h5>Quickstart</h5>
+    <p>Run <code>bunx aokit create my-app</code>, pick your Modules, and start the dev server.</p>
+<pre>$ bunx aokit create my-app
+$ cd my-app &amp;&amp; bun run dev</pre>
+    <h5>What you get</h5>
+    <ul>
+      <li><b>Pick Modules, get a project.</b> <code>aokit create</code> generates a TypeScript project from Modules such as hono, vite-react, tailwind4, oxc, docker, knip, coolify and catalog.</li>
+      <li><b>Updates keep your edits.</b> The Lockfile records a hash for every file, and <code>aokit update</code> merges changes with what you wrote.</li>
+      <li><b>See changes before they land.</b> <code>aokit diff</code> and <code>aokit check</code> show what would change.</li>
+      <li><b>Bun only.</b> aokit supports Bun and no other package manager.</li>
+      <li><b>Works inside coding agents.</b> <code>aokit mcp init</code> registers the aokit MCP server in Claude, Cursor, VS Code or Codex.</li>
+      <li><b>No telemetry.</b> The CLI, the MCP server and generated projects send no usage data.</li>
+    </ul>`;
+
+  const CLAIMS = [
+    ["Bun-only CLI", "ADR 0006, docs/adr/0006-bun-only.md"],
+    [
+      "Creates TypeScript projects from composable Modules",
+      "docs/reference/cli.md, `create`; GLOSSARY.md, Module",
+    ],
+    [
+      "Modules: hono, vite-react, tailwind4, oxc, docker, knip, coolify, catalog",
+      "registry-src/, the eight first-party Modules",
+    ],
+    [
+      "A Lockfile stores a hash for every generated file",
+      "docs/architecture/lockfile.md; llms.txt",
+    ],
+    [
+      "An update merges with your edits and never overwrites them",
+      "docs/reference/cli.md, `update`; llms.txt",
+    ],
+    [
+      "`aokit diff` and `aokit check` show what would change",
+      "docs/reference/cli.md, `diff` and `check`",
+    ],
+    [
+      "`aokit mcp init` registers the aokit MCP server in Claude, Cursor, VS Code or Codex",
+      "docs/reference/cli.md, `mcp init --client`; packages/aokit/src/mcp/server.ts",
+    ],
+    [
+      "No usage data is sent by the CLI, the MCP server or generated projects",
+      "ADR 0013, docs/adr/0013-no-telemetry-in-v1.md",
+    ],
+  ];
+  document.getElementById("claims").innerHTML =
+    `<tr><th>claim</th><th>source</th></tr>` +
+    CLAIMS.map(
+      ([c, s]) =>
+        `<tr><td>${c.replace(/`([^`]+)`/g, "<code>$1</code>")}</td><td class="mono">${s.replace(/`([^`]+)`/g, "$1")}</td></tr>`,
+    ).join("");
+
+  const ABOUT =
+    "Bun-only CLI that creates TypeScript projects from composable Modules and keeps them updatable: a Lockfile with per-file hashes lets updates merge with your edits.";
+  const TOPICS = ["cli", "bun", "typescript", "scaffolding", "project-generator", "codegen", "mcp"];
+  const PKGS = [
+    [
+      "aokit",
+      "Create and update TypeScript projects from composable Modules. Bun only.",
+      "aokit, bun, cli, scaffolding, generator, typescript, modules, mcp",
+    ],
+    [
+      "create-aokit",
+      "Scaffold a new aokit project with bun create aokit.",
+      "aokit, create, bun, scaffolding, typescript",
+    ],
+    [
+      "@aokit/module",
+      "The Module manifest contract for aokit Module authors.",
+      "aokit, module, manifest, typescript",
+    ],
+  ];
+  document.getElementById("meta").innerHTML = `
+    <div><div class="lab">GitHub About, ${ABOUT.length} of 350 characters</div><div class="str">${ABOUT}</div></div>
+    <div><div class="lab">GitHub topics</div><div class="chips">${TOPICS.map((t) => `<span class="chip">${t}</span>`).join("")}</div></div>
+    <div><div class="lab">homepage</div><div class="str">https://github.com/andryorelabs/aokit#readme</div></div>
+    <div><div class="lab">package.json, description and keywords</div><div class="wrapx"><table><tr><th>package</th><th>description</th><th>keywords</th></tr>${PKGS.map(([n, d, k]) => `<tr><td class="mono">${n}</td><td>${d}</td><td class="mono">${k}</td></tr>`).join("")}</table></div></div>
+    <div><div class="lab">llms.txt, first line under the title</div><div class="str">&gt; aokit is a Bun-only CLI that creates and evolves TypeScript Projects from composable Modules served by Registries. It keeps a Lockfile with per-file hashes so updates merge with your edits instead of overwriting them.</div><p class="note" style="margin-top:6px">Unchanged from the file in the repo today.</p></div>
+    <div><div class="lab">CLI help description and banner line</div><div class="str">aokit  Projects from Modules. Updates that merge.</div></div>`;
+</script>

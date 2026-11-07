@@ -28,6 +28,7 @@ Decisions that are hard to reverse, surprising without context, and the result o
 | 0020 | [Agent files are Region files, merged by Region and owned in part by aokit](0020-agent-files-are-region-files-merged-by-region.md)                     | Accepted | S1 to S13 (phase 6b spec)       |
 | 0021 | [Layout migration pairs files by Provenance and moves seed files as they are](0021-layout-migration-pairs-files-by-provenance.md)                      | Accepted | S1 to S8 (phase 8 spec)         |
 | 0022 | [The aokit repo configures Oxlint and Knip in TypeScript and JSONC, generated Projects keep JSON](0022-repo-lint-config-is-typescript.md)              | Accepted | S16 (cross-repo practices spec) |
+| 0023 | [The brand kit lives in docs/brand and its rasters are generated](0023-brand-kit-in-docs-brand.md)                                                     | Accepted | S1 to S10 (brand kit spec)      |
 
 ## Format
 

@@ -1,0 +1,537 @@
+<title>aokit Palette</title>
+<meta name="claude:viewport-fit-sides" content="cover" />
+<link
+  rel="stylesheet"
+  href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600&family=Geist+Mono:wght@400;600&display=swap"
+/>
+<style>
+  /* Layout: palette round 2. Page chrome is the Graphite ink itself; each option is a scoped palette with a light and a dark cover mock and the banner in a terminal. */
+  :root {
+    --pg: #f3f3f1;
+    --card: #fbfbfa;
+    --ink: #17171a;
+    --soft: #55555b;
+    --line: #d6d6d3;
+    --sans: "Geist", system-ui, sans-serif;
+    --mono: "Geist Mono", ui-monospace, monospace;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --pg: #0f0f10;
+      --card: #17171a;
+      --ink: #ececea;
+      --soft: #a1a1a6;
+      --line: #2a2a2e;
+      color-scheme: dark;
+    }
+  }
+  :root[data-theme="dark"] {
+    --pg: #0f0f10;
+    --card: #17171a;
+    --ink: #ececea;
+    --soft: #a1a1a6;
+    --line: #2a2a2e;
+    color-scheme: dark;
+  }
+  * {
+    box-sizing: border-box;
+  }
+  body {
+    margin: 0;
+    background: var(--pg);
+    color: var(--ink);
+    font: 15px/1.6 var(--sans);
+    padding-block: 40px 72px;
+    padding-left: max(16px, env(safe-area-inset-left, 0px));
+    padding-right: max(16px, env(safe-area-inset-right, 0px));
+  }
+  main {
+    max-width: 1180px;
+    margin: 0 auto;
+    display: flex;
+    flex-direction: column;
+    gap: 28px;
+  }
+  h1 {
+    font-size: 2.1rem;
+    font-weight: 500;
+    letter-spacing: -0.03em;
+    margin: 0 0 8px;
+    text-wrap: balance;
+  }
+  h2 {
+    font-size: 1.3rem;
+    font-weight: 500;
+    letter-spacing: -0.015em;
+    margin: 0;
+  }
+  h3 {
+    font-size: 0.8rem;
+    font-weight: 500;
+    color: var(--soft);
+    margin: 0 0 8px;
+  }
+  p {
+    margin: 0;
+    max-width: 66ch;
+  }
+  .lede {
+    color: var(--soft);
+  }
+  .rules {
+    background: var(--card);
+    border: 1px solid var(--line);
+    border-radius: 6px;
+    padding: 18px 20px;
+    display: grid;
+    gap: 6px 28px;
+    grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+    font-size: 0.9rem;
+  }
+  .rules b {
+    font-weight: 600;
+  }
+  .rules span {
+    color: var(--soft);
+  }
+
+  .option {
+    background: var(--card);
+    border: 1px solid var(--line);
+    border-radius: 6px;
+    padding: 22px;
+    display: grid;
+    gap: 24px;
+    grid-template-columns: minmax(0, 380px) minmax(0, 1fr);
+  }
+  @media (max-width: 900px) {
+    .option {
+      grid-template-columns: minmax(0, 1fr);
+      padding: 16px;
+    }
+  }
+  .opt-head {
+    grid-column: 1 / -1;
+    display: flex;
+    flex-wrap: wrap;
+    align-items: baseline;
+    gap: 6px 14px;
+  }
+  .opt-head .id {
+    font: 600 0.8rem var(--mono);
+    background: var(--ink);
+    color: var(--pg);
+    padding: 2px 8px;
+    border-radius: 3px;
+  }
+  .opt-head .why {
+    color: var(--soft);
+    flex-basis: 100%;
+    max-width: 82ch;
+  }
+  .col {
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+    min-width: 0;
+  }
+
+  .tokens {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.82rem;
+  }
+  .tokens th {
+    text-align: left;
+    font-weight: 500;
+    color: var(--soft);
+    padding: 0 6px 6px 0;
+    font-size: 0.78rem;
+  }
+  .tokens td {
+    padding: 5px 6px 5px 0;
+    border-top: 1px solid var(--line);
+    vertical-align: middle;
+  }
+  .sw {
+    display: inline-block;
+    width: 22px;
+    height: 22px;
+    border-radius: 4px;
+    border: 1px solid var(--line);
+    vertical-align: middle;
+    margin-right: 6px;
+  }
+  .tk {
+    font-family: var(--mono);
+    font-size: 0.76rem;
+  }
+  .ratio {
+    font-family: var(--mono);
+    font-size: 0.76rem;
+    white-space: nowrap;
+  }
+  .ok {
+    color: #1c7a3a;
+  }
+  .bad {
+    color: #b3261e;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) .ok {
+      color: #5fd18a;
+    }
+    :root:not([data-theme="light"]) .bad {
+      color: #ff8a80;
+    }
+  }
+  :root[data-theme="dark"] .ok {
+    color: #5fd18a;
+  }
+  :root[data-theme="dark"] .bad {
+    color: #ff8a80;
+  }
+  .sub {
+    font-family: var(--mono);
+    font-size: 0.7rem;
+    color: var(--soft);
+    display: block;
+  }
+
+  .cover {
+    container-type: inline-size;
+    position: relative;
+    width: 100%;
+    aspect-ratio: 1280 / 440;
+    border-radius: 6px;
+    overflow: hidden;
+    background: var(--c-bg);
+    color: var(--c-text);
+    border: 1px solid var(--c-border);
+  }
+  .cover::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    background-image:
+      linear-gradient(var(--c-border) 1px, transparent 1px),
+      linear-gradient(90deg, var(--c-border) 1px, transparent 1px);
+    background-size: 6.25cqw 6.25cqw;
+    opacity: 0.6;
+    -webkit-mask-image: radial-gradient(ellipse 70% 90% at 80% 50%, #000, transparent);
+    mask-image: radial-gradient(ellipse 70% 90% at 80% 50%, #000, transparent);
+  }
+  .cover-in {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    align-items: center;
+    gap: 4.4cqw;
+    padding: 0 7cqw;
+  }
+  .mark {
+    width: 15cqw;
+    aspect-ratio: 1;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 1.2cqw;
+    flex: none;
+  }
+  .mark i {
+    display: block;
+    background: var(--c-muted);
+    opacity: 0.45;
+    border-radius: 1.8cqw;
+  }
+  .mark i.acc {
+    background: var(--c-mark);
+    opacity: 1;
+    transform: translate(0.9cqw, 0.9cqw);
+  }
+  .words {
+    display: flex;
+    flex-direction: column;
+    gap: 1.4cqw;
+    min-width: 0;
+  }
+  .wm {
+    font: 600 9.6cqw/1 var(--sans);
+    letter-spacing: -0.045em;
+  }
+  .tag {
+    font-size: 2.5cqw;
+    color: var(--c-muted);
+    line-height: 1.3;
+  }
+  .cmd {
+    font: 400 2.2cqw var(--mono);
+    background: var(--c-surface);
+    border: 1px solid var(--c-border);
+    color: var(--c-text);
+    padding: 0.7cqw 1.6cqw;
+    border-radius: 1cqw;
+    width: fit-content;
+  }
+  .cmd em {
+    font-style: normal;
+    color: var(--c-atext);
+  }
+  .cover-label {
+    font: 500 0.75rem var(--mono);
+    color: var(--soft);
+    margin-bottom: 6px;
+  }
+
+  .term {
+    background: #0e0e0f;
+    color: #d9d9d6;
+    border-radius: 6px;
+    padding: 14px 16px;
+    font: 400 12.5px/1.5 var(--mono);
+    overflow-x: auto;
+    white-space: pre;
+    border: 1px solid #28282b;
+  }
+  .term .a {
+    color: var(--ansi);
+  }
+  .term .g {
+    color: #7d7d82;
+  }
+  .term .w {
+    color: #fff;
+    font-weight: 600;
+  }
+  .note {
+    font-size: 0.84rem;
+    color: var(--soft);
+  }
+  .pick {
+    color: var(--soft);
+    font-size: 0.92rem;
+  }
+</style>
+
+<main>
+  <header>
+    <h1>aokit palette, round 2</h1>
+    <p class="lede">
+      Rebuilt with Taste Skill's rules and its own palette dealer, keeping Graphite as the
+      direction. Four options, each with a light and a dark grade, computed contrast, the README
+      cover and the CLI banner.
+    </p>
+  </header>
+
+  <section class="rules" aria-label="Rules applied">
+    <div>
+      <b>One near-black ink, never #000.</b> <span>Text at 7:1 or more, muted at 4.5:1.</span>
+    </div>
+    <div><b>One accent at most.</b> <span>Highlight by contrast, not by colour.</span></div>
+    <div>
+      <b>Never violet.</b> <span>Hues 270 to 330 are out, so the old violet option is gone.</span>
+    </div>
+    <div>
+      <b>No sibling hue.</b>
+      <span
+        >The dealer's blue sits on andryore-web, its lime beside emet moss, so those are
+        flagged.</span
+      >
+    </div>
+  </section>
+
+  <div id="options" style="display: contents"></div>
+
+  <p class="pick">
+    Reply with the option you want (R1 to R4) and any tweak: warmer or cooler ground, dark-first or
+    light-first, an accent or none.
+  </p>
+</main>
+
+<script>
+  const OPTIONS = [
+    {
+      id: "R1",
+      name: "Soot and lime",
+      tag: "The dealer's first pick, as dealt",
+      why: "Exactly what the Taste Skill dealer prints first for a developer tool: near-black ground, pale lime accent. It is the only option with an accent. Lime sits about 10 degrees from emet's moss, so the two repos would read as cousins.",
+      ansi: "#a6e36e",
+      ansiName: "ANSI 92 bright green",
+      dark: {
+        bg: "#0f0f0f",
+        surface: "#1a1a1a",
+        border: "#2c2c2c",
+        text: "#ffffff",
+        muted: "#a3a3a3",
+        accent: "#dafa9c",
+        atext: "#dafa9c",
+        label: "#0f0f0f",
+        mark: "#dafa9c",
+      },
+      light: {
+        bg: "#f5f5f1",
+        surface: "#ffffff",
+        border: "#d9d9d3",
+        text: "#161712",
+        muted: "#5a5c52",
+        accent: "#dafa9c",
+        atext: "#4a6310",
+        label: "#161712",
+        mark: "#5c7a14",
+      },
+    },
+    {
+      id: "R2",
+      name: "Soot, mono",
+      tag: "Dark-first, no accent",
+      why: "The same soot ground with the accent removed: the single module in the mark is simply the ink colour. A warm off-white ink instead of pure white. Reads as a terminal, and nothing can clash with a sibling.",
+      ansi: "#f2f2ee",
+      ansiName: "ANSI 97 bright white",
+      dark: {
+        bg: "#0f0f0f",
+        surface: "#1a1a1a",
+        border: "#2c2c2c",
+        text: "#f2f2ee",
+        muted: "#a3a3a0",
+        accent: "#f2f2ee",
+        atext: "#f2f2ee",
+        label: "#0f0f0f",
+        mark: "#f2f2ee",
+      },
+      light: {
+        bg: "#f5f5f3",
+        surface: "#ffffff",
+        border: "#d9d9d6",
+        text: "#151515",
+        muted: "#595957",
+        accent: "#151515",
+        atext: "#151515",
+        label: "#f5f5f3",
+        mark: "#151515",
+      },
+    },
+    {
+      id: "R3",
+      name: "Stone, mono",
+      tag: "Light-first, warm",
+      why: "The dealer's warm stone ground with its own ink (#26251e), no blue. Paper-like in the README, and the dark grade turns into a warm charcoal. It is the softest option and the least like a terminal.",
+      ansi: "#f2f1ec",
+      ansiName: "ANSI 97 bright white",
+      light: {
+        bg: "#dfdedb",
+        surface: "#eceae7",
+        border: "#c4c2bd",
+        text: "#26251e",
+        muted: "#55534a",
+        accent: "#26251e",
+        atext: "#26251e",
+        label: "#dfdedb",
+        mark: "#26251e",
+      },
+      dark: {
+        bg: "#1a1916",
+        surface: "#232220",
+        border: "#33322e",
+        text: "#ecebe6",
+        muted: "#a4a39a",
+        accent: "#ecebe6",
+        atext: "#ecebe6",
+        label: "#1a1916",
+        mark: "#ecebe6",
+      },
+    },
+    {
+      id: "R4",
+      name: "Cool grey, mono",
+      tag: "Light-first, cool. Closest to the old P4",
+      why: "The dealer's cool off-white ground and near-black ink, with its cobalt dropped because cobalt is andryore-web's blue. Crisp on GitHub's white and the dark grade is a blue-tinted charcoal.",
+      ansi: "#eef0f3",
+      ansiName: "ANSI 97 bright white",
+      light: {
+        bg: "#eef0f3",
+        surface: "#ffffff",
+        border: "#cfd3da",
+        text: "#0e1013",
+        muted: "#555b64",
+        accent: "#0e1013",
+        atext: "#0e1013",
+        label: "#eef0f3",
+        mark: "#0e1013",
+      },
+      dark: {
+        bg: "#0e1013",
+        surface: "#161a1f",
+        border: "#262b33",
+        text: "#e9ecf0",
+        muted: "#9aa1ab",
+        accent: "#e9ecf0",
+        atext: "#e9ecf0",
+        label: "#0e1013",
+        mark: "#e9ecf0",
+      },
+    },
+  ];
+
+  const lin = (v) => (v <= 0.04045 ? v / 12.92 : Math.pow((v + 0.055) / 1.055, 2.4));
+  const lum = (h) => {
+    const n = parseInt(h.slice(1), 16);
+    return (
+      0.2126 * lin(((n >> 16) & 255) / 255) +
+      0.7152 * lin(((n >> 8) & 255) / 255) +
+      0.0722 * lin((n & 255) / 255)
+    );
+  };
+  const ratio = (a, b) => {
+    const x = lum(a),
+      y = lum(b);
+    return (Math.max(x, y) + 0.05) / (Math.min(x, y) + 0.05);
+  };
+
+  const vars = (t) =>
+    `--c-bg:${t.bg};--c-surface:${t.surface};--c-border:${t.border};--c-text:${t.text};--c-muted:${t.muted};--c-atext:${t.atext};--c-mark:${t.mark}`;
+  const ROWS = [
+    ["text on bg", "text", "bg", 7],
+    ["muted on bg", "muted", "bg", 4.5],
+    ["accent text on bg", "atext", "bg", 4.5],
+    ["label on accent", "label", "accent", 4.5],
+    ["mark on bg (UI)", "mark", "bg", 3],
+  ];
+  const SW = ["bg", "surface", "border", "text", "muted", "accent", "atext", "label", "mark"];
+
+  function table(o) {
+    const swatches = SW.map(
+      (k) =>
+        `<tr><td class="tk">${k}</td><td><span class="sw" style="background:${o.light[k]}"></span><span class="sub" style="display:inline">${o.light[k]}</span></td><td><span class="sw" style="background:${o.dark[k]}"></span><span class="sub" style="display:inline">${o.dark[k]}</span></td></tr>`,
+    ).join("");
+    const rows = ROWS.map(([label, fg, bg, min]) => {
+      const f = (t) => {
+        const r = ratio(t[fg], t[bg]);
+        return `<span class="ratio ${r >= min ? "ok" : "bad"}">${r.toFixed(1)}:1 ${r >= min ? "pass" : "fail"}</span>`;
+      };
+      return `<tr><td>${label}<span class="sub">min ${min}:1</span></td><td>${f(o.light)}</td><td>${f(o.dark)}</td></tr>`;
+    }).join("");
+    return `<div><h3>Tokens</h3><table class="tokens"><tr><th>token</th><th>light</th><th>dark</th></tr>${swatches}</table></div>
+            <div><h3>Contrast, computed</h3><table class="tokens"><tr><th>pair</th><th>light</th><th>dark</th></tr>${rows}</table></div>`;
+  }
+  const cover = (o, mode) =>
+    `<div><div class="cover-label">cover 1280×440, ${mode}</div><div class="cover" style="${vars(o[mode])}"><div class="cover-in"><div class="mark"><i></i><i></i><i></i><i class="acc"></i></div><div class="words"><div class="wm">aokit</div><div class="tag">Projects from Modules. Updates that merge.</div><div class="cmd"><em>$</em> bunx aokit create my-app</div></div></div></div></div>`;
+  const term = (
+    o,
+  ) => `<div><div class="cover-label">terminal, ${o.ansiName}</div><div class="term" style="--ansi:${o.ansi}"><span class="g">██ ██</span>
+<span class="g">██</span> <span class="a">██</span>   <span class="w">aokit</span>  Projects from Modules. Updates that merge.
+          <span class="g">bunx aokit create my-app</span>
+
+<span class="a">?</span> Project name <span class="g">my-app</span>
+<span class="a">?</span> Modules <span class="g">hono, docker, oxc</span>
+<span class="a">+</span> created 41 files
+<span class="a">~</span> merged 3 files, kept your edits in src/app.ts
+<span class="a">!</span> 1 conflict in package.json, run <span class="w">aokit update --resolve</span></div></div>`;
+
+  document.getElementById("options").innerHTML = OPTIONS.map(
+    (o) => `
+    <section class="option" aria-label="${o.id} ${o.name}">
+      <div class="opt-head"><span class="id">${o.id}</span><h2>${o.name}</h2><span class="note">${o.tag}</span><p class="why">${o.why}</p></div>
+      <div class="col">${table(o)}</div>
+      <div class="col">${cover(o, "light")}${cover(o, "dark")}${term(o)}</div>
+    </section>`,
+  ).join("");
+</script>

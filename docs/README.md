@@ -61,6 +61,13 @@ Every Markdown file under `docs/` has a row here; a test fails when one is missi
 | [adr/0020-agent-files-are-region-files-merged-by-region.md](adr/0020-agent-files-are-region-files-merged-by-region.md)                   | 0020. Agent files are Region files, merged by Region and owned in part by aokit                       |
 | [adr/0021-layout-migration-pairs-files-by-provenance.md](adr/0021-layout-migration-pairs-files-by-provenance.md)                         | 0021. Layout migration pairs files by Provenance and moves seed files as they are                     |
 | [adr/0022-repo-lint-config-is-typescript.md](adr/0022-repo-lint-config-is-typescript.md)                                                 | 0022. The aokit repo configures Oxlint and Knip in TypeScript and JSONC, generated Projects keep JSON |
+| [adr/0023-brand-kit-in-docs-brand.md](adr/0023-brand-kit-in-docs-brand.md)                                                               | 0023. The brand kit lives in docs/brand and its rasters are generated                                 |
+
+## Brand
+
+| Doc                                | Title     |
+| ---------------------------------- | --------- |
+| [brand/README.md](brand/README.md) | Brand kit |
 
 ## Standards
 
