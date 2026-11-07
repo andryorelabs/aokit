@@ -1,5 +1,9 @@
 # create-aokit
 
+![aokit](https://raw.githubusercontent.com/andryorelabs/aokit/main/docs/brand/og/cover.png)
+
+**Projects from Modules. Updates that merge.**
+
 Scaffolds a new aokit project. It runs the `aokit create` command of the `aokit` package.
 
 ```sh

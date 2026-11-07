@@ -15,6 +15,10 @@
 - [Lifecycle](https://github.com/andryorelabs/aokit/blob/main/docs/architecture/lifecycle.md): create, add, update, remove and the merge procedure.
 - [Registry protocol and trust model](https://github.com/andryorelabs/aokit/blob/main/docs/architecture/registry.md): how Registries are read, verified and trusted.
 
+## Brand
+
+- [Brand kit](https://github.com/andryorelabs/aokit/blob/main/docs/brand/README.md): the logo, palette, voice and approved copy.
+
 ## Optional
 
 - [Documentation index](https://github.com/andryorelabs/aokit/blob/main/docs/README.md): every page under `docs/`.
