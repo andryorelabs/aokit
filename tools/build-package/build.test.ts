@@ -58,3 +58,39 @@ test("dist/run.d.ts declares the same run, RunOptions and ExitCode as the source
   const sameExitCode: MutuallyAssignable<DeclaredExitCode, SourceExitCode> = true;
   expect([sameRun, sameOptions, sameExitCode]).toEqual([true, true, true]);
 });
+
+const publishedPackageDirectories = ["aokit", "create-aokit", "module"] as const;
+const metadataFields = ["description", "homepage", "bugs", "author"] as const;
+
+test.each(publishedPackageDirectories)(
+  "package %s carries non-empty npm metadata",
+  async (directory) => {
+    const parsed: unknown = await Bun.file(
+      join(repoRoot, "packages", directory, "package.json"),
+    ).json();
+    if (typeof parsed !== "object" || parsed === null) {
+      throw new TypeError(`package.json of ${directory} is not an object`);
+    }
+    const manifest = new Map<string, unknown>(Object.entries(parsed));
+    for (const field of metadataFields) {
+      expect(typeof manifest.get(field) === "string" && manifest.get(field) !== "").toBe(true);
+    }
+    const keywords = manifest.get("keywords");
+    expect(Array.isArray(keywords) && keywords.length > 0).toBe(true);
+    expect(JSON.stringify(manifest.get("repository"))).toContain("andryorelabs/aokit");
+  },
+);
+
+test.each(["aokit.md", "create-aokit.md"])(
+  "npm README source %s uses only absolute image URLs",
+  async (fileName) => {
+    const source = await readFile(join(import.meta.dir, "assets", fileName), "utf8");
+    const imageSources = [...source.matchAll(/!\[[^\]]*\]\(([^)\s]+)|<img[^>]+src="([^"]+)"/g)].map(
+      (match) => match[1] ?? match[2] ?? "",
+    );
+    expect(imageSources.length).toBeGreaterThan(0);
+    for (const imageSource of imageSources) {
+      expect(imageSource.startsWith("https://")).toBe(true);
+    }
+  },
+);
