@@ -23,7 +23,7 @@ Which asset feeds which surface, what to regenerate or edit when the brand chang
 | The logo                  | `docs/brand/logo/*.svg`                                                                                          | `bun run brand:export`, `bun run test` |
 | A string                  | `docs/brand/copy.md` first, then `README.md`, `llms.txt`, the two npm READMEs and the three `package.json` files | `bun run lint:docs`                    |
 | The banner                | `docs/brand/terminal/banner.ansi` and `banner.txt`, then the constants in `packages/aokit/src/cli/banner.ts`     | `bun run test`                         |
-| The fonts                 | `docs/brand/brandbook/fonts/` and its `OFL.md`                                                                   | `bun run brand:export`, `bun run test` |
+| The fonts                 | `docs/brand/brandbook/fonts/` and its `OFL.txt`                                                                  | `bun run brand:export`, `bun run test` |
 | A document in this folder | The document, and its row in [README.md](README.md) and [docs/README.md](../README.md)                           | `bun run test`                         |
 
 Rasters are generated only by `bun run brand:export` and committed; never edit one by hand. Colours come only from the Soot palette.
