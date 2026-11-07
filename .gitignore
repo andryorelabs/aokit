@@ -13,3 +13,7 @@ node_modules/
 /packages/aokit/README.md
 /packages/create-aokit/LICENSE
 /packages/create-aokit/README.md
+
+# Taste Skill: skills are restored from skills-lock.json (`bunx skills experimental_install`).
+/.claude/skills/
+.taste-skill/
