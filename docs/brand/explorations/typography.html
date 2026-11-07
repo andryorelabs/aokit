@@ -1,0 +1,419 @@
+<title>aokit Typography</title>
+<meta name="claude:viewport-fit-sides" content="cover" />
+<link
+  rel="stylesheet"
+  href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600&family=Geist+Mono:wght@400;500;600&family=Martian+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@400;500;600&family=Instrument+Sans:wght@400;500;600&family=DM+Mono:wght@400;500&family=Epilogue:wght@400;500;600&family=JetBrains+Mono:wght@400;500;600&display=swap"
+/>
+<style>
+  /* Layout: typography round 1 on the chosen R2 Soot palette. Dark-first page; every option shows the wordmark, README text, a glyph test and terminal output in its own faces. */
+  :root {
+    --pg: #0f0f0f;
+    --card: #161616;
+    --ink: #f2f2ee;
+    --soft: #a3a3a0;
+    --line: #2c2c2c;
+    --ui: system-ui, -apple-system, "Segoe UI", sans-serif;
+    --code: ui-monospace, "SF Mono", Menlo, monospace;
+    color-scheme: dark;
+  }
+  @media (prefers-color-scheme: light) {
+    :root:not([data-theme="dark"]) {
+      --pg: #f5f5f3;
+      --card: #ffffff;
+      --ink: #151515;
+      --soft: #595957;
+      --line: #d9d9d6;
+      color-scheme: light;
+    }
+  }
+  :root[data-theme="light"] {
+    --pg: #f5f5f3;
+    --card: #ffffff;
+    --ink: #151515;
+    --soft: #595957;
+    --line: #d9d9d6;
+    color-scheme: light;
+  }
+  * {
+    box-sizing: border-box;
+  }
+  body {
+    margin: 0;
+    background: var(--pg);
+    color: var(--ink);
+    font: 15px/1.6 var(--ui);
+    padding-block: 40px 72px;
+    padding-left: max(16px, env(safe-area-inset-left, 0px));
+    padding-right: max(16px, env(safe-area-inset-right, 0px));
+  }
+  main {
+    max-width: 1180px;
+    margin: 0 auto;
+    display: flex;
+    flex-direction: column;
+    gap: 28px;
+  }
+  h1 {
+    font-size: 2rem;
+    font-weight: 500;
+    letter-spacing: -0.03em;
+    margin: 0 0 8px;
+    text-wrap: balance;
+  }
+  h2 {
+    font-size: 1.3rem;
+    font-weight: 500;
+    letter-spacing: -0.015em;
+    margin: 0;
+  }
+  h3 {
+    font-size: 0.8rem;
+    font-weight: 500;
+    color: var(--soft);
+    margin: 0 0 8px;
+  }
+  p {
+    margin: 0;
+    max-width: 66ch;
+  }
+  .lede,
+  .note {
+    color: var(--soft);
+  }
+  .note {
+    font-size: 0.86rem;
+  }
+
+  .option {
+    background: var(--card);
+    border: 1px solid var(--line);
+    border-radius: 6px;
+    padding: 22px;
+    display: flex;
+    flex-direction: column;
+    gap: 22px;
+  }
+  @media (max-width: 700px) {
+    .option {
+      padding: 16px;
+    }
+  }
+  .opt-head {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: baseline;
+    gap: 6px 14px;
+  }
+  .id {
+    font: 600 0.8rem var(--code);
+    background: var(--ink);
+    color: var(--pg);
+    padding: 2px 8px;
+    border-radius: 3px;
+  }
+  .why {
+    flex-basis: 100%;
+    color: var(--soft);
+    max-width: 80ch;
+  }
+  .tags {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px 16px;
+    font: 500 0.78rem var(--code);
+    color: var(--soft);
+  }
+  .tags b {
+    color: var(--ink);
+    font-weight: 500;
+  }
+
+  .row {
+    display: grid;
+    gap: 16px;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+  @media (max-width: 760px) {
+    .row {
+      grid-template-columns: minmax(0, 1fr);
+    }
+  }
+  .panel {
+    border-radius: 6px;
+    border: 1px solid var(--b);
+    background: var(--bg);
+    color: var(--fg);
+    padding: 22px;
+    min-width: 0;
+    overflow: hidden;
+  }
+  .dk {
+    --bg: #0f0f0f;
+    --fg: #f2f2ee;
+    --m: #a3a3a0;
+    --b: #2c2c2c;
+    --s: #1a1a1a;
+  }
+  .lt {
+    --bg: #f5f5f3;
+    --fg: #151515;
+    --m: #595957;
+    --b: #d9d9d6;
+    --s: #ffffff;
+  }
+  .label {
+    font: 500 0.75rem var(--code);
+    color: var(--m);
+    margin-bottom: 14px;
+  }
+
+  .wm {
+    line-height: 1;
+    margin: 0;
+    font-size: clamp(56px, 9vw, 104px);
+  }
+  .wm2 {
+    line-height: 1;
+    margin-top: 16px;
+    font-size: clamp(30px, 4.4vw, 48px);
+    color: var(--m);
+  }
+  .tagline {
+    margin-top: 16px;
+    color: var(--m);
+    font-size: 1.05rem;
+    line-height: 1.4;
+  }
+
+  .readme {
+    font-family: var(--body);
+  }
+  .readme h4 {
+    font: 500 1.9rem/1.15 var(--disp);
+    letter-spacing: var(--trk);
+    margin: 0 0 10px;
+  }
+  .readme h5 {
+    font: 500 1.2rem/1.3 var(--disp);
+    margin: 22px 0 8px;
+    letter-spacing: var(--trk2);
+  }
+  .readme p {
+    color: var(--fg);
+    max-width: 62ch;
+    font-size: 15px;
+    line-height: 1.6;
+  }
+  .readme code {
+    font-family: var(--mono);
+    font-size: 0.88em;
+    background: var(--s);
+    border: 1px solid var(--b);
+    border-radius: 3px;
+    padding: 1px 5px;
+  }
+  .readme pre {
+    font-family: var(--mono);
+    font-size: 13px;
+    line-height: 1.55;
+    background: var(--s);
+    border: 1px solid var(--b);
+    border-radius: 5px;
+    padding: 12px 14px;
+    margin: 10px 0 0;
+    overflow-x: auto;
+  }
+  .readme ul {
+    margin: 8px 0 0;
+    padding-left: 20px;
+    font-size: 15px;
+    line-height: 1.6;
+  }
+
+  .glyphs {
+    font-family: var(--mono);
+    font-size: 15px;
+    line-height: 1.9;
+    white-space: pre-wrap;
+    overflow-wrap: anywhere;
+  }
+  .glyphs .sans {
+    font-family: var(--body);
+    font-size: 15px;
+    display: block;
+    margin-bottom: 6px;
+  }
+  .term {
+    font-family: var(--mono);
+    font-size: 13px;
+    line-height: 1.55;
+    white-space: pre;
+    overflow-x: auto;
+  }
+  .term .g {
+    color: var(--m);
+  }
+  .term .w {
+    font-weight: 600;
+  }
+  .verdict {
+    display: grid;
+    gap: 8px 28px;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    font-size: 0.9rem;
+  }
+  @media (max-width: 760px) {
+    .verdict {
+      grid-template-columns: minmax(0, 1fr);
+    }
+  }
+  .verdict b {
+    font-weight: 600;
+  }
+  .verdict span {
+    color: var(--soft);
+  }
+  .pick {
+    color: var(--soft);
+    font-size: 0.92rem;
+  }
+</style>
+
+<main>
+  <header>
+    <h1>aokit typography, round 1</h1>
+    <p class="lede">
+      Four pairings on the chosen Soot palette, all open-licence Google Fonts. Three come from Taste
+      Skill's developer-tool list, one is mine. Each shows the wordmark in its display and mono
+      faces, the README text, a glyph test for look-alike characters, and the terminal. Sizes follow
+      the skill: headings at weight 500, tracking tightened at large sizes, lines under 62
+      characters.
+    </p>
+  </header>
+
+  <div id="options" style="display: contents"></div>
+
+  <p class="pick">
+    Reply with the pairing you want (T1 to T4) and any tweak: a different wordmark weight, a mono
+    wordmark, tighter tracking.
+  </p>
+</main>
+
+<script>
+  const OPTIONS = [
+    {
+      id: "T1",
+      name: "Geist and Geist Mono",
+      disp: "Geist",
+      body: "Geist",
+      mono: "Geist Mono",
+      wmW: 500,
+      trk: "-0.035em",
+      trk2: "-0.02em",
+      from: "Taste Skill's first pick for developer tools",
+      overlap: "Geist is the UI face in snug and streamboss",
+      why: "The skill's top developer-tool pairing: exact, plain and fast. Sans and mono come from one family, so the wordmark, the README and the terminal read as one voice.",
+      good: "One family, so nothing ever clashes. The most legible mono of the four at 13px.",
+      bad: "Closest to a default. Two siblings already use Geist for their UI.",
+    },
+    {
+      id: "T2",
+      name: "Martian Mono and IBM Plex Sans",
+      disp: "Martian Mono",
+      body: "IBM Plex Sans",
+      mono: "Martian Mono",
+      wmW: 600,
+      trk: "-0.04em",
+      trk2: "-0.01em",
+      from: "Mine, not from the skill's list",
+      overlap: "No sibling uses either",
+      why: "The wordmark and headings are set in a wide monospace, so the name looks like the CLI it is. Plex Sans carries the body text with a technical, slightly mechanical tone.",
+      good: "The most distinctive wordmark, and it matches the terminal exactly.",
+      bad: "Martian Mono is wide: long headings run out of room, and body text must stay in Plex.",
+    },
+    {
+      id: "T3",
+      name: "Instrument Sans and DM Mono",
+      disp: "Instrument Sans",
+      body: "Instrument Sans",
+      mono: "DM Mono",
+      wmW: 500,
+      trk: "-0.03em",
+      trk2: "-0.015em",
+      from: "Taste Skill's design-software pick",
+      overlap: "No sibling uses either",
+      why: "A friendly, slightly condensed grotesk with a light, rounded mono. It is the calmest option and keeps the wordmark soft against the hard black ground.",
+      good: "Warm without being playful. Numerals and the lowercase a, o, k read cleanly at small size.",
+      bad: "DM Mono is the thinnest mono here, so terminal text looks light on a dark ground.",
+    },
+    {
+      id: "T4",
+      name: "Epilogue and JetBrains Mono",
+      disp: "Epilogue",
+      body: "Epilogue",
+      mono: "JetBrains Mono",
+      wmW: 500,
+      trk: "-0.035em",
+      trk2: "-0.02em",
+      from: "Taste Skill's tools-and-platforms pick",
+      overlap: "JetBrains Mono is the mono in emet and andryore-web",
+      why: "A sharp, slightly condensed grotesk with a mono built for code. The most assertive wordmark, with strong lowercase shapes at hero size.",
+      good: "Bold at large sizes and the mono is excellent for code and diffs.",
+      bad: "Shares its mono with two siblings, and the grotesk gets tight in long body text.",
+    },
+  ];
+
+  const q = (n) => `'${n}', ui-sans-serif, system-ui, sans-serif`;
+  const qm = (n) => `'${n}', ui-monospace, Menlo, monospace`;
+  const vars = (o) =>
+    `--disp:${q(o.disp)};--body:${q(o.body)};--mono:${qm(o.mono)};--trk:${o.trk};--trk2:${o.trk2}`;
+
+  function wordmarks(o) {
+    const one = (
+      mode,
+      label,
+    ) => `<div class="panel ${mode}"><div class="label">wordmark, ${label}</div>
+      <div class="wm" style="font-family:${q(o.disp)};font-weight:${o.wmW};letter-spacing:${o.trk}">aokit</div>
+      <div class="wm2" style="font-family:${qm(o.mono)};font-weight:500;letter-spacing:-0.04em">aokit</div>
+      <div class="tagline" style="font-family:${q(o.body)}">Projects from Modules. Updates that merge.</div></div>`;
+    return `<div class="row">${one("dk", "dark")}${one("lt", "light")}</div>`;
+  }
+  function readme() {
+    return `<div class="panel lt readme"><div class="label">README, light</div>
+      <h4>aokit</h4>
+      <p>aokit creates a TypeScript project from composable Modules and keeps it up to date. A Lockfile stores a hash for every file, so an update merges with your edits and never overwrites them.</p>
+      <h5>Quickstart</h5>
+      <p>Run <code>bunx aokit create my-app</code>, pick your Modules, and start the dev server.</p>
+<pre>$ bunx aokit create my-app
+$ cd my-app &amp;&amp; bun run dev</pre>
+      <ul><li>Bun-only, no telemetry</li><li>Modules come from Registries</li><li>Updates keep your changes</li></ul></div>`;
+  }
+  function side() {
+    return `<div class="panel dk"><div class="label">glyph test, dark</div>
+      <div class="glyphs"><span class="sans">aokit AOKIT  Il1| O0o  Rr  gq  0123456789</span>aokit AOKIT
+Il1| O0o  {}[]()&lt;&gt;
+=&gt; != -&gt; :: &amp;&amp; ||
+0123456789 ao ok kit</div></div>
+    <div class="panel dk"><div class="label">terminal, dark</div>
+<div class="term"><span class="g">██ ██</span>
+<span class="g">██</span> ██   <span class="w">aokit</span>  Projects from Modules. Updates that merge.
+          <span class="g">bunx aokit create my-app</span>
+
+? Project name <span class="g">my-app</span>
+? Modules <span class="g">hono, docker, oxc</span>
++ created 41 files
+~ merged 3 files, kept your edits in src/app.ts
+! 1 conflict in package.json, run <span class="w">aokit update --resolve</span></div></div>`;
+  }
+
+  document.getElementById("options").innerHTML = OPTIONS.map(
+    (o) => `
+    <section class="option" style="${vars(o)}" aria-label="${o.id} ${o.name}">
+      <div class="opt-head"><span class="id">${o.id}</span><h2>${o.name}</h2><span class="note">${o.from}</span><p class="why">${o.why}</p></div>
+      <div class="tags"><span>display <b>${o.disp}</b></span><span>body <b>${o.body}</b></span><span>mono <b>${o.mono}</b></span><span>sibling overlap: <b>${o.overlap}</b></span></div>
+      ${wordmarks(o)}
+      <div class="row">${readme()}<div style="display:flex;flex-direction:column;gap:16px;min-width:0">${side()}</div></div>
+      <div class="verdict"><div><b>Strength.</b> <span>${o.good}</span></div><div><b>Weakness.</b> <span>${o.bad}</span></div></div>
+    </section>`,
+  ).join("");
+</script>

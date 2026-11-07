@@ -1,0 +1,422 @@
+<title>aokit Logo</title>
+<meta name="claude:viewport-fit-sides" content="cover" />
+<link
+  rel="stylesheet"
+  href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600&family=Geist+Mono:wght@400;500;600&display=swap"
+/>
+<style>
+  /* Layout: logo round 1 on Soot palette and Geist. Five marks on one 32 grid; each gets mark and lockup on both grounds, a size ladder down to 16px, the banner in blocks and a cover mock. */
+  :root {
+    --pg: #0f0f0f;
+    --card: #161616;
+    --ink: #f2f2ee;
+    --soft: #a3a3a0;
+    --line: #2c2c2c;
+    --sans: "Geist", system-ui, sans-serif;
+    --mono: "Geist Mono", ui-monospace, monospace;
+    color-scheme: dark;
+  }
+  @media (prefers-color-scheme: light) {
+    :root:not([data-theme="dark"]) {
+      --pg: #f5f5f3;
+      --card: #ffffff;
+      --ink: #151515;
+      --soft: #595957;
+      --line: #d9d9d6;
+      color-scheme: light;
+    }
+  }
+  :root[data-theme="light"] {
+    --pg: #f5f5f3;
+    --card: #ffffff;
+    --ink: #151515;
+    --soft: #595957;
+    --line: #d9d9d6;
+    color-scheme: light;
+  }
+  * {
+    box-sizing: border-box;
+  }
+  body {
+    margin: 0;
+    background: var(--pg);
+    color: var(--ink);
+    font: 15px/1.6 var(--sans);
+    padding-block: 40px 72px;
+    padding-left: max(16px, env(safe-area-inset-left, 0px));
+    padding-right: max(16px, env(safe-area-inset-right, 0px));
+  }
+  main {
+    max-width: 1180px;
+    margin: 0 auto;
+    display: flex;
+    flex-direction: column;
+    gap: 28px;
+  }
+  h1 {
+    font-size: 2.1rem;
+    font-weight: 500;
+    letter-spacing: -0.035em;
+    margin: 0 0 8px;
+    text-wrap: balance;
+  }
+  h2 {
+    font-size: 1.3rem;
+    font-weight: 500;
+    letter-spacing: -0.02em;
+    margin: 0;
+  }
+  p {
+    margin: 0;
+    max-width: 68ch;
+  }
+  .lede,
+  .note {
+    color: var(--soft);
+  }
+  .note {
+    font-size: 0.86rem;
+  }
+
+  .option {
+    background: var(--card);
+    border: 1px solid var(--line);
+    border-radius: 6px;
+    padding: 22px;
+    display: flex;
+    flex-direction: column;
+    gap: 18px;
+  }
+  @media (max-width: 700px) {
+    .option {
+      padding: 16px;
+    }
+  }
+  .opt-head {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: baseline;
+    gap: 6px 14px;
+  }
+  .id {
+    font: 600 0.8rem var(--mono);
+    background: var(--ink);
+    color: var(--pg);
+    padding: 2px 8px;
+    border-radius: 3px;
+  }
+  .why {
+    flex-basis: 100%;
+    color: var(--soft);
+    max-width: 80ch;
+  }
+  .row {
+    display: grid;
+    gap: 16px;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+  @media (max-width: 760px) {
+    .row {
+      grid-template-columns: minmax(0, 1fr);
+    }
+  }
+
+  .panel {
+    border-radius: 6px;
+    border: 1px solid var(--b);
+    background: var(--bg);
+    color: var(--fg);
+    padding: 22px;
+    min-width: 0;
+    overflow: hidden;
+  }
+  .dk {
+    --bg: #0f0f0f;
+    --fg: #f2f2ee;
+    --m: #a3a3a0;
+    --b: #2c2c2c;
+    --s: #1a1a1a;
+  }
+  .lt {
+    --bg: #f5f5f3;
+    --fg: #151515;
+    --m: #595957;
+    --b: #d9d9d6;
+    --s: #ffffff;
+  }
+  .label {
+    font: 500 0.75rem var(--mono);
+    color: var(--m);
+    margin-bottom: 14px;
+  }
+  svg .i {
+    fill: var(--fg);
+  }
+  svg .m {
+    fill: var(--fg);
+    opacity: 0.42;
+  }
+  svg .o {
+    fill: none;
+    stroke: var(--fg);
+    stroke-width: 2;
+  }
+  svg .t {
+    fill: var(--bg);
+    font: 600 17px var(--sans);
+    letter-spacing: -0.04em;
+  }
+
+  .big {
+    display: flex;
+    align-items: center;
+    gap: 28px;
+    flex-wrap: wrap;
+  }
+  .lockup {
+    display: flex;
+    align-items: center;
+    gap: 0.3em;
+    font: 500 44px/1 var(--sans);
+    letter-spacing: -0.035em;
+  }
+  .lockup svg {
+    width: 1.25em;
+    height: 1.25em;
+    flex: none;
+    margin-left: -0.1em;
+  }
+  .ladder {
+    display: flex;
+    align-items: flex-end;
+    gap: 22px;
+    flex-wrap: wrap;
+  }
+  .ladder figure {
+    margin: 0;
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 8px;
+  }
+  .ladder span {
+    font: 500 0.7rem var(--mono);
+    color: var(--m);
+  }
+  .tile {
+    width: 56px;
+    height: 56px;
+    border-radius: 14px;
+    background: var(--s);
+    border: 1px solid var(--b);
+    display: grid;
+    place-items: center;
+  }
+  .tile svg {
+    width: 34px;
+    height: 34px;
+  }
+
+  .term {
+    font:
+      400 14px/1.05 ui-monospace,
+      "DejaVu Sans Mono",
+      Menlo,
+      Consolas,
+      monospace;
+    white-space: pre;
+    overflow-x: auto;
+    background: #0e0e0f;
+    color: #f2f2ee;
+    border: 1px solid #28282b;
+    border-radius: 6px;
+    padding: 16px;
+  }
+  .term .d {
+    color: #6f6f6c;
+  }
+  .term .s {
+    color: #f2f2ee;
+  }
+  .term .w {
+    font-weight: 600;
+  }
+  .cover {
+    container-type: inline-size;
+    position: relative;
+    width: 100%;
+    aspect-ratio: 1280 / 440;
+    border-radius: 6px;
+    overflow: hidden;
+    background: #0f0f0f;
+    color: #f2f2ee;
+    border: 1px solid #2c2c2c;
+    --fg: #f2f2ee;
+    --bg: #0f0f0f;
+  }
+  .cover::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    background-image:
+      linear-gradient(#2c2c2c 1px, transparent 1px),
+      linear-gradient(90deg, #2c2c2c 1px, transparent 1px);
+    background-size: 6.25cqw 6.25cqw;
+    opacity: 0.6;
+    -webkit-mask-image: radial-gradient(ellipse 70% 90% at 80% 50%, #000, transparent);
+    mask-image: radial-gradient(ellipse 70% 90% at 80% 50%, #000, transparent);
+  }
+  .cover-in {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    align-items: center;
+    gap: 4cqw;
+    padding: 0 7cqw;
+  }
+  .cover svg {
+    width: 15cqw;
+    height: 15cqw;
+    flex: none;
+  }
+  .cover .wm {
+    font: 500 9.6cqw/1 var(--sans);
+    letter-spacing: -0.035em;
+  }
+  .cover .tag {
+    font-size: 2.5cqw;
+    color: #a3a3a0;
+    margin-top: 1.4cqw;
+    line-height: 1.3;
+  }
+  .verdict {
+    display: grid;
+    gap: 8px 28px;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    font-size: 0.9rem;
+  }
+  @media (max-width: 760px) {
+    .verdict {
+      grid-template-columns: minmax(0, 1fr);
+    }
+  }
+  .verdict b {
+    font-weight: 600;
+  }
+  .verdict span {
+    color: var(--soft);
+  }
+  .pick {
+    color: var(--soft);
+    font-size: 0.92rem;
+  }
+</style>
+
+<main>
+  <header>
+    <h1>aokit logo, round 1</h1>
+    <p class="lede">
+      Five marks on one 32-unit grid, in the Soot palette (ink plus a muted tone, no accent colour)
+      and the Geist wordmark. Every mark has to survive three tests: a 16px favicon, six rows of
+      block characters in the terminal, and one colour. The grid idea nods to AndryOre without
+      copying andryore-web's mark.
+    </p>
+  </header>
+
+  <div id="options" style="display: contents"></div>
+
+  <p class="pick">
+    Reply with the mark you want (M1 to M5) and any tweak: a different offset, rounder or squarer
+    corners, a heavier stroke.
+  </p>
+</main>
+
+<script>
+  const marks = {
+    M1: () =>
+      `<rect class="m" x="4" y="4" width="11" height="11" rx="3"/><rect class="m" x="17" y="4" width="11" height="11" rx="3"/><rect class="m" x="4" y="17" width="11" height="11" rx="3"/><rect class="i" x="18.5" y="18.5" width="11" height="11" rx="3"/>`,
+    M2: () =>
+      `<rect class="i" x="4" y="4" width="11" height="11" rx="3"/><rect class="i" x="17" y="4" width="11" height="11" rx="3"/><rect class="i" x="4" y="17" width="11" height="11" rx="3"/><rect class="o" x="18" y="18" width="10" height="10" rx="2.5"/>`,
+    M3: () =>
+      `<rect class="m" x="3" y="3" width="17" height="17" rx="4"/><rect class="m" x="12" y="12" width="17" height="17" rx="4"/><rect class="i" x="12" y="12" width="8" height="8" rx="1.5"/>`,
+    M4: () =>
+      `<rect class="m" x="4" y="5" width="24" height="6" rx="3"/><rect class="i" x="8" y="13" width="20" height="6" rx="3"/><rect class="m" x="4" y="21" width="24" height="6" rx="3"/>`,
+    M5: () =>
+      `<rect class="i" x="2" y="2" width="28" height="28" rx="8"/><text class="t" x="16" y="21.5" text-anchor="middle">ao</text>`,
+  };
+  const svg = (id, size) =>
+    `<svg viewBox="0 0 32 32" ${size ? `width="${size}" height="${size}"` : ""} role="img" aria-label="aokit">${marks[id]()}</svg>`;
+
+  const OPTIONS = [
+    {
+      id: "M1",
+      name: "Slot",
+      why: "A 2 by 2 grid of Modules. Three sit back at 42 percent, the fourth is solid and offset by 1.5 units, as if it is clicking into place. This is the original idea: a Project is Modules composed together.",
+      banner: `<span class="d">██ ██</span>\n<span class="d">██</span> <span class="s">██</span>`,
+      good: "The clearest story, and the only one that reads in two block rows. The offset survives at 32px.",
+      bad: "At 16px the three muted modules and the solid one blur into a tilted grid. It also looks like andryore-web's grid on purpose, so the family tie is strong.",
+    },
+    {
+      id: "M2",
+      name: "Open slot",
+      why: "Three solid Modules and one empty outline: the place where the next Module goes. Louder than M1 because most of the mark is full ink.",
+      banner: `<span class="s">██ ██</span>\n<span class="s">██</span> <span class="d">▒▒</span>`,
+      good: "Strong at 16px, since solid shapes hold up. One colour works with no opacity at all.",
+      bad: "Says missing, not composed. The outline needs a 2-unit stroke, which looks heavy next to the fills.",
+    },
+    {
+      id: "M3",
+      name: "Merge",
+      why: "Two rounded squares overlap, and the overlap is solid ink. It speaks to the tagline's second half: updates that merge with your edits.",
+      banner: `<span class="d">████</span>\n<span class="d">██</span><span class="s">██</span><span class="d">██</span>\n<span class="d">  ████</span>`,
+      good: "A different idea from the grid: change meets change. Distinctive in a list of repos.",
+      bad: "Needs three block rows, and the small overlap square disappears at 16px.",
+    },
+    {
+      id: "M4",
+      name: "Stack",
+      why: "Three bars, the middle one solid and pushed right. Modules layered into a Project, and it reads like a hamburger menu or a diff.",
+      banner: `<span class="d">▀▀▀▀▀▀</span>\n <span class="s">▀▀▀▀▀▀</span>\n<span class="d">▀▀▀▀▀▀</span>`,
+      good: "Bold, simple and clean at every size, and it prints well in one colour.",
+      bad: "Reads as a menu icon or a list at a glance, and says little about Modules.",
+    },
+    {
+      id: "M5",
+      name: "ao monogram",
+      why: "A solid tile with a lowercase ao in Geist, the first two letters of the name and the author's mark. The most literal option, and the one that needs no explaining.",
+      banner: `<span class="s">▄▀█ █▀█</span>\n<span class="s">█▀█ █▄█</span>`,
+      good: "Instantly legible, and it holds up as a profile picture or an app icon.",
+      bad: "Letters in a tile are what most tools ship. At 16px the two letters merge, and it says nothing about Modules.",
+    },
+  ];
+
+  const lockup = (id, px) =>
+    `<div class="lockup" style="font-size:${px}px">${svg(id)}<span>aokit</span></div>`;
+  const ground = (o, mode) =>
+    `<div class="panel ${mode}"><div class="label">mark and lockup, ${mode === "dk" ? "dark" : "light"}</div><div class="big"><div style="width:96px">${svg(o.id, 96)}</div>${lockup(o.id, 44)}</div></div>`;
+  const ladder = (
+    o,
+  ) => `<div class="panel dk"><div class="label">size ladder, dark</div><div class="ladder">${[96, 48, 32, 16].map((s) => `<figure>${svg(o.id, s)}<span>${s}px</span></figure>`).join("")}<figure><div class="tile">${svg(o.id)}</div><span>app tile</span></figure></div></div>
+    <div class="panel lt"><div class="label">size ladder, light</div><div class="ladder">${[96, 48, 32, 16].map((s) => `<figure>${svg(o.id, s)}<span>${s}px</span></figure>`).join("")}<figure><div class="tile">${svg(o.id)}</div><span>app tile</span></figure></div></div>`;
+  const banner = (o) => {
+    const lines = o.banner
+      .split("\n")
+      .map((l) => `<span style="display:inline-block;min-width:9ch">${l}</span>`);
+    lines[0] += `<span class="w">aokit</span>  Projects from Modules. Updates that merge.`;
+    lines[1] += `<span class="d">bunx aokit create my-app</span>`;
+    return `<div><div class="label" style="font:500 .75rem var(--mono);color:var(--soft);margin-bottom:8px">banner, block characters</div><div class="term">${lines.join("\n")}</div></div>`;
+  };
+  const cover = (o) =>
+    `<div><div class="label" style="font:500 .75rem var(--mono);color:var(--soft);margin-bottom:8px">cover 1280×440, dark</div><div class="cover"><div class="cover-in">${svg(o.id)}<div><div class="wm">aokit</div><div class="tag">Projects from Modules. Updates that merge.</div></div></div></div></div>`;
+
+  document.getElementById("options").innerHTML = OPTIONS.map(
+    (o) => `
+    <section class="option" aria-label="${o.id} ${o.name}">
+      <div class="opt-head"><span class="id">${o.id}</span><h2>${o.name}</h2><p class="why">${o.why}</p></div>
+      <div class="row">${ground(o, "dk")}${ground(o, "lt")}</div>
+      <div class="row">${ladder(o)}</div>
+      <div class="row">${banner(o)}${cover(o)}</div>
+      <div class="verdict"><div><b>Strength.</b> <span>${o.good}</span></div><div><b>Weakness.</b> <span>${o.bad}</span></div></div>
+    </section>`,
+  ).join("");
+</script>
