@@ -120,9 +120,11 @@ jobs:
     steps:
       - name: Fail if any CI job failed or was cancelled
         env:
-          NEEDS_RESULTS: ${{ join(needs.*.result, ' ') }}
+          CHECK_RESULT: ${{ needs.check.result }}
+          TEST_RESULT: ${{ needs.test.result }}
+          COMMITLINT_RESULT: ${{ needs.commitlint.result }}
         run: |
-          echo "CI job results: $NEEDS_RESULTS"
-          case " $NEEDS_RESULTS " in
-            *" failure "* | *" cancelled "*) exit 1 ;;
-          esac
+          echo "check=$CHECK_RESULT test=$TEST_RESULT commitlint=$COMMITLINT_RESULT"
+          [ "$CHECK_RESULT" = success ] || exit 1
+          [ "$TEST_RESULT" = success ] || exit 1
+          case "$COMMITLINT_RESULT" in success | skipped) ;; *) exit 1 ;; esac

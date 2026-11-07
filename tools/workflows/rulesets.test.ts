@@ -83,14 +83,29 @@ function findAggregateJobProblems(text: string): string[] {
     if (id !== aggregateId && !needs.has(id))
       problems.push(`ci.yml:${aggregateId} does not need ${id}`);
   }
-  const scripts = asArray(aggregate["steps"])
-    .filter(isRecord)
-    .map((step) => step["run"])
-    .filter((run): run is string => typeof run === "string")
-    .join("\n");
-  for (const result of ["failure", "cancelled"]) {
-    if (!scripts.includes(result))
-      problems.push(`ci.yml:${aggregateId} does not fail on ${result}`);
+  const readResults = new Set(
+    asArray(aggregate["steps"])
+      .filter(isRecord)
+      .flatMap((step) => {
+        const rawScript = step["run"];
+        const env = step["env"];
+        if (typeof rawScript !== "string" || !isRecord(env)) return [];
+        const script = rawScript
+          .split("\n")
+          .filter((line) => !/^\s*echo\b/.test(line))
+          .join("\n");
+        return Object.entries(env)
+          .filter(([name]) => new RegExp(`\\$(?:${name}\\b|\\{${name}[}:\\-+=?#%/])`).test(script))
+          .map(([, value]) => value);
+      })
+      .filter((value): value is string => typeof value === "string")
+      .flatMap((value) =>
+        [...value.matchAll(/\$\{\{\s*needs\.([\w-]+)\.result\s*\}\}/g)].map((match) => match[1]),
+      ),
+  );
+  for (const id of needs) {
+    if (typeof id === "string" && !readResults.has(id))
+      problems.push(`ci.yml:${aggregateId} does not check ${id}`);
   }
   return problems;
 }
@@ -102,7 +117,7 @@ function readJson(path: string): unknown {
 const ciText = readFileSync(join(workflowsDirectory, "ci.yml"), "utf8");
 
 describe("S9: CI passed aggregate job", () => {
-  test("ci.yml has a CI passed job that needs every CI job and fails on failure or cancelled", () => {
+  test("ci.yml has a CI passed job that needs every CI job and checks each result", () => {
     expect(findAggregateJobProblems(ciText)).toEqual([]);
   });
 
@@ -119,9 +134,14 @@ describe("S9: CI passed aggregate job", () => {
     expect(findAggregateJobProblems(text)).toEqual(["ci.yml:ci-passed must run with if: always()"]);
   });
 
-  test("an aggregate job that ignores cancelled fails", () => {
-    const text = ciText.replace(` | *" cancelled "*`, "");
-    expect(findAggregateJobProblems(text)).toEqual(["ci.yml:ci-passed does not fail on cancelled"]);
+  test("an env result the gate script never uses does not count as checked", () => {
+    const text = ciText.replace('[ "$TEST_RESULT" = success ] || exit 1\n', "");
+    expect(findAggregateJobProblems(text)).toEqual(["ci.yml:ci-passed does not check test"]);
+  });
+
+  test("an aggregate job that does not read a needed job result fails", () => {
+    const text = ciText.replace("          TEST_RESULT: ${{ needs.test.result }}\n", "");
+    expect(findAggregateJobProblems(text)).toEqual(["ci.yml:ci-passed does not check test"]);
   });
 });
 

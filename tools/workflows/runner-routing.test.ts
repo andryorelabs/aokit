@@ -251,15 +251,37 @@ describe("CI runner routing", () => {
   });
 
   test.each([
-    ["success success success", 0],
-    ["success success skipped", 0],
-    ["success failure skipped", 1],
-    ["success cancelled success", 1],
-  ])('ci-passed treats "%s" as exit %d', (results, expectedExit) => {
+    ["success", "success", "success", 0],
+    ["success", "success", "skipped", 0],
+    ["success", "skipped", "success", 1],
+    ["success", "cancelled", "success", 1],
+    ["failure", "success", "success", 1],
+    ["", "success", "success", 1],
+    ["success", "success", "failure", 1],
+    ["success", "success", "cancelled", 1],
+    ["success", "success", "", 1],
+  ])(
+    'ci-passed treats check="%s" test="%s" commitlint="%s" as exit %d',
+    (check, testResult, commitlint, expectedExit) => {
+      const text = readFileSync(join(workflowsDirectory, "ci.yml"), "utf8");
+      const script = stepRuns(field(Bun.YAML.parse(text), "jobs"), "ci-passed").join("\n");
+      const outcome = Bun.spawnSync(["sh", "-c", script], {
+        env: { CHECK_RESULT: check, TEST_RESULT: testResult, COMMITLINT_RESULT: commitlint },
+      });
+      expect(outcome.exitCode).toBe(expectedExit);
+    },
+  );
+
+  test("ci-passed reads each needed job result through its own env variable", () => {
     const text = readFileSync(join(workflowsDirectory, "ci.yml"), "utf8");
-    const script = stepRuns(field(Bun.YAML.parse(text), "jobs"), "ci-passed").join("\n");
-    const outcome = Bun.spawnSync(["sh", "-c", script], { env: { NEEDS_RESULTS: results } });
-    expect(outcome.exitCode).toBe(expectedExit);
+    const steps = jobSteps(field(Bun.YAML.parse(text), "jobs"), "ci-passed");
+    expect(steps.map((step) => field(step, "env"))).toEqual([
+      {
+        CHECK_RESULT: "${{ needs.check.result }}",
+        TEST_RESULT: "${{ needs.test.result }}",
+        COMMITLINT_RESULT: "${{ needs.commitlint.result }}",
+      },
+    ]);
   });
 
   test("a routed job missing from its file is reported", () => {
