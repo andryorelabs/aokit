@@ -3,6 +3,7 @@ import type { Catalog, ModuleManifest } from "@aokit/module";
 import { createEditSession } from "../edit/session.ts";
 import { codeOpHandlers } from "../ops/code/index.ts";
 import { applyDeps, applyEnv, dataOpHandlers, wireWorkspaces } from "../ops/data/index.ts";
+import { envSchemaOps } from "../ops/data/env.ts";
 import { coreOwner, writeAgentFiles } from "./agent-files.ts";
 import { EngineError } from "./errors.ts";
 import {
@@ -370,7 +371,7 @@ export async function buildPlan(options: BuildPlanOptions): Promise<BuiltPlan> {
     }
 
     const ownOverrides = opOverrideKeys(manifest);
-    for (const declaredOp of manifest.ops) {
+    for (const declaredOp of [...manifest.ops, ...envSchemaOps(manifest.env, extensionPoints)]) {
       const op = interpolateTargetsDeep(declaredOp, directoryOf);
       const keys = opKeysOf(declaredOp);
       const overridden = keys.some((key) => {
