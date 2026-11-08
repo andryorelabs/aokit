@@ -1,6 +1,12 @@
 import { mkdir, readdir, readFile, stat, writeFile } from "node:fs/promises";
 import { dirname, join, posix } from "node:path";
-import { type ModuleManifest, catalogSchema, compileModule, stableStringify } from "@aokit/module";
+import {
+  type ModuleManifest,
+  catalogSchema,
+  compileModule,
+  composeDraftCatalog,
+  stableStringify,
+} from "@aokit/module";
 import { format } from "oxfmt";
 import { layoutTables } from "../../packages/aokit/src/engine/layout.ts";
 import {
@@ -30,6 +36,7 @@ const officialMinCliVersion = "0.1.0";
 
 const catalogDirectory = "catalog";
 const moduleSourceFile = "module.ts";
+const moduleCatalogFragmentFile = "catalog.json";
 const moduleFilesDirectory = "files";
 const moduleManifestFile = "module.json";
 const moduleMigrationsDirectory = "migrations";
@@ -47,6 +54,17 @@ type VersionEntry = ModuleEntry["versions"][string];
 
 function byCodepoint(left: string, right: string): number {
   return left < right ? -1 : left > right ? 1 : 0;
+}
+
+async function isFile(path: string): Promise<boolean> {
+  try {
+    return (await stat(path)).isFile();
+  } catch (error) {
+    if (error instanceof Error && "code" in error && error.code === "ENOENT") {
+      return false;
+    }
+    throw error;
+  }
 }
 
 async function isDirectory(path: string): Promise<boolean> {
@@ -168,6 +186,7 @@ async function buildReleases(
   outDir: string,
   existing: RegistryIndex["releases"],
   moduleIndex: RegistryIndex["modules"],
+  includeDraft: boolean,
 ): Promise<RegistryIndex["releases"]> {
   const catalogSourceDir = join(sourceDir, catalogDirectory);
   const sourcePaths = (await listFiles(catalogSourceDir)).filter((path) => path.endsWith(".json"));
@@ -215,10 +234,37 @@ async function buildReleases(
   for (const { release, pointer } of sources) {
     releases[release] = pointer;
   }
+  if (includeDraft) {
+    const draft = await buildDraftRelease(sourceDir, outDir, releases, moduleIndex);
+    releases[draft.release] = draft.pointer;
+  }
   if (Object.keys(releases).length === 0) {
     throw new Error(`registry:build found no Catalog in ${catalogSourceDir}`);
   }
   return releases;
+}
+
+/**
+ * Writes the draft Release a real-build uses: the composed draft Catalog under the next patch
+ * Release after the latest one, mapping every Module (Pending ones included) to its latest version.
+ */
+async function buildDraftRelease(
+  sourceDir: string,
+  outDir: string,
+  releases: RegistryIndex["releases"],
+  moduleIndex: RegistryIndex["modules"],
+): Promise<{ release: string; pointer: RegistryIndex["releases"][string] }> {
+  const [major, minor, patch] = latestOf(Object.keys(releases)).split(".");
+  const release = `${major}.${minor}.${Number(patch) + 1}`;
+  if (release in releases) {
+    throw new Error(`registry:build: draft Release ${release} collides with a published Release`);
+  }
+  const catalog = { ...composeDraftCatalog(sourceDir), release };
+  const modules = await resolveReleaseModules(outDir, release, undefined, undefined, moduleIndex);
+  const path = `${catalogDirectory}/${release}.json`;
+  const text = await formatJson(path, { ...catalog, modules });
+  await writeText(join(outDir, path), text);
+  return { release, pointer: { path, integrity: computeIntegrity(text) } };
 }
 
 /**
@@ -484,15 +530,33 @@ function latestOf(versions: readonly string[]): string {
  * everything published. Already published versions and Releases are left untouched; building
  * fails naming `<module>@<version>` (or the Release) when its source content would change. Output
  * is sorted, LF-only and oxfmt-formatted, so a build is reproducible.
+ *
+ * A Pending Module (a `catalog.json` Catalog fragment and no published version) is skipped, so the
+ * Registry stays byte-identical until its Release cut. `includePending` builds those Modules too
+ * and adds a draft Release whose Catalog is the composed draft Catalog; it is meant for a
+ * temporary output directory.
  */
-export async function buildRegistry(sourceDir: string, outDir: string): Promise<void> {
+export async function buildRegistry(
+  sourceDir: string,
+  outDir: string,
+  options: { includePending?: boolean } = {},
+): Promise<void> {
+  const includePending = options.includePending === true;
   const entries = await readdir(sourceDir, { withFileTypes: true });
-  const moduleNames = entries
+  const existing = await readExistingIndex(outDir);
+  const candidateNames = entries
     .filter((entry) => entry.isDirectory() && entry.name !== catalogDirectory)
     .map((entry) => entry.name)
     .toSorted(byCodepoint);
-
-  const existing = await readExistingIndex(outDir);
+  const fragmentFlags = await Promise.all(
+    candidateNames.map((name) => isFile(join(sourceDir, name, moduleCatalogFragmentFile))),
+  );
+  const pendingNames = new Set(
+    candidateNames.filter(
+      (name, position) => fragmentFlags[position] === true && existing?.modules[name] === undefined,
+    ),
+  );
+  const moduleNames = candidateNames.filter((name) => includePending || !pendingNames.has(name));
   const built = await Promise.all(
     moduleNames.map(
       async (name) =>
@@ -510,6 +574,7 @@ export async function buildRegistry(sourceDir: string, outDir: string): Promise<
     outDir,
     existing?.releases ?? {},
     publishedModules,
+    includePending && pendingNames.size > 0,
   );
   const index: RegistryIndex = {
     $schema: registryIndexSchemaUrl,

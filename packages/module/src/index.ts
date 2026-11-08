@@ -1,4 +1,4 @@
-export { catalogSchema, type Catalog, type CatalogInput } from "./catalog";
+export { catalogSchema, composeDraftCatalog, type Catalog, type CatalogInput } from "./catalog";
 export {
   compileModule,
   sortKeysDeep,
