@@ -148,6 +148,39 @@ test("appendRegion owns only its marker region and is idempotent", async () => {
   expect(String(updated.read("README.md"))).not.toContain("run it");
 });
 
+test("appendRegion writes comment markers that match the target file type", async () => {
+  const gitignore = await run(
+    [
+      {
+        op: "appendRegion",
+        target: "root",
+        file: ".gitignore",
+        region: "keys",
+        content: ".env.keys",
+      },
+    ],
+    { ".gitignore": "node_modules\n" },
+  );
+  const gitignoreText = String(gitignore.read(".gitignore"));
+  expect(gitignoreText).toContain("# aokit:begin");
+  expect(gitignoreText).not.toContain("<!--");
+  const prisma = await run(
+    [
+      {
+        op: "appendRegion",
+        target: "root",
+        file: "schema.prisma",
+        region: "models",
+        content: "model A {}",
+      },
+    ],
+    { "schema.prisma": "generator client {}\n" },
+  );
+  const prismaText = String(prisma.read("schema.prisma"));
+  expect(prismaText).toContain("// aokit:begin");
+  expect(prismaText).not.toContain("<!--");
+});
+
 const catalog: Catalog = catalogSchema.parse({
   dependencies: { next: "^16.0.0", oxlint: "^1.90.0", zod: "^4.0.0" },
   pinGroups: { oxc: ["oxlint"] },
