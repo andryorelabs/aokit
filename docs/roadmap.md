@@ -158,6 +158,21 @@ Exit criteria:
 - A hand-written `AGENTS.md` is adopted by `update` with no Conflict.
 - The Upgrade job (`2026.11.1` to `2026.11.2`, with a user note appended to `AGENTS.md`) is green.
 
+### 9. Module expansion
+
+Phase 9 needs phases 4b, 5b and 6b and ships before 7b. It grows the first-party Registry from 7 Modules to the stack the owner uses ([ADR 0024](adr/0024-pending-modules-catalog-fragments-and-release-cuts.md), [ADR 0025](adr/0025-manifest-env-schemas-feed-t3-env.md)).
+
+Scope: the Targets `lib`, `api-client`, `extension`, `emails` and `jobs`; Pending Modules with Catalog fragments and `composeDraftCatalog()`; Regions in any text file; a constructive pairwise matrix and a curated real-build set read from `tools/real-build/curated/*.json`; per-Target dependencies; env schemas feeding t3-env; `sideEffect` imports on `web.styles`; the tooling, test, web base, data, UI and state, Next add-on and remaining Modules; base updates (vite-react 1.3.0, tailwind4 2.0.0, hono 1.2.0); one Release `2026.12.0`.
+
+Exit criteria:
+
+- Every new or bumped Module has a VFS test for default and monorepo renders, its `agents` Region, dependency placement and requires/conflicts errors.
+- A Module that lands before the cut changes nothing in `registry/`; `bun run test` passes on the draft Catalog.
+- The matrix covers every feasible pair within its timeout, and the existing renders are byte-identical.
+- `aokit create --yes --json` with all tooling Modules on vite-react installs, typechecks and rejects a bad commit message.
+- A 2026.11.2 Project with vite-react and tailwind4 updated to 2026.12.0 has zero Conflicts.
+- After the cut, `aokit create` offers every new Module and no `registry-src/*/catalog.json` remains.
+
 ### 7. Distribution
 
 Phase 7 is split into two specs that ship in order. Both build on [Distribution](architecture/distribution.md).
@@ -186,21 +201,6 @@ Exit criteria:
 - A release dry run publishes with provenance and attaches verifiable checksums and attestations.
 - `bunx create-aokit` and `bunx aokit add` work from a published pre-release.
 - Windows and darwin-x64 binaries are published without an e2e run, and the release notes say so.
-
-### 9. Module expansion
-
-Phase 9 needs phases 4b, 5b and 6b and ships before 7b. It grows the first-party Registry from 7 Modules to the stack the owner uses ([ADR 0024](adr/0024-pending-modules-catalog-fragments-and-release-cuts.md), [ADR 0025](adr/0025-manifest-env-schemas-feed-t3-env.md)).
-
-Scope: the Targets `lib`, `api-client`, `extension`, `emails` and `jobs`; Pending Modules with Catalog fragments and `composeDraftCatalog()`; Regions in any text file; a constructive pairwise matrix and a curated real-build set read from `tools/real-build/curated/*.json`; per-Target dependencies; env schemas feeding t3-env; `sideEffect` imports on `web.styles`; the tooling, test, web base, data, UI and state, Next add-on and remaining Modules; base updates (vite-react 1.3.0, tailwind4 2.0.0, hono 1.2.0); one Release `2026.12.0`.
-
-Exit criteria:
-
-- Every new or bumped Module has a VFS test for default and monorepo renders, its `agents` Region, dependency placement and requires/conflicts errors.
-- A Module that lands before the cut changes nothing in `registry/`; `bun run test` passes on the draft Catalog.
-- The matrix covers every feasible pair within its timeout, and the existing renders are byte-identical.
-- `aokit create --yes --json` with all tooling Modules on vite-react installs, typechecks and rejects a bad commit message.
-- A 2026.11.2 Project with vite-react and tailwind4 updated to 2026.12.0 has zero Conflicts.
-- After the cut, `aokit create` offers every new Module and no `registry-src/*/catalog.json` remains.
 
 ### 8. Layout migration and engine debt
 
