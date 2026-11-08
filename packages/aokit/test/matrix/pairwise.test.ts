@@ -43,6 +43,14 @@ describe("pairwiseSelections", () => {
     expect(result).toContainEqual(["app", "prisma"]);
   });
 
+  test("covers a provider alternative beyond the fourth", () => {
+    const providers = Array.from({ length: 6 }, (_, index) =>
+      mod({ name: `prov-${index}`, provides: ["orm"] }),
+    );
+    const result = cover([mod({ name: "app", requires: ["orm"] }), ...providers]);
+    expect(result).toContainEqual(["app", "prov-5"]);
+  });
+
   test(
     "a synthetic 45-Module fixture covers within its timeout",
     () => {

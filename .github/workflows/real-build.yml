@@ -31,7 +31,9 @@ jobs:
 
       - name: Read curated selections
         id: matrix
-        run: echo "matrix=$(bun tools/real-build/main.ts --matrix)" >> "$GITHUB_OUTPUT"
+        run: |
+          matrix="$(bun tools/real-build/main.ts --matrix)"
+          echo "matrix=$matrix" >> "$GITHUB_OUTPUT"
 
   build:
     name: ${{ matrix.layout }} ${{ matrix.modules }}

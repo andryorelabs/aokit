@@ -257,6 +257,22 @@ function collide(path: string, existing: Producer, incoming: Producer): never {
 }
 
 /**
+ * Orders the Op walk: every Module's own files and Ops first, then every Module's derived env
+ * schema Ops, so a `registerAt` never runs before the Module that declares its Extension point.
+ *
+ * @yields each Module paired with the pass it runs in
+ */
+function* modulePasses<Module>(
+  modules: readonly Module[],
+): Generator<{ pass: "declared" | "envSchema"; module: Module }> {
+  for (const pass of ["declared", "envSchema"] as const) {
+    for (const module of modules) {
+      yield { pass, module };
+    }
+  }
+}
+
+/**
  * Builds the Plan: runs Modules serially in the given order against a VFS, emitting `files` into
  * Layout-resolved Targets and running Ops, applies each manifest's `deps` and `env` and the
  * workspace wiring, then formats what this build wrote and diffs against `base`.
@@ -317,14 +333,14 @@ export async function buildPlan(options: BuildPlanOptions): Promise<BuiltPlan> {
     onEdit: (path, module) => log.add(path, module, { kind: "op", op: currentOp }),
   });
 
-  for (const module of modules) {
+  for (const { pass, module } of modulePasses(modules)) {
     const { manifest } = module;
     const answers = defaultAnswers(manifest, options.answers[manifest.name] ?? {});
     const overriddenKeys = new Set(
       manifest.override.flatMap((entry) => ("file" in entry ? [entry.file] : [])),
     );
 
-    for (const file of manifest.files) {
+    for (const file of pass === "declared" ? manifest.files : []) {
       const relativePath = posix.normalize(interpolatePath(file.to, answers));
       const path = resolvePath(file.target, relativePath);
       const ownership: Ownership = file.ownership ?? "managed";
@@ -371,7 +387,9 @@ export async function buildPlan(options: BuildPlanOptions): Promise<BuiltPlan> {
     }
 
     const ownOverrides = opOverrideKeys(manifest);
-    for (const declaredOp of [...manifest.ops, ...envSchemaOps(manifest.env, extensionPoints)]) {
+    for (const declaredOp of pass === "declared"
+      ? manifest.ops
+      : envSchemaOps(manifest.env, extensionPoints)) {
       const op = interpolateTargetsDeep(declaredOp, directoryOf);
       const keys = opKeysOf(declaredOp);
       const overridden = keys.some((key) => {

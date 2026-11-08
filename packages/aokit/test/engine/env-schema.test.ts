@@ -58,6 +58,18 @@ test("env schemas register at env.server and env.client when t3-env declares the
   expect(String(plan.vfs.read(".env"))).toContain("DATABASE_URL=postgres://x");
 });
 
+test("the schema registers when the declaring Module is built before t3-env", async () => {
+  const plan = await buildPlan({
+    modules: [prisma, t3Env],
+    layout: "single",
+    answers: {},
+    context,
+  });
+  expect(String(plan.vfs.read("src/env.ts"))).toContain(
+    "const server = { DATABASE_URL: z.url() };",
+  );
+});
+
 test("without t3-env the schema is skipped and no env.ts is written", async () => {
   const plan = await buildPlan({ modules: [prisma], layout: "single", answers: {}, context });
   expect(plan.vfs.has("src/env.ts")).toBe(false);

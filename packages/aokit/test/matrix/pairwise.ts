@@ -10,8 +10,8 @@ interface ResolveOutcome {
 /** Runs the Resolver on a selection of Module names, without applying suggestions. */
 export type ResolveSelection = (modules: string[]) => ResolveOutcome;
 
-/** The most provider alternatives followed for one Module's requirements. */
-const maxClosuresPerModule = 4;
+/** The most provider alternatives followed for one Module's requirements; real Modules have far fewer. */
+const maxClosuresPerModule = 16;
 
 function byCodepoint(left: string, right: string): number {
   if (left < right) return -1;
