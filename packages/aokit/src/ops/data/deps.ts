@@ -27,7 +27,7 @@ interface ApplyDepsOptions {
   readonly vfs: OpVfs;
   readonly layout: LayoutName;
   readonly module: string;
-  /** The Target whose `package.json` receives the dependencies. */
+  /** The Target whose `package.json` receives every dependency that sets no `target` of its own. */
   readonly target: string;
   readonly deps: ModuleManifest["deps"];
   readonly catalog: Catalog;
@@ -94,7 +94,9 @@ function mergeCatalog(text: string, entries: Readonly<Record<string, string>>): 
 }
 
 /**
- * Writes a Module's `deps` into the Target's `package.json` and returns what the Lockfile records.
+ * Writes a Module's `deps` into the `package.json` of each entry's Target (default: `target`) and
+ * returns what the Lockfile records. Entries that resolve to the same file, as on the single Layout,
+ * merge into one patch: a single Layout has one `package.json`, so a per-entry `target` is ignored.
  * Ranges come from the Catalog; a `pinGroup` makes the version exact. In `monorepo` a workspace
  * package gets bare `catalog:` and the root `package.json` holds the Catalog entries. The recorded
  * `version` is always the resolved Catalog version, so `update` can compare it later.
@@ -105,8 +107,7 @@ export function applyDeps(options: ApplyDepsOptions): Record<string, RecordedDep
   if (deps === undefined) {
     return recorded;
   }
-  const workspacePackage = layout === "monorepo" && target !== "root";
-  const patch: PackageJsonPatch = {};
+  const patches = new Map<string, PackageJsonPatch>();
   const catalogEntries: Record<string, string> = {};
 
   for (const type of DEPENDENCY_TYPES) {
@@ -114,10 +115,14 @@ export function applyDeps(options: ApplyDepsOptions): Record<string, RecordedDep
     if (section === undefined) {
       continue;
     }
-    const written: Record<string, string> = {};
     for (const [name, entry] of Object.entries(section)) {
+      const entryTarget = layout === "single" ? target : (entry.target ?? target);
+      const workspacePackage = layout === "monorepo" && entryTarget !== "root";
       const resolved = resolveDependency(options, name, entry, workspacePackage);
-      written[name] = resolved.written;
+      const packagePath = options.resolvePath(entryTarget, "package.json");
+      const patch = patches.get(packagePath) ?? {};
+      patch[type] = { ...patch[type], [name]: resolved.written };
+      patches.set(packagePath, patch);
       recorded[name] = {
         version: resolved.version,
         pinned: resolved.pinned,
@@ -127,11 +132,11 @@ export function applyDeps(options: ApplyDepsOptions): Record<string, RecordedDep
         catalogEntries[name] = resolved.version;
       }
     }
-    patch[type] = written;
   }
 
-  const packagePath = options.resolvePath(target, "package.json");
-  writeIfChanged(vfs, packagePath, mergePackageJson(readText(vfs, packagePath), patch));
+  for (const [packagePath, patch] of patches) {
+    writeIfChanged(vfs, packagePath, mergePackageJson(readText(vfs, packagePath), patch));
+  }
 
   if (Object.keys(catalogEntries).length > 0) {
     const rootPath = options.resolvePath("root", "package.json");
