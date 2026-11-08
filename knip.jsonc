@@ -1,7 +1,8 @@
 {
   "$schema": "https://unpkg.com/knip@6/schema.json",
-  // The built Registry and the Module file payloads ship as data, not as imported source.
-  "ignore": ["registry/**", "registry-src/*/files/**"],
+  // The built Registry and the Module file payloads ship as data, not as imported source; a Module's
+  // ambient.d.ts only types its own new packages for the workspace typecheck.
+  "ignore": ["registry/**", "registry-src/*/files/**", "registry-src/*/ambient.d.ts"],
   "workspaces": {
     ".": {
       "entry": [

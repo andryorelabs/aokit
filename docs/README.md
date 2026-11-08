@@ -62,6 +62,8 @@ Every Markdown file under `docs/` has a row here; a test fails when one is missi
 | [adr/0021-layout-migration-pairs-files-by-provenance.md](adr/0021-layout-migration-pairs-files-by-provenance.md)                         | 0021. Layout migration pairs files by Provenance and moves seed files as they are                     |
 | [adr/0022-repo-lint-config-is-typescript.md](adr/0022-repo-lint-config-is-typescript.md)                                                 | 0022. The aokit repo configures Oxlint and Knip in TypeScript and JSONC, generated Projects keep JSON |
 | [adr/0023-brand-kit-in-docs-brand.md](adr/0023-brand-kit-in-docs-brand.md)                                                               | 0023. The brand kit lives in docs/brand and its rasters are generated                                 |
+| [adr/0024-pending-modules-catalog-fragments-and-release-cuts.md](adr/0024-pending-modules-catalog-fragments-and-release-cuts.md)         | 0024. Pending Modules, Catalog fragments and explicit Release cuts                                    |
+| [adr/0025-manifest-env-schemas-feed-t3-env.md](adr/0025-manifest-env-schemas-feed-t3-env.md)                                             | 0025. Manifest env schemas feed env.server and env.client                                             |
 
 ## Brand
 

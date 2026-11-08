@@ -74,7 +74,7 @@ Further rules:
 
 ### Marker regions
 
-A Region is the span between `<!-- aokit:begin <id> -->` and `<!-- aokit:end <id> -->`. The `<id>` is `<module>:<region>`, where `<module>` is the owner (a Module name, or the reserved `aokit` for the header) and `<region>` is the `region` field of the `appendRegion` Op. A start marker without its end marker, or a repeated id, is an error.
+A Region is the span between `<!-- aokit:begin <id> -->` and `<!-- aokit:end <id> -->`. `appendRegion` accepts any text file, and the comment marker follows the file type (`markerSyntaxFor`): `<!-- -->` for `md` and `mdx`, `// aokit:begin <id>` for `prisma`, `ts`, `tsx` and `js`, and `# aokit:begin <id>` for `.gitignore`, `.dockerignore`, `.env*`, `yml`, `toml` and extensionless files. The `<id>` is `<module>:<region>`, where `<module>` is the owner (a Module name, or the reserved `aokit` for the header) and `<region>` is the `region` field of the `appendRegion` Op. A start marker without its end marker, or a repeated id, is an error. Comment markers must sit alone on their line, and a marker-looking string inside a string literal of a `//` file, or inside a fenced code block of a Markdown file, is never parsed as a Region. Region-aware merge stays limited to `AGENTS.md` and `CLAUDE.md`; every other file merges as text.
 
 - A Region that exists is replaced in place; only the lines between its own markers change.
 - A new Region is inserted right after the last aokit Region, or at the end of a file with none. The header Region is inserted at the top.
@@ -104,7 +104,7 @@ An Op is a declarative edit applied at an Extension point or to a file. There ar
 | `addEnv`          | Adds env keys without overwriting (also used by `env`).                                                                                                                    |
 | `addCssAtRule`    | Adds a Tailwind v4 at-rule through postcss.                                                                                                                                |
 | `addCssVariables` | Sets CSS custom properties in the `theme`, `light` or `dark` group of a stylesheet through postcss; an existing variable is kept unless the Module declares an `override`. |
-| `appendRegion`    | Writes a marker region in a Markdown file.                                                                                                                                 |
+| `appendRegion`    | Writes a marker region in a text file.                                                                                                                                     |
 
 Every Op names its `target` (see [Layouts](layouts.md#targets)) and, for code Ops, the Extension point and the version range it supports.
 

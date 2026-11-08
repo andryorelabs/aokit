@@ -1,7 +1,8 @@
 # 0005. Layout is optional and logical targets decouple modules from paths
 
 Status: Accepted (2026-11-03)
-Spec: S4 (AO-2673)
+Revised: 2026-11-08, new Targets for the Module expansion (AO-2914)
+Spec: S4 (AO-2673), S1 (AO-2914)
 Architecture: [Layouts](../architecture/layouts.md), [Capabilities: deriving compatibility](../architecture/capabilities.md#deriving-compatibility)
 
 ## Context
@@ -10,7 +11,7 @@ Andry builds both simple sites and multi-package products. S4 states it directly
 
 ## Decision
 
-The user chooses the Layout at `create`: `single` or `monorepo`. No Module may force it; `requires` accepts only Capabilities and Extension points, so nothing can demand `monorepo`. Modules write to logical Targets (`root`, `web`, `server`, `db`, `shared-ui`, `config`) and the Layout resolves each to a path and decides cross-Target wiring (workspace dependency versus relative import). The Layout is recorded in the Lockfile. `aokit layout migrate` is optional and explicit. Separate repositories are separate Projects; cross-repo integration is out of scope.
+The user chooses the Layout at `create`: `single` or `monorepo`. No Module may force it; `requires` accepts only Capabilities and Extension points, so nothing can demand `monorepo`. Modules write to logical Targets (`root`, `web`, `server`, `db`, `shared-ui`, `config`, plus `lib`, `api-client`, `extension`, `emails` and `jobs`) and the Layout resolves each to a path and decides cross-Target wiring (workspace dependency versus relative import). The Layout is recorded in the Lockfile. `aokit layout migrate` is optional and explicit. Separate repositories are separate Projects; cross-repo integration is out of scope.
 
 ## Consequences
 
@@ -19,6 +20,7 @@ The user chooses the Layout at `create`: `single` or `monorepo`. No Module may f
 - A Target a Layout cannot resolve is a Resolver error naming the Modules that provide it.
 - Adding a Layout later means adding a resolution table, not changing Modules.
 - The app Targets `web` and `server` are package roots (`./` in `single`, `apps/<name>` in `monorepo`); Modules write `src/…` themselves, and `{{target:<name>}}` lets a Module name a Target without knowing the Layout (revised 2026-11-03, phase 3 wave 2).
+- The Module expansion adds five Targets. `lib` and `jobs` are `./` in `single` and `packages/<name>/` in `monorepo`; `api-client` and `emails` are `src/api-client/` and `src/emails/` in `single` and `packages/<name>/` in `monorepo`; `extension` is the sub-folder `extension/` in `single` and `apps/extension/` in `monorepo`, so a browser extension coexists with one web base without a `package.json` or tsconfig collision. Existing renders stay byte-identical, and the `aokit:header` Target table keeps only the six core Targets (revised 2026-11-08).
 
 ## Alternatives considered
 

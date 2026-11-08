@@ -73,7 +73,7 @@ Per generated file, one of `managed` (regenerated and 3-way merged), `seed` (wri
 _Avoid_: lock state, protection level
 
 **Region**:
-A span of a Markdown file between aokit begin and end markers, owned by one Module or by aokit itself; aokit rewrites only its Regions.
+A span of a text file between comment markers whose syntax depends on the file type, owned by one Module or by aokit itself; aokit rewrites only its Regions.
 _Avoid_: block, managed section
 
 **Region file**:
@@ -120,6 +120,14 @@ _Avoid_: error, failure
 A versioned, immutable snapshot of a Registry: its Modules and the one Catalog tested with them (`2026.11.0`).
 _Avoid_: version (of a Registry), drop, channel
 
+**Catalog fragment**:
+A Pending Module's `catalog.json`, listing only the dependencies the latest Release Catalog lacks; merged with it into a draft Catalog until the Release is cut.
+_Avoid_: partial catalog, catalog patch
+
+**Pending Module**:
+A Module with a Catalog fragment and no published version; the Registry build skips it.
+_Avoid_: draft Module, unreleased Module
+
 **Catalog**:
 The set of dependency versions a Release ships, tested together.
 _Avoid_: version map, bill of materials
@@ -163,6 +171,7 @@ _Avoid_: app, workspace
 - The **Merger** combines the base Render, the user's file and the new Render; what it cannot reconcile is a **Conflict**.
 - A **Region file** holds one **Region** per Module plus aokit's header; the Merger replaces Regions and keeps the user's text outside them.
 - A **Registry** publishes **Releases**; each Release has one **Catalog**; the **Toolchain pin group** is the part of the Catalog pinned exactly.
+- A **Pending Module** ships a **Catalog fragment**; the fragments merge with the latest **Catalog** until a Release is cut.
 - A command fetches only from a **Trusted Registry**; a git-hosted Registry is fetched at its **Pin**, and a **Yanked version** is served but never chosen.
 - A **Release** is a Registry snapshot; a **CLI version** is the program that reads it; a Registry index can require a minimum CLI version.
 - `layout migrate` performs a **Layout migration**: it pairs files across two Renders by **Provenance**.

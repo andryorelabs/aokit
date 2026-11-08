@@ -415,3 +415,71 @@ test.each([
   expect(message).toContain("Module oxc");
   expect(message).toContain(path);
 });
+
+async function addPendingModule(source: string): Promise<void> {
+  await mkdir(join(source, "pending"), { recursive: true });
+  await writeFile(
+    join(source, "pending", "module.ts"),
+    `export default { name: "pending", version: "0.1.0", provides: ["pending-thing"] };\n`,
+    "utf8",
+  );
+  await writeFile(
+    join(source, "pending", "catalog.json"),
+    `${JSON.stringify({ dependencies: { zod: "^4.0.0" } })}\n`,
+    "utf8",
+  );
+}
+
+test("a Pending Module is skipped so the built Registry stays byte-identical", async () => {
+  const source = await fixtureSource();
+  const baseline = await temporaryDirectory();
+  await buildRegistry(source, baseline);
+  await addPendingModule(source);
+  const out = await temporaryDirectory();
+  await cp(baseline, out, { recursive: true });
+  await buildRegistry(source, out);
+  expect(await diffDirectories(out, baseline)).toEqual([]);
+});
+
+test("registry/ is unchanged when a Pending Module sits in registry-src", async () => {
+  const scratch = await mkdtemp(join(repoRoot, "node_modules", ".aokit-pending-"));
+  temporaryDirectories.push(scratch);
+  const source = join(scratch, "registry-src");
+  await cp(join(repoRoot, "registry-src"), source, { recursive: true });
+  await addPendingModule(source);
+  const out = await temporaryDirectory();
+  await cp(join(repoRoot, "registry"), out, { recursive: true });
+  await buildRegistry(source, out);
+  expect(await diffDirectories(out, join(repoRoot, "registry"))).toEqual([]);
+});
+
+test("includePending builds the Pending Module and a draft Release with the composed Catalog", async () => {
+  const source = await fixtureSource();
+  await addPendingModule(source);
+  const out = await temporaryDirectory();
+  await buildRegistry(source, out, { includePending: true });
+  const index = await readBuiltIndex(out);
+  expect(Object.keys(index.modules)).toEqual(["knip", "oxc", "pending"]);
+  expect(index.release).toBe("2026.11.1");
+  const draft: unknown = JSON.parse(await readFile(join(out, "catalog/2026.11.1.json"), "utf8"));
+  expect(draft).toMatchObject({
+    dependencies: { oxlint: "1.90.0", zod: "^4.0.0" },
+    modules: { pending: "0.1.0" },
+  });
+});
+
+test("includePending without a Pending Module adds no draft Release", async () => {
+  const source = await fixtureSource();
+  const out = await temporaryDirectory();
+  await buildRegistry(source, out, { includePending: true });
+  expect(Object.keys((await readBuiltIndex(out)).releases)).toEqual(["2026.11.0"]);
+});
+
+test("a published Module with a leftover catalog.json is still built", async () => {
+  const source = await fixtureSource();
+  const out = await temporaryDirectory();
+  await buildRegistry(source, out);
+  await writeFile(join(source, "oxc", "catalog.json"), `{"dependencies":{}}\n`, "utf8");
+  await buildRegistry(source, out);
+  expect(Object.keys((await readBuiltIndex(out)).modules)).toEqual(["knip", "oxc"]);
+});

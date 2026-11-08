@@ -169,8 +169,16 @@ export const dataOpHandlers: OpHandlers = {
     if (op.op !== "appendRegion") {
       mismatch(context, "appendRegion", op.op);
     }
-    editFile(context, op, (text) =>
-      appendRegion(text, { module: `${context.module}:${op.region}`, content: op.content }),
+    const { target, file } = resolveDataTarget(context, op);
+    const path = context.resolvePath(target, file);
+    writeIfChanged(
+      context.vfs,
+      path,
+      appendRegion(readText(context.vfs, path), {
+        module: `${context.module}:${op.region}`,
+        content: op.content,
+        path,
+      }),
     );
   },
 };

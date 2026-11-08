@@ -3,7 +3,19 @@ import { z } from "zod";
 /**
  * Logical destinations a Module writes to; the Layout resolves them to paths.
  */
-export const targetSchema = z.enum(["root", "config", "web", "server", "db", "shared-ui"]);
+export const targetSchema = z.enum([
+  "root",
+  "config",
+  "web",
+  "server",
+  "db",
+  "shared-ui",
+  "lib",
+  "api-client",
+  "extension",
+  "emails",
+  "jobs",
+]);
 
 const extensionPointName = z.string().regex(/^[a-z][a-z0-9-]*(\.[a-z][a-z0-9-]*)+$/, {
   message: "Extension point names are dot-separated lowercase kebab-case, e.g. web.providers",

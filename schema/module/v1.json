@@ -283,7 +283,12 @@
               "web",
               "server",
               "db",
-              "shared-ui"
+              "shared-ui",
+              "lib",
+              "api-client",
+              "extension",
+              "emails",
+              "jobs"
             ],
             "type": "string"
           },
@@ -331,7 +336,12 @@
               "web",
               "server",
               "db",
-              "shared-ui"
+              "shared-ui",
+              "lib",
+              "api-client",
+              "extension",
+              "emails",
+              "jobs"
             ],
             "type": "string"
           },
@@ -432,7 +442,12 @@
                   "web",
                   "server",
                   "db",
-                  "shared-ui"
+                  "shared-ui",
+                  "lib",
+                  "api-client",
+                  "extension",
+                  "emails",
+                  "jobs"
                 ],
                 "type": "string"
               }
@@ -472,7 +487,12 @@
                   "web",
                   "server",
                   "db",
-                  "shared-ui"
+                  "shared-ui",
+                  "lib",
+                  "api-client",
+                  "extension",
+                  "emails",
+                  "jobs"
                 ],
                 "type": "string"
               }
@@ -516,7 +536,12 @@
                   "web",
                   "server",
                   "db",
-                  "shared-ui"
+                  "shared-ui",
+                  "lib",
+                  "api-client",
+                  "extension",
+                  "emails",
+                  "jobs"
                 ],
                 "type": "string"
               }
@@ -550,7 +575,12 @@
                       "web",
                       "server",
                       "db",
-                      "shared-ui"
+                      "shared-ui",
+                      "lib",
+                      "api-client",
+                      "extension",
+                      "emails",
+                      "jobs"
                     ],
                     "type": "string"
                   },
@@ -621,7 +651,12 @@
                       "web",
                       "server",
                       "db",
-                      "shared-ui"
+                      "shared-ui",
+                      "lib",
+                      "api-client",
+                      "extension",
+                      "emails",
+                      "jobs"
                     ],
                     "type": "string"
                   },
@@ -707,7 +742,12 @@
                       "web",
                       "server",
                       "db",
-                      "shared-ui"
+                      "shared-ui",
+                      "lib",
+                      "api-client",
+                      "extension",
+                      "emails",
+                      "jobs"
                     ],
                     "type": "string"
                   }
@@ -792,7 +832,12 @@
                       "web",
                       "server",
                       "db",
-                      "shared-ui"
+                      "shared-ui",
+                      "lib",
+                      "api-client",
+                      "extension",
+                      "emails",
+                      "jobs"
                     ],
                     "type": "string"
                   }
@@ -877,7 +922,12 @@
                   "web",
                   "server",
                   "db",
-                  "shared-ui"
+                  "shared-ui",
+                  "lib",
+                  "api-client",
+                  "extension",
+                  "emails",
+                  "jobs"
                 ],
                 "type": "string"
               },
@@ -928,7 +978,12 @@
                       "web",
                       "server",
                       "db",
-                      "shared-ui"
+                      "shared-ui",
+                      "lib",
+                      "api-client",
+                      "extension",
+                      "emails",
+                      "jobs"
                     ],
                     "type": "string"
                   }

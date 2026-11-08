@@ -1,4 +1,4 @@
-import { mkdtempSync } from "node:fs";
+import { mkdirSync, mkdtempSync } from "node:fs";
 import { mkdir, readFile, readdir, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
@@ -84,6 +84,7 @@ export async function createProject(
   layout = "single",
 ): Promise<string> {
   counter += 1;
+  mkdirSync(workspace, { recursive: true });
   const directory = join(workspace, `app-${counter}`);
   const envelope = await runCommand(createCommand, context, {
     directory,
