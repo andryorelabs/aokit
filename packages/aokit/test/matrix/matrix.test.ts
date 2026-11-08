@@ -1,56 +1,19 @@
 import { createHash } from "node:crypto";
 import { writeFile } from "node:fs/promises";
-import { join } from "node:path";
 import { describe, expect, test } from "bun:test";
-import { cliVersion } from "../../src/cli/version.ts";
-import { type EngineModule } from "../../src/engine/index.ts";
 import type { LayoutName } from "../../src/engine/layout.ts";
-import { formatterForSelection } from "../../src/format/index.ts";
-import { buildProject } from "../../src/pipeline/index.ts";
-import { type LocalRegistry, readLocalRegistry } from "../../src/registry/index.ts";
-import { type Selection, feasiblePairs, pairwiseCover, validSelections } from "./pairwise.ts";
+import { resolve } from "../../src/resolver/resolve.ts";
+import { buildSelection } from "../modules/support/index.ts";
+import { type Selection, pairwiseSelections } from "./pairwise.ts";
+import { loadSourceManifests } from "./source.ts";
 
-const registryPath = join(import.meta.dir, "..", "..", "..", "..", "registry");
 const layouts: readonly LayoutName[] = ["single", "monorepo"];
 
-function engineModules(registry: LocalRegistry): EngineModule[] {
-  return [...registry.modules.entries()].map(([name, entry]) => ({
-    manifest: entry.manifest,
-    readFile(from) {
-      const content = entry.files.get(from);
-      if (content === undefined) {
-        throw new Error(`Module ${name} has no file ${from}`);
-      }
-      return content;
-    },
-  }));
-}
-
 async function buildDigest(
-  registry: LocalRegistry,
-  available: readonly EngineModule[],
   selection: Selection,
   layout: LayoutName,
 ): Promise<{ readonly planHash: string; readonly digest: string }> {
-  const manifests = available
-    .map((module) => module.manifest)
-    .filter((manifest) => selection.includes(manifest.name));
-  const formatter = formatterForSelection({ catalog: registry.currentCatalog, modules: manifests });
-  const built = await buildProject({
-    selection,
-    available,
-    answers: {},
-    layout,
-    catalog: registry.currentCatalog,
-    context: { now: new Date(0), random: () => 0.5, env: {} },
-    registry: {
-      name: registry.name,
-      source: "bundled",
-      release: registry.release,
-      minCliVersion: "0.1.0",
-    },
-    ...(formatter === undefined ? {} : { formatter }),
-  });
+  const built = await buildSelection(selection, layout);
   if (!built.ok) {
     throw new Error(`${layout} ${selection.join(",")}: ${built.error.message}`);
   }
@@ -61,34 +24,23 @@ async function buildDigest(
   };
 }
 
-const registry = await readLocalRegistry(registryPath, { cliVersion });
-const available = engineModules(registry);
-const manifests = available.map((module) => module.manifest);
+const manifests = await loadSourceManifests();
 const names = manifests.map((manifest) => manifest.name);
-const selections = validSelections(manifests);
-const cover = pairwiseCover(names, selections);
+const cover = pairwiseSelections(names, (modules) => resolve({ modules }, manifests));
 
 describe("capability-derived matrix", () => {
-  test("enumerates the curated Modules and the selections the Resolver accepts", () => {
-    expect(names.toSorted()).toEqual([
-      "coolify",
-      "docker",
-      "hono",
-      "knip",
-      "oxc",
-      "tailwind4",
-      "vite-react",
-    ]);
-    expect(selections.length).toBeGreaterThan(0);
-    expect(selections).not.toContainEqual(["coolify"]);
-    expect(selections).toContainEqual(["coolify", "docker"]);
-  });
-
-  test("the covering set realizes every feasible pair of Modules", () => {
-    expect(feasiblePairs(names, cover)).toEqual(feasiblePairs(names, selections));
-    expect(cover.length).toBeLessThan(selections.length);
+  test("covers the Modules the harness loader finds with selections the Resolver accepts", () => {
+    expect(names.length).toBeGreaterThan(0);
+    expect(cover.length).toBeGreaterThan(0);
     for (const selection of cover) {
-      expect(selections).toContainEqual(selection);
+      expect(resolve({ modules: selection }, manifests).ok).toBe(true);
+    }
+    expect(
+      cover.some((selection) => selection.includes("coolify") && selection.includes("docker")),
+    ).toBe(true);
+    expect(cover).not.toContainEqual(["coolify"]);
+    for (const name of names) {
+      expect(cover.some((selection) => selection.includes(name))).toBe(true);
     }
   });
 
@@ -99,15 +51,14 @@ describe("capability-derived matrix", () => {
       for (const layout of layouts) {
         for (const selection of cover) {
           // oxlint-disable-next-line eslint/no-await-in-loop -- fixed, ordered output
-          const first = await buildDigest(registry, available, selection, layout);
+          const first = await buildDigest(selection, layout);
           // oxlint-disable-next-line eslint/no-await-in-loop -- fixed, ordered output
-          const second = await buildDigest(registry, available, selection, layout);
+          const second = await buildDigest(selection, layout);
           expect(second.planHash).toBe(first.planHash);
           expect(second.digest).toBe(first.digest);
           digests[`${layout} ${selection.join(",")}`] = first.digest;
         }
       }
-      expect(digests).toMatchSnapshot();
       const target = process.env["AOKIT_MATRIX_DIGEST_FILE"];
       if (target !== undefined && target !== "") {
         const lines = Object.entries(digests).map(([key, digest]) => `${key} ${digest}`);

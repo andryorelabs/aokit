@@ -1,4 +1,5 @@
-import { posix } from "node:path";
+import { readFileSync } from "node:fs";
+import { join, posix } from "node:path";
 
 /** The two supported Layouts. */
 export type LayoutName = "single" | "monorepo";
@@ -9,16 +10,88 @@ export interface Combination {
   readonly modules: readonly string[];
 }
 
-/** The curated selections built for real, each on both Layouts. */
-const curatedSelections: readonly (readonly string[])[] = [
-  ["oxc", "knip", "vite-react", "tailwind4"],
-  ["oxc", "hono", "docker", "coolify"],
-];
+/** One curated file: a selection of Modules and the Layouts it is built on (both when omitted). */
+export interface CuratedSelection {
+  readonly slug: string;
+  readonly modules: readonly string[];
+  readonly layouts?: readonly LayoutName[];
+}
 
-/** Every curated combination: each curated selection on `single` and on `monorepo`. */
-export const curatedCombinations: readonly Combination[] = curatedSelections.flatMap((modules) =>
-  (["single", "monorepo"] as const).map((layout) => ({ layout, modules })),
-);
+const curatedDirectory = join(import.meta.dir, "curated");
+const allLayouts: readonly LayoutName[] = ["single", "monorepo"];
+
+function isLayoutName(value: unknown): value is LayoutName {
+  return value === "single" || value === "monorepo";
+}
+
+function isNameList(value: unknown): value is string[] {
+  return (
+    Array.isArray(value) &&
+    value.length > 0 &&
+    value.every((name) => typeof name === "string" && name !== "")
+  );
+}
+
+/**
+ * Validates one parsed `curated/*.json` value.
+ *
+ * @param source The file name, used in error messages.
+ */
+export function parseCuratedSelection(value: unknown, source: string): CuratedSelection {
+  if (!isRecord(value)) throw new Error(`${source}: expected an object`);
+  const { slug, modules, layouts } = value;
+  if (typeof slug !== "string" || !/^[a-z0-9]+(?:-[a-z0-9]+)*$/u.test(slug)) {
+    throw new Error(`${source}: "slug" must be a kebab-case string`);
+  }
+  if (!isNameList(modules)) {
+    throw new Error(`${source}: "modules" must be a non-empty array of Module names`);
+  }
+  if (layouts === undefined) return { slug, modules };
+  if (!Array.isArray(layouts) || layouts.length === 0 || !layouts.every(isLayoutName)) {
+    throw new Error(`${source}: "layouts" must be a non-empty array of "single" or "monorepo"`);
+  }
+  return { slug, modules, layouts };
+}
+
+/** Reads every `curated/*.json` in `directory`, in file name order. */
+export function readCuratedSelections(directory: string = curatedDirectory): CuratedSelection[] {
+  const files = [...new Bun.Glob("*.json").scanSync({ cwd: directory })].toSorted(byCodepoint);
+  const selections = files.map((file) =>
+    parseCuratedSelection(JSON.parse(readFileSync(join(directory, file), "utf8")), file),
+  );
+  if (new Set(selections.map((selection) => selection.slug)).size !== selections.length) {
+    throw new Error(`${directory}: curated slugs must be unique`);
+  }
+  return selections;
+}
+
+/** Every curated combination: each selection on its Layouts, `single` then `monorepo`. */
+export function curatedCombinationsOf(selections: readonly CuratedSelection[]): Combination[] {
+  return selections.flatMap((selection) =>
+    allLayouts
+      .filter((layout) => (selection.layouts ?? allLayouts).includes(layout))
+      .map((layout) => ({ layout, modules: selection.modules })),
+  );
+}
+
+/** Every curated combination read from `curated/*.json`. */
+export const curatedCombinations: readonly Combination[] =
+  curatedCombinationsOf(readCuratedSelections());
+
+/** The GitHub Actions matrix of `selections`: one `include` entry per combination. */
+export function matrixOf(selections: readonly CuratedSelection[]): {
+  include: { layout: LayoutName; modules: string; slug: string }[];
+} {
+  return {
+    include: selections.flatMap((selection) =>
+      curatedCombinationsOf([selection]).map((combination) => ({
+        layout: combination.layout,
+        modules: combination.modules.join(","),
+        slug: selection.slug,
+      })),
+    ),
+  };
+}
 
 /** Stable label of a combination, e.g. `single oxc,hono`. */
 export function combinationLabel(combination: Combination): string {

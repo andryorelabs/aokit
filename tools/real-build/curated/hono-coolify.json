@@ -1,0 +1,1 @@
+{ "slug": "hono-coolify", "modules": ["oxc", "hono", "docker", "coolify"] }
