@@ -17,6 +17,11 @@ export const layoutTables: Readonly<Record<LayoutName, Readonly<Record<Target, s
     server: "",
     db: "src/db",
     "shared-ui": "src/components",
+    lib: "",
+    "api-client": "src/api-client",
+    extension: "extension",
+    emails: "src/emails",
+    jobs: "",
   },
   monorepo: {
     root: "",
@@ -25,6 +30,11 @@ export const layoutTables: Readonly<Record<LayoutName, Readonly<Record<Target, s
     server: "apps/server",
     db: "packages/db",
     "shared-ui": "packages/ui",
+    lib: "packages/lib",
+    "api-client": "packages/api-client",
+    extension: "apps/extension",
+    emails: "packages/emails",
+    jobs: "packages/jobs",
   },
 };
 

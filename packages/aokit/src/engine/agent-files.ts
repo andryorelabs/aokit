@@ -1,6 +1,6 @@
 import { aokitCommandLines } from "../mcp/guidance/static.ts";
 import { upsertRegion } from "../patchers/markdown/regions.ts";
-import { type LayoutName, layoutTables } from "./layout.ts";
+import { type LayoutName, layoutTables, type Target } from "./layout.ts";
 import type { OpVfs } from "./ops.ts";
 
 /** The reserved pseudo-owner of the Agent files' header and `CLAUDE.md` Regions. */
@@ -11,11 +11,21 @@ const claudePath = "CLAUDE.md";
 const headerRegionId = `${coreOwner}:header`;
 const claudeRegionId = `${coreOwner}:claude`;
 
+/** The Targets listed in the `aokit:header` Target table: the six core Targets. */
+export const headerTargets: readonly Target[] = [
+  "root",
+  "config",
+  "web",
+  "server",
+  "db",
+  "shared-ui",
+];
+
 function targetTable(layout: LayoutName): string {
-  const rows = Object.entries(layoutTables[layout]).map(
-    ([target, directory]) =>
-      [`\`${target}\``, `\`${directory === "" ? "." : directory}\``] as const,
-  );
+  const rows = headerTargets.map((target) => {
+    const directory = layoutTables[layout][target];
+    return [`\`${target}\``, `\`${directory === "" ? "." : directory}\``] as const;
+  });
   const header = ["Target", "Path"] as const;
   const widths = [0, 1].map((column) =>
     Math.max(header[column]?.length ?? 0, ...rows.map((row) => row[column]?.length ?? 0)),
