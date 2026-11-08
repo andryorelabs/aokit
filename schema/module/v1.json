@@ -435,6 +435,9 @@
                 "minLength": 1,
                 "type": "string"
               },
+              "sideEffect": {
+                "type": "boolean"
+              },
               "target": {
                 "enum": [
                   "root",
