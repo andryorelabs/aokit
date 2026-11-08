@@ -25,7 +25,7 @@ const fileMatchers: Readonly<Record<DataOp["op"], RegExp>> = {
   addEnv: /(?:^|\/)\.env[^/]*$/,
   addCssAtRule: /\.css$/,
   addCssVariables: /\.css$/,
-  appendRegion: /\.md$/,
+  appendRegion: /(?:^|\/)[^/]+$/,
 };
 
 function describePoint(point: DeclaredExtensionPoint): string {
