@@ -82,6 +82,29 @@ function blank(text: string): string {
   return text.replaceAll(/[^\r\n]/g, " ");
 }
 
+/** True when a `/` after the scanned prefix opens a regex literal rather than a division. */
+function startsRegexLiteral(scanned: string): boolean {
+  const before = scanned.trimEnd();
+  if (before === "") return true;
+  return /[(,=:[!&|?{};]$/.test(before) || /(?:^|[^\w$])(?:return|typeof|case)$/.test(before);
+}
+
+/** Offset just after the regex literal that starts at `start`, or after the `/` when it is unclosed. */
+function regexLiteralEnd(text: string, start: number): number {
+  let cursor = start + 1;
+  let inClass = false;
+  while (cursor < text.length) {
+    const character = text.charAt(cursor);
+    if (character === "\n") return start + 1;
+    if (character === "\\") cursor += 1;
+    else if (character === "[") inClass = true;
+    else if (character === "]") inClass = false;
+    else if (character === "/" && !inClass) return cursor + 1;
+    cursor += 1;
+  }
+  return start + 1;
+}
+
 /** Blanks the content of string literals, keeping comments, offsets and line breaks in place. */
 function maskStringLiterals(text: string): string {
   let result = "";
@@ -97,6 +120,10 @@ function maskStringLiterals(text: string): string {
     } else if (pair === "/*") {
       const close = text.indexOf("*/", index + 2);
       const stop = close === -1 ? text.length : close + 2;
+      result += text.slice(index, stop);
+      index = stop;
+    } else if (character === "/" && startsRegexLiteral(result)) {
+      const stop = regexLiteralEnd(text, index);
       result += text.slice(index, stop);
       index = stop;
     } else if (character === '"' || character === "'" || character === "`") {
@@ -127,9 +154,20 @@ const htmlSyntax: Syntax = {
 const slashSyntax = commentSyntax("//", maskStringLiterals);
 const hashSyntax = commentSyntax("#", identity);
 
+function isHashFile(path: string): boolean {
+  const name = path.slice(path.lastIndexOf("/") + 1);
+  return /^\.[^.]+$/.test(name) || /^\.env(?:\..+)?$/.test(name) || /\.(?:ya?ml|toml)$/.test(name)
+    ? true
+    : !name.includes(".");
+}
+
 function syntaxOf(path: string | undefined): Syntax {
   if (path === undefined || htmlExtensions.test(path)) return htmlSyntax;
-  return slashExtensions.test(path) ? slashSyntax : hashSyntax;
+  if (slashExtensions.test(path)) return slashSyntax;
+  if (isHashFile(path)) return hashSyntax;
+  throw new RegionSyntaxError(
+    `Regions are not supported in "${path}": only Markdown, JavaScript-family, prisma, ignore, .env, yml, toml and extensionless files can hold them.`,
+  );
 }
 
 /**
