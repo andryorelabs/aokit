@@ -2,7 +2,15 @@ import { describe, expect, test } from "bun:test";
 import { mkdir, mkdtemp, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
-import { combinationLabel, curatedCombinations, planSteps } from "./plan.ts";
+import {
+  combinationLabel,
+  curatedCombinations,
+  curatedCombinationsOf,
+  matrixOf,
+  parseCuratedSelection,
+  planSteps,
+  readCuratedSelections,
+} from "./plan.ts";
 import { type Exec, runCombination } from "./run.ts";
 
 const failingCreate: Exec = () =>
@@ -19,6 +27,45 @@ describe("curatedCombinations", () => {
       "single oxc,hono,docker,coolify",
       "single oxc,knip,vite-react,tailwind4",
     ]);
+  });
+});
+
+describe("curated selections", () => {
+  test("reads every curated JSON file by glob", async () => {
+    const directory = await mkdtemp(join(tmpdir(), "aokit-curated-"));
+    const files: Record<string, string> = {
+      "b.json": JSON.stringify({ slug: "b", modules: ["x"], layouts: ["monorepo"] }),
+      "a.json": JSON.stringify({ slug: "a", modules: ["y", "z"] }),
+      "notes.txt": "ignored",
+    };
+    await Promise.all(
+      Object.entries(files).map(([name, content]) => writeFile(join(directory, name), content)),
+    );
+    const selections = readCuratedSelections(directory);
+    expect(selections.map((selection) => selection.slug)).toEqual(["a", "b"]);
+    expect(curatedCombinationsOf(selections).map(combinationLabel)).toEqual([
+      "single y,z",
+      "monorepo y,z",
+      "monorepo x",
+    ]);
+    expect(matrixOf(selections).include).toEqual([
+      { layout: "single", modules: "y,z", slug: "a" },
+      { layout: "monorepo", modules: "y,z", slug: "a" },
+      { layout: "monorepo", modules: "x", slug: "b" },
+    ]);
+  });
+
+  test("rejects malformed and duplicate files", async () => {
+    expect(() => parseCuratedSelection({ slug: "Bad", modules: ["x"] }, "f.json")).toThrow(/slug/);
+    expect(() => parseCuratedSelection({ slug: "ok", modules: [] }, "f.json")).toThrow(/modules/);
+    expect(() =>
+      parseCuratedSelection({ slug: "ok", modules: ["x"], layouts: ["triple"] }, "f.json"),
+    ).toThrow(/layouts/);
+    expect(() => parseCuratedSelection("x", "f.json")).toThrow(/object/);
+    const directory = await mkdtemp(join(tmpdir(), "aokit-curated-"));
+    await writeFile(join(directory, "a.json"), JSON.stringify({ slug: "same", modules: ["x"] }));
+    await writeFile(join(directory, "b.json"), JSON.stringify({ slug: "same", modules: ["y"] }));
+    expect(() => readCuratedSelections(directory)).toThrow(/unique/);
   });
 });
 

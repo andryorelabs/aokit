@@ -2,12 +2,18 @@ import { mkdtemp } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join, resolve } from "node:path";
 import { parseArgs } from "node:util";
-import { type Combination, type LayoutName, curatedCombinations } from "./plan.ts";
+import {
+  type Combination,
+  type LayoutName,
+  curatedCombinations,
+  matrixOf,
+  readCuratedSelections,
+} from "./plan.ts";
 import { type CombinationResult, type Exec, runCombination } from "./run.ts";
 
 const workspaceRoot = join(import.meta.dir, "..", "..");
 const usage =
-  "usage: bun tools/real-build/main.ts [--layout single|monorepo] [--modules a,b,c] [--registry <path>]";
+  "usage: bun tools/real-build/main.ts [--layout single|monorepo] [--modules a,b,c] [--registry <path>] [--matrix]";
 
 const exec: Exec = async (command, cwd) => {
   const child = Bun.spawn([...command], {
@@ -68,8 +74,14 @@ const { values } = parseArgs({
     layout: { type: "string" },
     modules: { type: "string" },
     registry: { type: "string" },
+    matrix: { type: "boolean" },
   },
 });
+
+if (values.matrix === true) {
+  process.stdout.write(`${JSON.stringify(matrixOf(readCuratedSelections()))}\n`);
+  process.exit(0);
+}
 
 const combinations = selectCombinations(values.layout, values.modules);
 const scratch = await mkdtemp(join(tmpdir(), "aokit-real-build-"));

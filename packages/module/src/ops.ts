@@ -60,10 +60,15 @@ const addImportOpSchema = z
     named: z.array(z.string().min(1)).optional(),
     default: z.string().min(1).optional(),
     namespace: z.string().min(1).optional(),
+    sideEffect: z.boolean().optional(),
   })
   .refine(
-    (op) => (op.named?.length ?? 0) > 0 || op.default !== undefined || op.namespace !== undefined,
-    { message: "addImport needs at least one of named, default or namespace" },
+    (op) =>
+      (op.named?.length ?? 0) > 0 ||
+      op.default !== undefined ||
+      op.namespace !== undefined ||
+      op.sideEffect === true,
+    { message: "addImport needs at least one of named, default, namespace or sideEffect" },
   );
 
 /**

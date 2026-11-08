@@ -1,0 +1,1 @@
+{ "slug": "web-app", "modules": ["oxc", "knip", "vite-react", "tailwind4"] }

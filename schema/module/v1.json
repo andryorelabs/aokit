@@ -133,6 +133,22 @@
               "range": {
                 "minLength": 1,
                 "type": "string"
+              },
+              "target": {
+                "enum": [
+                  "root",
+                  "config",
+                  "web",
+                  "server",
+                  "db",
+                  "shared-ui",
+                  "lib",
+                  "api-client",
+                  "extension",
+                  "emails",
+                  "jobs"
+                ],
+                "type": "string"
               }
             },
             "required": [
@@ -156,6 +172,22 @@
               },
               "range": {
                 "minLength": 1,
+                "type": "string"
+              },
+              "target": {
+                "enum": [
+                  "root",
+                  "config",
+                  "web",
+                  "server",
+                  "db",
+                  "shared-ui",
+                  "lib",
+                  "api-client",
+                  "extension",
+                  "emails",
+                  "jobs"
+                ],
                 "type": "string"
               }
             },
@@ -181,6 +213,22 @@
               "range": {
                 "minLength": 1,
                 "type": "string"
+              },
+              "target": {
+                "enum": [
+                  "root",
+                  "config",
+                  "web",
+                  "server",
+                  "db",
+                  "shared-ui",
+                  "lib",
+                  "api-client",
+                  "extension",
+                  "emails",
+                  "jobs"
+                ],
+                "type": "string"
               }
             },
             "required": [
@@ -204,6 +252,22 @@
               },
               "range": {
                 "minLength": 1,
+                "type": "string"
+              },
+              "target": {
+                "enum": [
+                  "root",
+                  "config",
+                  "web",
+                  "server",
+                  "db",
+                  "shared-ui",
+                  "lib",
+                  "api-client",
+                  "extension",
+                  "emails",
+                  "jobs"
+                ],
                 "type": "string"
               }
             },
@@ -238,6 +302,13 @@
           },
           "scope": {
             "minLength": 1,
+            "type": "string"
+          },
+          "visibility": {
+            "enum": [
+              "server",
+              "client"
+            ],
             "type": "string"
           }
         },
@@ -434,6 +505,9 @@
               "range": {
                 "minLength": 1,
                 "type": "string"
+              },
+              "sideEffect": {
+                "type": "boolean"
               },
               "target": {
                 "enum": [

@@ -71,6 +71,7 @@ const dependencyMap = z.record(
   z.strictObject({
     range: z.string().min(1),
     pinGroup: z.string().min(1).optional(),
+    target: targetSchema.optional(),
   }),
 );
 
@@ -86,6 +87,7 @@ const envEntry = z.strictObject({
   scope: z.string().min(1),
   example: z.string().optional(),
   schema: z.string().optional(),
+  visibility: z.enum(["server", "client"]).optional(),
 });
 
 const answer = z.strictObject({
