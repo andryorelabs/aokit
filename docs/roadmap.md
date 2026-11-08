@@ -21,6 +21,9 @@ flowchart LR
   P6B --> P7A
   P5B --> P7A
   P7A --> P7B[7b Release pipeline]
+  P4B --> P9[9 Module expansion]
+  P5B --> P9
+  P6B --> P9
   P4B --> P8[8 Layout migration and engine debt]
 ```
 
@@ -36,6 +39,7 @@ flowchart LR
 | 6a. MCP server                      | 4b, 5b     | MCP server, `aokit schema`, `aokit mcp init`.                                                                                           |
 | 6b. Agent files                     | 4b, 5b     | Agent files in generated Projects.                                                                                                      |
 | 7a. Distributable CLI               | 5b, 6a, 6b | npm packages, standalone binary, update notices, binary tests.                                                                          |
+| 9. Module expansion                 | 4b, 5b, 6b | About 40 first-party Modules, new Targets, Pending Modules and one Release `2026.12.0`.                                                 |
 | 7b. Release pipeline                | 7a         | Publishing, provenance, checksums, attestations, releases.                                                                              |
 | 8. Layout migration and engine debt | 4b         | `layout migrate`, one edit batch per file, one Extension point resolver, formatter support by extension, the docs index invariant test. |
 
@@ -182,6 +186,21 @@ Exit criteria:
 - A release dry run publishes with provenance and attaches verifiable checksums and attestations.
 - `bunx create-aokit` and `bunx aokit add` work from a published pre-release.
 - Windows and darwin-x64 binaries are published without an e2e run, and the release notes say so.
+
+### 9. Module expansion
+
+Phase 9 needs phases 4b, 5b and 6b and ships before 7b. It grows the first-party Registry from 7 Modules to the stack the owner uses ([ADR 0024](adr/0024-pending-modules-catalog-fragments-and-release-cuts.md), [ADR 0025](adr/0025-manifest-env-schemas-feed-t3-env.md)).
+
+Scope: the Targets `lib`, `api-client`, `extension`, `emails` and `jobs`; Pending Modules with Catalog fragments and `composeDraftCatalog()`; Regions in any text file; a constructive pairwise matrix and a curated real-build set read from `tools/real-build/curated/*.json`; per-Target dependencies; env schemas feeding t3-env; `sideEffect` imports on `web.styles`; the tooling, test, web base, data, UI and state, Next add-on and remaining Modules; base updates (vite-react 1.3.0, tailwind4 2.0.0, hono 1.2.0); one Release `2026.12.0`.
+
+Exit criteria:
+
+- Every new or bumped Module has a VFS test for default and monorepo renders, its `agents` Region, dependency placement and requires/conflicts errors.
+- A Module that lands before the cut changes nothing in `registry/`; `bun run test` passes on the draft Catalog.
+- The matrix covers every feasible pair within its timeout, and the existing renders are byte-identical.
+- `aokit create --yes --json` with all tooling Modules on vite-react installs, typechecks and rejects a bad commit message.
+- A 2026.11.2 Project with vite-react and tailwind4 updated to 2026.12.0 has zero Conflicts.
+- After the cut, `aokit create` offers every new Module and no `registry-src/*/catalog.json` remains.
 
 ### 8. Layout migration and engine debt
 

@@ -1,7 +1,8 @@
 # 0020. Agent files are Region files, merged by Region and owned in part by aokit
 
 Status: Accepted (2026-11-04)
-Spec: S1 to S13 (phase 6b spec)
+Revised: 2026-11-08, Regions in any text file (AO-2914)
+Spec: S1 to S13 (phase 6b spec), S3 (AO-2914)
 Architecture: [Interfaces: agent files](../architecture/interfaces.md#agent-files-in-generated-projects), [Engine: marker regions](../architecture/engine.md#marker-regions), [Lockfile: Region files](../architecture/lockfile.md#region-files)
 
 ## Context
@@ -12,6 +13,7 @@ Architecture: [Interfaces: agent files](../architecture/interfaces.md#agent-file
 
 - **Region files.** The root `AGENTS.md` and `CLAUDE.md` are Region files. They stay `managed`: there is no new Ownership mode and no Lockfile schema change.
 - **Regions.** A Region is the span between `<!-- aokit:begin <id> -->` and `<!-- aokit:end <id> -->`, with `<id>` set to `<module>:<region>`. A Module owns only its own Regions, written by the `appendRegion` Op with inline content.
+- **Any text file.** `appendRegion` and Region parsing work in any text file; the marker syntax depends on the file type: `<!-- aokit:begin id -->` for `md` and `mdx`, `// aokit:begin id` for `prisma`, `ts`, `tsx` and `js`, and `# aokit:begin id` for `.gitignore`, `.dockerignore`, `.env*`, `yml`, `toml` and extensionless files. A marker inside a string literal is not a Region. Region-aware merge stays limited to `AGENTS.md` and `CLAUDE.md`; other Region files are merged as ordinary managed files, and removing a Module removes only its Region (revised 2026-11-08).
 - **Region Merger.** For a Region file the Merger replaces each Region the user did not edit with its next content, deletes Regions that the next Render no longer has, and never changes text outside markers. A Region the user edited is 3-way merged on its own, so Conflict markers stay inside that Region. A new Region goes right after the closest earlier Region (in the next Render's order) that the file already has, so Region order always equals a fresh Render's and notes the user kept at the end stay at the end.
 - **Adoption.** A user-authored `AGENTS.md` or `CLAUDE.md` with no aokit markers is adopted: its text is kept after the inserted Regions, with no Conflict.
 - **Hash over Regions.** The Lockfile hash of a Region file covers only its normalized aokit Regions. Text outside markers is not drift; an edit inside a Region is `modified`.
