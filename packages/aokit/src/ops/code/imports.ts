@@ -11,6 +11,18 @@ interface ExistingImport {
   readonly namespaceName: string | undefined;
   readonly named: readonly string[];
   readonly lastNamedEnd: number | undefined;
+  readonly bare: boolean;
+}
+
+const queuedSideEffects = new WeakMap<EditBatch, Set<string>>();
+
+function queuedSideEffectsOf(batch: EditBatch): Set<string> {
+  let queued = queuedSideEffects.get(batch);
+  if (!queued) {
+    queued = new Set();
+    queuedSideEffects.set(batch, queued);
+  }
+  return queued;
 }
 
 function existingImports(site: AnchorSite, from: string): ExistingImport[] {
@@ -37,7 +49,9 @@ function existingImports(site: AnchorSite, from: string): ExistingImport[] {
         lastNamedEnd = specifier.end;
       }
     }
-    return [{ defaultName, namespaceName, named, lastNamedEnd }];
+    return [
+      { defaultName, namespaceName, named, lastNamedEnd, bare: statement.specifiers.length === 0 },
+    ];
   });
 }
 
@@ -83,6 +97,15 @@ export function addImportEdits(
   }
 
   const lines: string[] = [];
+  const sideEffects = queuedSideEffectsOf(batch);
+  if (
+    op.sideEffect === true &&
+    !sideEffects.has(op.from) &&
+    !existing.some((entry) => entry.bare)
+  ) {
+    sideEffects.add(op.from);
+    lines.push(`import ${JSON.stringify(op.from)};`);
+  }
   if (missingDefault !== undefined || remainingNamed.length > 0) {
     lines.push(statementText(op.from, missingDefault, remainingNamed));
   }

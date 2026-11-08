@@ -1,0 +1,4 @@
+{
+  "*": "bun run format --no-error-on-unmatched-pattern",
+  "*.{ts,tsx,mts,cts,js,jsx,mjs,cjs}": "bun run lint"
+}
