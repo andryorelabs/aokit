@@ -150,3 +150,61 @@ describe("Release 2026.12.0", () => {
     expect(redefined).toEqual([]);
   });
 });
+
+describe("Release 2026.12.1", () => {
+  const newModules = [
+    "eslint-react",
+    "fontsource",
+    "hono-zod-validator",
+    "msw",
+    "next-themes",
+    "shadcn-lint",
+    "vitest-react",
+  ];
+
+  test("the index keeps every earlier Release and adds 2026.12.1 as latest", async () => {
+    const registry = await openRegistry();
+    for (const release of ["2026.11.0", "2026.11.1", "2026.11.2", "2026.12.0", "2026.12.1"]) {
+      expect(registry.releases()).toContain(release);
+    }
+    expect(registry.release).toBe("2026.12.1");
+  });
+
+  test("the Catalog extends 2026.12.0, keeps its pin groups and maps every Module", () => {
+    const previous = readJson(join(sourceRoot, "catalog", "2026.12.0.json"));
+    const next = readJson(join(sourceRoot, "catalog", "2026.12.1.json"));
+    expect(next.release).toBe("2026.12.1");
+    expect(next["pinGroups"]).toEqual(previous["pinGroups"]);
+    const previousDependencies = z.record(z.string(), z.string()).parse(previous["dependencies"]);
+    const nextDependencies = z.record(z.string(), z.string()).parse(next["dependencies"]);
+    expect(nextDependencies).toMatchObject(previousDependencies);
+    expect(Object.keys(nextDependencies)).toEqual(Object.keys(nextDependencies).toSorted());
+    const modules = z.record(z.string(), z.string()).parse(next["modules"]);
+    for (const name of newModules) expect(modules[name]).toBe("1.0.0");
+  });
+
+  test("the seven new Modules ship", async () => {
+    const registry = await openRegistry();
+    for (const name of newModules) expect(registry.version(name, "1.0.0")).toBeDefined();
+  });
+
+  test("Modules that gained a fragment are bumped and the old version stays published", async () => {
+    const registry = await openRegistry();
+    for (const [name, version] of [
+      ["eslint", "1.1.0"],
+      ["oxc", "1.2.0"],
+      ["tsdown", "1.1.0"],
+      ["vitest", "1.1.0"],
+    ] as const) {
+      expect(registry.version(name, version)).toBeDefined();
+      expect(registry.version(name, "1.0.0")).toBeDefined();
+    }
+  });
+
+  test("no Catalog fragment is left in registry-src", () => {
+    const leftovers = readdirSync(sourceRoot, { withFileTypes: true }).filter(
+      (entry) => entry.isDirectory() && existsSync(join(sourceRoot, entry.name, "catalog.json")),
+    );
+    expect(leftovers).toEqual([]);
+  });
+});

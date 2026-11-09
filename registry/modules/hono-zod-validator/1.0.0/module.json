@@ -1,0 +1,60 @@
+{
+  "$schema": "https://aokit.andryore.dev/schema/module/v1.json",
+  "conflicts": [],
+  "deps": {
+    "dependencies": {
+      "@hono/zod-validator": {
+        "range": "catalog"
+      },
+      "hono": {
+        "range": "catalog"
+      },
+      "zod": {
+        "range": "catalog"
+      }
+    }
+  },
+  "env": [],
+  "extensionPoints": [],
+  "files": [],
+  "migrations": [],
+  "name": "hono-zod-validator",
+  "ops": [
+    {
+      "content": "\n## hono-zod-validator\n\nHono Zod Validator checks request input in Hono routes against Zod schemas.\n\nKey files:\n\n- `src/app.ts`: registers a sample `/echo` route through `server.routes`; it validates a JSON body with `zValidator(\"json\", schema)`. Copy that pattern for your own routes.\n",
+      "file": "AGENTS.md",
+      "op": "appendRegion",
+      "region": "agents",
+      "target": "root"
+    },
+    {
+      "extensionPoint": "server.routes",
+      "from": "@hono/zod-validator",
+      "named": ["zValidator"],
+      "op": "addImport",
+      "range": "^1",
+      "target": "server"
+    },
+    {
+      "extensionPoint": "server.routes",
+      "from": "zod",
+      "named": ["z"],
+      "op": "addImport",
+      "range": "^1",
+      "target": "server"
+    },
+    {
+      "expression": "new Hono().post(\"/\", zValidator(\"json\", z.object({ message: z.string().min(1) })), (context) => context.json(context.req.valid(\"json\")))",
+      "extensionPoint": "server.routes",
+      "key": "\"/echo\"",
+      "op": "registerAt",
+      "range": "^1",
+      "target": "server"
+    }
+  ],
+  "override": [],
+  "provides": [],
+  "requires": ["ext:server.routes@^1"],
+  "schemaVersion": 1,
+  "version": "1.0.0"
+}

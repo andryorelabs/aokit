@@ -1,0 +1,52 @@
+{
+  "$schema": "https://aokit.andryore.dev/schema/module/v1.json",
+  "conflicts": [],
+  "deps": {
+    "dependencies": {
+      "next-themes": {
+        "range": "catalog"
+      }
+    }
+  },
+  "env": [],
+  "extensionPoints": [],
+  "files": [
+    {
+      "from": "files/src/theme/provider.tsx",
+      "ownership": "managed",
+      "target": "web",
+      "to": "src/theme/provider.tsx"
+    }
+  ],
+  "migrations": [],
+  "name": "next-themes",
+  "ops": [
+    {
+      "content": "\n## next-themes\n\nnext-themes adds light and dark theme switching to the Next web Target.\n\nKey files:\n\n- `src/theme/provider.tsx`: the client theme provider, registered through `web.providers`; it toggles the `class` attribute on `<html>` and follows the system theme by default.\n\nRead or change the theme with `useTheme` from `next-themes`. Add `suppressHydrationWarning` to `<html>` in the root layout to avoid a hydration warning.\n",
+      "file": "AGENTS.md",
+      "op": "appendRegion",
+      "region": "agents",
+      "target": "root"
+    },
+    {
+      "extensionPoint": "web.providers",
+      "from": "./theme/provider",
+      "named": ["ThemeProvider"],
+      "op": "addImport",
+      "range": "^1",
+      "target": "web"
+    },
+    {
+      "element": "ThemeProvider",
+      "extensionPoint": "web.providers",
+      "op": "addToArray",
+      "range": "^1",
+      "target": "web"
+    }
+  ],
+  "override": [],
+  "provides": [],
+  "requires": ["web:app-router", "ext:web.providers@^1"],
+  "schemaVersion": 1,
+  "version": "1.0.0"
+}

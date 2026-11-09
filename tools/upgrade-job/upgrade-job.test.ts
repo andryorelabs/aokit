@@ -126,10 +126,10 @@ describe("release pairs and historical indexes", () => {
     expect(await pairsOf(registry)).toEqual([["2026.11.1", "2026.11.2"]]);
   });
 
-  test("the committed Registry has the 2026.11.2 -> 2026.12.0 pair", async () => {
+  test("the committed Registry has the 2026.12.0 -> 2026.12.1 pair", async () => {
     expect(await pairsOf(join(workspaceRoot, "registry"))).toContainEqual([
-      "2026.11.2",
       "2026.12.0",
+      "2026.12.1",
     ]);
   });
 });

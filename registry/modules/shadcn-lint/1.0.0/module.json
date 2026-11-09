@@ -1,0 +1,47 @@
+{
+  "$schema": "https://aokit.andryore.dev/schema/module/v1.json",
+  "conflicts": [],
+  "deps": {
+    "devDependencies": {
+      "@shadcn/lint": {
+        "range": "catalog"
+      }
+    }
+  },
+  "env": [],
+  "extensionPoints": [],
+  "files": [
+    {
+      "from": "files/oxlintrc.shadcn.json",
+      "ownership": "managed",
+      "target": "config",
+      "to": ".oxlintrc.shadcn.json"
+    }
+  ],
+  "migrations": [],
+  "name": "shadcn-lint",
+  "ops": [
+    {
+      "content": "\n## shadcn-lint\n\nshadcn design-system lint rules (`@shadcn/lint`), run through Oxlint as a JS plugin.\n\nCommands:\n\n- `bun run lint:shadcn`: flag raw colors, arbitrary values and inline styles in components.\n\nKey files:\n\n- `.oxlintrc.shadcn.json`: the `shadcn/*` rules, in the config Target.\n",
+      "file": "AGENTS.md",
+      "op": "appendRegion",
+      "region": "agents",
+      "target": "root"
+    },
+    {
+      "file": "package.json",
+      "op": "mergeJson",
+      "target": "root",
+      "value": {
+        "scripts": {
+          "lint:shadcn": "oxlint -c {{target:config}}/.oxlintrc.shadcn.json"
+        }
+      }
+    }
+  ],
+  "override": [],
+  "provides": [],
+  "requires": ["ui:components", "lint"],
+  "schemaVersion": 1,
+  "version": "1.0.0"
+}

@@ -1,0 +1,82 @@
+{
+  "$schema": "https://aokit.andryore.dev/schema/module/v1.json",
+  "conflicts": [],
+  "deps": {
+    "devDependencies": {
+      "@eslint-community/eslint-plugin-eslint-comments": {
+        "range": "catalog"
+      },
+      "eslint": {
+        "range": "catalog"
+      },
+      "eslint-plugin-astro": {
+        "range": "catalog"
+      },
+      "eslint-plugin-jsdoc": {
+        "range": "catalog"
+      },
+      "eslint-plugin-unicorn": {
+        "range": "catalog"
+      },
+      "typescript-eslint": {
+        "range": "catalog"
+      }
+    }
+  },
+  "env": [],
+  "extensionPoints": [
+    {
+      "anchor": "configs",
+      "file": "eslint.config.mjs",
+      "kind": "region",
+      "name": "eslint.configs",
+      "target": "root",
+      "version": "1.0.0"
+    }
+  ],
+  "files": [
+    {
+      "from": "files/eslint.config.mjs.txt",
+      "ownership": "managed",
+      "target": "root",
+      "to": "eslint.config.mjs"
+    }
+  ],
+  "migrations": [],
+  "name": "eslint",
+  "ops": [
+    {
+      "content": "\n## eslint\n\nESLint runs next to the main linter for `.astro` files and the type-aware rules Oxlint cannot run.\n\nCommands:\n\n- `bun run lint:eslint`: run ESLint.\n\nKey files:\n\n- `eslint.config.mjs`: the flat config, at the Project root; other Modules add configs through the `eslint.configs` Extension point.\n",
+      "file": "AGENTS.md",
+      "op": "appendRegion",
+      "region": "agents",
+      "target": "root"
+    },
+    {
+      "file": "package.json",
+      "op": "mergeJson",
+      "target": "root",
+      "value": {
+        "scripts": {
+          "lint:eslint": "eslint ."
+        }
+      }
+    },
+    {
+      "extensionPoint": "lint.ignores",
+      "op": "mergeJson",
+      "range": "^1",
+      "value": [".astro/**"]
+    }
+  ],
+  "override": [],
+  "provides": [
+    {
+      "capability": "lint:companion",
+      "cardinality": "many"
+    }
+  ],
+  "requires": ["lint", "ext:lint.ignores@^1"],
+  "schemaVersion": 1,
+  "version": "1.1.0"
+}

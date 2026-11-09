@@ -1,0 +1,70 @@
+{
+  "$schema": "https://aokit.andryore.dev/schema/module/v1.json",
+  "conflicts": [],
+  "deps": {
+    "devDependencies": {
+      "@vitest/coverage-v8": {
+        "range": "catalog"
+      },
+      "vitest": {
+        "range": "catalog"
+      }
+    }
+  },
+  "env": [],
+  "extensionPoints": [],
+  "files": [
+    {
+      "from": "files/vitest.config.ts",
+      "ownership": "seed",
+      "target": "root",
+      "to": "vitest.config.ts"
+    },
+    {
+      "from": "files/smoke.test.ts",
+      "ownership": "seed",
+      "target": "root",
+      "to": "tests/smoke.test.ts"
+    }
+  ],
+  "migrations": [],
+  "name": "vitest",
+  "ops": [
+    {
+      "content": "\n## vitest\n\nVitest runs the unit tests.\n\nCommands:\n\n- `bun run test`: run the suite once.\n- `bun run test:coverage`: run the suite with V8 coverage.\n\nKey files:\n\n- `vitest.config.ts`: Vitest configuration, yours to edit.\n- `tests/smoke.test.ts`: a starter test, yours to replace.\n",
+      "file": "AGENTS.md",
+      "op": "appendRegion",
+      "region": "agents",
+      "target": "root"
+    },
+    {
+      "file": "package.json",
+      "op": "mergeJson",
+      "target": "root",
+      "value": {
+        "scripts": {
+          "test": "vitest run",
+          "test:coverage": "vitest run --coverage"
+        }
+      }
+    }
+  ],
+  "override": [],
+  "provides": [
+    {
+      "capability": "test-runner",
+      "cardinality": {
+        "max": 1
+      }
+    },
+    {
+      "capability": "test-runner:vitest",
+      "cardinality": {
+        "max": 1
+      }
+    }
+  ],
+  "requires": [],
+  "schemaVersion": 1,
+  "version": "1.1.0"
+}
