@@ -128,13 +128,13 @@ describe("aokit add", () => {
   test("a provider pulled in through requires is recorded selected:false", async () => {
     const directory = join(workspace(), "p");
     await createProject(directory, "single", "oxc", true);
-    const envelope = await addProject(directory, { modules: ["coolify"] });
+    const envelope = await addProject(directory, { modules: ["commitlint"] });
     expect(envelope.ok).toBe(true);
     const lock = parseJson(readFileSync(join(directory, "aokit.lock.json"), "utf8"));
-    expect(jsonAt(lock, "modules", "coolify", "selected")).toBe(true);
-    expect(jsonAt(lock, "modules", "docker", "selected")).toBe(false);
+    expect(jsonAt(lock, "modules", "commitlint", "selected")).toBe(true);
+    expect(jsonAt(lock, "modules", "husky", "selected")).toBe(false);
     if (envelope.ok) {
-      expect(addCommand.output.parse(envelope.data).pulledIn).toContain("docker");
+      expect(addCommand.output.parse(envelope.data).pulledIn).toContain("husky");
     }
   });
 

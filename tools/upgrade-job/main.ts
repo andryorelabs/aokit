@@ -7,6 +7,7 @@ import {
   type Exec,
   buildCases,
   pairsOf,
+  readCatalogModules,
   readIndex,
   releasedCombinations,
   runJob,
@@ -45,8 +46,20 @@ const registryDirectory = join(workspaceRoot, "registry");
 const pairs = await pairsOf(registryDirectory);
 const released = releasedCombinations(curatedCombinations, await readIndex(registryDirectory));
 const scratch = await mkdtemp(join(tmpdir(), "aokit-upgrade-job-"));
+const registryIndex = await readIndex(registryDirectory);
+const cases = (
+  await Promise.all(
+    pairs.map(async ([from, to]) => {
+      const fromModules = await readCatalogModules(registryDirectory, registryIndex, from);
+      const available = released.filter((combination) =>
+        combination.modules.every((name) => Object.hasOwn(fromModules, name)),
+      );
+      return buildCases([[from, to]], available);
+    }),
+  )
+).flat();
 const results = await runJob(
-  buildCases(pairs, released),
+  cases,
   { exec, workspaceRoot, scratch, log: (line) => process.stdout.write(`${line}\n`) },
   report,
 );

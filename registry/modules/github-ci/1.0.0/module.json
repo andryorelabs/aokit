@@ -1,0 +1,97 @@
+{
+  "$schema": "https://aokit.andryore.dev/schema/module/v1.json",
+  "conflicts": [],
+  "env": [],
+  "extensionPoints": [],
+  "files": [
+    {
+      "from": "files/workflows/ci.yml",
+      "ownership": "managed",
+      "target": "root",
+      "to": ".github/workflows/ci.yml"
+    },
+    {
+      "from": "files/workflows/codeql.yml",
+      "ownership": "managed",
+      "target": "root",
+      "to": ".github/workflows/codeql.yml"
+    },
+    {
+      "from": "files/workflows/scorecard.yml",
+      "ownership": "managed",
+      "target": "root",
+      "to": ".github/workflows/scorecard.yml"
+    },
+    {
+      "from": "files/workflows/lint-pr.yml",
+      "ownership": "managed",
+      "target": "root",
+      "to": ".github/workflows/lint-pr.yml"
+    },
+    {
+      "from": "files/workflows/lint-workflows.yml",
+      "ownership": "managed",
+      "target": "root",
+      "to": ".github/workflows/lint-workflows.yml"
+    },
+    {
+      "from": "files/workflows/labels.yml",
+      "ownership": "managed",
+      "target": "root",
+      "to": ".github/workflows/labels.yml"
+    },
+    {
+      "from": "files/labels.yml",
+      "ownership": "seed",
+      "target": "root",
+      "to": ".github/labels.yml"
+    },
+    {
+      "from": "files/pull_request_template.md",
+      "ownership": "seed",
+      "target": "root",
+      "to": ".github/PULL_REQUEST_TEMPLATE.md"
+    },
+    {
+      "from": "files/issue-config.yml",
+      "ownership": "seed",
+      "target": "root",
+      "to": ".github/ISSUE_TEMPLATE/config.yml"
+    },
+    {
+      "from": "files/bug_report.yml",
+      "ownership": "seed",
+      "target": "root",
+      "to": ".github/ISSUE_TEMPLATE/bug_report.yml"
+    },
+    {
+      "from": "files/feature_request.yml",
+      "ownership": "seed",
+      "target": "root",
+      "to": ".github/ISSUE_TEMPLATE/feature_request.yml"
+    }
+  ],
+  "migrations": [],
+  "name": "github-ci",
+  "ops": [
+    {
+      "content": "\n## github-ci\n\nGitHub Actions workflows with every action pinned by commit SHA. Package scripts run with `--if-present`, so the workflows work for any selection.\n\nKey files:\n\n- `.github/workflows/ci.yml`: typecheck, lint, format check and test.\n- `.github/workflows/codeql.yml`, `scorecard.yml`: security analysis on public repositories.\n- `.github/workflows/lint-pr.yml`: conventional PR titles.\n- `.github/workflows/lint-workflows.yml`: actionlint and zizmor.\n- `.github/workflows/labels.yml` and `.github/labels.yml`: the label set, synced on `main`.\n- `.github/PULL_REQUEST_TEMPLATE.md` and `.github/ISSUE_TEMPLATE/`: templates you own.\n",
+      "file": "AGENTS.md",
+      "op": "appendRegion",
+      "region": "agents",
+      "target": "root"
+    }
+  ],
+  "override": [],
+  "provides": [
+    {
+      "capability": "ci",
+      "cardinality": {
+        "max": 1
+      }
+    }
+  ],
+  "requires": [],
+  "schemaVersion": 1,
+  "version": "1.0.0"
+}

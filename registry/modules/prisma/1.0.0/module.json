@@ -1,0 +1,113 @@
+{
+  "$schema": "https://aokit.andryore.dev/schema/module/v1.json",
+  "conflicts": [],
+  "deps": {
+    "dependencies": {
+      "@prisma/adapter-pg": {
+        "pinGroup": "prisma",
+        "range": "catalog"
+      },
+      "@prisma/client": {
+        "pinGroup": "prisma",
+        "range": "catalog"
+      },
+      "pg": {
+        "range": "catalog"
+      }
+    },
+    "devDependencies": {
+      "@types/pg": {
+        "range": "catalog"
+      },
+      "prisma": {
+        "pinGroup": "prisma",
+        "range": "catalog"
+      }
+    }
+  },
+  "env": [
+    {
+      "example": "postgresql://postgres:postgres@localhost:5432/app",
+      "key": "DATABASE_URL",
+      "schema": "z.url()",
+      "scope": "root"
+    }
+  ],
+  "extensionPoints": [
+    {
+      "anchor": "schema",
+      "file": "prisma/schema.prisma",
+      "kind": "region",
+      "name": "db.schema",
+      "target": "db",
+      "version": "1.0.0"
+    }
+  ],
+  "files": [
+    {
+      "from": "files/schema.prisma",
+      "ownership": "seed",
+      "target": "db",
+      "to": "prisma/schema.prisma"
+    },
+    {
+      "from": "files/prisma.config.ts",
+      "ownership": "managed",
+      "target": "db",
+      "to": "prisma.config.ts"
+    },
+    {
+      "from": "files/client.ts.txt",
+      "ownership": "seed",
+      "target": "db",
+      "to": "client.ts"
+    },
+    {
+      "from": "files/SKILL.md",
+      "ownership": "managed",
+      "target": "root",
+      "to": ".claude/skills/prisma/SKILL.md"
+    }
+  ],
+  "migrations": [],
+  "name": "prisma",
+  "ops": [
+    {
+      "content": "\n## prisma\n\nPrisma 7 with the `pg` driver adapter is the ORM. `DATABASE_URL` is the only connection setting, so hosted Postgres works without `postgres-compose`.\n\nCommands:\n\n- `bun run db:migrate`: create and apply a migration locally.\n- `bun run db:generate`: regenerate the client; run it after install and after every schema change.\n- `bun run db:deploy`: apply committed migrations.\n\nKey files:\n\n- `prisma/schema.prisma`: the schema; other Modules add models through the `db.schema` Extension point.\n- `prisma.config.ts`: the Prisma CLI config; reads `DATABASE_URL`.\n- `client.ts`: `createPrismaClient(connectionString)`, which builds a `PrismaClient` with the `pg` adapter.\n\nSkills:\n\n- `.claude/skills/prisma/SKILL.md`: how to change the schema and run migrations.\n",
+      "file": "AGENTS.md",
+      "op": "appendRegion",
+      "region": "agents",
+      "target": "root"
+    },
+    {
+      "file": "package.json",
+      "op": "mergeJson",
+      "target": "root",
+      "value": {
+        "scripts": {
+          "db:deploy": "bun run --cwd {{target:db}} prisma migrate deploy --config prisma.config.ts",
+          "db:generate": "bun run --cwd {{target:db}} prisma generate --config prisma.config.ts",
+          "db:migrate": "bun run --cwd {{target:db}} prisma migrate dev --config prisma.config.ts"
+        }
+      }
+    }
+  ],
+  "override": [],
+  "provides": [
+    {
+      "capability": "orm",
+      "cardinality": {
+        "max": 1
+      }
+    },
+    {
+      "capability": "orm:prisma",
+      "cardinality": {
+        "max": 1
+      }
+    }
+  ],
+  "requires": [],
+  "schemaVersion": 1,
+  "version": "1.0.0"
+}

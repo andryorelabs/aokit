@@ -1,6 +1,7 @@
 import { describe, expect, test } from "bun:test";
-import { readFileSync } from "node:fs";
+import { existsSync, readdirSync, readFileSync } from "node:fs";
 import { join } from "node:path";
+import { z } from "zod";
 import { cliVersion } from "../../src/cli/version.ts";
 import { Vfs } from "../../src/engine/index.ts";
 import { readLocalRegistry } from "../../src/registry/index.ts";
@@ -91,5 +92,42 @@ describe("Release 2026.11.1", () => {
     expect(vfs.read("apps/web/src/app.tsx")).toBe('import { routes } from "./router";\n');
     expect(vfs.read("apps/web/src/lazy.ts")).toBe("const mod = import('./router');\n");
     expect(vfs.read("apps/api/src/app.ts")).toBe('import { routes } from "./routes";\n');
+  });
+});
+
+describe("Release 2026.12.0", () => {
+  test("the index keeps every earlier Release and adds 2026.12.0", async () => {
+    const registry = await openRegistry();
+    for (const release of ["2026.11.0", "2026.11.1", "2026.11.2", "2026.12.0"]) {
+      expect(registry.releases()).toContain(release);
+    }
+  });
+
+  test("the Catalog extends 2026.11.2, keeps its pin groups and maps every Module", () => {
+    const previous = readJson(join(sourceRoot, "catalog", "2026.11.2.json"));
+    const next = readJson(join(sourceRoot, "catalog", "2026.12.0.json"));
+    expect(next.release).toBe("2026.12.0");
+    expect(next["pinGroups"]).toMatchObject(
+      z.record(z.string(), z.array(z.string())).parse(previous["pinGroups"]),
+    );
+    const previousDependencies = z.record(z.string(), z.string()).parse(previous["dependencies"]);
+    const nextDependencies = z.record(z.string(), z.string()).parse(next["dependencies"]);
+    expect(nextDependencies).toMatchObject(previousDependencies);
+    const names = Object.keys(nextDependencies);
+    expect(names).toEqual(names.toSorted());
+    expect(z.record(z.string(), z.string()).parse(next["modules"])["tailwind4"]).toBe("2.0.0");
+  });
+
+  test("tailwind4 2.0.0 ships and 1.x stays published", async () => {
+    const registry = await openRegistry();
+    expect(registry.version("tailwind4", "2.0.0")).toBeDefined();
+    expect(registry.version("tailwind4", "1.0.0")).toBeDefined();
+  });
+
+  test("no Catalog fragment is left in registry-src", () => {
+    const leftovers = readdirSync(sourceRoot, { withFileTypes: true }).filter(
+      (entry) => entry.isDirectory() && existsSync(join(sourceRoot, entry.name, "catalog.json")),
+    );
+    expect(leftovers).toEqual([]);
   });
 });

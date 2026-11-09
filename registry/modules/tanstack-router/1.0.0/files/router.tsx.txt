@@ -1,0 +1,30 @@
+import { RouterProvider, createRouter } from "@tanstack/react-router";
+import { createElement } from "react";
+import type { ReactNode } from "react";
+import { routeTree } from "./routeTree.gen";
+
+declare module "@tanstack/react-router" {
+  interface Register {
+    router: typeof router;
+  }
+}
+
+export const router = createRouter({ routeTree });
+
+export interface AppRoute {
+  path: string;
+  element: ReactNode;
+}
+
+/**
+ * Keeps the entry in `src/main.tsx` working: one route whose path follows the current location,
+ * rendering the router.
+ */
+export const routes: AppRoute[] = [
+  {
+    get path() {
+      return window.location.pathname;
+    },
+    element: createElement(RouterProvider, { router }),
+  },
+];

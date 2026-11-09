@@ -1,0 +1,55 @@
+{
+  "$schema": "https://aokit.andryore.dev/schema/module/v1.json",
+  "conflicts": [],
+  "env": [],
+  "extensionPoints": [],
+  "files": [
+    {
+      "from": "files/adr/README.md",
+      "ownership": "seed",
+      "target": "root",
+      "to": "docs/adr/README.md"
+    },
+    {
+      "from": "files/adr/template.md",
+      "ownership": "seed",
+      "target": "root",
+      "to": "docs/adr/0000-template.md"
+    },
+    {
+      "from": "files/GLOSSARY.md",
+      "ownership": "seed",
+      "target": "root",
+      "to": "GLOSSARY.md"
+    },
+    {
+      "from": "files/skill/SKILL.md",
+      "ownership": "managed",
+      "target": "root",
+      "to": ".claude/skills/adr/SKILL.md"
+    }
+  ],
+  "migrations": [],
+  "name": "adr-docs",
+  "ops": [
+    {
+      "content": "\n## adr-docs\n\nArchitecture decisions live in `docs/adr/`, and project terms in `GLOSSARY.md`.\n\nKey files:\n\n- `docs/adr/README.md`: the ADR index; add a row for every new ADR.\n- `docs/adr/0000-template.md`: copy it as `NNNN-kebab-title.md`.\n- `GLOSSARY.md`: the project vocabulary; use these terms in code and docs.\n- `.claude/skills/adr/SKILL.md`: how to write an ADR.\n",
+      "file": "AGENTS.md",
+      "op": "appendRegion",
+      "region": "agents",
+      "target": "root"
+    }
+  ],
+  "override": [],
+  "provides": [
+    {
+      "capability": "docs:adr",
+      "cardinality": {
+        "max": 1
+      }
+    }
+  ],
+  "requires": [],
+  "schemaVersion": 1,
+  "version": "1.0.0"
+}

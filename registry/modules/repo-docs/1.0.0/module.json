@@ -1,0 +1,67 @@
+{
+  "$schema": "https://aokit.andryore.dev/schema/module/v1.json",
+  "conflicts": [],
+  "env": [],
+  "extensionPoints": [],
+  "files": [
+    {
+      "from": "files/CODE_OF_CONDUCT.md",
+      "ownership": "seed",
+      "target": "root",
+      "to": "CODE_OF_CONDUCT.md"
+    },
+    {
+      "from": "files/CONTRIBUTING.md",
+      "ownership": "seed",
+      "target": "root",
+      "to": "CONTRIBUTING.md"
+    },
+    {
+      "from": "files/GOVERNANCE.md",
+      "ownership": "seed",
+      "target": "root",
+      "to": "GOVERNANCE.md"
+    },
+    {
+      "from": "files/CODEOWNERS",
+      "ownership": "seed",
+      "target": "root",
+      "to": ".github/CODEOWNERS"
+    },
+    {
+      "from": "files/editorconfig",
+      "ownership": "seed",
+      "target": "root",
+      "to": ".editorconfig"
+    },
+    {
+      "from": "files/git-blame-ignore-revs",
+      "ownership": "seed",
+      "target": "root",
+      "to": ".git-blame-ignore-revs"
+    }
+  ],
+  "migrations": [],
+  "name": "repo-docs",
+  "ops": [
+    {
+      "content": "\n## repo-docs\n\nCommunity and repository hygiene files, written once as seeds you own.\n\nKey files:\n\n- `CODE_OF_CONDUCT.md`, `CONTRIBUTING.md`, `GOVERNANCE.md`: contributor-facing rules.\n- `.github/CODEOWNERS`: review ownership.\n- `.editorconfig`: editor defaults.\n- `.git-blame-ignore-revs`: commits `git blame` skips; add formatting-only commits here.\n",
+      "file": "AGENTS.md",
+      "op": "appendRegion",
+      "region": "agents",
+      "target": "root"
+    }
+  ],
+  "override": [],
+  "provides": [
+    {
+      "capability": "repo-docs",
+      "cardinality": {
+        "max": 1
+      }
+    }
+  ],
+  "requires": [],
+  "schemaVersion": 1,
+  "version": "1.0.0"
+}

@@ -1,0 +1,44 @@
+{
+  "$schema": "https://aokit.andryore.dev/schema/module/v1.json",
+  "conflicts": [],
+  "deps": {
+    "dependencies": {
+      "@tanstack/react-virtual": {
+        "range": "catalog"
+      }
+    }
+  },
+  "env": [],
+  "extensionPoints": [],
+  "files": [
+    {
+      "from": "files/virtualized-list.ts",
+      "ownership": "seed",
+      "target": "web",
+      "to": "src/lib/virtualized-list.ts"
+    }
+  ],
+  "migrations": [],
+  "name": "tanstack-virtual",
+  "ops": [
+    {
+      "content": "\n## tanstack-virtual\n\nTanStack Virtual renders long lists by mounting only the visible rows.\n\nKey files:\n\n- `src/lib/virtualized-list.ts`: a `useVirtualizer` wrapper for a scrollable list.\n",
+      "file": "AGENTS.md",
+      "op": "appendRegion",
+      "region": "agents",
+      "target": "root"
+    }
+  ],
+  "override": [],
+  "provides": [
+    {
+      "capability": "virtualization",
+      "cardinality": {
+        "max": 1
+      }
+    }
+  ],
+  "requires": ["web:react"],
+  "schemaVersion": 1,
+  "version": "1.0.0"
+}

@@ -1,0 +1,185 @@
+{
+  "$schema": "https://aokit.andryore.dev/schema/module/v1.json",
+  "conflicts": [],
+  "deps": {
+    "dependencies": {
+      "next": {
+        "range": "catalog"
+      },
+      "react": {
+        "range": "catalog"
+      },
+      "react-dom": {
+        "range": "catalog"
+      }
+    },
+    "devDependencies": {
+      "@types/node": {
+        "range": "catalog"
+      },
+      "@types/react": {
+        "range": "catalog"
+      },
+      "@types/react-dom": {
+        "range": "catalog"
+      },
+      "babel-plugin-react-compiler": {
+        "range": "catalog"
+      },
+      "typescript": {
+        "range": "catalog"
+      }
+    }
+  },
+  "env": [],
+  "extensionPoints": [
+    {
+      "anchor": "providers",
+      "file": "src/providers.tsx",
+      "kind": "array",
+      "name": "web.providers",
+      "target": "web",
+      "version": "1.0.0"
+    },
+    {
+      "anchor": "root",
+      "file": "src/styles.ts",
+      "kind": "import-list",
+      "name": "web.styles",
+      "target": "web",
+      "version": "1.0.0"
+    },
+    {
+      "anchor": "nextConfig",
+      "file": "next.config.ts",
+      "kind": "object",
+      "name": "next.config",
+      "target": "web",
+      "version": "1.0.0"
+    },
+    {
+      "anchor": "plugins",
+      "file": "next.config.ts",
+      "kind": "array",
+      "name": "next.plugins",
+      "target": "web",
+      "version": "1.0.0"
+    }
+  ],
+  "files": [
+    {
+      "from": "files/next.config.ts",
+      "ownership": "managed",
+      "target": "web",
+      "to": "next.config.ts"
+    },
+    {
+      "from": "files/tsconfig.json",
+      "ownership": "seed",
+      "target": "web",
+      "to": "tsconfig.json"
+    },
+    {
+      "from": "files/app/layout.tsx",
+      "ownership": "managed",
+      "target": "web",
+      "to": "src/app/layout.tsx"
+    },
+    {
+      "from": "files/app/page.tsx",
+      "ownership": "seed",
+      "target": "web",
+      "to": "src/app/page.tsx"
+    },
+    {
+      "from": "files/providers.tsx",
+      "ownership": "managed",
+      "target": "web",
+      "to": "src/providers.tsx"
+    },
+    {
+      "from": "files/styles.ts",
+      "ownership": "managed",
+      "target": "web",
+      "to": "src/styles.ts"
+    },
+    {
+      "from": "files/css.d.ts",
+      "ownership": "seed",
+      "target": "web",
+      "to": "src/css.d.ts"
+    },
+    {
+      "from": "files/proxy.ts",
+      "ownership": "managed",
+      "target": "web",
+      "to": "src/proxy.ts"
+    },
+    {
+      "from": "files/skill/SKILL.md",
+      "ownership": "managed",
+      "target": "root",
+      "to": ".claude/skills/next/SKILL.md"
+    }
+  ],
+  "migrations": [],
+  "name": "next",
+  "ops": [
+    {
+      "content": "\n## next\n\nNext 16 with the App Router provides the web Target; React Compiler is on.\n\nKey files:\n\n- `next.config.ts`: Next configuration; other Modules add options and plugins through its extension points.\n- `src/app/layout.tsx`: the root layout; it imports `src/styles.ts` and wraps pages in the providers.\n- `src/app/page.tsx`: the home page, yours to edit.\n- `src/providers.tsx`: the client providers; register new ones through `web.providers`.\n- `src/styles.ts`: the stylesheets other Modules register.\n- `src/proxy.ts`: the request proxy (Next 16 replacement for middleware); one Module owns it.\n- `tsconfig.json`: TypeScript options for the web Target, yours to edit.\n\nSkills:\n\n- `.claude/skills/next/SKILL.md`: how to work on the Next.js App Router Target.\n",
+      "file": "AGENTS.md",
+      "op": "appendRegion",
+      "region": "agents",
+      "target": "root"
+    },
+    {
+      "content": "node_modules\n.next\nout\nnext-env.d.ts\n*.tsbuildinfo\n",
+      "file": ".gitignore",
+      "op": "appendRegion",
+      "region": "next",
+      "target": "root"
+    },
+    {
+      "file": "package.json",
+      "op": "mergeJson",
+      "target": "root",
+      "value": {
+        "scripts": {
+          "build": "bun run --cwd {{target:web}} next build",
+          "dev": "bun run --cwd {{target:web}} next dev",
+          "start": "bun run --cwd {{target:web}} next start"
+        }
+      }
+    }
+  ],
+  "override": [],
+  "provides": [
+    {
+      "capability": "web",
+      "cardinality": {
+        "max": 1
+      }
+    },
+    {
+      "capability": "web:ssr",
+      "cardinality": {
+        "max": 1
+      }
+    },
+    {
+      "capability": "web:react",
+      "cardinality": {
+        "max": 1
+      }
+    },
+    {
+      "capability": "web:app-router",
+      "cardinality": {
+        "max": 1
+      }
+    }
+  ],
+  "requires": [],
+  "schemaVersion": 1,
+  "version": "1.0.0"
+}

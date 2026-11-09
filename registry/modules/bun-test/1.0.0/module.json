@@ -1,0 +1,54 @@
+{
+  "$schema": "https://aokit.andryore.dev/schema/module/v1.json",
+  "conflicts": [],
+  "deps": {
+    "devDependencies": {
+      "@types/bun": {
+        "range": "catalog"
+      }
+    }
+  },
+  "env": [],
+  "extensionPoints": [],
+  "files": [
+    {
+      "from": "files/smoke.test.ts",
+      "ownership": "seed",
+      "target": "root",
+      "to": "tests/smoke.test.ts"
+    }
+  ],
+  "migrations": [],
+  "name": "bun-test",
+  "ops": [
+    {
+      "content": "\n## bun-test\n\nBun's built-in test runner runs the unit tests.\n\nCommands:\n\n- `bun run test`: run every `*.test.ts` file.\n\nKey files:\n\n- `tests/smoke.test.ts`: a starter test, yours to replace.\n",
+      "file": "AGENTS.md",
+      "op": "appendRegion",
+      "region": "agents",
+      "target": "root"
+    },
+    {
+      "file": "package.json",
+      "op": "mergeJson",
+      "target": "root",
+      "value": {
+        "scripts": {
+          "test": "bun test"
+        }
+      }
+    }
+  ],
+  "override": [],
+  "provides": [
+    {
+      "capability": "test-runner",
+      "cardinality": {
+        "max": 1
+      }
+    }
+  ],
+  "requires": [],
+  "schemaVersion": 1,
+  "version": "1.0.0"
+}

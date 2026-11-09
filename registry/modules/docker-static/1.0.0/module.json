@@ -1,0 +1,59 @@
+{
+  "$schema": "https://aokit.andryore.dev/schema/module/v1.json",
+  "conflicts": [],
+  "env": [],
+  "extensionPoints": [],
+  "files": [
+    {
+      "from": "files/Dockerfile",
+      "ownership": "managed",
+      "target": "root",
+      "to": "Dockerfile"
+    },
+    {
+      "from": "files/dockerignore",
+      "ownership": "managed",
+      "target": "root",
+      "to": ".dockerignore"
+    },
+    {
+      "from": "files/nginx.conf",
+      "ownership": "managed",
+      "target": "root",
+      "to": "nginx.conf"
+    },
+    {
+      "from": "files/docker-entrypoint.sh",
+      "ownership": "managed",
+      "target": "root",
+      "to": "docker-entrypoint.sh"
+    }
+  ],
+  "migrations": [],
+  "name": "docker-static",
+  "ops": [
+    {
+      "content": "\n## docker-static\n\nDocker serves the static web Target: a Bun build stage, then nginx.\n\nKey files:\n\n- `Dockerfile`: builds the site with Bun and copies `dist/` into nginx.\n- `nginx.conf`: the server block with security headers and the SPA fallback.\n- `docker-entrypoint.sh`: checks the build output and the nginx config at start.\n- `.dockerignore`: files kept out of the build context.\n\nIt provides `container`, so it cannot be selected together with `docker`.\n",
+      "file": "AGENTS.md",
+      "op": "appendRegion",
+      "region": "agents",
+      "target": "root"
+    }
+  ],
+  "override": [],
+  "provides": [
+    {
+      "capability": "deploy",
+      "cardinality": "many"
+    },
+    {
+      "capability": "container",
+      "cardinality": {
+        "max": 1
+      }
+    }
+  ],
+  "requires": ["web:static"],
+  "schemaVersion": 1,
+  "version": "1.0.0"
+}

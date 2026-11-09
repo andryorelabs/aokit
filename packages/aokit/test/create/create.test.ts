@@ -235,7 +235,7 @@ describe("aokit create", () => {
     expect(result.exitCode).toBe(4);
     const error = envelopeError(result.stdout);
     expect(error.code).toBe("REQUIREMENT_UNMET");
-    expect(error.message).toContain("[extension_point_unmet]");
+    expect(error.message).toContain("[requirement_ambiguous]");
     expect(error.fix.length).toBeGreaterThan(0);
   });
 
@@ -367,7 +367,7 @@ describe("reproduceCommand", () => {
     );
   });
 
-  test("create --modules vite-react renders src/router.tsx from vite-react 1.2.0", async () => {
+  test("create --modules vite-react renders src/router.tsx from vite-react 1.3.0", async () => {
     const target = join(workspace(), "app");
     const result = await runAokit([
       "create",
@@ -382,6 +382,6 @@ describe("reproduceCommand", () => {
     expect(readFileSync(join(target, "src", "router.tsx"), "utf8")).toContain("routes");
     expect(readFileSync(join(target, "src", "main.tsx"), "utf8")).toContain('from "./router"');
     expect(existsSync(join(target, "src", "routes.tsx"))).toBe(false);
-    expect(readFileSync(join(target, "aokit.lock.json"), "utf8")).toContain('"version": "1.2.0"');
+    expect(readFileSync(join(target, "aokit.lock.json"), "utf8")).toContain('"version": "1.3.0"');
   });
 });

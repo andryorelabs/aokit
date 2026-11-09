@@ -1,0 +1,43 @@
+{
+  "$schema": "https://aokit.andryore.dev/schema/module/v1.json",
+  "conflicts": [],
+  "env": [
+    {
+      "example": "postgresql://postgres:postgres@localhost:5432/app",
+      "key": "DATABASE_URL",
+      "scope": "root"
+    }
+  ],
+  "extensionPoints": [],
+  "files": [
+    {
+      "from": "files/compose.yml",
+      "ownership": "managed",
+      "target": "root",
+      "to": "compose.yml"
+    }
+  ],
+  "migrations": [],
+  "name": "postgres-compose",
+  "ops": [
+    {
+      "content": "\n## postgres-compose\n\nDocker Compose runs a local Postgres 17 for development.\n\nCommands:\n\n- `docker compose up -d --wait`: start Postgres and wait for its healthcheck.\n\nKey files:\n\n- `compose.yml`: the `postgres` service and its data volume.\n- `.env`: `DATABASE_URL` points at this database.\n",
+      "file": "AGENTS.md",
+      "op": "appendRegion",
+      "region": "agents",
+      "target": "root"
+    }
+  ],
+  "override": [],
+  "provides": [
+    {
+      "capability": "db:postgres",
+      "cardinality": {
+        "max": 1
+      }
+    }
+  ],
+  "requires": [],
+  "schemaVersion": 1,
+  "version": "1.0.0"
+}

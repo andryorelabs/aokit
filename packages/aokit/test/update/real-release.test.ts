@@ -100,7 +100,7 @@ describe("aokit update against the committed Registry", () => {
       `import { userRoute } from "./router";\n`,
     );
     const lockfile = parseJson(await readFile(join(directory, "aokit.lock.json"), "utf8"));
-    expect(valueAt(lockfile, "modules", "vite-react", "version")).toBe("1.2.0");
+    expect(valueAt(lockfile, "modules", "vite-react", "version")).toBe("1.3.0");
   });
 
   test("doctor verifies the integrity of the pinned version, not the latest", async () => {

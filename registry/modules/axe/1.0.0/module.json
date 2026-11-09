@@ -1,0 +1,44 @@
+{
+  "$schema": "https://aokit.andryore.dev/schema/module/v1.json",
+  "conflicts": [],
+  "deps": {
+    "devDependencies": {
+      "@axe-core/playwright": {
+        "range": "catalog"
+      }
+    }
+  },
+  "env": [],
+  "extensionPoints": [],
+  "files": [
+    {
+      "from": "files/a11y.e2e.ts",
+      "ownership": "seed",
+      "target": "root",
+      "to": "e2e/a11y.e2e.ts"
+    }
+  ],
+  "migrations": [],
+  "name": "axe",
+  "ops": [
+    {
+      "content": "\n## axe\n\nAxe checks pages for accessibility violations inside the Playwright suite.\n\nKey files:\n\n- `e2e/a11y.e2e.ts`: a starter accessibility spec run by `bun run test:e2e`, yours to extend.\n",
+      "file": "AGENTS.md",
+      "op": "appendRegion",
+      "region": "agents",
+      "target": "root"
+    }
+  ],
+  "override": [],
+  "provides": [
+    {
+      "capability": "a11y-test",
+      "cardinality": {
+        "max": 1
+      }
+    }
+  ],
+  "requires": ["e2e"],
+  "schemaVersion": 1,
+  "version": "1.0.0"
+}

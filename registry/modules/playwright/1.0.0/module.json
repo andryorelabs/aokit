@@ -1,0 +1,60 @@
+{
+  "$schema": "https://aokit.andryore.dev/schema/module/v1.json",
+  "conflicts": [],
+  "deps": {
+    "devDependencies": {
+      "@playwright/test": {
+        "range": "catalog"
+      }
+    }
+  },
+  "env": [],
+  "extensionPoints": [],
+  "files": [
+    {
+      "from": "files/playwright.config.ts",
+      "ownership": "seed",
+      "target": "root",
+      "to": "playwright.config.ts"
+    },
+    {
+      "from": "files/smoke.e2e.ts",
+      "ownership": "seed",
+      "target": "root",
+      "to": "e2e/smoke.e2e.ts"
+    }
+  ],
+  "migrations": [],
+  "name": "playwright",
+  "ops": [
+    {
+      "content": "\n## playwright\n\nPlaywright runs the end-to-end tests against the dev server.\n\nCommands:\n\n- `bun run test:e2e`: run every `e2e/*.e2e.ts` spec.\n\nKey files:\n\n- `playwright.config.ts`: browsers and the dev server; set `PLAYWRIGHT_BASE_URL` when the app is not on port 5173.\n- `e2e/smoke.e2e.ts`: a starter spec, yours to replace.\n",
+      "file": "AGENTS.md",
+      "op": "appendRegion",
+      "region": "agents",
+      "target": "root"
+    },
+    {
+      "file": "package.json",
+      "op": "mergeJson",
+      "target": "root",
+      "value": {
+        "scripts": {
+          "test:e2e": "playwright test"
+        }
+      }
+    }
+  ],
+  "override": [],
+  "provides": [
+    {
+      "capability": "e2e",
+      "cardinality": {
+        "max": 1
+      }
+    }
+  ],
+  "requires": ["web"],
+  "schemaVersion": 1,
+  "version": "1.0.0"
+}

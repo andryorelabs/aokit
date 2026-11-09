@@ -1,0 +1,89 @@
+{
+  "$schema": "https://aokit.andryore.dev/schema/module/v1.json",
+  "conflicts": [],
+  "deps": {
+    "dependencies": {
+      "tailwindcss": {
+        "range": "catalog"
+      }
+    },
+    "devDependencies": {
+      "@tailwindcss/postcss": {
+        "range": "catalog"
+      },
+      "postcss": {
+        "range": "catalog"
+      }
+    }
+  },
+  "env": [],
+  "extensionPoints": [
+    {
+      "anchor": "theme",
+      "file": "src/styles.css",
+      "kind": "region",
+      "name": "styles.theme",
+      "target": "web",
+      "version": "1.0.0"
+    }
+  ],
+  "files": [
+    {
+      "from": "files/styles.css",
+      "ownership": "seed",
+      "target": "web",
+      "to": "src/styles.css"
+    },
+    {
+      "from": "files/postcss.config.mjs",
+      "ownership": "managed",
+      "target": "web",
+      "to": "postcss.config.mjs"
+    }
+  ],
+  "migrations": [
+    {
+      "from": ">=1.0.0 <2.0.0",
+      "script": "migrations/remove-tailwind-provider.after.js",
+      "stage": "after",
+      "to": "2.0.0"
+    }
+  ],
+  "name": "tailwind4",
+  "ops": [
+    {
+      "content": "\n## tailwind4\n\nTailwind CSS v4 styles the web Target through PostCSS.\n\nKey files:\n\n- `src/styles.css`: imports Tailwind and holds the `@theme` tokens.\n- `postcss.config.mjs`: enables `@tailwindcss/postcss`.\n",
+      "file": "AGENTS.md",
+      "op": "appendRegion",
+      "region": "agents",
+      "target": "root"
+    },
+    {
+      "file": "src/styles.css",
+      "op": "addCssAtRule",
+      "params": "\"tailwindcss\"",
+      "rule": "import",
+      "target": "web"
+    },
+    {
+      "extensionPoint": "web.styles",
+      "from": "./styles.css",
+      "op": "addImport",
+      "range": "^1",
+      "sideEffect": true,
+      "target": "web"
+    }
+  ],
+  "override": [],
+  "provides": [
+    {
+      "capability": "styling",
+      "cardinality": {
+        "max": 1
+      }
+    }
+  ],
+  "requires": ["web", "ext:web.styles@^1"],
+  "schemaVersion": 1,
+  "version": "2.0.0"
+}

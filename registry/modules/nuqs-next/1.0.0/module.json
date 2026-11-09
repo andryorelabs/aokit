@@ -1,0 +1,52 @@
+{
+  "$schema": "https://aokit.andryore.dev/schema/module/v1.json",
+  "conflicts": [],
+  "deps": {
+    "dependencies": {
+      "nuqs": {
+        "range": "catalog"
+      }
+    }
+  },
+  "env": [],
+  "extensionPoints": [],
+  "files": [],
+  "migrations": [],
+  "name": "nuqs-next",
+  "ops": [
+    {
+      "content": "\n## nuqs-next\n\nnuqs keeps state in the URL query string for the Next App Router.\n\nKey files:\n\n- `src/providers.tsx`: registers the nuqs adapter (`nuqs/adapters/next/app`) through `web.providers`; use `useQueryState` from `nuqs` in client components.\n",
+      "file": "AGENTS.md",
+      "op": "appendRegion",
+      "region": "agents",
+      "target": "root"
+    },
+    {
+      "extensionPoint": "web.providers",
+      "from": "nuqs/adapters/next/app",
+      "named": ["NuqsAdapter"],
+      "op": "addImport",
+      "range": "^1",
+      "target": "web"
+    },
+    {
+      "element": "NuqsAdapter",
+      "extensionPoint": "web.providers",
+      "op": "addToArray",
+      "range": "^1",
+      "target": "web"
+    }
+  ],
+  "override": [],
+  "provides": [
+    {
+      "capability": "url-state",
+      "cardinality": {
+        "max": 1
+      }
+    }
+  ],
+  "requires": ["web:app-router", "ext:web.providers@^1"],
+  "schemaVersion": 1,
+  "version": "1.0.0"
+}

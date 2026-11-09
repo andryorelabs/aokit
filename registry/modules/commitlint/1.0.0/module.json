@@ -1,0 +1,53 @@
+{
+  "$schema": "https://aokit.andryore.dev/schema/module/v1.json",
+  "conflicts": [],
+  "deps": {
+    "devDependencies": {
+      "@commitlint/cli": {
+        "range": "catalog"
+      },
+      "@commitlint/config-conventional": {
+        "range": "catalog"
+      }
+    }
+  },
+  "env": [],
+  "extensionPoints": [],
+  "files": [
+    {
+      "from": "files/commit-msg",
+      "ownership": "managed",
+      "target": "root",
+      "to": ".husky/commit-msg"
+    },
+    {
+      "from": "files/commitlint.config.mjs",
+      "ownership": "managed",
+      "target": "root",
+      "to": "commitlint.config.mjs"
+    }
+  ],
+  "migrations": [],
+  "name": "commitlint",
+  "ops": [
+    {
+      "content": "\n## commitlint\n\nCommitlint rejects commit messages that are not Conventional Commits.\n\nKey files:\n\n- `.husky/commit-msg`: runs Commitlint on every commit.\n- `commitlint.config.mjs`: the rule set, at the Project root.\n",
+      "file": "AGENTS.md",
+      "op": "appendRegion",
+      "region": "agents",
+      "target": "root"
+    }
+  ],
+  "override": [],
+  "provides": [
+    {
+      "capability": "commit-lint",
+      "cardinality": {
+        "max": 1
+      }
+    }
+  ],
+  "requires": ["git-hooks"],
+  "schemaVersion": 1,
+  "version": "1.0.0"
+}

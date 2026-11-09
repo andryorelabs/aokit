@@ -1,0 +1,79 @@
+{
+  "$schema": "https://aokit.andryore.dev/schema/module/v1.json",
+  "conflicts": [],
+  "deps": {
+    "dependencies": {
+      "@trigger.dev/sdk": {
+        "range": "catalog"
+      }
+    },
+    "devDependencies": {
+      "trigger.dev": {
+        "range": "catalog"
+      }
+    }
+  },
+  "env": [
+    {
+      "example": "",
+      "key": "TRIGGER_SECRET_KEY",
+      "schema": "z.string().min(1)",
+      "scope": "jobs"
+    }
+  ],
+  "extensionPoints": [],
+  "files": [
+    {
+      "from": "files/trigger.config.ts",
+      "ownership": "managed",
+      "target": "jobs",
+      "to": "trigger.config.ts"
+    },
+    {
+      "from": "files/src/trigger/hello-world.ts",
+      "ownership": "seed",
+      "target": "jobs",
+      "to": "src/trigger/hello-world.ts"
+    },
+    {
+      "from": "files/skill/SKILL.md",
+      "ownership": "managed",
+      "target": "root",
+      "to": ".claude/skills/trigger-dev/SKILL.md"
+    }
+  ],
+  "migrations": [],
+  "name": "trigger-dev",
+  "ops": [
+    {
+      "content": "\n## trigger-dev\n\nTrigger.dev runs background jobs on the jobs Target.\n\nCommands:\n\n- `bun run jobs:dev`: connect a local worker.\n- `bun run jobs:deploy`: deploy the tasks.\n\nKey files:\n\n- `trigger.config.ts`: the project config; set `TRIGGER_PROJECT_REF` in `.env`.\n- `src/trigger/hello-world.ts`: a sample task, yours to edit.\n\nSet `TRIGGER_SECRET_KEY` in `.env`; aokit never generates secrets.\n\nSkills:\n\n- `.claude/skills/trigger-dev/SKILL.md`: how to add and run tasks.\n",
+      "file": "AGENTS.md",
+      "op": "appendRegion",
+      "region": "agents",
+      "target": "root"
+    },
+    {
+      "file": "package.json",
+      "op": "mergeJson",
+      "target": "root",
+      "value": {
+        "scripts": {
+          "jobs:deploy": "bun run --cwd {{target:jobs}} trigger deploy",
+          "jobs:dev": "bun run --cwd {{target:jobs}} trigger dev"
+        }
+      }
+    }
+  ],
+  "override": [],
+  "provides": [
+    {
+      "capability": "jobs",
+      "cardinality": {
+        "max": 1
+      }
+    }
+  ],
+  "requires": [],
+  "schemaVersion": 1,
+  "version": "1.0.0"
+}

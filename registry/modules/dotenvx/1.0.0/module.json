@@ -1,0 +1,61 @@
+{
+  "$schema": "https://aokit.andryore.dev/schema/module/v1.json",
+  "conflicts": [],
+  "deps": {
+    "devDependencies": {
+      "@dotenvx/dotenvx": {
+        "range": "catalog"
+      }
+    }
+  },
+  "env": [],
+  "extensionPoints": [],
+  "files": [
+    {
+      "from": "files/env.example",
+      "ownership": "seed",
+      "target": "root",
+      "to": ".env.example"
+    }
+  ],
+  "migrations": [],
+  "name": "dotenvx",
+  "ops": [
+    {
+      "content": "\n## dotenvx\n\nDotenvx encrypts the `.env` files of this Project so they can be committed.\n\nCommands:\n\n- `bun run env:encrypt`: encrypt `.env` and write the private key to `.env.keys`.\n\nKey files:\n\n- `.env.example`: the variables the Project expects, without values.\n- `.env.keys`: the private decryption keys; ignored by Git, never commit it.\n",
+      "file": "AGENTS.md",
+      "op": "appendRegion",
+      "region": "agents",
+      "target": "root"
+    },
+    {
+      "content": ".env.keys",
+      "file": ".gitignore",
+      "op": "appendRegion",
+      "region": "keys",
+      "target": "root"
+    },
+    {
+      "file": "package.json",
+      "op": "mergeJson",
+      "target": "root",
+      "value": {
+        "scripts": {
+          "env:encrypt": "dotenvx encrypt"
+        }
+      }
+    }
+  ],
+  "override": [],
+  "provides": [
+    {
+      "capability": "env:encryption",
+      "cardinality": {
+        "max": 1
+      }
+    }
+  ],
+  "requires": [],
+  "schemaVersion": 1,
+  "version": "1.0.0"
+}

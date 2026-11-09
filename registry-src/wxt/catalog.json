@@ -1,6 +1,0 @@
-{
-  "dependencies": {
-    "@wxt-dev/module-react": "^1.2.2",
-    "wxt": "^0.21.5"
-  }
-}
