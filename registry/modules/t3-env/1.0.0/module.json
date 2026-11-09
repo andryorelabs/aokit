@@ -1,0 +1,64 @@
+{
+  "$schema": "https://aokit.andryore.dev/schema/module/v1.json",
+  "conflicts": [],
+  "deps": {
+    "dependencies": {
+      "@t3-oss/env-core": {
+        "range": "catalog"
+      },
+      "zod": {
+        "range": "catalog"
+      }
+    }
+  },
+  "env": [],
+  "extensionPoints": [
+    {
+      "anchor": "server",
+      "file": "src/env.ts",
+      "kind": "object",
+      "name": "env.server",
+      "target": "config",
+      "version": "1.0.0"
+    },
+    {
+      "anchor": "client",
+      "file": "src/env.ts",
+      "kind": "object",
+      "name": "env.client",
+      "target": "config",
+      "version": "1.0.0"
+    }
+  ],
+  "files": [
+    {
+      "from": "files/env.ts.txt",
+      "ownership": "managed",
+      "target": "config",
+      "to": "src/env.ts"
+    }
+  ],
+  "migrations": [],
+  "name": "t3-env",
+  "ops": [
+    {
+      "content": "\n## t3-env\n\nT3 Env validates environment variables at startup.\n\nKey files:\n\n- `src/env.ts`: the validated `env` object, in the config Target. Modules that need an environment variable register its schema in `server` or `client`; the `client` prefix is `PUBLIC_`.\n",
+      "file": "AGENTS.md",
+      "op": "appendRegion",
+      "region": "agents",
+      "target": "root"
+    }
+  ],
+  "override": [],
+  "provides": [
+    {
+      "capability": "env:validation",
+      "cardinality": {
+        "max": 1
+      }
+    }
+  ],
+  "requires": [],
+  "schemaVersion": 1,
+  "version": "1.0.0"
+}

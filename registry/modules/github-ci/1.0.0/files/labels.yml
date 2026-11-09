@@ -1,0 +1,33 @@
+- name: bug
+  color: d73a4a
+  description: Something does not work as documented
+- name: enhancement
+  color: a2eeef
+  description: A new feature or an improvement
+- name: documentation
+  color: 0075ca
+  description: Docs, ADRs or guides
+- name: dependencies
+  color: 0366d6
+  description: Dependency updates
+- name: security
+  color: b60205
+  description: A security fix or hardening
+- name: breaking-change
+  color: e11d21
+  description: Changes behavior or public interfaces incompatibly
+- name: good first issue
+  color: 7057ff
+  description: A small, well-scoped change for a first contribution
+- name: help wanted
+  color: "008672"
+  description: Extra attention or outside help is welcome
+- name: needs-triage
+  color: fbca04
+  description: Freshly captured, not yet reviewed
+- name: needs-info
+  color: d876e3
+  description: Waiting on more information before it can proceed
+- name: wontfix
+  color: ffffff
+  description: Reviewed and deliberately not going to be worked on

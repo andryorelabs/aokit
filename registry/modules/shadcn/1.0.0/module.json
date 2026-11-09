@@ -1,0 +1,143 @@
+{
+  "$schema": "https://aokit.andryore.dev/schema/module/v1.json",
+  "conflicts": [],
+  "deps": {
+    "dependencies": {
+      "class-variance-authority": {
+        "range": "catalog"
+      },
+      "clsx": {
+        "range": "catalog"
+      },
+      "lucide-react": {
+        "range": "catalog"
+      },
+      "react": {
+        "range": "catalog"
+      },
+      "sonner": {
+        "range": "catalog"
+      },
+      "tailwind-merge": {
+        "range": "catalog"
+      }
+    },
+    "devDependencies": {
+      "@types/react": {
+        "range": "catalog"
+      },
+      "tw-animate-css": {
+        "range": "catalog",
+        "target": "web"
+      }
+    }
+  },
+  "env": [],
+  "extensionPoints": [],
+  "files": [
+    {
+      "from": "files/components.json",
+      "ownership": "managed",
+      "target": "web",
+      "to": "components.json"
+    },
+    {
+      "from": "files/lib/utils.ts",
+      "ownership": "seed",
+      "target": "shared-ui",
+      "to": "lib/utils.ts"
+    },
+    {
+      "from": "files/ui/sonner.tsx",
+      "ownership": "seed",
+      "target": "shared-ui",
+      "to": "ui/sonner.tsx"
+    },
+    {
+      "from": "files/skill/SKILL.md",
+      "ownership": "managed",
+      "target": "root",
+      "to": ".claude/skills/shadcn/SKILL.md"
+    }
+  ],
+  "migrations": [],
+  "name": "shadcn",
+  "ops": [
+    {
+      "content": "\n## shadcn\n\nshadcn components on Base UI provide `ui:components`; add items with `aokit add @shadcn/<item>`.\n\nKey files:\n\n- `components.json`: shadcn configuration for Base UI; its aliases match where `aokit add` places items.\n- `lib/utils.ts` (shared-ui Target): the `cn` helper.\n- `ui/sonner.tsx` (shared-ui Target): the toast host.\n- `src/styles.css`: the theme tokens as CSS variables.\n\nSkills:\n\n- `.claude/skills/shadcn/SKILL.md`: how to add and customize shadcn components.\n",
+      "file": "AGENTS.md",
+      "op": "appendRegion",
+      "region": "agents",
+      "target": "root"
+    },
+    {
+      "extensionPoint": "styles.theme",
+      "op": "addCssAtRule",
+      "params": "\"tw-animate-css\"",
+      "range": "^1",
+      "rule": "import"
+    },
+    {
+      "file": "src/styles.css",
+      "group": "light",
+      "op": "addCssVariables",
+      "target": "web",
+      "variables": {
+        "--background": "oklch(1 0 0)",
+        "--border": "oklch(0.922 0 0)",
+        "--foreground": "oklch(0.145 0 0)",
+        "--muted": "oklch(0.97 0 0)",
+        "--muted-foreground": "oklch(0.556 0 0)",
+        "--primary": "oklch(0.205 0 0)",
+        "--primary-foreground": "oklch(0.985 0 0)",
+        "--radius": "0.625rem",
+        "--ring": "oklch(0.708 0 0)"
+      }
+    },
+    {
+      "file": "src/styles.css",
+      "group": "dark",
+      "op": "addCssVariables",
+      "target": "web",
+      "variables": {
+        "--background": "oklch(0.145 0 0)",
+        "--border": "oklch(1 0 0 / 10%)",
+        "--foreground": "oklch(0.985 0 0)",
+        "--muted": "oklch(0.269 0 0)",
+        "--muted-foreground": "oklch(0.708 0 0)",
+        "--primary": "oklch(0.922 0 0)",
+        "--primary-foreground": "oklch(0.205 0 0)",
+        "--ring": "oklch(0.556 0 0)"
+      }
+    },
+    {
+      "file": "src/styles.css",
+      "group": "theme",
+      "op": "addCssVariables",
+      "target": "web",
+      "variables": {
+        "--color-background": "var(--background)",
+        "--color-border": "var(--border)",
+        "--color-foreground": "var(--foreground)",
+        "--color-muted": "var(--muted)",
+        "--color-muted-foreground": "var(--muted-foreground)",
+        "--color-primary": "var(--primary)",
+        "--color-primary-foreground": "var(--primary-foreground)",
+        "--color-ring": "var(--ring)",
+        "--radius-lg": "var(--radius)"
+      }
+    }
+  ],
+  "override": [],
+  "provides": [
+    {
+      "capability": "ui:components",
+      "cardinality": {
+        "max": 1
+      }
+    }
+  ],
+  "requires": ["ui:primitives", "styling", "web:react", "ext:styles.theme@^1"],
+  "schemaVersion": 1,
+  "version": "1.0.0"
+}

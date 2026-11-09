@@ -1,0 +1,52 @@
+{
+  "$schema": "https://aokit.andryore.dev/schema/module/v1.json",
+  "conflicts": [],
+  "deps": {
+    "dependencies": {
+      "nuqs": {
+        "range": "catalog"
+      }
+    }
+  },
+  "env": [],
+  "extensionPoints": [],
+  "files": [],
+  "migrations": [],
+  "name": "nuqs-vite",
+  "ops": [
+    {
+      "content": "\n## nuqs-vite\n\nnuqs keeps state in the URL query string for the React SPA.\n\nKey files:\n\n- `src/providers.tsx`: registers the nuqs adapter (`nuqs/adapters/react`) through `web.providers`; use `useQueryState` from `nuqs` in components.\n",
+      "file": "AGENTS.md",
+      "op": "appendRegion",
+      "region": "agents",
+      "target": "root"
+    },
+    {
+      "extensionPoint": "web.providers",
+      "from": "nuqs/adapters/react",
+      "named": ["NuqsAdapter"],
+      "op": "addImport",
+      "range": "^1",
+      "target": "web"
+    },
+    {
+      "element": "NuqsAdapter",
+      "extensionPoint": "web.providers",
+      "op": "addToArray",
+      "range": "^1",
+      "target": "web"
+    }
+  ],
+  "override": [],
+  "provides": [
+    {
+      "capability": "url-state",
+      "cardinality": {
+        "max": 1
+      }
+    }
+  ],
+  "requires": ["web:spa", "ext:web.providers@^1"],
+  "schemaVersion": 1,
+  "version": "1.0.0"
+}

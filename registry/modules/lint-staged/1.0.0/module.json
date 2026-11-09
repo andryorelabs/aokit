@@ -1,0 +1,50 @@
+{
+  "$schema": "https://aokit.andryore.dev/schema/module/v1.json",
+  "conflicts": [],
+  "deps": {
+    "devDependencies": {
+      "lint-staged": {
+        "range": "catalog"
+      }
+    }
+  },
+  "env": [],
+  "extensionPoints": [],
+  "files": [
+    {
+      "from": "files/pre-commit",
+      "ownership": "managed",
+      "target": "root",
+      "to": ".husky/pre-commit"
+    },
+    {
+      "from": "files/lintstagedrc.json",
+      "ownership": "managed",
+      "target": "root",
+      "to": ".lintstagedrc.json"
+    }
+  ],
+  "migrations": [],
+  "name": "lint-staged",
+  "ops": [
+    {
+      "content": "\n## lint-staged\n\nLint-staged formats and lints only the staged files before each commit.\n\nKey files:\n\n- `.husky/pre-commit`: runs Lint-staged.\n- `.lintstagedrc.json`: which command runs on which files, at the Project root.\n",
+      "file": "AGENTS.md",
+      "op": "appendRegion",
+      "region": "agents",
+      "target": "root"
+    }
+  ],
+  "override": [],
+  "provides": [
+    {
+      "capability": "staged-checks",
+      "cardinality": {
+        "max": 1
+      }
+    }
+  ],
+  "requires": ["git-hooks", "lint", "format"],
+  "schemaVersion": 1,
+  "version": "1.0.0"
+}

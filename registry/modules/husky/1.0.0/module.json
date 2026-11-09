@@ -1,0 +1,47 @@
+{
+  "$schema": "https://aokit.andryore.dev/schema/module/v1.json",
+  "conflicts": [],
+  "deps": {
+    "devDependencies": {
+      "husky": {
+        "range": "catalog"
+      }
+    }
+  },
+  "env": [],
+  "extensionPoints": [],
+  "files": [],
+  "migrations": [],
+  "name": "husky",
+  "ops": [
+    {
+      "content": "\n## husky\n\nHusky runs Git hooks for this Project.\n\nKey files:\n\n- `.husky/`: one file per hook, written by the Modules that own the hook.\n- `package.json`: the `prepare` script installs the hooks after `bun install`.\n",
+      "file": "AGENTS.md",
+      "op": "appendRegion",
+      "region": "agents",
+      "target": "root"
+    },
+    {
+      "file": "package.json",
+      "op": "mergeJson",
+      "target": "root",
+      "value": {
+        "scripts": {
+          "prepare": "husky"
+        }
+      }
+    }
+  ],
+  "override": [],
+  "provides": [
+    {
+      "capability": "git-hooks",
+      "cardinality": {
+        "max": 1
+      }
+    }
+  ],
+  "requires": [],
+  "schemaVersion": 1,
+  "version": "1.0.0"
+}

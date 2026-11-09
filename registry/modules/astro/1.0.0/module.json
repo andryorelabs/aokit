@@ -1,0 +1,159 @@
+{
+  "$schema": "https://aokit.andryore.dev/schema/module/v1.json",
+  "conflicts": [],
+  "deps": {
+    "dependencies": {
+      "@astrojs/react": {
+        "range": "catalog"
+      },
+      "astro": {
+        "range": "catalog"
+      },
+      "react": {
+        "range": "catalog"
+      },
+      "react-dom": {
+        "range": "catalog"
+      }
+    },
+    "devDependencies": {
+      "@types/react": {
+        "range": "catalog"
+      },
+      "@types/react-dom": {
+        "range": "catalog"
+      },
+      "typescript": {
+        "range": "catalog"
+      },
+      "vite": {
+        "range": "catalog"
+      }
+    }
+  },
+  "env": [],
+  "extensionPoints": [
+    {
+      "anchor": "integrations",
+      "file": "astro.config.ts",
+      "kind": "array",
+      "name": "astro.integrations",
+      "target": "web",
+      "version": "1.0.0"
+    },
+    {
+      "anchor": "plugins",
+      "file": "astro.config.ts",
+      "kind": "array",
+      "name": "vite.plugins",
+      "target": "web",
+      "version": "1.0.0"
+    },
+    {
+      "anchor": "stylesheets",
+      "file": "src/styles.ts",
+      "kind": "import-list",
+      "name": "web.styles",
+      "target": "web",
+      "version": "1.0.0"
+    }
+  ],
+  "files": [
+    {
+      "from": "files/astro.config.ts",
+      "ownership": "managed",
+      "target": "web",
+      "to": "astro.config.ts"
+    },
+    {
+      "from": "files/tsconfig.json",
+      "ownership": "seed",
+      "target": "web",
+      "to": "tsconfig.json"
+    },
+    {
+      "from": "files/styles.ts",
+      "ownership": "managed",
+      "target": "web",
+      "to": "src/styles.ts"
+    },
+    {
+      "from": "files/Layout.astro",
+      "ownership": "managed",
+      "target": "web",
+      "to": "src/layouts/Layout.astro"
+    },
+    {
+      "from": "files/index.astro",
+      "ownership": "seed",
+      "target": "web",
+      "to": "src/pages/index.astro"
+    },
+    {
+      "from": "files/Counter.tsx",
+      "ownership": "seed",
+      "target": "web",
+      "to": "src/components/Counter.tsx"
+    },
+    {
+      "from": "files/skill/SKILL.md",
+      "ownership": "managed",
+      "target": "root",
+      "to": ".claude/skills/astro-page/SKILL.md"
+    }
+  ],
+  "migrations": [],
+  "name": "astro",
+  "ops": [
+    {
+      "content": "\n## astro\n\nAstro with React islands provides the web Target as a static site.\n\nKey files:\n\n- `astro.config.ts`: Astro configuration; other Modules register integrations and Vite plugins here.\n- `src/styles.ts`: the stylesheets other Modules register, imported by `Layout.astro`.\n- `src/layouts/Layout.astro`: the page shell every page wraps itself in.\n- `src/pages/index.astro`: the home page, yours to edit.\n- `src/components/Counter.tsx`: a React island, yours to edit.\n- `.claude/skills/astro-page/SKILL.md`: how to add pages, layouts and islands.\n",
+      "file": "AGENTS.md",
+      "op": "appendRegion",
+      "region": "agents",
+      "target": "root"
+    },
+    {
+      "content": "node_modules\ndist\n.astro\n*.tsbuildinfo\n",
+      "file": ".gitignore",
+      "op": "appendRegion",
+      "region": "astro",
+      "target": "root"
+    },
+    {
+      "file": "package.json",
+      "op": "mergeJson",
+      "target": "root",
+      "value": {
+        "scripts": {
+          "build": "bun run --cwd {{target:web}} astro build",
+          "dev": "bun run --cwd {{target:web}} astro dev",
+          "preview": "bun run --cwd {{target:web}} astro preview"
+        }
+      }
+    }
+  ],
+  "override": [],
+  "provides": [
+    {
+      "capability": "web",
+      "cardinality": {
+        "max": 1
+      }
+    },
+    {
+      "capability": "web:react",
+      "cardinality": {
+        "max": 1
+      }
+    },
+    {
+      "capability": "web:static",
+      "cardinality": {
+        "max": 1
+      }
+    }
+  ],
+  "requires": [],
+  "schemaVersion": 1,
+  "version": "1.0.0"
+}

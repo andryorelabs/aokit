@@ -1,0 +1,51 @@
+{
+  "$schema": "https://aokit.andryore.dev/schema/module/v1.json",
+  "conflicts": [],
+  "deps": {
+    "dependencies": {
+      "resend": {
+        "range": "catalog"
+      }
+    }
+  },
+  "env": [
+    {
+      "example": "",
+      "key": "RESEND_API_KEY",
+      "schema": "z.string().min(1)",
+      "scope": "root"
+    }
+  ],
+  "extensionPoints": [],
+  "files": [
+    {
+      "from": "files/client.ts",
+      "ownership": "seed",
+      "target": "emails",
+      "to": "client.ts"
+    }
+  ],
+  "migrations": [],
+  "name": "resend",
+  "ops": [
+    {
+      "content": "\n## resend\n\nResend sends transactional email from the emails Target.\n\nKey files:\n\n- `client.ts` in the emails directory: `createResendClient(apiKey)` and `sendEmail(client, message)`.\n\nSet `RESEND_API_KEY` in `.env`; aokit never generates secrets.\n",
+      "file": "AGENTS.md",
+      "op": "appendRegion",
+      "region": "agents",
+      "target": "root"
+    }
+  ],
+  "override": [],
+  "provides": [
+    {
+      "capability": "email:send",
+      "cardinality": {
+        "max": 1
+      }
+    }
+  ],
+  "requires": [],
+  "schemaVersion": 1,
+  "version": "1.0.0"
+}

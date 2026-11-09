@@ -1,0 +1,62 @@
+{
+  "$schema": "https://aokit.andryore.dev/schema/module/v1.json",
+  "conflicts": [],
+  "deps": {
+    "devDependencies": {
+      "turbo": {
+        "range": "catalog"
+      }
+    }
+  },
+  "env": [],
+  "extensionPoints": [],
+  "files": [
+    {
+      "from": "files/turbo.json",
+      "ownership": "managed",
+      "target": "root",
+      "to": "turbo.json"
+    }
+  ],
+  "migrations": [],
+  "name": "turborepo",
+  "ops": [
+    {
+      "content": "\n## turborepo\n\nTurborepo runs and caches package tasks, in a single package or a workspace.\n\nCommands:\n\n- `bun run task <name>`: run a task through Turborepo, for example `bun run task build`.\n\nKey files:\n\n- `turbo.json`: the task graph, outputs and caching rules.\n",
+      "file": "AGENTS.md",
+      "op": "appendRegion",
+      "region": "agents",
+      "target": "root"
+    },
+    {
+      "content": ".turbo\n",
+      "file": ".gitignore",
+      "op": "appendRegion",
+      "region": "turborepo",
+      "target": "root"
+    },
+    {
+      "file": "package.json",
+      "op": "mergeJson",
+      "target": "root",
+      "value": {
+        "packageManager": "bun@1.4.4",
+        "scripts": {
+          "task": "turbo run"
+        }
+      }
+    }
+  ],
+  "override": [],
+  "provides": [
+    {
+      "capability": "task-runner",
+      "cardinality": {
+        "max": 1
+      }
+    }
+  ],
+  "requires": [],
+  "schemaVersion": 1,
+  "version": "1.0.0"
+}

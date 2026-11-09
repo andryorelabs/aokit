@@ -1,0 +1,64 @@
+{
+  "$schema": "https://aokit.andryore.dev/schema/module/v1.json",
+  "conflicts": [],
+  "deps": {
+    "dependencies": {
+      "@react-email/components": {
+        "range": "catalog"
+      },
+      "react": {
+        "range": "catalog"
+      }
+    },
+    "devDependencies": {
+      "react-email": {
+        "range": "catalog"
+      }
+    }
+  },
+  "env": [],
+  "extensionPoints": [],
+  "files": [
+    {
+      "from": "files/welcome.tsx",
+      "ownership": "seed",
+      "target": "emails",
+      "to": "welcome.tsx"
+    }
+  ],
+  "migrations": [],
+  "name": "react-email",
+  "ops": [
+    {
+      "content": "\n## react-email\n\nReact Email builds HTML emails from React components.\n\nCommands:\n\n- `bun run email:dev`: preview the templates.\n- `bun run email:build`: build the preview app.\n- `bun run email:export`: export the templates as static HTML.\n\nKey files:\n\n- `welcome.tsx` in the emails directory: a starter template, yours to edit.\n",
+      "file": "AGENTS.md",
+      "op": "appendRegion",
+      "region": "agents",
+      "target": "root"
+    },
+    {
+      "file": "package.json",
+      "op": "mergeJson",
+      "target": "root",
+      "value": {
+        "scripts": {
+          "email:build": "bun run --cwd {{target:emails}} email build --dir .",
+          "email:dev": "bun run --cwd {{target:emails}} email dev --dir .",
+          "email:export": "bun run --cwd {{target:emails}} email export --dir ."
+        }
+      }
+    }
+  ],
+  "override": [],
+  "provides": [
+    {
+      "capability": "email:templates",
+      "cardinality": {
+        "max": 1
+      }
+    }
+  ],
+  "requires": [],
+  "schemaVersion": 1,
+  "version": "1.0.0"
+}

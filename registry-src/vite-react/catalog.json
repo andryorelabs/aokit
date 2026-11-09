@@ -1,7 +1,0 @@
-{
-  "dependencies": {
-    "@babel/core": "^7.29.0",
-    "@rolldown/plugin-babel": "^0.3.0",
-    "babel-plugin-react-compiler": "^1.0.0"
-  }
-}

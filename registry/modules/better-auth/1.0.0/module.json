@@ -1,0 +1,91 @@
+{
+  "$schema": "https://aokit.andryore.dev/schema/module/v1.json",
+  "conflicts": [],
+  "deps": {
+    "dependencies": {
+      "better-auth": {
+        "range": "catalog",
+        "target": "web"
+      }
+    },
+    "devDependencies": {
+      "@better-auth/cli": {
+        "range": "catalog",
+        "target": "db"
+      }
+    }
+  },
+  "env": [
+    {
+      "example": "",
+      "key": "BETTER_AUTH_SECRET",
+      "schema": "z.string().min(32)",
+      "scope": "web",
+      "visibility": "server"
+    },
+    {
+      "example": "http://localhost:3000",
+      "key": "BETTER_AUTH_URL",
+      "schema": "z.url()",
+      "scope": "web",
+      "visibility": "server"
+    }
+  ],
+  "extensionPoints": [],
+  "files": [
+    {
+      "from": "files/auth.ts.txt",
+      "ownership": "managed",
+      "target": "web",
+      "to": "src/lib/auth.ts"
+    },
+    {
+      "from": "files/auth-client.ts",
+      "ownership": "managed",
+      "target": "web",
+      "to": "src/lib/auth-client.ts"
+    },
+    {
+      "from": "files/route.ts.txt",
+      "ownership": "managed",
+      "target": "web",
+      "to": "src/app/api/auth/[...all]/route.ts"
+    },
+    {
+      "from": "files/skill/SKILL.md",
+      "ownership": "managed",
+      "target": "root",
+      "to": ".claude/skills/better-auth/SKILL.md"
+    }
+  ],
+  "migrations": [],
+  "name": "better-auth",
+  "ops": [
+    {
+      "content": "\nmodel User {\n  id            String    @id\n  name          String\n  email         String    @unique\n  emailVerified Boolean   @default(false)\n  image         String?\n  createdAt     DateTime  @default(now())\n  updatedAt     DateTime  @updatedAt\n  sessions      Session[]\n  accounts      Account[]\n\n  @@map(\"user\")\n}\n\nmodel Session {\n  id        String   @id\n  expiresAt DateTime\n  token     String   @unique\n  ipAddress String?\n  userAgent String?\n  userId    String\n  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)\n  createdAt DateTime @default(now())\n  updatedAt DateTime @updatedAt\n\n  @@index([userId])\n  @@map(\"session\")\n}\n\nmodel Account {\n  id                    String    @id\n  accountId             String\n  providerId            String\n  userId                String\n  user                  User      @relation(fields: [userId], references: [id], onDelete: Cascade)\n  accessToken           String?\n  refreshToken          String?\n  idToken               String?\n  accessTokenExpiresAt  DateTime?\n  refreshTokenExpiresAt DateTime?\n  scope                 String?\n  password              String?\n  createdAt             DateTime  @default(now())\n  updatedAt             DateTime  @updatedAt\n\n  @@index([userId])\n  @@map(\"account\")\n}\n\nmodel Verification {\n  id         String   @id\n  identifier String\n  value      String\n  expiresAt  DateTime\n  createdAt  DateTime @default(now())\n  updatedAt  DateTime @updatedAt\n\n  @@index([identifier])\n  @@map(\"verification\")\n}\n",
+      "extensionPoint": "db.schema",
+      "op": "appendRegion",
+      "range": "^1",
+      "region": "schema"
+    },
+    {
+      "content": "\n## better-auth\n\nBetter Auth handles sign-in and sessions on the Next App Router Target, stored in Postgres through Prisma.\n\nKey files:\n\n- `src/lib/auth.ts`: the server `auth` instance; add plugins and providers here.\n- `src/lib/auth-client.ts`: the browser `authClient`.\n- `src/app/api/auth/[...all]/route.ts`: the route handler for `/api/auth/*`.\n- `prisma/schema.prisma`: the auth models, inside the `better-auth:schema` Region.\n\nSet `BETTER_AUTH_SECRET` (32+ random characters) and `BETTER_AUTH_URL` in `.env`; aokit never generates secrets. This Module does not write `src/proxy.ts`.\n\nSkills:\n\n- `.claude/skills/better-auth/SKILL.md`: how to work on authentication.\n",
+      "file": "AGENTS.md",
+      "op": "appendRegion",
+      "region": "agents",
+      "target": "root"
+    }
+  ],
+  "override": [],
+  "provides": [
+    {
+      "capability": "auth",
+      "cardinality": {
+        "max": 1
+      }
+    }
+  ],
+  "requires": ["orm:prisma", "web:app-router", "ext:db.schema@^1"],
+  "schemaVersion": 1,
+  "version": "1.0.0"
+}

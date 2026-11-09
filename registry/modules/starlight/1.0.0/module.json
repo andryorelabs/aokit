@@ -1,0 +1,82 @@
+{
+  "$schema": "https://aokit.andryore.dev/schema/module/v1.json",
+  "conflicts": [],
+  "deps": {
+    "dependencies": {
+      "@astrojs/starlight": {
+        "range": "catalog"
+      }
+    }
+  },
+  "env": [],
+  "extensionPoints": [],
+  "files": [
+    {
+      "from": "files/content.config.ts",
+      "ownership": "managed",
+      "target": "web",
+      "to": "src/content.config.ts"
+    },
+    {
+      "from": "files/index.astro",
+      "ownership": "seed",
+      "target": "web",
+      "to": "src/pages/index.astro"
+    },
+    {
+      "from": "files/example.mdx",
+      "ownership": "seed",
+      "target": "web",
+      "to": "src/content/docs/guides/example.mdx"
+    },
+    {
+      "from": "files/skill/SKILL.md",
+      "ownership": "managed",
+      "target": "root",
+      "to": ".claude/skills/starlight-docs/SKILL.md"
+    }
+  ],
+  "migrations": [],
+  "name": "starlight",
+  "ops": [
+    {
+      "content": "\n## starlight\n\nStarlight adds a documentation site to the Astro web Target.\n\nKey files:\n\n- `src/content/docs/`: the documentation pages, yours to edit.\n- `src/content.config.ts`: the `docs` content collection.\n- `src/pages/index.astro`: the docs landing page, yours to edit.\n- `astro.config.ts`: the Starlight integration options (title, sidebar).\n- `.claude/skills/starlight-docs/SKILL.md`: how to add and organize pages.\n",
+      "file": "AGENTS.md",
+      "op": "appendRegion",
+      "region": "agents",
+      "target": "root"
+    },
+    {
+      "default": "starlight",
+      "extensionPoint": "astro.integrations",
+      "from": "@astrojs/starlight",
+      "op": "addImport",
+      "range": "^1",
+      "target": "web"
+    },
+    {
+      "element": "starlight({ title: \"Docs\" })",
+      "extensionPoint": "astro.integrations",
+      "op": "addToArray",
+      "range": "^1",
+      "target": "web"
+    }
+  ],
+  "override": [
+    {
+      "file": "web:src/pages/index.astro",
+      "reason": "the docs landing replaces the Astro starter home page"
+    }
+  ],
+  "provides": [
+    {
+      "capability": "docs-site",
+      "cardinality": {
+        "max": 1
+      }
+    }
+  ],
+  "requires": ["ext:astro.integrations@^1"],
+  "schemaVersion": 1,
+  "version": "1.0.0"
+}

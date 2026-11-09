@@ -1,0 +1,93 @@
+{
+  "$schema": "https://aokit.andryore.dev/schema/module/v1.json",
+  "conflicts": [],
+  "deps": {
+    "dependencies": {
+      "@tanstack/react-router": {
+        "range": "catalog"
+      }
+    },
+    "devDependencies": {
+      "@tanstack/router-plugin": {
+        "range": "catalog"
+      }
+    }
+  },
+  "env": [],
+  "extensionPoints": [],
+  "files": [
+    {
+      "from": "files/router.tsx.txt",
+      "ownership": "managed",
+      "target": "web",
+      "to": "src/router.tsx"
+    },
+    {
+      "from": "files/root.tsx.txt",
+      "ownership": "seed",
+      "target": "web",
+      "to": "src/routes/__root.tsx"
+    },
+    {
+      "from": "files/index.tsx.txt",
+      "ownership": "seed",
+      "target": "web",
+      "to": "src/routes/index.tsx"
+    },
+    {
+      "from": "files/routeTree.gen.ts.txt",
+      "ownership": "seed",
+      "target": "web",
+      "to": "src/routeTree.gen.ts"
+    },
+    {
+      "from": "files/skill/SKILL.md",
+      "ownership": "managed",
+      "target": "root",
+      "to": ".claude/skills/tanstack-router/SKILL.md"
+    }
+  ],
+  "migrations": [],
+  "name": "tanstack-router",
+  "ops": [
+    {
+      "content": "\n## tanstack-router\n\nTanStack Router adds file-based routing to the web Target.\n\nKey files:\n\n- `src/routes/`: the route files, yours to edit; a file is a route.\n- `src/routeTree.gen.ts`: the generated route tree, never edited by hand.\n- `src/router.tsx`: creates the router; it overrides the vite-react route table.\n- `vite.config.ts`: registers the router plugin that generates the route tree.\n- `.claude/skills/tanstack-router/SKILL.md`: how to add and nest routes.\n\nBecause `src/router.tsx` is overridden, `web.routes` contributors no longer apply; none exist today, so add routes as files in `src/routes/`.\n",
+      "file": "AGENTS.md",
+      "op": "appendRegion",
+      "region": "agents",
+      "target": "root"
+    },
+    {
+      "extensionPoint": "vite.plugins",
+      "from": "@tanstack/router-plugin/vite",
+      "named": ["tanstackRouter"],
+      "op": "addImport",
+      "range": "^1",
+      "target": "web"
+    },
+    {
+      "element": "tanstackRouter({ target: \"react\", autoCodeSplitting: true })",
+      "extensionPoint": "vite.plugins",
+      "op": "addToArray",
+      "range": "^1",
+      "target": "web"
+    }
+  ],
+  "override": [
+    {
+      "file": "web:src/router.tsx",
+      "reason": "the file-based route tree replaces the vite-react route table"
+    }
+  ],
+  "provides": [
+    {
+      "capability": "routing",
+      "cardinality": {
+        "max": 1
+      }
+    }
+  ],
+  "requires": ["web:spa", "ext:vite.plugins@^1"],
+  "schemaVersion": 1,
+  "version": "1.0.0"
+}

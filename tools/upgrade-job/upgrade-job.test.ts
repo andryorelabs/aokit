@@ -51,11 +51,17 @@ const conflicted: Exec = (command, cwd) =>
       })
     : exec(command, cwd);
 
-const firstSelection = releasedCombinations(
-  curatedCombinations,
-  await readIndex(join(workspaceRoot, "registry")),
-).filter(
-  (combination) => combination.modules.includes("vite-react") && combination.layout === "monorepo",
+const committedIndex = await readIndex(join(workspaceRoot, "registry"));
+const firstReleaseModules = await readCatalogModules(
+  join(workspaceRoot, "registry"),
+  committedIndex,
+  "2026.11.0",
+);
+const firstSelection = releasedCombinations(curatedCombinations, committedIndex).filter(
+  (combination) =>
+    combination.modules.includes("vite-react") &&
+    combination.layout === "monorepo" &&
+    combination.modules.every((name) => Object.hasOwn(firstReleaseModules, name)),
 );
 
 function entry(latest: string, versions: string[]) {
@@ -120,10 +126,10 @@ describe("release pairs and historical indexes", () => {
     expect(await pairsOf(registry)).toEqual([["2026.11.1", "2026.11.2"]]);
   });
 
-  test("the committed Registry has the 2026.11.1 -> 2026.11.2 pair", async () => {
+  test("the committed Registry has the 2026.11.2 -> 2026.12.0 pair", async () => {
     expect(await pairsOf(join(workspaceRoot, "registry"))).toContainEqual([
-      "2026.11.1",
       "2026.11.2",
+      "2026.12.0",
     ]);
   });
 });
