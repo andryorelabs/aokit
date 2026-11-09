@@ -56,7 +56,12 @@ describe("shadcn", () => {
     const ui = packageSchema.parse(
       JSON.parse(String((await build("monorepo")).read("packages/ui/package.json"))),
     );
-    expect(ui.dependencies).toMatchObject({ clsx: "catalog:", sonner: "catalog:" });
+    expect(ui.dependencies).toMatchObject({
+      clsx: "catalog:",
+      sonner: "catalog:",
+      react: "catalog:",
+    });
+    expect(ui.devDependencies).toMatchObject({ "@types/react": "catalog:" });
     const web = packageSchema.parse(
       JSON.parse(String((await build("monorepo")).read("apps/web/package.json"))),
     );

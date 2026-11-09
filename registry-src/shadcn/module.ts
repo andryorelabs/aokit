@@ -21,10 +21,12 @@ export default defineModule({
       "class-variance-authority": { range: "catalog" },
       clsx: { range: "catalog" },
       "lucide-react": { range: "catalog" },
+      react: { range: "catalog" },
       sonner: { range: "catalog" },
       "tailwind-merge": { range: "catalog" },
     },
     devDependencies: {
+      "@types/react": { range: "catalog" },
       "tw-animate-css": { range: "catalog", target: "web" },
     },
   },
