@@ -2,7 +2,7 @@ import { defineModule } from "@aokit/module";
 
 export default defineModule({
   name: "tsdown",
-  version: "1.0.0",
+  version: "1.1.0",
   provides: [{ capability: "library", cardinality: { max: 1 } }],
   files: [
     { from: "files/tsdown.config.ts", to: "tsdown.config.ts", target: "lib", ownership: "managed" },
@@ -25,7 +25,9 @@ export default defineModule({
     devDependencies: {
       "@arethetypeswrong/cli": { range: "catalog" },
       "@types/bun": { range: "catalog" },
+      "@size-limit/file": { range: "catalog" },
       publint: { range: "catalog" },
+      "size-limit": { range: "catalog" },
       tsdown: { range: "catalog" },
     },
   },
@@ -60,6 +62,7 @@ export default defineModule({
           "./package.json": "./package.json",
         },
         files: ["dist"],
+        "size-limit": [{ path: "dist/index.mjs", limit: "10 kB" }],
       },
     },
     {
@@ -71,6 +74,7 @@ export default defineModule({
           "build:lib": "bun run --cwd {{target:lib}} tsdown",
           "check:package":
             "bun run --cwd {{target:lib}} publint && bun run --cwd {{target:lib}} attw --pack . --profile esm-only",
+          size: "bun run --cwd {{target:lib}} size-limit",
           compile:
             "bun build --compile {{target:lib}}/src/cli.ts --outfile {{target:lib}}/dist/cli",
         },
