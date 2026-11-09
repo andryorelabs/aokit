@@ -53,4 +53,11 @@ describe("nuqs-vite", () => {
     const built = await buildSelection(["nuqs-vite"], "single");
     expect(built.ok).toBe(false);
   });
+
+  test("fails on a Next base naming web:spa", async () => {
+    const built = await buildSelection(["next", "nuqs-vite"], "single");
+    expect(built.ok).toBe(false);
+    if (built.ok) return;
+    expect(built.error.message).toContain("web:spa");
+  });
 });

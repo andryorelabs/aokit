@@ -54,6 +54,13 @@ describe("nuqs-next", () => {
     expect(built.ok).toBe(false);
   });
 
+  test("fails on a SPA base naming web:app-router", async () => {
+    const built = await buildSelection(["vite-react", "nuqs-next"], "single");
+    expect(built.ok).toBe(false);
+    if (built.ok) return;
+    expect(built.error.message).toContain("web:app-router");
+  });
+
   test("selecting nuqs-next with nuqs-vite fails naming both", async () => {
     const built = await buildSelection(["next", "nuqs-next", "nuqs-vite"], "single");
     expect(built.ok).toBe(false);
