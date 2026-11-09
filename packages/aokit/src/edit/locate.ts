@@ -40,9 +40,14 @@ export interface ParsedSource {
   readonly imports: readonly LocatedImport[];
 }
 
+/** The oxc language for a file: JSX-capable `tsx` for `.tsx` and `.jsx`, `ts` otherwise. */
+export function languageOf(fileName: string): "ts" | "tsx" {
+  return /\.[jt]sx$/u.test(fileName) ? "tsx" : "ts";
+}
+
 /** Parses with the native oxc-parser build. */
 const parseNative: ParseSource = (fileName, sourceText) =>
-  parseSync(fileName, sourceText, { lang: "ts" });
+  parseSync(fileName, sourceText, { lang: languageOf(fileName) });
 
 function spanOf(node: Span): Span {
   return { start: node.start, end: node.end };

@@ -1,6 +1,7 @@
 import type { Op } from "@aokit/module";
 import { parseSync } from "oxc-parser";
 import type { EditBatch } from "../../edit/batch.ts";
+import { languageOf } from "../../edit/locate.ts";
 import { queuedImport } from "./queued.ts";
 import type { AnchorSite } from "./resolve.ts";
 
@@ -26,7 +27,7 @@ function queuedSideEffectsOf(batch: EditBatch): Set<string> {
 }
 
 function existingImports(site: AnchorSite, from: string): ExistingImport[] {
-  const { program } = parseSync(site.path, site.source, { lang: "ts" });
+  const { program } = parseSync(site.path, site.source, { lang: languageOf(site.path) });
   return program.body.flatMap((statement) => {
     if (
       statement.type !== "ImportDeclaration" ||
