@@ -129,6 +129,7 @@ describe("planSteps", () => {
       "install",
       "typecheck lib",
       "build:lib .",
+      "lint .",
       "size .",
       "test:coverage lib",
     ]);

@@ -123,7 +123,7 @@ const fallbackCompilerFlags: readonly string[] = [
 ];
 
 /** Scripts Modules add that the real build runs after install, build and typecheck. */
-const extraScriptNames: readonly string[] = ["lint:shadcn", "test:coverage", "size"];
+const extraScriptNames: readonly string[] = ["lint", "lint:shadcn", "test:coverage", "size"];
 
 function byCodepoint(left: string, right: string): number {
   if (left < right) return -1;
@@ -172,7 +172,7 @@ function isTypeScriptSource(path: string): boolean {
  * `tsconfig.json` is checked with it; TypeScript files no `tsconfig.json` above them governs are
  * checked per nearest package with strict fallback flags (adding `bun` types when that package
  * or the root declares `@types/bun`). Last, every package that declares one of
- * `lint:shadcn`, `test:coverage` or `size` runs it, `size` after `build:lib` when both exist, since it measures
+ * `lint`, `lint:shadcn`, `test:coverage` or `size` runs it, `size` after `build:lib` when both exist, since it measures
  * the built library.
  *
  * @param files Project-relative POSIX paths, `node_modules` excluded.
