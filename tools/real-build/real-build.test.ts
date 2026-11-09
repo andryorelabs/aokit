@@ -24,11 +24,13 @@ describe("curatedCombinations", () => {
     expect(curatedCombinations.map(combinationLabel).toSorted()).toEqual([
       "monorepo oxc,hono,docker,coolify",
       "monorepo oxc,knip,astro,tailwind4",
+      "monorepo oxc,knip,next,prisma,better-auth",
       "monorepo oxc,knip,next,tailwind4",
       "monorepo oxc,knip,vite-react,tailwind4",
       "monorepo oxc,knip,vite-react,tailwind4,base-ui,shadcn",
       "single oxc,hono,docker,coolify",
       "single oxc,knip,astro,tailwind4",
+      "single oxc,knip,next,prisma,better-auth",
       "single oxc,knip,next,tailwind4",
       "single oxc,knip,vite-react,tailwind4",
       "single oxc,knip,vite-react,tailwind4,base-ui,shadcn",
