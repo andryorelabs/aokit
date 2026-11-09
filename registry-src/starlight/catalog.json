@@ -1,0 +1,5 @@
+{
+  "dependencies": {
+    "@astrojs/starlight": "^0.42.10"
+  }
+}
