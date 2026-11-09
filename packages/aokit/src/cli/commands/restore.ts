@@ -20,6 +20,7 @@ import { unifiedDiff } from "../../project/diff.ts";
 import { toAokitError } from "../../project/errors.ts";
 import { defineCommand } from "../command.ts";
 import { AokitError } from "../envelope.ts";
+import { lockfileMissingError } from "../errors.ts";
 import { aokitMeta } from "../meta.ts";
 import { bundledRegistryPath } from "../../registry/bundled.ts";
 
@@ -54,11 +55,7 @@ async function readProjectLockfile(directory: string): Promise<Lockfile> {
     throw thrown;
   }
   if (parsed === null) {
-    throw new AokitError(
-      "LOCKFILE_MISSING",
-      `no ${lockfileName} in \`${directory}\``,
-      "run the command inside an aokit Project, or pass --directory",
-    );
+    throw lockfileMissingError("Run the command inside an aokit Project, or pass --directory.");
   }
   return parsed.lockfile;
 }

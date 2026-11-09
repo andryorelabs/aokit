@@ -2,7 +2,7 @@ import { readFile } from "node:fs/promises";
 import { join } from "node:path";
 import { apply, lockfileName, type ConflictWrite } from "../apply/index.ts";
 import { conflictFile } from "../apply/conflicts.ts";
-import { AokitError } from "../cli/envelope.ts";
+import { lockfileMissingError } from "../cli/errors.ts";
 import { Vfs, type FileContent } from "../engine/vfs.ts";
 import type { Plan } from "../engine/plan.ts";
 import { assertCleanTree, openGit } from "../git/index.ts";
@@ -107,11 +107,7 @@ async function readUserFile(dir: string, path: string): Promise<FileContent | un
 async function readProjectLockfile(dir: string): Promise<Lockfile> {
   const parsed = await readLockfile(join(dir, lockfileName));
   if (parsed === null) {
-    throw new AokitError(
-      "LOCKFILE_MISSING",
-      `No ${lockfileName} found in "${dir}".`,
-      "Run the command inside an aokit Project, or create one with `aokit create`.",
-    );
+    throw lockfileMissingError();
   }
   return parsed.lockfile;
 }

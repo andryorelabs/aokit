@@ -102,7 +102,7 @@ export function combinationLabel(combination: Combination): string {
 export interface Step {
   readonly name: string;
   readonly cwd: string;
-  readonly kind: "install" | "generate" | "build" | "typecheck";
+  readonly kind: "install" | "generate" | "build" | "typecheck" | "script";
   /** Arguments; for `typecheck` they follow the resolved `tsc` binary. */
   readonly args: readonly string[];
 }
@@ -121,6 +121,9 @@ const fallbackCompilerFlags: readonly string[] = [
   "--jsx",
   "react-jsx",
 ];
+
+/** Scripts Modules add that the real build runs after install, build and typecheck. */
+const extraScriptNames: readonly string[] = ["lint", "lint:shadcn", "test:coverage", "size"];
 
 function byCodepoint(left: string, right: string): number {
   if (left < right) return -1;
@@ -168,7 +171,9 @@ function isTypeScriptSource(path: string): boolean {
  * script, and a TypeScript typecheck. Each directory with a
  * `tsconfig.json` is checked with it; TypeScript files no `tsconfig.json` above them governs are
  * checked per nearest package with strict fallback flags (adding `bun` types when that package
- * or the root declares `@types/bun`).
+ * or the root declares `@types/bun`). Last, every package that declares one of
+ * `lint`, `lint:shadcn`, `test:coverage` or `size` runs it, `size` after `build:lib` when both exist, since it measures
+ * the built library.
  *
  * @param files Project-relative POSIX paths, `node_modules` excluded.
  * @param packageManifests Parsed `package.json` content keyed by Project-relative path.
@@ -240,6 +245,26 @@ export function planSteps(
       kind: "typecheck",
       args: [...fallbackCompilerFlags, ...(usesBunTypes ? ["--types", "bun"] : []), ...sources],
     });
+  }
+  for (const directory of [...packageDirectories].toSorted(byCodepoint)) {
+    const scripts = scriptsOf(packageManifests[posix.join(directory, "package.json")]);
+    const label = directory === "" ? "." : directory;
+    if (typeof scripts["size"] === "string" && typeof scripts["build:lib"] === "string") {
+      steps.push({
+        name: `build:lib ${label}`,
+        cwd: directory,
+        kind: "build",
+        args: ["run", "build:lib"],
+      });
+    }
+    for (const script of extraScriptNames.filter((name) => typeof scripts[name] === "string")) {
+      steps.push({
+        name: `${script} ${directory === "" ? "." : directory}`,
+        cwd: directory,
+        kind: "script",
+        args: ["run", script],
+      });
+    }
   }
   return steps;
 }

@@ -20,6 +20,7 @@ import type { Plan } from "../engine/plan.ts";
 import type { Vfs } from "../engine/vfs.ts";
 import type { ConflictWrite } from "../apply/index.ts";
 import { AokitError } from "../cli/envelope.ts";
+import { lockfileMissingError } from "../cli/errors.ts";
 import { keepProjectDeps, type KeptDependency } from "../lifecycle/keep-deps.ts";
 import { applyAfterStage, loadUserTree, mergeVisibleEdits } from "../lifecycle/migration-stage.ts";
 import { runLifecycle, type LifecycleResult } from "../lifecycle/index.ts";
@@ -126,11 +127,7 @@ interface UpdateState {
 async function readProjectLockfile(dir: string): Promise<Lockfile> {
   const parsed = await readLockfile(join(dir, "aokit.lock.json"));
   if (parsed === null) {
-    throw new AokitError(
-      "LOCKFILE_MISSING",
-      `No aokit.lock.json found in "${dir}".`,
-      "Run the command inside an aokit Project, or create one with `aokit create`.",
-    );
+    throw lockfileMissingError();
   }
   return parsed.lockfile;
 }

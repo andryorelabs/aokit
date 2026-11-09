@@ -139,6 +139,25 @@ test("a minCliVersion above the CLI version fails telling the user to update the
   expect(error.fix).toContain("https://github.com/andryorelabs/aokit/releases");
 });
 
+test("a pre-release CLI of the minCliVersion core version reads the Registry", async () => {
+  const root = await builtRegistry();
+  await editJson(join(root, "index.json"), (index) => {
+    index["minCliVersion"] = "0.1.0";
+  });
+  const registry = await readLocalRegistry(root, { cliVersion: "0.1.0-next.0" });
+  expect(registry.name).toBe("official");
+});
+
+test("a pre-release CLI below the minCliVersion core version still fails", async () => {
+  const root = await builtRegistry();
+  await editJson(join(root, "index.json"), (index) => {
+    index["minCliVersion"] = "0.2.0";
+  });
+  const error = await captureError(() => readLocalRegistry(root, { cliVersion: "0.1.0-next.0" }));
+  expect(error.code).toBe("REGISTRY_CLI_TOO_OLD");
+  expect(error.message).toContain("expected >= 0.2.0, actual 0.1.0-next.0");
+});
+
 test("a CLI at or above minCliVersion reads the Registry", async () => {
   const root = await builtRegistry();
   const registry = await readLocalRegistry(root, { cliVersion: "1.0.0" });

@@ -1,0 +1,5 @@
+{
+  "slug": "turborepo-api",
+  "modules": ["vite-react", "tsdown", "hono", "hono-zod-validator", "oxc", "vitest", "msw"],
+  "layouts": ["monorepo"]
+}

@@ -2,6 +2,7 @@ import { readdir } from "node:fs/promises";
 import { join, posix } from "node:path";
 import { lockfileName, type ConflictWrite } from "../apply/index.ts";
 import { AokitError } from "../cli/envelope.ts";
+import { lockfileMissingError } from "../cli/errors.ts";
 import { cliVersion } from "../cli/version.ts";
 import { lockfileDriftOf } from "../drift/drift-of.ts";
 import type { LayoutName } from "../engine/layout.ts";
@@ -44,11 +45,7 @@ export interface LayoutMigrateResult {
 async function readProjectLockfile(directory: string): Promise<Lockfile> {
   const parsed = await readLockfile(join(directory, lockfileName));
   if (parsed === null) {
-    throw new AokitError(
-      "LOCKFILE_MISSING",
-      `No ${lockfileName} found in "${directory}".`,
-      "Run the command inside an aokit Project, or create one with `aokit create`.",
-    );
+    throw lockfileMissingError();
   }
   return parsed.lockfile;
 }

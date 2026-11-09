@@ -1,0 +1,21 @@
+{
+  "slug": "next-saas",
+  "modules": [
+    "next",
+    "prisma",
+    "better-auth",
+    "tailwind4",
+    "base-ui",
+    "shadcn",
+    "shadcn-lint",
+    "oxc",
+    "eslint",
+    "eslint-react",
+    "next-themes",
+    "fontsource",
+    "vitest",
+    "vitest-react",
+    "msw"
+  ],
+  "layouts": ["single"]
+}

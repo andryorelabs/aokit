@@ -8,6 +8,7 @@ import type { Lockfile } from "../../lockfile/schema.ts";
 import { type LocalRegistry, RegistryError } from "../../registry/index.ts";
 import { defineCommand } from "../command.ts";
 import { AokitError } from "../envelope.ts";
+import { lockfileMissingError } from "../errors.ts";
 import { aokitMeta } from "../meta.ts";
 
 const lockfileFileName = "aokit.lock.json";
@@ -43,11 +44,7 @@ async function loadLockfile(projectDir: string): Promise<Lockfile> {
   try {
     const parsed = await readLockfile(join(projectDir, lockfileFileName));
     if (parsed === null) {
-      throw new AokitError(
-        "LOCKFILE_MISSING",
-        `No ${lockfileFileName} in ${projectDir}.`,
-        "Run the command from an aokit Project, or pass its directory.",
-      );
+      throw lockfileMissingError();
     }
     return parsed.lockfile;
   } catch (thrown) {

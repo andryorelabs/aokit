@@ -19,7 +19,9 @@
     "registry:build": "bun tools/registry-build/main.ts",
     "prepare": "husky",
     "lint:package": "bun tools/build-package/lint-main.ts",
-    "lint:docs": "bun tools/lint-docs/main.ts"
+    "lint:docs": "bun tools/lint-docs/main.ts",
+    "release": "bumpp",
+    "release:notes": "changelogithub"
   },
   "devDependencies": {
     "@arethetypeswrong/cli": "^0.18.5",
@@ -28,6 +30,8 @@
     "@commitlint/types": "^21.2.3",
     "@oxlint/plugins": "1.90.0",
     "@types/bun": "^1.4.4",
+    "bumpp": "^12.3.0",
+    "changelogithub": "^15.0.5",
     "husky": "^9.1.7",
     "knip": "^6.44.1",
     "lint-staged": "^17.6.0",
