@@ -115,10 +115,11 @@ test.each([
     const manifest = z
       .object({ scripts: z.record(z.string(), z.string()) })
       .parse(JSON.parse(String(built.plan.vfs.read("package.json"))));
-    expect(manifest.scripts["db:generate"]).toBe(
-      `prisma generate --config ${dbPath}/prisma.config.ts`,
+    const prefix = `bun run --cwd ${dbPath} prisma`;
+    expect(manifest.scripts["db:generate"]).toBe(`${prefix} generate --config prisma.config.ts`);
+    expect(manifest.scripts["db:migrate"]).toBe(`${prefix} migrate dev --config prisma.config.ts`);
+    expect(manifest.scripts["db:deploy"]).toBe(
+      `${prefix} migrate deploy --config prisma.config.ts`,
     );
-    expect(manifest.scripts["db:migrate"]).toContain(`--config ${dbPath}/prisma.config.ts`);
-    expect(manifest.scripts["db:deploy"]).toContain(`--config ${dbPath}/prisma.config.ts`);
   },
 );

@@ -57,9 +57,10 @@ export default defineModule({
       file: "package.json",
       value: {
         scripts: {
-          "db:generate": "prisma generate --config {{target:db}}/prisma.config.ts",
-          "db:migrate": "prisma migrate dev --config {{target:db}}/prisma.config.ts",
-          "db:deploy": "prisma migrate deploy --config {{target:db}}/prisma.config.ts",
+          "db:generate": "bun run --cwd {{target:db}} prisma generate --config prisma.config.ts",
+          "db:migrate": "bun run --cwd {{target:db}} prisma migrate dev --config prisma.config.ts",
+          "db:deploy":
+            "bun run --cwd {{target:db}} prisma migrate deploy --config prisma.config.ts",
         },
       },
     },
