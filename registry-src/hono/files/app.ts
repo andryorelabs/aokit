@@ -17,4 +17,6 @@ for (const [path, route] of Object.entries(routes)) {
 
 app.get("/health", (context) => context.json({ status: "ok" }));
 
+export type AppType = typeof app;
+
 export default app;

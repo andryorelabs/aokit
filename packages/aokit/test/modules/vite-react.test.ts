@@ -1,43 +1,33 @@
 import { describe, expect, test } from "bun:test";
-import { readFileSync } from "node:fs";
-import { join } from "node:path";
-import { catalogSchema, parseManifest } from "@aokit/module";
-import type { EngineModule } from "../../src/engine/index.ts";
-import { type PipelineInput, buildProject } from "../../src/pipeline/index.ts";
-import viteReact from "../../../../registry-src/vite-react/module.ts";
+import { z } from "zod";
+import { parseManifest } from "@aokit/module";
+import viteReactSource from "../../../../registry-src/vite-react/module.ts";
+import { buildSelection } from "./support/index.ts";
 
-const sourceRoot = join(import.meta.dir, "..", "..", "..", "..", "registry-src");
-const catalog = catalogSchema.parse(
-  JSON.parse(readFileSync(join(sourceRoot, "catalog", "2026.11.0.json"), "utf8")),
-);
+const viteReact = parseManifest(viteReactSource);
 
-const curated: EngineModule = {
-  manifest: parseManifest(viteReact),
-  readFile: (from) => readFileSync(join(sourceRoot, "vite-react", from), "utf8"),
-};
+const packageSchema = z.object({
+  scripts: z.record(z.string(), z.string()).optional(),
+  dependencies: z.record(z.string(), z.string()).optional(),
+  devDependencies: z.record(z.string(), z.string()).optional(),
+  workspaces: z.array(z.string()).optional(),
+});
 
-function input(layout: "single" | "monorepo"): PipelineInput {
-  return {
-    selection: ["vite-react"],
-    available: [curated],
-    answers: {},
-    layout,
-    catalog,
-    context: { now: new Date(0), random: () => 0.5, env: {} },
-    registry: {
-      name: "fixture",
-      source: "https://registry.example/fixture",
-      release: "2026.11.0",
-      minCliVersion: "0.0.0",
-    },
-  };
+async function build(layout: "single" | "monorepo", names: readonly string[] = ["vite-react"]) {
+  const built = await buildSelection(names, layout);
+  if (!built.ok) throw new Error(`${built.error.code}: ${built.error.message}`);
+  return built;
+}
+
+function manifestAt(vfs: { read(path: string): string | Uint8Array | undefined }, path: string) {
+  return packageSchema.parse(JSON.parse(String(vfs.read(path))));
 }
 
 describe("vite-react", () => {
-  test("single writes the web base with scripts and dependencies", async () => {
-    const built = await buildProject(input("single"));
-    if (!built.ok) throw new Error(built.error.message);
-    expect(built.plan.vfs.paths()).toEqual([
+  test("single writes the web base with scripts, dependencies and the Compiler", async () => {
+    const { plan } = await build("single");
+    expect(plan.vfs.paths()).toEqual([
+      ".gitignore",
       "AGENTS.md",
       "CLAUDE.md",
       "index.html",
@@ -48,27 +38,26 @@ describe("vite-react", () => {
       "tsconfig.json",
       "vite.config.ts",
     ]);
-    expect(JSON.parse(String(built.plan.vfs.read("package.json")))).toMatchObject({
-      scripts: {
-        build: "bun run --cwd . vite build",
-        dev: "bun run --cwd . vite",
-        preview: "bun run --cwd . vite preview",
-      },
-      dependencies: { react: "^19.3.1", "react-dom": "^19.3.1" },
-      devDependencies: {
-        "@types/react": "^19.3.0",
-        "@types/react-dom": "^19.3.0",
-        "@vitejs/plugin-react": "^6.2.1",
-        typescript: "^7.0.2",
-        vite: "^8.3.5",
-      },
+    const manifest = manifestAt(plan.vfs, "package.json");
+    expect(manifest.scripts).toMatchObject({
+      build: "bun run --cwd . vite build",
+      dev: "bun run --cwd . vite",
+      preview: "bun run --cwd . vite preview",
+    });
+    expect(manifest.dependencies).toEqual({ react: "^19.3.1", "react-dom": "^19.3.1" });
+    expect(manifest.devDependencies).toMatchObject({
+      "@babel/core": "^7.29.0",
+      "@rolldown/plugin-babel": "^0.3.0",
+      "@vitejs/plugin-react": "^6.2.1",
+      "babel-plugin-react-compiler": "^1.0.0",
+      vite: "^8.3.5",
     });
   });
 
-  test("monorepo puts the Extension point files in the web package", async () => {
-    const built = await buildProject(input("monorepo"));
-    if (!built.ok) throw new Error(built.error.message);
-    expect(built.plan.vfs.paths()).toEqual([
+  test("monorepo puts the web files and dependencies in the web package", async () => {
+    const { plan } = await build("monorepo");
+    expect(plan.vfs.paths()).toEqual([
+      ".gitignore",
       "AGENTS.md",
       "CLAUDE.md",
       "apps/web/index.html",
@@ -80,30 +69,53 @@ describe("vite-react", () => {
       "apps/web/vite.config.ts",
       "package.json",
     ]);
-    expect(JSON.parse(String(built.plan.vfs.read("package.json")))).toMatchObject({
+    expect(manifestAt(plan.vfs, "package.json")).toMatchObject({
       scripts: { dev: "bun run --cwd apps/web vite" },
       workspaces: ["apps/web"],
+    });
+    expect(manifestAt(plan.vfs, "apps/web/package.json").devDependencies).toMatchObject({
+      "@rolldown/plugin-babel": "catalog:",
+      "babel-plugin-react-compiler": "catalog:",
     });
   });
 
   test.each(["single", "monorepo"] as const)(
-    "index.html entry resolves to a file next to vite.config.ts (%s)",
+    "React Compiler is on in vite.config.ts and the entry resolves (%s)",
     async (layout) => {
-      const built = await buildProject(input(layout));
-      if (!built.ok) throw new Error(built.error.message);
+      const { plan } = await build(layout);
       const directory = layout === "single" ? "" : "apps/web/";
-      const html = String(built.plan.vfs.read(`${directory}index.html`));
+      const config = String(plan.vfs.read(`${directory}vite.config.ts`));
+      expect(config).toContain('from "@rolldown/plugin-babel"');
+      expect(config).toContain("reactCompilerPreset()");
+      const html = String(plan.vfs.read(`${directory}index.html`));
       const entry = /<script[^>]*src="([^"]+)"/.exec(html)?.[1];
       expect(entry).toBeDefined();
-      expect(built.plan.vfs.has(`${directory}${String(entry).replace(/^\//, "")}`)).toBe(true);
-      expect(built.plan.vfs.has(`${directory}vite.config.ts`)).toBe(true);
+      expect(plan.vfs.has(`${directory}${String(entry).replace(/^\//, "")}`)).toBe(true);
     },
   );
 
-  test("provides web and web:spa and declares both array points", () => {
-    expect(curated.manifest.provides.map((entry) => entry.capability)).toEqual(["web", "web:spa"]);
-    expect(
-      curated.manifest.extensionPoints.map((point) => `${point.name}@${point.version}`),
-    ).toEqual(["vite.plugins@1.0.0", "web.providers@1.0.0", "web.routes@1.0.0"]);
+  test("appends the agents Region and a .gitignore Region", async () => {
+    const { plan } = await build("single");
+    expect(String(plan.vfs.read("AGENTS.md"))).toContain("aokit:begin vite-react:agents");
+    const ignore = String(plan.vfs.read(".gitignore"));
+    expect(ignore).toContain("# aokit:begin vite-react:vite-react");
+    expect(ignore).toContain("node_modules");
+    expect(ignore).not.toContain("<!--");
+  });
+
+  test("provides web, web:spa, web:react and web:static and declares the Extension points", () => {
+    expect(viteReact.version).toBe("1.3.0");
+    expect(viteReact.provides.map((entry) => entry.capability)).toEqual([
+      "web",
+      "web:spa",
+      "web:react",
+      "web:static",
+    ]);
+    expect(viteReact.extensionPoints.map((point) => `${point.name}@${point.version}`)).toEqual([
+      "vite.plugins@1.0.0",
+      "web.styles@1.0.0",
+      "web.providers@1.0.0",
+      "web.routes@1.0.0",
+    ]);
   });
 });

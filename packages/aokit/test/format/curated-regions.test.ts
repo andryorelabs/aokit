@@ -7,14 +7,13 @@ import type { EngineModule } from "../../src/engine/index.ts";
 import { createOxfmtFormatter } from "../../src/format/index.ts";
 import { buildProject } from "../../src/pipeline/index.ts";
 import { jsonAt, parseJson } from "../helpers/cli-json.ts";
+import { draftCatalog } from "../modules/support/index.ts";
 
 const sourceRoot = join(import.meta.dir, "..", "..", "..", "..", "registry-src");
 const curated = ["oxc", "knip", "vite-react", "tailwind4", "hono", "docker", "coolify"] as const;
 const skillPath = ".claude/skills/hono-add-route/SKILL.md";
 
-const catalog = catalogSchema.parse(
-  parseJson(readFileSync(join(sourceRoot, "catalog", "2026.11.2.json"), "utf8")),
-);
+const catalog = draftCatalog();
 
 async function loadModule(name: string): Promise<EngineModule> {
   const loaded: unknown = await import(join(sourceRoot, name, "module.ts"));
@@ -66,12 +65,13 @@ test.each(["single", "monorepo"] as const)(
   async (layout) => {
     const plain = await render(layout, false);
     const formatted = await render(layout, true);
-    for (const path of ["AGENTS.md", "CLAUDE.md", skillPath]) {
+    for (const path of ["AGENTS.md", "CLAUDE.md", ".gitignore", skillPath]) {
       expect(formatted.read(path)).toBe(plain.read(path));
     }
     const agents = String(plain.read("AGENTS.md"));
     for (const name of curated) {
       expect(agents).toContain(`<!-- aokit:begin ${name}:agents -->`);
     }
+    expect(String(plain.read(".gitignore"))).toContain("# aokit:begin vite-react:vite-react");
   },
 );
