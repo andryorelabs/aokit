@@ -35,7 +35,7 @@ There is no table of valid combinations. A selection is valid when all of the fo
 3. **No conflicts.** No selected Module lists another selected Module or a provided Capability in `conflicts`.
 4. **Acyclic.** Modules ordered by `requires` form a DAG.
 
-`conflicts` is for what Capabilities cannot express, such as two Modules writing the same exclusive file. Most incompatibilities are already expressed by Cardinality (two ORMs) or by a missing `requires` (a Prisma Module requires `db:postgres`). A new Module joins the matrix by declaring itself; no existing Module or rule changes. The CI matrix is generated from the same declarations (capability-derived pairwise combinations across Layouts).
+`conflicts` is for what Capabilities cannot express, such as two Modules writing the same exclusive file. Most incompatibilities are already expressed by Cardinality (two ORMs) or by a missing `requires` (`better-auth` requires `orm:prisma`). A new Module joins the matrix by declaring itself; no existing Module or rule changes. The CI matrix is generated from the same declarations (capability-derived pairwise combinations across Layouts).
 
 A Module may never require a Layout: `requires` accepts Capabilities and Extension points only, so no Module can demand `monorepo`. See [Layouts](layouts.md).
 
@@ -54,7 +54,7 @@ Errors name the Module, the Capability and the fix. Examples:
 
 ```text
 error: module "better-auth" requires capability "orm" but no selected module provides it.
-  providers in registry "aokit": prisma (orm, db:postgres)
+  providers in registry "aokit": prisma (orm, orm:prisma)
   fix: aokit add prisma   (or select one with --module prisma)
 
 error: capability "orm" allows at most 1 provider, but 2 are selected: prisma, drizzle.

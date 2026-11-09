@@ -28,7 +28,7 @@ Every Markdown file under `docs/` has a row here; a test fails when one is missi
 | [architecture/layouts.md](architecture/layouts.md)                 | Layouts                           |
 | [architecture/lifecycle.md](architecture/lifecycle.md)             | Lifecycle                         |
 | [architecture/lockfile.md](architecture/lockfile.md)               | Lockfile and state                |
-| [architecture/module-catalog.md](architecture/module-catalog.md)   | Module catalog                    |
+| [architecture/module-catalog.md](architecture/module-catalog.md)   | Module catalog (shipped Modules)  |
 | [architecture/module-contract.md](architecture/module-contract.md) | Module contract                   |
 | [architecture/overview.md](architecture/overview.md)               | Architecture overview             |
 | [architecture/registry.md](architecture/registry.md)               | Registry protocol and trust model |
