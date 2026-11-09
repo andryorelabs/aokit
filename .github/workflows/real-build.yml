@@ -62,7 +62,9 @@ jobs:
         run: bun install --frozen-lockfile
 
       - name: Build the draft Registry
-        run: bun tools/registry-build/main.ts --include-pending --out "$RUNNER_TEMP/draft-registry"
+        run: |
+          cp -r registry "$RUNNER_TEMP/draft-registry"
+          bun tools/registry-build/main.ts --include-pending --out "$RUNNER_TEMP/draft-registry"
 
       - name: Create, install, build and typecheck
         env:
