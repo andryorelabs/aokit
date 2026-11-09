@@ -15,6 +15,7 @@ import type { Lockfile } from "../../lockfile/schema.ts";
 import { readUpdateMarker } from "../../update/state.ts";
 import { defineCommand } from "../command.ts";
 import { AokitError } from "../envelope.ts";
+import { lockfileMissingError } from "../errors.ts";
 import { aokitMeta } from "../meta.ts";
 import { bundledRegistryPath } from "../../registry/bundled.ts";
 
@@ -85,11 +86,7 @@ async function readProjectLockfile(dir: string) {
     }
     throw error;
   }
-  throw new AokitError(
-    "LOCKFILE_MISSING",
-    `No ${lockfileName} in ${dir}.`,
-    "Run doctor inside an aokit Project, or create one with `aokit create`.",
-  );
+  throw lockfileMissingError();
 }
 
 async function removeStashes(dir: string, git: Git | undefined): Promise<string[]> {
