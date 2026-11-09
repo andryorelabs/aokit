@@ -4,7 +4,7 @@ import { join } from "node:path";
 import { createEditBatch } from "../../src/edit/batch.ts";
 import { editDefineConfig } from "../../src/edit/config.ts";
 import { EditError } from "../../src/edit/errors.ts";
-import { locateAnchor, parseSource } from "../../src/edit/locate.ts";
+import { languageOf, locateAnchor, parseSource } from "../../src/edit/locate.ts";
 
 const fixtureDirectory = join(import.meta.dir, "fixtures");
 const moduleOrder = ["base", "auth", "db"];
@@ -145,4 +145,14 @@ test("editDefineConfig rejects files that are not defineConfig exports", () => {
   );
   expect(error.code).toBe("edit.config-shape");
   expect(error.message).toContain("x.config.ts");
+});
+
+test("parses JSX in a tsx file and picks the language from the extension", () => {
+  expect(languageOf("src/providers.tsx")).toBe("tsx");
+  expect(languageOf("src/config.ts")).toBe("ts");
+  const parsed = parseSource(
+    "src/providers.tsx",
+    "export const providers = [];\nexport const view = <div>{providers.length}</div>;\n",
+  );
+  expect(parsed.anchors.map((anchor) => anchor.name)).toContain("providers");
 });

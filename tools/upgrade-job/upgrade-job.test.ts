@@ -51,7 +51,10 @@ const conflicted: Exec = (command, cwd) =>
       })
     : exec(command, cwd);
 
-const firstSelection = curatedCombinations.filter(
+const firstSelection = releasedCombinations(
+  curatedCombinations,
+  await readIndex(join(workspaceRoot, "registry")),
+).filter(
   (combination) => combination.modules.includes("vite-react") && combination.layout === "monorepo",
 );
 

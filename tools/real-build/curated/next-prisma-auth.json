@@ -1,0 +1,1 @@
+{ "slug": "next-prisma-auth", "modules": ["oxc", "knip", "next", "prisma", "better-auth"] }

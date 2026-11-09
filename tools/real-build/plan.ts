@@ -102,7 +102,7 @@ export function combinationLabel(combination: Combination): string {
 export interface Step {
   readonly name: string;
   readonly cwd: string;
-  readonly kind: "install" | "build" | "typecheck";
+  readonly kind: "install" | "generate" | "build" | "typecheck";
   /** Arguments; for `typecheck` they follow the resolved `tsc` binary. */
   readonly args: readonly string[];
 }
@@ -163,8 +163,9 @@ function isTypeScriptSource(path: string): boolean {
 }
 
 /**
- * The checks a created Project needs, in order: `bun install` at the root, `bun run build` in
- * every package that declares a `build` script, and a TypeScript typecheck. Each directory with a
+ * The checks a created Project needs, in order: `bun install` at the root, `bun run db:generate`
+ * in every package that declares it, `bun run build` in every package that declares a `build`
+ * script, and a TypeScript typecheck. Each directory with a
  * `tsconfig.json` is checked with it; TypeScript files no `tsconfig.json` above them governs are
  * checked per nearest package with strict fallback flags (adding `bun` types when that package
  * or the root declares `@types/bun`).
@@ -181,6 +182,20 @@ export function planSteps(
     Object.keys(packageManifests).map((path) => directoryOf(path)),
   );
   const steps: Step[] = [{ name: "install", cwd: "", kind: "install", args: ["install"] }];
+
+  for (const directory of [...packageDirectories].toSorted(byCodepoint)) {
+    const generate = scriptsOf(packageManifests[posix.join(directory, "package.json")])[
+      "db:generate"
+    ];
+    if (typeof generate === "string") {
+      steps.push({
+        name: `generate ${directory === "" ? "." : directory}`,
+        cwd: directory,
+        kind: "generate",
+        args: ["run", "db:generate"],
+      });
+    }
+  }
 
   for (const directory of [...packageDirectories].toSorted(byCodepoint)) {
     const build = scriptsOf(packageManifests[posix.join(directory, "package.json")])["build"];
