@@ -1,0 +1,4 @@
+{
+  "slug": "vite-shadcn",
+  "modules": ["oxc", "knip", "vite-react", "tailwind4", "base-ui", "shadcn"]
+}
