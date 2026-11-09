@@ -28,7 +28,7 @@ cd my-app && bun run dev
 
 ## What you get
 
-- **Pick Modules, get a project.** `aokit create` generates a TypeScript project from Modules such as next, vite-react, astro, hono, prisma, better-auth, tailwind4, shadcn, oxc, docker and coolify. `eslint-react`, `vitest-react`, `msw`, `hono-zod-validator`, `next-themes` and `fontsource` and `shadcn-lint` are Pending until the next Release. The full list is in the [Module catalog](docs/architecture/module-catalog.md).
+- **Pick Modules, get a project.** `aokit create` generates a TypeScript project from Modules such as next, vite-react, astro, hono, prisma, better-auth, tailwind4, shadcn, oxc, docker and coolify. `eslint-react`, `vitest-react`, `msw`, `hono-zod-validator`, `next-themes`, `fontsource` and `shadcn-lint` are Pending until the next Release. The full list is in the [Module catalog](docs/architecture/module-catalog.md).
 - **Updates keep your edits.** The Lockfile records a hash for every file, and `aokit update` merges changes with what you wrote.
 - **See changes before they land.** `aokit diff` and `aokit check` show what would change.
 - **Bun only.** aokit supports Bun and no other package manager.

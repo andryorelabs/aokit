@@ -65,6 +65,7 @@ describe("shadcn-lint", () => {
     );
     expect(built.ok).toBe(false);
     if (built.ok) return;
-    expect(built.error.message).toContain("lint");
+    expect(built.error.code).toBe("requirement_unmet");
+    expect(built.error.message).toContain('requires capability "lint"');
   });
 });
