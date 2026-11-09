@@ -1,17 +1,16 @@
 import { describe, expect, test } from "bun:test";
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
-import { catalogSchema, parseManifest } from "@aokit/module";
+import { parseManifest } from "@aokit/module";
 import { z } from "zod";
+import { draftCatalog } from "./support/index.ts";
 import type { EngineModule, Vfs } from "../../src/engine/index.ts";
 import { buildProject, type PipelineInput } from "../../src/pipeline/index.ts";
 import knip from "../../../../registry-src/knip/module.ts";
 import oxc from "../../../../registry-src/oxc/module.ts";
 
 const sourceRoot = join(import.meta.dir, "..", "..", "..", "..", "registry-src");
-const catalog = catalogSchema.parse(
-  JSON.parse(readFileSync(join(sourceRoot, "catalog", "2026.11.0.json"), "utf8")),
-);
+const catalog = draftCatalog();
 
 function curated(name: string, declared: unknown): EngineModule {
   return {
