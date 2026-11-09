@@ -8,7 +8,7 @@ declare module "@playwright/test" {
   }
   interface Expectation {
     toBeVisible(): Promise<void>;
-    toEqual(expected: unknown): Promise<void>;
+    toEqual(expected: unknown): void;
   }
   export function test(name: string, run: (fixtures: { page: Page }) => void | Promise<void>): void;
   export function expect(value: unknown): Expectation;
