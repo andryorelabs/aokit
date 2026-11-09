@@ -24,6 +24,13 @@ export default defineConfig(
   },
   astro.configs.recommended,
   unicorn.configs.recommended,
+  {
+    rules: {
+      "unicorn/no-null": "off",
+      "unicorn/prefer-global-this": "off",
+      "unicorn/prefer-query-selector": "off",
+    },
+  },
   jsdoc.configs["flat/recommended-typescript"],
   eslintComments.recommended,
   ...contributedConfigs,

@@ -7,7 +7,7 @@ import reactHooks from "eslint-plugin-react-hooks";
 contributedConfigs.push(
   jsxA11y.flatConfigs.recommended,
   reactHooks.configs.flat.recommended,
-  eslintReact.configs["recommended-type-checked"],
+  { files: ["**/*.{ts,tsx,mts,cts}"], ...eslintReact.configs["recommended-type-checked"] },
 );`;
 
 export default defineModule({
