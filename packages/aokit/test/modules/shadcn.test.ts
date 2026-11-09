@@ -74,6 +74,19 @@ describe("shadcn", () => {
     expect(String(vfs.read("AGENTS.md"))).toContain("aokit:begin shadcn:agents");
   });
 
+  test("adds the lint:shadcn script and @shadcn/lint per Target", async () => {
+    const single = packageSchema
+      .extend({ scripts: z.record(z.string(), z.string()) })
+      .parse(JSON.parse(String((await build("single")).read("package.json"))));
+    expect(single.scripts).toMatchObject({ "lint:shadcn": "bunx shadcn lint" });
+    expect(single.devDependencies).toMatchObject({ "@shadcn/lint": "^0.2.5" });
+    const monorepo = await build("monorepo");
+    const ui = packageSchema.parse(JSON.parse(String(monorepo.read("packages/ui/package.json"))));
+    expect(ui.devDependencies).toMatchObject({ "@shadcn/lint": "catalog:" });
+    expect(String(monorepo.read("package.json"))).toContain("lint:shadcn");
+    expect(String(monorepo.read("AGENTS.md"))).toContain("lint:shadcn");
+  });
+
   test.each([
     [["vite-react", "tailwind4", "shadcn"], "ui:primitives"],
     [["vite-react", "base-ui", "shadcn"], "styles.theme"],
