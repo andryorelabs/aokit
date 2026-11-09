@@ -2,7 +2,7 @@ import { defineModule } from "@aokit/module";
 
 export default defineModule({
   name: "shadcn",
-  version: "1.1.0",
+  version: "1.0.0",
   provides: [{ capability: "ui:components", cardinality: { max: 1 } }],
   requires: ["ui:primitives", "styling", "web:react", "ext:styles.theme@^1"],
   files: [
@@ -26,7 +26,6 @@ export default defineModule({
       "tailwind-merge": { range: "catalog" },
     },
     devDependencies: {
-      "@shadcn/lint": { range: "catalog" },
       "@types/react": { range: "catalog" },
       "tw-animate-css": { range: "catalog", target: "web" },
     },
@@ -38,13 +37,7 @@ export default defineModule({
       file: "AGENTS.md",
       region: "agents",
       content:
-        "\n## shadcn\n\nshadcn components on Base UI provide `ui:components`; add items with `aokit add @shadcn/<item>`.\n\nCommands:\n\n- `bun run lint:shadcn`: lint the Tailwind design system with the shadcn linter.\n\nKey files:\n\n- `components.json`: shadcn configuration for Base UI; its aliases match where `aokit add` places items.\n- `lib/utils.ts` (shared-ui Target): the `cn` helper.\n- `ui/sonner.tsx` (shared-ui Target): the toast host.\n- `src/styles.css`: the theme tokens as CSS variables.\n\nSkills:\n\n- `.claude/skills/shadcn/SKILL.md`: how to add and customize shadcn components.\n",
-    },
-    {
-      op: "mergeJson",
-      target: "root",
-      file: "package.json",
-      value: { scripts: { "lint:shadcn": "bunx shadcn lint" } },
+        "\n## shadcn\n\nshadcn components on Base UI provide `ui:components`; add items with `aokit add @shadcn/<item>`.\n\nKey files:\n\n- `components.json`: shadcn configuration for Base UI; its aliases match where `aokit add` places items.\n- `lib/utils.ts` (shared-ui Target): the `cn` helper.\n- `ui/sonner.tsx` (shared-ui Target): the toast host.\n- `src/styles.css`: the theme tokens as CSS variables.\n\nSkills:\n\n- `.claude/skills/shadcn/SKILL.md`: how to add and customize shadcn components.\n",
     },
     {
       op: "addCssAtRule",
