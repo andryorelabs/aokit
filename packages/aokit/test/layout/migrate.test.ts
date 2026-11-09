@@ -1,5 +1,5 @@
 import { afterAll, describe, expect, test } from "bun:test";
-import { mkdir, readFile, readdir, rm, writeFile } from "node:fs/promises";
+import { cp, mkdir, readFile, readdir, rm, writeFile } from "node:fs/promises";
 import { join, posix } from "node:path";
 import { z } from "zod";
 import { runCommand } from "../../src/cli/command.ts";
@@ -8,6 +8,7 @@ import { layoutMigrateCommand } from "../../src/cli/commands/layout-migrate.ts";
 import { updateCommand } from "../../src/cli/commands/update.ts";
 import { openGit } from "../../src/git/index.ts";
 import { readUpdateMarker } from "../../src/update/state.ts";
+import { loadMigratableSets } from "../matrix/source.ts";
 import { commitAll, context, git, newWorkspace, readLock } from "../restore/helpers.ts";
 
 const workspace = newWorkspace();
@@ -104,6 +105,21 @@ async function lockSummary(directory: string) {
   };
 }
 
+const renderCache = new Map<string, Promise<string>>();
+
+/**
+ * Renders a curated selection on a Layout once per test file; the result is both the source a
+ * migration starts from (copied) and the fresh `create` a migrated tree is compared with.
+ */
+function renderedCurated(layout: Layout, modules: readonly string[]): Promise<string> {
+  const key = `${layout} ${modules.join(",")}`;
+  const cached = renderCache.get(key);
+  if (cached !== undefined) return cached;
+  const rendered = create(layout, modules);
+  renderCache.set(key, rendered);
+  return rendered;
+}
+
 async function committed(layout: Layout, modules: readonly string[]): Promise<string> {
   const directory = await create(layout, modules);
   await commitAll(directory);
@@ -158,6 +174,27 @@ describe("aokit layout migrate", () => {
           const migrated = await treeOf(directory);
           const fresh = await treeOf(expected);
           expect(migrated).toEqual(fresh);
+          expect(await lockSummary(directory)).toEqual(await lockSummary(expected));
+        },
+        { timeout: 60_000 },
+      );
+    }
+  }
+
+  for (const set of loadMigratableSets()) {
+    for (const from of ["single", "monorepo"] as const) {
+      test(
+        `${from} migration of curated set ${set.slug} equals create --layout other`,
+        async () => {
+          const to = otherLayout(from);
+          const directory = nextDirectory();
+          await cp(await renderedCurated(from, set.modules), directory, { recursive: true });
+          await commitAll(directory);
+          const envelope = await migrate(directory, { layout: to });
+          if (!envelope.ok) throw new Error(envelope.error.message);
+          expect(envelope.data.conflicts).toEqual([]);
+          const expected = await renderedCurated(to, set.modules);
+          expect(await treeOf(directory)).toEqual(await treeOf(expected));
           expect(await lockSummary(directory)).toEqual(await lockSummary(expected));
         },
         { timeout: 60_000 },

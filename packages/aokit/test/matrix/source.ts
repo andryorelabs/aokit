@@ -1,6 +1,7 @@
 import { existsSync, readdirSync } from "node:fs";
 import { join } from "node:path";
 import { type ModuleManifest, parseManifest } from "@aokit/module";
+import { type CuratedSelection, readCuratedSelections } from "../../../../tools/real-build/plan.ts";
 
 const sourceRoot = join(import.meta.dir, "..", "..", "..", "..", "registry-src");
 
@@ -18,5 +19,19 @@ export async function loadSourceManifests(): Promise<ModuleManifest[]> {
       }
       return parseManifest(loaded.default);
     }),
+  );
+}
+
+/** The curated Module selections of `tools/real-build/curated/*.json`, read on every call. */
+export function loadCuratedSets(): CuratedSelection[] {
+  return readCuratedSelections();
+}
+
+/** The curated sets built on both Layouts, which a Layout migration can cross in both directions. */
+export function loadMigratableSets(): CuratedSelection[] {
+  return loadCuratedSets().filter(
+    (set) =>
+      set.layouts === undefined ||
+      (set.layouts.includes("single") && set.layouts.includes("monorepo")),
   );
 }
