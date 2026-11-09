@@ -1,9 +1,7 @@
 import { cookies } from "next/headers";
 import { getRequestConfig } from "next-intl/server";
-import en from "../messages/en.json";
-import { defaultLocale, localeCookie, toLocale, type Locale } from "./routing";
-
-export const catalogs: Record<Locale, typeof en> = { en };
+import { catalogs } from "./messages";
+import { defaultLocale, localeCookie, toLocale } from "./routing";
 
 export default getRequestConfig(async () => {
   const store = await cookies();

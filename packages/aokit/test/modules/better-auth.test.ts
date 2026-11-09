@@ -59,7 +59,7 @@ test("better-auth declares placeholder env examples and never a secret value", a
   const built = await buildSelection(selection, "single");
   if (!built.ok) throw new Error(built.error.message);
   const env = String(built.plan.vfs.read(".env"));
-  expect(env).toContain("BETTER_AUTH_SECRET=replace-with");
+  expect(env).toMatch(/^BETTER_AUTH_SECRET=$/m);
   expect(env).toContain("BETTER_AUTH_URL=http://localhost:3000");
 });
 

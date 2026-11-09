@@ -100,14 +100,14 @@ export default defineModule({
   env: [
     {
       key: "BETTER_AUTH_SECRET",
-      scope: "root",
+      scope: "web",
       schema: "z.string().min(32)",
       visibility: "server",
-      example: "replace-with-a-random-secret-of-32-or-more-characters",
+      example: "",
     },
     {
       key: "BETTER_AUTH_URL",
-      scope: "root",
+      scope: "web",
       schema: "z.url()",
       visibility: "server",
       example: "http://localhost:3000",

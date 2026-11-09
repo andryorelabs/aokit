@@ -2,7 +2,7 @@
 
 import type { PropsWithChildren } from "react";
 import { NextIntlClientProvider } from "next-intl";
-import { catalogs } from "./request";
+import { catalogs } from "./messages";
 import { defaultLocale } from "./routing";
 
 export function IntlProvider({ children }: PropsWithChildren) {

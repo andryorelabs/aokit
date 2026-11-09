@@ -63,6 +63,24 @@ async function buildWithFixture(proxyContent: string) {
 }
 
 describe("next-intl", () => {
+  test("the client provider graph never reaches a server-only import", async () => {
+    const vfs = await build("single");
+    const serverOnly = /from "(next\/headers|next-intl\/server)"/;
+    const visited = new Set<string>();
+    const queue = ["src/i18n/provider.tsx"];
+    while (queue.length > 0) {
+      const path = queue.pop() ?? "";
+      if (visited.has(path)) continue;
+      visited.add(path);
+      const source = String(vfs.read(path));
+      expect(source).not.toMatch(serverOnly);
+      for (const match of source.matchAll(/from "\.\/([\w-]+)"/g)) {
+        queue.push(`src/i18n/${match[1]}.ts`);
+      }
+    }
+    expect([...visited]).toContain("src/i18n/messages.ts");
+  });
+
   test.each(["single", "monorepo"] as const)(
     "writes its i18n files and replaces the proxy (%s)",
     async (layout) => {
@@ -70,6 +88,7 @@ describe("next-intl", () => {
       const directory = layout === "single" ? "" : "apps/web/";
       for (const path of [
         "src/i18n/routing.ts",
+        "src/i18n/messages.ts",
         "src/i18n/request.ts",
         "src/i18n/provider.tsx",
         "src/messages/en.json",

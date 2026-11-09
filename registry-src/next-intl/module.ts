@@ -14,6 +14,12 @@ export default defineModule({
       ownership: "managed",
     },
     {
+      from: "files/src/i18n/messages.ts",
+      to: "src/i18n/messages.ts",
+      target: "web",
+      ownership: "managed",
+    },
+    {
       from: "files/src/i18n/request.ts",
       to: "src/i18n/request.ts",
       target: "web",
@@ -47,7 +53,7 @@ export default defineModule({
       file: "AGENTS.md",
       region: "agents",
       content:
-        "\n## next-intl\n\nnext-intl translates the web Target without locale-prefixed routes; the locale comes from the `NEXT_LOCALE` cookie.\n\nKey files:\n\n- `src/i18n/routing.ts`: the supported locales and the default; add a locale here and a matching file in `src/messages/`.\n- `src/i18n/request.ts`: the server request config that loads the messages; register each new catalog in `catalogs`.\n- `src/i18n/provider.tsx`: the client provider, registered through `web.providers`.\n- `src/messages/en.json`: the English messages, yours to edit.\n- `src/proxy.ts`: sets the locale cookie from `Accept-Language`; next-intl owns this file, so another Module that needs the proxy must compose with it.\n",
+        "\n## next-intl\n\nnext-intl translates the web Target without locale-prefixed routes; the locale comes from the `NEXT_LOCALE` cookie.\n\nKey files:\n\n- `src/i18n/routing.ts`: the supported locales and the default; add a locale here and a matching file in `src/messages/`.\n- `src/i18n/messages.ts`: the message catalogs shared by the server and client; register each new catalog in `catalogs`.\n- `src/i18n/request.ts`: the server request config that loads the messages.\n- `src/i18n/provider.tsx`: the client provider, registered through `web.providers`.\n- `src/messages/en.json`: the English messages, yours to edit.\n- `src/proxy.ts`: sets the locale cookie from `Accept-Language`; next-intl owns this file, so another Module that needs the proxy must compose with it.\n",
     },
     {
       op: "addImport",
