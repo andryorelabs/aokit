@@ -5,7 +5,15 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { curatedCombinations } from "../real-build/plan.ts";
 import { applyEdit, indexAtRelease, lastPair, planEdits, releasePairs } from "./plan.ts";
-import { type Exec, buildCases, pairsOf, readCatalogModules, readIndex, runJob } from "./run.ts";
+import {
+  type Exec,
+  buildCases,
+  pairsOf,
+  readCatalogModules,
+  readIndex,
+  releasedCombinations,
+  runJob,
+} from "./run.ts";
 
 const workspaceRoot = join(import.meta.dir, "..", "..");
 const scratchRoots: string[] = [];
@@ -208,4 +216,13 @@ describe("the job against the committed Registry", () => {
     expect(results[0]?.failures.join("\n")).toContain("exited 6");
     expect(results[0]?.failures.join("\n")).toContain("1 Conflicts");
   }, 120_000);
+});
+
+describe("releasedCombinations", () => {
+  test("drops selections that name a Module the index does not publish", async () => {
+    const index = await readIndex(join(workspaceRoot, "registry"));
+    const kept = { layout: "single", modules: ["oxc", "knip"] } as const;
+    const pending = { layout: "single", modules: ["oxc", "pending-module"] } as const;
+    expect(releasedCombinations([kept, pending], index)).toEqual([kept]);
+  });
 });

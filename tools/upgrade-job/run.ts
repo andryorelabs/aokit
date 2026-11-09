@@ -291,6 +291,16 @@ async function runCase(
   }
 }
 
+/** Drops selections naming a Module the Registry index does not publish, such as a Pending Module. */
+export function releasedCombinations<Combination extends { readonly modules: readonly string[] }>(
+  combinations: readonly Combination[],
+  index: RegistryIndex,
+): Combination[] {
+  return combinations.filter((combination) =>
+    combination.modules.every((name) => Object.hasOwn(index.modules, name)),
+  );
+}
+
 /** The cases the job runs: every Release pair x curated selection x Layout. */
 export function buildCases(
   pairs: readonly (readonly [string, string])[],
