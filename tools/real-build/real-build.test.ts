@@ -23,8 +23,12 @@ describe("curatedCombinations", () => {
   test("covers both required selections on both Layouts", () => {
     expect(curatedCombinations.map(combinationLabel).toSorted()).toEqual([
       "monorepo oxc,hono,docker,coolify",
+      "monorepo oxc,knip,astro,tailwind4",
+      "monorepo oxc,knip,next,tailwind4",
       "monorepo oxc,knip,vite-react,tailwind4",
       "single oxc,hono,docker,coolify",
+      "single oxc,knip,astro,tailwind4",
+      "single oxc,knip,next,tailwind4",
       "single oxc,knip,vite-react,tailwind4",
     ]);
   });

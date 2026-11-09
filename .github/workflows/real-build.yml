@@ -61,8 +61,11 @@ jobs:
       - name: Install
         run: bun install --frozen-lockfile
 
+      - name: Build the draft Registry
+        run: bun tools/registry-build/main.ts --include-pending --out "$RUNNER_TEMP/draft-registry"
+
       - name: Create, install, build and typecheck
         env:
           LAYOUT: ${{ matrix.layout }}
           MODULES: ${{ matrix.modules }}
-        run: bun tools/real-build/main.ts --layout "$LAYOUT" --modules "$MODULES"
+        run: bun tools/real-build/main.ts --layout "$LAYOUT" --modules "$MODULES" --registry "$RUNNER_TEMP/draft-registry"

@@ -2,7 +2,15 @@ import { mkdtemp } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { curatedCombinations } from "../real-build/plan.ts";
-import { type CaseResult, type Exec, buildCases, pairsOf, runJob } from "./run.ts";
+import {
+  type CaseResult,
+  type Exec,
+  buildCases,
+  pairsOf,
+  readIndex,
+  releasedCombinations,
+  runJob,
+} from "./run.ts";
 
 const workspaceRoot = join(import.meta.dir, "..", "..");
 
@@ -33,10 +41,12 @@ function report(result: CaseResult): void {
   }
 }
 
-const pairs = await pairsOf(join(workspaceRoot, "registry"));
+const registryDirectory = join(workspaceRoot, "registry");
+const pairs = await pairsOf(registryDirectory);
+const released = releasedCombinations(curatedCombinations, await readIndex(registryDirectory));
 const scratch = await mkdtemp(join(tmpdir(), "aokit-upgrade-job-"));
 const results = await runJob(
-  buildCases(pairs, curatedCombinations),
+  buildCases(pairs, released),
   { exec, workspaceRoot, scratch, log: (line) => process.stdout.write(`${line}\n`) },
   report,
 );
