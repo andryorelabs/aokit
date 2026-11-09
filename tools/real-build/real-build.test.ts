@@ -98,6 +98,15 @@ describe("planSteps", () => {
     ]);
   });
 
+  test("generates the database client between install and build", () => {
+    const steps = planSteps(["package.json", "packages/db/package.json"], {
+      "package.json": { scripts: { build: "next build" } },
+      "packages/db/package.json": { scripts: { "db:generate": "prisma generate" } },
+    });
+    expect(steps.map((step) => step.name)).toEqual(["install", "generate packages/db", "build ."]);
+    expect(steps[1]?.kind).toBe("generate");
+  });
+
   test("typechecks TypeScript no tsconfig governs with strict flags and bun types", () => {
     const steps = planSteps(
       ["package.json", "apps/server/package.json", "apps/server/src/app.ts"],

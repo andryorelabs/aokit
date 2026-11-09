@@ -25,7 +25,7 @@ export default defineModule({
       "tailwind-merge": { range: "catalog" },
     },
     devDependencies: {
-      "tw-animate-css": { range: "catalog" },
+      "tw-animate-css": { range: "catalog", target: "web" },
     },
   },
   ops: [

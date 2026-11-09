@@ -57,6 +57,10 @@ describe("shadcn", () => {
       JSON.parse(String((await build("monorepo")).read("packages/ui/package.json"))),
     );
     expect(ui.dependencies).toMatchObject({ clsx: "catalog:", sonner: "catalog:" });
+    const web = packageSchema.parse(
+      JSON.parse(String((await build("monorepo")).read("apps/web/package.json"))),
+    );
+    expect(web.devDependencies).toMatchObject({ "tw-animate-css": "catalog:" });
   });
 
   test("ships its skill and appends the agents Region", async () => {

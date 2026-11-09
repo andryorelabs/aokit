@@ -74,10 +74,15 @@ function resolveTsc(context: RunContext, cwd: string): string {
   );
 }
 
+/** A syntactically valid connection string; generating a client never connects to it. */
+const placeholderDatabaseUrl = "postgresql://aokit:aokit@localhost:5432/aokit";
+
 function commandFor(context: RunContext, step: Step): string[] {
-  return step.kind === "typecheck"
-    ? [resolveTsc(context, step.cwd), ...step.args]
-    : ["bun", ...step.args];
+  if (step.kind === "typecheck") return [resolveTsc(context, step.cwd), ...step.args];
+  if (step.kind === "generate") {
+    return ["env", `DATABASE_URL=${placeholderDatabaseUrl}`, "bun", ...step.args];
+  }
+  return ["bun", ...step.args];
 }
 
 function createCommand(context: RunContext, combination: Combination): string[] {
@@ -112,7 +117,7 @@ function createSucceeded(result: ExecResult): boolean {
 
 /**
  * Creates one combination with `aokit create --yes --json`, then runs its planned steps (install,
- * builds, typechecks) in order and stops at the first failing one.
+ * client generation, builds, typechecks) in order and stops at the first failing one.
  */
 export async function runCombination(
   combination: Combination,
