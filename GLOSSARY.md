@@ -133,7 +133,7 @@ The set of dependency versions a Release ships, tested together.
 _Avoid_: version map, bill of materials
 
 **CLI version**:
-The version of the aokit command-line program, shipped as an npm package and as a standalone binary. A Registry can require a minimum CLI version.
+The version of the aokit command-line program, shipped as an npm package and as a standalone binary. It uses semver and is published to npm under the dist-tag `next` while it is a pre-release. A Registry can require a minimum CLI version.
 _Avoid_: release (of the CLI), CLI release
 
 **Migration**:
