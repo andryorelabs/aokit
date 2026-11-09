@@ -20,6 +20,32 @@ function readPackage(vfs: { read(path: string): string | Uint8Array | undefined 
   return packageSchema.parse(JSON.parse(String(vfs.read(path))));
 }
 
+describe("tsdown size-limit", () => {
+  test("single adds the size script, size-limit config and dev dependencies", async () => {
+    const { plan } = await build("single");
+    const manifest = readPackage(plan.vfs, "package.json");
+    expect(manifest.scripts?.size).toContain("size-limit");
+    expect(String(plan.vfs.read("package.json"))).toContain('"limit": "10 kB"');
+    expect(manifest.devDependencies).toMatchObject({
+      "size-limit": "^14.3.0",
+      "@size-limit/file": "^14.3.0",
+    });
+  });
+
+  test("monorepo places size-limit in the library package", async () => {
+    const { plan } = await build("monorepo");
+    const lib = readPackage(plan.vfs, "packages/lib/package.json");
+    expect(String(plan.vfs.read("packages/lib/package.json"))).toContain('"limit": "10 kB"');
+    expect(lib.devDependencies).toMatchObject({
+      "size-limit": "catalog:",
+      "@size-limit/file": "catalog:",
+    });
+    expect(readPackage(plan.vfs, "package.json").scripts?.size).toBe(
+      "bun run --cwd packages/lib size-limit",
+    );
+  });
+});
+
 describe("tsdown", () => {
   test("single writes the library base at the root", async () => {
     const { plan } = await build("single");
@@ -56,16 +82,20 @@ describe("tsdown", () => {
   test("places its devDependencies per Target", async () => {
     const single = readPackage((await build("single")).plan.vfs, "package.json");
     expect(single.devDependencies).toEqual({
+      "@size-limit/file": "^14.3.0",
       "@arethetypeswrong/cli": "^0.18.5",
       "@types/bun": "^1.4.4",
+      "size-limit": "^14.3.0",
       publint: "^0.3.25",
       tsdown: "^0.23.7",
     });
     const lib = readPackage((await build("monorepo")).plan.vfs, "packages/lib/package.json");
     expect(lib.devDependencies).toEqual({
       "@arethetypeswrong/cli": "catalog:",
+      "@size-limit/file": "catalog:",
       "@types/bun": "catalog:",
       publint: "catalog:",
+      "size-limit": "catalog:",
       tsdown: "catalog:",
     });
   });
@@ -123,6 +153,6 @@ describe("tsdown", () => {
     expect(String(plan.vfs.read(".claude/skills/tsdown-library/SKILL.md"))).toContain(
       "name: tsdown-library",
     );
-    expect(lockfile.modules["tsdown"]?.version).toBe("1.0.0");
+    expect(lockfile.modules["tsdown"]?.version).toBe("1.1.0");
   });
 });
