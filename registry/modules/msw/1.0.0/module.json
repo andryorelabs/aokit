@@ -1,0 +1,49 @@
+{
+  "$schema": "https://aokit.andryore.dev/schema/module/v1.json",
+  "conflicts": [],
+  "deps": {
+    "devDependencies": {
+      "msw": {
+        "range": "catalog"
+      }
+    }
+  },
+  "env": [],
+  "extensionPoints": [],
+  "files": [
+    {
+      "from": "files/handlers.ts",
+      "ownership": "seed",
+      "target": "root",
+      "to": "src/mocks/handlers.ts"
+    },
+    {
+      "from": "files/server.ts",
+      "ownership": "seed",
+      "target": "root",
+      "to": "src/mocks/server.ts"
+    },
+    {
+      "from": "files/vitest.setup.ts",
+      "ownership": "seed",
+      "target": "root",
+      "to": "src/mocks/vitest.setup.ts"
+    }
+  ],
+  "migrations": [],
+  "name": "msw",
+  "ops": [
+    {
+      "content": "\n## msw\n\nMSW mocks network requests in tests.\n\nKey files:\n\n- `src/mocks/handlers.ts`: the request handlers, yours to extend.\n- `src/mocks/server.ts`: the Node server built from the handlers.\n- `src/mocks/vitest.setup.ts`: starts, resets and stops the server around tests; add it to `setupFiles` in your Vitest config.\n",
+      "file": "AGENTS.md",
+      "op": "appendRegion",
+      "region": "agents",
+      "target": "root"
+    }
+  ],
+  "override": [],
+  "provides": [],
+  "requires": [],
+  "schemaVersion": 1,
+  "version": "1.0.0"
+}

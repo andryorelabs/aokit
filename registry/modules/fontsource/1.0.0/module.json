@@ -1,0 +1,49 @@
+{
+  "$schema": "https://aokit.andryore.dev/schema/module/v1.json",
+  "conflicts": [],
+  "deps": {
+    "dependencies": {
+      "@fontsource-variable/geist": {
+        "range": "catalog"
+      },
+      "@fontsource-variable/geist-mono": {
+        "range": "catalog"
+      }
+    }
+  },
+  "env": [],
+  "extensionPoints": [],
+  "files": [],
+  "migrations": [],
+  "name": "fontsource",
+  "ops": [
+    {
+      "content": "\n## fontsource\n\nFontsource self-hosts the Geist and Geist Mono variable fonts for the web Target.\n\nBoth packages are imported for their side effects through `web.styles`; reference them in CSS as `\"Geist Variable\"` and `\"Geist Mono Variable\"`. Other families are out of scope: add their `@fontsource-variable/*` package and import it by hand.\n",
+      "file": "AGENTS.md",
+      "op": "appendRegion",
+      "region": "agents",
+      "target": "root"
+    },
+    {
+      "extensionPoint": "web.styles",
+      "from": "@fontsource-variable/geist",
+      "op": "addImport",
+      "range": "^1",
+      "sideEffect": true,
+      "target": "web"
+    },
+    {
+      "extensionPoint": "web.styles",
+      "from": "@fontsource-variable/geist-mono",
+      "op": "addImport",
+      "range": "^1",
+      "sideEffect": true,
+      "target": "web"
+    }
+  ],
+  "override": [],
+  "provides": [],
+  "requires": ["ext:web.styles@^1"],
+  "schemaVersion": 1,
+  "version": "1.0.0"
+}

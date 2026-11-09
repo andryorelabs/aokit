@@ -26,13 +26,44 @@ const jobLine = /^ {2}([A-Za-z0-9_-]+):\s*$/;
 const topLevelLine = /^\S/;
 const runsOnLine = /^ {4}runs-on:\s*(.*?)\s*$/;
 const osMatrixLine = /^\s+os:\s*(?:\[|$)/;
-const literalLabel = /^(?:ubuntu-latest|macos-[A-Za-z0-9.-]+)$/;
+const literalLabel = /^(?:ubuntu-latest|ubuntu-24\.04-arm|macos-[A-Za-z0-9.-]+)$/;
 const forbiddenLabel = /vps-|self-hosted/;
+const matrixRunnerExpression = "${{ matrix.runner }}";
+const literalLabelProblem = "must use a literal ubuntu-latest, ubuntu-24.04-arm or macos-* label";
 
 interface WorkflowJob {
   name: string;
   runsOn: string | undefined;
   hasOsMatrix: boolean;
+  matrixRunners: unknown[];
+}
+
+/** Lists every `runner` value of a job's matrix, from a `runner` list and from `include` entries. */
+function listMatrixRunners(parsedWorkflow: unknown, job: string): unknown[] {
+  const matrix = field(field(field(field(parsedWorkflow, "jobs"), job), "strategy"), "matrix");
+  const listed: unknown = field(matrix, "runner");
+  const included: unknown = field(matrix, "include");
+  const runners: unknown[] = [];
+  if (Array.isArray(listed)) runners.push(...(listed as unknown[]));
+  if (Array.isArray(included)) {
+    for (const entry of included as unknown[]) runners.push(field(entry, "runner"));
+  }
+  return runners;
+}
+
+function findLiteralLabelProblem(id: string, job: WorkflowJob): string | undefined {
+  if (job.runsOn !== matrixRunnerExpression) {
+    return literalLabel.test(job.runsOn ?? "")
+      ? undefined
+      : `${id} is not routed and ${literalLabelProblem}`;
+  }
+  const runners = job.matrixRunners;
+  const allLiteral =
+    runners.length > 0 &&
+    runners.every((runner) => typeof runner === "string" && literalLabel.test(runner));
+  return allLiteral
+    ? undefined
+    : `${id} is not routed and every matrix.runner ${literalLabelProblem}`;
 }
 
 function parseJobs(text: string): WorkflowJob[] {
@@ -49,7 +80,12 @@ function parseJobs(text: string): WorkflowJob[] {
     if (!insideJobs) continue;
     const jobMatch = jobLine.exec(line);
     if (jobMatch !== null) {
-      current = { name: jobMatch[1] ?? "", runsOn: undefined, hasOsMatrix: false };
+      current = {
+        name: jobMatch[1] ?? "",
+        runsOn: undefined,
+        hasOsMatrix: false,
+        matrixRunners: [],
+      };
       jobs.push(current);
       continue;
     }
@@ -65,11 +101,7 @@ function findJobProblem(id: string, job: WorkflowJob, routed: boolean): string |
   const runsOn = job.runsOn;
   if (runsOn === undefined) return `${id} has no runs-on`;
   if (forbiddenLabel.test(runsOn)) return `${id} uses a forbidden runner label ${runsOn}`;
-  if (!routed) {
-    return literalLabel.test(runsOn)
-      ? undefined
-      : `${id} is not routed and must use a literal ubuntu-latest or macos-* label`;
-  }
+  if (!routed) return findLiteralLabelProblem(id, job);
   const expected = job.hasOsMatrix ? routedMatrixExpression : routedExpression;
   if (runsOn === expected) return undefined;
   return job.hasOsMatrix
@@ -80,8 +112,10 @@ function findJobProblem(id: string, job: WorkflowJob, routed: boolean): string |
 /** Returns `<file>:<job>` descriptions of every job whose `runs-on` breaks the CI runner routing rules. */
 export function findRunnerRoutingProblems(file: string, text: string): string[] {
   const problems: string[] = [];
+  const parsedWorkflow: unknown = Bun.YAML.parse(text);
   const jobs = parseJobs(text);
   for (const job of jobs) {
+    job.matrixRunners = listMatrixRunners(parsedWorkflow, job.name);
     const id = `${file}:${job.name}`;
     const problem = findJobProblem(id, job, routedJobs.includes(id));
     if (problem !== undefined) problems.push(problem);
@@ -197,8 +231,33 @@ describe("CI runner routing", () => {
 
   test("a job that is not routed must use a literal label", () => {
     expect(findRunnerRoutingProblems("other.yml", workflow("job", "macos-latest"))).toEqual([]);
+    expect(findRunnerRoutingProblems("other.yml", workflow("job", "ubuntu-24.04-arm"))).toEqual([]);
     expect(findRunnerRoutingProblems("other.yml", workflow("job", routedExpression))).toEqual([
-      "other.yml:job is not routed and must use a literal ubuntu-latest or macos-* label",
+      "other.yml:job is not routed and must use a literal ubuntu-latest, ubuntu-24.04-arm or macos-* label",
+    ]);
+  });
+
+  test("a matrix.runner job passes when every runner in the matrix is a literal label", () => {
+    const matrix =
+      "    strategy:\n      matrix:\n        include:\n          - runner: ubuntu-24.04-arm\n          - runner: macos-latest\n";
+    expect(
+      findRunnerRoutingProblems("other.yml", workflow("job", matrixRunnerExpression, matrix)),
+    ).toEqual([]);
+  });
+
+  test.each([
+    [
+      "a self-hosted label",
+      "        include:\n          - runner: ubuntu-latest\n          - runner: self-hosted-arm\n",
+    ],
+    ["a vps label in list form", "        runner: [ubuntu-latest, vps-box]\n"],
+    ["no runner at all", "        include:\n          - target: bun-linux-x64\n"],
+  ])("a matrix.runner job with %s in the matrix fails", (_label, entries) => {
+    const matrix = `    strategy:\n      matrix:\n${entries}`;
+    expect(
+      findRunnerRoutingProblems("other.yml", workflow("job", matrixRunnerExpression, matrix)),
+    ).toEqual([
+      "other.yml:job is not routed and every matrix.runner must use a literal ubuntu-latest, ubuntu-24.04-arm or macos-* label",
     ]);
   });
 
@@ -212,7 +271,7 @@ describe("CI runner routing", () => {
   test("a ci.yml without the split jobs reports each one missing", () => {
     const text = workflow("check-and-test", routedMatrixExpression, osMatrix);
     expect(findRunnerRoutingProblems("ci.yml", text)).toEqual([
-      "ci.yml:check-and-test is not routed and must use a literal ubuntu-latest or macos-* label",
+      "ci.yml:check-and-test is not routed and must use a literal ubuntu-latest, ubuntu-24.04-arm or macos-* label",
       "ci.yml:check is listed in routedJobs but missing",
       "ci.yml:test is listed in routedJobs but missing",
       "ci.yml:commitlint is listed in routedJobs but missing",

@@ -1,0 +1,84 @@
+{
+  "$schema": "https://aokit.andryore.dev/schema/module/v1.json",
+  "conflicts": ["eslint-prettier"],
+  "deps": {
+    "devDependencies": {
+      "oxfmt": {
+        "pinGroup": "oxc",
+        "range": "catalog"
+      },
+      "oxlint": {
+        "pinGroup": "oxc",
+        "range": "catalog"
+      },
+      "oxlint-tsgolint": {
+        "range": "catalog"
+      }
+    }
+  },
+  "env": [],
+  "extensionPoints": [
+    {
+      "anchor": "/ignorePatterns",
+      "file": ".oxlintrc.json",
+      "kind": "json",
+      "name": "lint.ignores",
+      "target": "config",
+      "version": "1.0.0"
+    }
+  ],
+  "files": [
+    {
+      "from": "files/oxlintrc.json",
+      "ownership": "managed",
+      "target": "config",
+      "to": ".oxlintrc.json"
+    },
+    {
+      "from": "files/oxfmtrc.json",
+      "ownership": "managed",
+      "target": "root",
+      "to": ".oxfmtrc.json"
+    }
+  ],
+  "migrations": [],
+  "name": "oxc",
+  "ops": [
+    {
+      "content": "\n## oxc\n\nOxc provides linting (Oxlint) and formatting (Oxfmt) for this Project.\n\nCommands:\n\n- `bun run lint`: run Oxlint with the shared config and type-aware rules (powered by `oxlint-tsgolint`).\n- `bun run format`: format the Project with Oxfmt.\n\nKey files:\n\n- `.oxlintrc.json`: lint rules and ignore patterns, in the config Target.\n- `.oxfmtrc.json`: formatter options, at the Project root.\n",
+      "file": "AGENTS.md",
+      "op": "appendRegion",
+      "region": "agents",
+      "target": "root"
+    },
+    {
+      "file": "package.json",
+      "op": "mergeJson",
+      "target": "root",
+      "value": {
+        "scripts": {
+          "format": "oxfmt",
+          "lint": "oxlint --type-aware --ignore-pattern \"**/node_modules/**\" -c {{target:config}}/.oxlintrc.json"
+        }
+      }
+    }
+  ],
+  "override": [],
+  "provides": [
+    {
+      "capability": "lint",
+      "cardinality": {
+        "max": 1
+      }
+    },
+    {
+      "capability": "format",
+      "cardinality": {
+        "max": 1
+      }
+    }
+  ],
+  "requires": [],
+  "schemaVersion": 1,
+  "version": "1.2.0"
+}
