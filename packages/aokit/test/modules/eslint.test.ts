@@ -1,5 +1,7 @@
 import { expect, test } from "bun:test";
 import { z } from "zod";
+import { parseManifest } from "@aokit/module";
+import eslint from "../../../../registry-src/eslint/module.ts";
 import { buildSelection } from "./support/index.ts";
 
 const packageSchema = z.object({
@@ -41,4 +43,36 @@ test("eslint appends its agents Region", async () => {
 test("selecting eslint without a lint provider fails resolution", async () => {
   const built = await buildSelection(["eslint"], "single");
   expect(built.ok).toBe(false);
+});
+
+test.each(["single", "monorepo"] as const)(
+  "eslint adds unicorn, jsdoc and eslint-comments to its config and deps (%s)",
+  async (layout) => {
+    const built = await buildSelection(["oxc", "eslint"], layout);
+    if (!built.ok) throw new Error(built.error.message);
+    const manifest = packageSchema.parse(JSON.parse(String(built.plan.vfs.read("package.json"))));
+    expect(manifest.devDependencies).toMatchObject({
+      "eslint-plugin-unicorn": "^79.0.0",
+      "eslint-plugin-jsdoc": "^65.4.5",
+      "@eslint-community/eslint-plugin-eslint-comments": "^4.8.1",
+    });
+    const config = String(built.plan.vfs.read("eslint.config.mjs"));
+    expect(config).toContain("unicorn.configs.recommended");
+    expect(config).toContain('jsdoc.configs["flat/recommended-typescript"]');
+    expect(config).toContain("eslintComments.recommended");
+    expect(config).toContain("aokit:begin eslint:configs");
+  },
+);
+
+test("eslint declares the eslint.configs region Extension point", () => {
+  expect(parseManifest(eslint).extensionPoints).toEqual([
+    {
+      name: "eslint.configs",
+      version: "1.0.0",
+      target: "root",
+      kind: "region",
+      anchor: "configs",
+      file: "eslint.config.mjs",
+    },
+  ]);
 });

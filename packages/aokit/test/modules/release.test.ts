@@ -124,10 +124,29 @@ describe("Release 2026.12.0", () => {
     expect(registry.version("tailwind4", "1.0.0")).toBeDefined();
   });
 
-  test("no Catalog fragment is left in registry-src", () => {
-    const leftovers = readdirSync(sourceRoot, { withFileTypes: true }).filter(
-      (entry) => entry.isDirectory() && existsSync(join(sourceRoot, entry.name, "catalog.json")),
-    );
-    expect(leftovers).toEqual([]);
+  test("a remaining Catalog fragment never redefines a dependency of the 2026.12.0 Catalog", () => {
+    const releasedCatalog = readJson(join(sourceRoot, "catalog", "2026.12.0.json"));
+    const released = z.record(z.string(), z.string()).parse(releasedCatalog["dependencies"]);
+    const releasedPinGroups = z
+      .record(z.string(), z.array(z.string()))
+      .parse(releasedCatalog["pinGroups"]);
+    const fragmentSchema = z.object({
+      dependencies: z.record(z.string(), z.string()),
+      pinGroups: z.record(z.string(), z.array(z.string())).optional(),
+    });
+    const redefined = readdirSync(sourceRoot, { withFileTypes: true })
+      .filter(
+        (entry) => entry.isDirectory() && existsSync(join(sourceRoot, entry.name, "catalog.json")),
+      )
+      .flatMap((entry) => {
+        const fragment = fragmentSchema.parse(
+          JSON.parse(readFileSync(join(sourceRoot, entry.name, "catalog.json"), "utf8")),
+        );
+        return [
+          ...Object.keys(fragment.dependencies).filter((name) => name in released),
+          ...Object.keys(fragment.pinGroups ?? {}).filter((name) => name in releasedPinGroups),
+        ].map((name) => `${entry.name}: ${name}`);
+      });
+    expect(redefined).toEqual([]);
   });
 });

@@ -1,46 +1,23 @@
 import { describe, expect, test } from "bun:test";
-import { readFileSync } from "node:fs";
-import { join } from "node:path";
-import { catalogSchema, parseManifest } from "@aokit/module";
-import type { EngineModule, Vfs } from "../../src/engine/index.ts";
-import { buildProject, type PipelineInput } from "../../src/pipeline/index.ts";
+import { parseManifest } from "@aokit/module";
 import oxc from "../../../../registry-src/oxc/module.ts";
+import { buildSelection } from "./support/index.ts";
 
-const sourceRoot = join(import.meta.dir, "..", "..", "..", "..", "registry-src");
-const catalog = catalogSchema.parse(
-  JSON.parse(readFileSync(join(sourceRoot, "catalog", "2026.11.0.json"), "utf8")),
-);
+const manifest = parseManifest(oxc);
 
-const curated: EngineModule = {
-  manifest: parseManifest(oxc),
-  readFile: (from) => readFileSync(join(sourceRoot, "oxc", from), "utf8"),
-};
-
-function input(layout: "single" | "monorepo"): PipelineInput {
-  return {
-    selection: ["oxc"],
-    available: [curated],
-    answers: {},
-    layout,
-    catalog,
-    context: { now: new Date(0), random: () => 0.5, env: {} },
-    registry: {
-      name: "fixture",
-      source: "https://registry.example/fixture",
-      release: "2026.11.0",
-      minCliVersion: "0.0.0",
-    },
-  };
+async function build(layout: "single" | "monorepo") {
+  const built = await buildSelection(["oxc"], layout);
+  if (!built.ok) throw new Error(built.error.message);
+  return built;
 }
 
-function parsed(vfs: Vfs, path: string): unknown {
-  return JSON.parse(String(vfs.read(path)));
+function parsed(text: string | Uint8Array | undefined): unknown {
+  return JSON.parse(String(text));
 }
 
 describe("oxc", () => {
-  test("single writes both configs at the root with pinned deps and scripts", async () => {
-    const built = await buildProject(input("single"));
-    if (!built.ok) throw new Error(built.error.message);
+  test("single writes both configs at the root with pinned deps and type-aware lint", async () => {
+    const built = await build("single");
     expect(built.plan.vfs.paths()).toEqual([
       ".oxfmtrc.json",
       ".oxlintrc.json",
@@ -48,17 +25,17 @@ describe("oxc", () => {
       "CLAUDE.md",
       "package.json",
     ]);
-    expect(parsed(built.plan.vfs, "package.json")).toMatchObject({
-      scripts: { format: "oxfmt", lint: "oxlint -c ./.oxlintrc.json" },
-      devDependencies: { oxfmt: "0.75.0", oxlint: "1.90.0" },
+    expect(parsed(built.plan.vfs.read("package.json"))).toMatchObject({
+      scripts: { format: "oxfmt", lint: "oxlint --type-aware -c ./.oxlintrc.json" },
+      devDependencies: { oxfmt: "0.75.0", oxlint: "1.90.0", "oxlint-tsgolint": "^7.0.2006" },
     });
     expect(built.lockfile.deps["oxlint"]).toMatchObject({ pinned: true });
     expect(built.lockfile.deps["oxfmt"]).toMatchObject({ pinned: true });
+    expect(built.lockfile.deps["oxlint-tsgolint"]).not.toMatchObject({ pinned: true });
   });
 
   test("monorepo keeps the Oxfmt config at the root so it governs every package", async () => {
-    const built = await buildProject(input("monorepo"));
-    if (!built.ok) throw new Error(built.error.message);
+    const built = await build("monorepo");
     expect(built.plan.vfs.paths()).toEqual([
       ".oxfmtrc.json",
       "AGENTS.md",
@@ -66,11 +43,20 @@ describe("oxc", () => {
       "package.json",
       "packages/config/.oxlintrc.json",
     ]);
+    expect(parsed(built.plan.vfs.read("package.json"))).toMatchObject({
+      scripts: { lint: "oxlint --type-aware -c packages/config/.oxlintrc.json" },
+    });
+  });
+
+  test("appends the agents Region", async () => {
+    const built = await build("single");
+    expect(String(built.plan.vfs.read("AGENTS.md"))).toContain("aokit:begin oxc:agents");
   });
 
   test("declares lint.ignores as a json point and conflicts with eslint-prettier", () => {
-    expect(curated.manifest.conflicts).toEqual(["eslint-prettier"]);
-    expect(curated.manifest.extensionPoints).toEqual([
+    expect(manifest.version).toBe("1.2.0");
+    expect(manifest.conflicts).toEqual(["eslint-prettier"]);
+    expect(manifest.extensionPoints).toEqual([
       {
         name: "lint.ignores",
         version: "1.0.0",

@@ -1,6 +1,13 @@
+import eslintComments from "@eslint-community/eslint-plugin-eslint-comments/configs";
 import { defineConfig } from "eslint/config";
 import astro from "eslint-plugin-astro";
+import jsdoc from "eslint-plugin-jsdoc";
+import unicorn from "eslint-plugin-unicorn";
 import tseslint from "typescript-eslint";
+
+// aokit:begin eslint:configs
+const contributedConfigs = [];
+// aokit:end eslint:configs
 
 export default defineConfig(
   { ignores: ["**/node_modules/**", "**/dist/**", "**/.astro/**", "**/coverage/**"] },
@@ -16,4 +23,16 @@ export default defineConfig(
     },
   },
   astro.configs.recommended,
+  unicorn.configs.recommended,
+  {
+    rules: {
+      "unicorn/no-array-reduce": "off",
+      "unicorn/no-null": "off",
+      "unicorn/prefer-global-this": "off",
+      "unicorn/prefer-query-selector": "off",
+    },
+  },
+  jsdoc.configs["flat/recommended-typescript"],
+  eslintComments.recommended,
+  ...contributedConfigs,
 );
