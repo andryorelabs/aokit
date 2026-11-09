@@ -230,7 +230,7 @@ jobs:
         run: |
           cd "$ASSETS_DIR"
           expected="aokit-darwin-arm64 aokit-darwin-x64 aokit-linux-arm64 aokit-linux-x64 aokit-windows-x64.exe"
-          found="$(find . -mindepth 1 -maxdepth 1 -printf '%f\n' | LC_ALL=C sort | tr '\n' ' ')"
+          found="$(shopt -s dotglob nullglob; printf '%s\n' * | LC_ALL=C sort | tr '\n' ' ')"
           if [ "$found" != "$expected " ]; then
             echo "::error::expected exactly the binaries $expected, found $found"
             exit 1
