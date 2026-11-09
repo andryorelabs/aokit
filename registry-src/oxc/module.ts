@@ -2,7 +2,7 @@ import { defineModule } from "@aokit/module";
 
 export default defineModule({
   name: "oxc",
-  version: "1.1.0",
+  version: "1.2.0",
   provides: [
     { capability: "lint", cardinality: { max: 1 } },
     { capability: "format", cardinality: { max: 1 } },
@@ -16,6 +16,7 @@ export default defineModule({
     devDependencies: {
       oxlint: { range: "catalog", pinGroup: "oxc" },
       oxfmt: { range: "catalog", pinGroup: "oxc" },
+      "oxlint-tsgolint": { range: "catalog" },
     },
   },
   ops: [
@@ -25,13 +26,18 @@ export default defineModule({
       file: "AGENTS.md",
       region: "agents",
       content:
-        "\n## oxc\n\nOxc provides linting (Oxlint) and formatting (Oxfmt) for this Project.\n\nCommands:\n\n- `bun run lint`: run Oxlint with the shared config.\n- `bun run format`: format the Project with Oxfmt.\n\nKey files:\n\n- `.oxlintrc.json`: lint rules and ignore patterns, in the config Target.\n- `.oxfmtrc.json`: formatter options, at the Project root.\n",
+        "\n## oxc\n\nOxc provides linting (Oxlint) and formatting (Oxfmt) for this Project.\n\nCommands:\n\n- `bun run lint`: run Oxlint with the shared config and type-aware rules (powered by `oxlint-tsgolint`).\n- `bun run format`: format the Project with Oxfmt.\n\nKey files:\n\n- `.oxlintrc.json`: lint rules and ignore patterns, in the config Target.\n- `.oxfmtrc.json`: formatter options, at the Project root.\n",
     },
     {
       op: "mergeJson",
       target: "root",
       file: "package.json",
-      value: { scripts: { lint: "oxlint -c {{target:config}}/.oxlintrc.json", format: "oxfmt" } },
+      value: {
+        scripts: {
+          lint: "oxlint --type-aware -c {{target:config}}/.oxlintrc.json",
+          format: "oxfmt",
+        },
+      },
     },
   ],
   extensionPoints: [
