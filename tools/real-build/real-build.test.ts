@@ -30,6 +30,9 @@ describe("curatedCombinations", () => {
       "monorepo oxc,knip,tsdown",
       "monorepo oxc,knip,vite-react,tailwind4",
       "monorepo oxc,knip,vite-react,tailwind4,base-ui,shadcn",
+      "monorepo vite-react,tsdown,hono,hono-zod-validator,oxc,vitest,msw",
+      "single astro,tailwind4,oxc,eslint,fontsource,vitest",
+      "single next,prisma,better-auth,tailwind4,base-ui,shadcn,shadcn-lint,oxc,eslint,eslint-react,next-themes,fontsource,vitest,vitest-react,msw",
       "single oxc,hono,docker,coolify",
       "single oxc,knip,astro,tailwind4",
       "single oxc,knip,next,prisma,better-auth",
@@ -109,6 +112,32 @@ describe("planSteps", () => {
     });
     expect(steps.map((step) => step.name)).toEqual(["install", "generate packages/db", "build ."]);
     expect(steps[1]?.kind).toBe("generate");
+  });
+
+  test("runs the extra Module scripts a package declares after the typecheck", () => {
+    const steps = planSteps(["package.json", "lib/package.json", "lib/tsconfig.json"], {
+      "package.json": {
+        scripts: {
+          size: "bun run --cwd lib size-limit",
+          "build:lib": "bun run --cwd lib tsdown",
+          lint: "oxlint",
+        },
+      },
+      "lib/package.json": { scripts: { "test:coverage": "vitest run --coverage" } },
+    });
+    expect(steps.map((step) => step.name)).toEqual([
+      "install",
+      "typecheck lib",
+      "build:lib .",
+      "size .",
+      "test:coverage lib",
+    ]);
+    expect(steps.at(-1)).toEqual({
+      name: "test:coverage lib",
+      cwd: "lib",
+      kind: "script",
+      args: ["run", "test:coverage"],
+    });
   });
 
   test("typechecks TypeScript no tsconfig governs with strict flags and bun types", () => {
