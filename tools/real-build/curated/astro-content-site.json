@@ -1,0 +1,5 @@
+{
+  "slug": "astro-content-site",
+  "modules": ["astro", "tailwind4", "oxc", "eslint", "fontsource", "vitest"],
+  "layouts": ["single"]
+}
