@@ -106,3 +106,7 @@ Versioning rules for base Modules:
 - A base Module may keep a deprecated Extension point for one major version.
 
 Contributors depend on Extension points, never on file paths.
+
+### The `eslint.configs` Extension point
+
+`eslint` declares `eslint.configs` (version 1.0.0) on target `root` with `kind: "region"`, anchor `configs` and `file: "eslint.config.mjs"`. A contributor requires `ext:eslint.configs@^1` and adds its imports and a `contributedConfigs.push(...)` call with an `appendRegion` Op on that point, one flat config per entry. `eslint-react` is the first contributor.

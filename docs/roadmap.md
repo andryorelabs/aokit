@@ -173,6 +173,8 @@ Exit criteria:
 - A 2026.11.2 Project with vite-react and tailwind4 updated to 2026.12.0 has zero Conflicts.
 - After the cut, `aokit create` offers every new Module and no `registry-src/*/catalog.json` remains.
 
+Module expansion 2 (stack gaps) is Pending until the next Release cut. It adds `eslint-react`, `vitest-react`, `msw`, `hono-zod-validator`, `next-themes` and `fontsource`, and bumps `oxc` 1.2.0, `eslint` 1.1.0, `vitest` 1.1.0 and `tsdown` 1.1.0, each with a Catalog fragment. `registry/` is unchanged and no Release exists for them. The [Module catalog](architecture/module-catalog.md#pending-modules) lists them.
+
 ### 7. Distribution
 
 Phase 7 is split into two specs that ship in order. Both build on [Distribution](architecture/distribution.md).

@@ -1,6 +1,6 @@
 # Module catalog
 
-The first-party [Modules](../../GLOSSARY.md) in `registry-src/`, with the [Capabilities](capabilities.md) and [Extension points](capabilities.md#extension-points) each one declares in its manifest. It is a worked test of the [Module contract](module-contract.md). The tables list exactly the Modules that ship; the manifests are the source of truth, and this page follows them.
+The first-party [Modules](../../GLOSSARY.md) in `registry-src/`, with the [Capabilities](capabilities.md) and [Extension points](capabilities.md#extension-points) each one declares in its manifest. It is a worked test of the [Module contract](module-contract.md). The tables list every Module in `registry-src/`, released or Pending; the manifests are the source of truth, and this page follows them. [Pending Modules](#pending-modules) are listed separately.
 
 ## Scope and filter
 
@@ -22,34 +22,37 @@ Only current best practice is listed:
 
 ## Application bases
 
-| Module       | Provides (Cardinality)                                          | Requires               | Declares / contributes to                                                             |
-| ------------ | --------------------------------------------------------------- | ---------------------- | ------------------------------------------------------------------------------------- |
-| `next`       | `web` (1), `web:ssr` (1), `web:react` (1), `web:app-router` (1) | none                   | declares `web.providers`, `web.styles`, `next.config`, `next.plugins` on target `web` |
-| `vite-react` | `web` (1), `web:spa` (1), `web:react` (1), `web:static` (1)     | none                   | declares `vite.plugins`, `web.styles`, `web.providers`, `web.routes` on target `web`  |
-| `astro`      | `web` (1), `web:react` (1), `web:static` (1)                    | none                   | declares `astro.integrations`, `vite.plugins`, `web.styles` on target `web`           |
-| `hono`       | `server` (1), `api:http` (1)                                    | none                   | declares `server.middleware`, `server.routes` on target `server`                      |
-| `hono-rpc`   | `api:rpc` (1)                                                   | `ext:server.routes@^1` | seeds a typed client on target `api-client`                                           |
-| `tsdown`     | `library` (1)                                                   | none                   | standalone library bundler on target `lib`; does not require `server`                 |
-| `wxt`        | `extension` (1)                                                 | none                   | browser extension base (background, popup)                                            |
+| Module               | Provides (Cardinality)                                          | Requires               | Declares / contributes to                                                                        |
+| -------------------- | --------------------------------------------------------------- | ---------------------- | ------------------------------------------------------------------------------------------------ |
+| `next`               | `web` (1), `web:ssr` (1), `web:react` (1), `web:app-router` (1) | none                   | declares `web.providers`, `web.styles`, `next.config`, `next.plugins` on target `web`            |
+| `vite-react`         | `web` (1), `web:spa` (1), `web:react` (1), `web:static` (1)     | none                   | declares `vite.plugins`, `web.styles`, `web.providers`, `web.routes` on target `web`             |
+| `astro`              | `web` (1), `web:react` (1), `web:static` (1)                    | none                   | declares `astro.integrations`, `vite.plugins`, `web.styles` on target `web`                      |
+| `hono`               | `server` (1), `api:http` (1)                                    | none                   | declares `server.middleware`, `server.routes` on target `server`                                 |
+| `hono-rpc`           | `api:rpc` (1)                                                   | `ext:server.routes@^1` | seeds a typed client on target `api-client`                                                      |
+| `hono-zod-validator` | none                                                            | `ext:server.routes@^1` | contributes to `server.routes`: a sample `/echo` route validated with `zValidator`               |
+| `tsdown`             | `library` (1)                                                   | none                   | standalone library bundler on target `lib`, with a `size-limit` check; does not require `server` |
+| `wxt`                | `extension` (1)                                                 | none                   | browser extension base (background, popup)                                                       |
 
 `next`, `vite-react` and `astro` all provide `web` with Cardinality one, so a Project has one front-end framework. Their `web:*` flavors let a Module narrow what it needs: `web:app-router` is `next` only, `web:spa` is `vite-react` only, `web:static` is `vite-react` or `astro`. `tsdown` is independent of `hono` and of every `web` base; it builds publishable libraries and CLIs.
 
 ## Web features
 
-| Module             | Provides (Cardinality) | Requires                                                        | Declares / contributes to                                                                 |
-| ------------------ | ---------------------- | --------------------------------------------------------------- | ----------------------------------------------------------------------------------------- |
-| `tailwind4`        | `styling` (1)          | `web`, `ext:web.styles@^1`                                      | declares `styles.theme` on target `web`; contributes to `web.styles`                      |
-| `base-ui`          | `ui:primitives` (1)    | `web:react`                                                     | none                                                                                      |
-| `shadcn`           | `ui:components` (1)    | `ui:primitives`, `styling`, `web:react`, `ext:styles.theme@^1`  | contributes to `styles.theme`                                                             |
-| `tanstack-router`  | `routing` (1)          | `web:spa`, `ext:vite.plugins@^1`                                | contributes to `vite.plugins`                                                             |
-| `tanstack-form`    | `forms` (1)            | `web:react`                                                     | none                                                                                      |
-| `tanstack-table`   | `data-table` (1)       | `web:react`                                                     | none                                                                                      |
-| `tanstack-virtual` | `virtualization` (1)   | `web:react`                                                     | none                                                                                      |
-| `nuqs-next`        | `url-state` (1)        | `web:app-router`, `ext:web.providers@^1`                        | contributes to `web.providers`                                                            |
-| `nuqs-vite`        | `url-state` (1)        | `web:spa`, `ext:web.providers@^1`                               | contributes to `web.providers`                                                            |
-| `next-intl`        | `i18n` (1)             | `web:app-router`, `ext:next.plugins@^1`, `ext:web.providers@^1` | contributes to `next.plugins`, `web.providers`                                            |
-| `posthog`          | `analytics` (1)        | `web:app-router`, `ext:web.providers@^1`                        | contributes to `web.providers`; env `NEXT_PUBLIC_POSTHOG_KEY`, `NEXT_PUBLIC_POSTHOG_HOST` |
-| `starlight`        | `docs-site` (1)        | `ext:astro.integrations@^1`                                     | contributes to `astro.integrations`                                                       |
+| Module             | Provides (Cardinality) | Requires                                                        | Declares / contributes to                                                                   |
+| ------------------ | ---------------------- | --------------------------------------------------------------- | ------------------------------------------------------------------------------------------- |
+| `tailwind4`        | `styling` (1)          | `web`, `ext:web.styles@^1`                                      | declares `styles.theme` on target `web`; contributes to `web.styles`                        |
+| `base-ui`          | `ui:primitives` (1)    | `web:react`                                                     | none                                                                                        |
+| `shadcn`           | `ui:components` (1)    | `ui:primitives`, `styling`, `web:react`, `ext:styles.theme@^1`  | contributes to `styles.theme`                                                               |
+| `tanstack-router`  | `routing` (1)          | `web:spa`, `ext:vite.plugins@^1`                                | contributes to `vite.plugins`                                                               |
+| `tanstack-form`    | `forms` (1)            | `web:react`                                                     | none                                                                                        |
+| `tanstack-table`   | `data-table` (1)       | `web:react`                                                     | none                                                                                        |
+| `tanstack-virtual` | `virtualization` (1)   | `web:react`                                                     | none                                                                                        |
+| `nuqs-next`        | `url-state` (1)        | `web:app-router`, `ext:web.providers@^1`                        | contributes to `web.providers`                                                              |
+| `nuqs-vite`        | `url-state` (1)        | `web:spa`, `ext:web.providers@^1`                               | contributes to `web.providers`                                                              |
+| `next-intl`        | `i18n` (1)             | `web:app-router`, `ext:next.plugins@^1`, `ext:web.providers@^1` | contributes to `next.plugins`, `web.providers`                                              |
+| `posthog`          | `analytics` (1)        | `web:app-router`, `ext:web.providers@^1`                        | contributes to `web.providers`; env `NEXT_PUBLIC_POSTHOG_KEY`, `NEXT_PUBLIC_POSTHOG_HOST`   |
+| `starlight`        | `docs-site` (1)        | `ext:astro.integrations@^1`                                     | contributes to `astro.integrations`                                                         |
+| `next-themes`      | none                   | `web:app-router`, `ext:web.providers@^1`                        | contributes to `web.providers` (a `ThemeProvider`)                                          |
+| `fontsource`       | none                   | `ext:web.styles@^1`                                             | contributes to `web.styles`: side-effect imports of the Geist and Geist Mono variable fonts |
 
 Notes:
 
@@ -57,6 +60,8 @@ Notes:
 - `nuqs-next` and `nuqs-vite` both provide `url-state` with Cardinality one and differ by the `web:*` flavor they require, so each is selectable with exactly one kind of base.
 - `next-intl` translates without locale-prefixed routes. It requires `web:app-router` and the `next.plugins` and `web.providers` Extension points that `next` declares, so it is selectable with `next` and not with a base that lacks them.
 - `posthog` is Next only in v1.
+- `next-themes` is Next only: it requires `web:app-router` and registers a client `ThemeProvider` through `web.providers`.
+- `fontsource` self-hosts Geist and Geist Mono and imports both for their side effects through `web.styles`, so it works with any base that declares that point. Other families are added by hand.
 
 ## Data, auth, environment, email and jobs
 
@@ -90,31 +95,53 @@ Notes:
 
 ## Quality and tooling
 
-| Module        | Provides (Cardinality)   | Requires                               | Declares / contributes to                                                                                                      |
-| ------------- | ------------------------ | -------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------ |
-| `oxc`         | `lint` (1), `format` (1) | none; conflicts with `eslint-prettier` | declares `lint.ignores` on target `config`; see the worked example in [Module contract](module-contract.md#worked-example-oxc) |
-| `eslint`      | `lint:companion` (many)  | `lint`, `ext:lint.ignores@^1`          | contributes to `lint.ignores`; runs the full project rule set on `**/*.astro` and the type-aware rules Oxlint cannot run       |
-| `knip`        | `unused-code` (1)        | `ext:lint.ignores@^1`                  | contributes to `lint.ignores`                                                                                                  |
-| `husky`       | `git-hooks` (1)          | none                                   | Git hooks                                                                                                                      |
-| `commitlint`  | `commit-lint` (1)        | `git-hooks`                            | commit message hook                                                                                                            |
-| `lint-staged` | `staged-checks` (1)      | `git-hooks`, `lint`, `format`          | pre-commit staged checks                                                                                                       |
-| `vitest`      | `test-runner` (1)        | none                                   | test runner                                                                                                                    |
-| `bun-test`    | `test-runner` (1)        | none                                   | test runner                                                                                                                    |
-| `playwright`  | `e2e` (1)                | `web`                                  | end-to-end tests                                                                                                               |
-| `axe`         | `a11y-test` (1)          | `e2e`                                  | accessibility checks on top of the `e2e` suite                                                                                 |
-| `turborepo`   | `task-runner` (1)        | none                                   | workspace task runner                                                                                                          |
-| `github-ci`   | `ci` (1)                 | none                                   | GitHub Actions workflows, labels and templates                                                                                 |
-| `renovate`    | `dep-updates` (1)        | none                                   | root files only                                                                                                                |
-| `adr-docs`    | `docs:adr` (1)           | none                                   | writes `docs/adr/`, `GLOSSARY.md` and its own skills, and contributes a Region to `AGENTS.md`                                  |
-| `repo-docs`   | `repo-docs` (1)          | none                                   | community and repository hygiene files                                                                                         |
+| Module         | Provides (Cardinality)                      | Requires                               | Declares / contributes to                                                                                                                                                    |
+| -------------- | ------------------------------------------- | -------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `oxc`          | `lint` (1), `format` (1)                    | none; conflicts with `eslint-prettier` | declares `lint.ignores` on target `config`; ships `oxlint-tsgolint` for type-aware rules; see the worked example in [Module contract](module-contract.md#worked-example-oxc) |
+| `eslint`       | `lint:companion` (many)                     | `lint`, `ext:lint.ignores@^1`          | declares `eslint.configs` on target `root`; contributes to `lint.ignores`; runs the full project rule set on `**/*.astro` and the type-aware rules Oxlint cannot run         |
+| `eslint-react` | none                                        | `web:react`, `ext:eslint.configs@^1`   | contributes to `eslint.configs`: `jsx-a11y`, `react-hooks` and `@eslint-react` rules                                                                                         |
+| `knip`         | `unused-code` (1)                           | `ext:lint.ignores@^1`                  | contributes to `lint.ignores`                                                                                                                                                |
+| `husky`        | `git-hooks` (1)                             | none                                   | Git hooks                                                                                                                                                                    |
+| `commitlint`   | `commit-lint` (1)                           | `git-hooks`                            | commit message hook                                                                                                                                                          |
+| `lint-staged`  | `staged-checks` (1)                         | `git-hooks`, `lint`, `format`          | pre-commit staged checks                                                                                                                                                     |
+| `vitest`       | `test-runner` (1), `test-runner:vitest` (1) | none                                   | test runner with V8 coverage                                                                                                                                                 |
+| `vitest-react` | none                                        | `web:react`, `test-runner:vitest`      | React component tests in happy-dom and in a real browser through Playwright, on target `web`; script `test:react`                                                            |
+| `msw`          | none                                        | none                                   | Mock Service Worker handlers, Node server and a Vitest setup file                                                                                                            |
+| `bun-test`     | `test-runner` (1)                           | none                                   | test runner                                                                                                                                                                  |
+| `playwright`   | `e2e` (1)                                   | `web`                                  | end-to-end tests                                                                                                                                                             |
+| `axe`          | `a11y-test` (1)                             | `e2e`                                  | accessibility checks on top of the `e2e` suite                                                                                                                               |
+| `turborepo`    | `task-runner` (1)                           | none                                   | workspace task runner                                                                                                                                                        |
+| `github-ci`    | `ci` (1)                                    | none                                   | GitHub Actions workflows, labels and templates                                                                                                                               |
+| `renovate`     | `dep-updates` (1)                           | none                                   | root files only                                                                                                                                                              |
+| `adr-docs`     | `docs:adr` (1)                              | none                                   | writes `docs/adr/`, `GLOSSARY.md` and its own skills, and contributes a Region to `AGENTS.md`                                                                                |
+| `repo-docs`    | `repo-docs` (1)                             | none                                   | community and repository hygiene files                                                                                                                                       |
 
 Notes:
 
 - `oxc` provides `lint` and `format`, both at most one, so it excludes any other formatter or linter Module. The `eslint` companion provides `lint:companion` (a distinct Capability, many) and therefore does not collide with `oxc`'s `lint`. It exists because Oxlint cannot lint `.astro` templates and cannot run some type-aware rules; see [tooling](../standards/tooling.md#the-eslint-companion).
+- `eslint` declares `eslint.configs` (a `region` Extension point named `configs` in `eslint.config.mjs`) so other Modules add ESLint flat configs without knowing the file; `eslint-react` is its first contributor and requires `web:react`. See [Extension points](capabilities.md#the-eslintconfigs-extension-point).
+- `vitest` also provides the flavor `test-runner:vitest`, which `vitest-react` requires; `bun-test` does not provide it, so `vitest-react` is selectable only with `vitest`. `msw` has no requirements and wires into any test runner through its setup file.
 - `vitest` and `bun-test` both provide `test-runner` with Cardinality one: a Project picks exactly one, and no Module may require a specific one. Modules that need to run tests require the Capability.
 - `turborepo` is only meaningful in a `monorepo` Layout. It does not require it ([Capabilities](capabilities.md#deriving-compatibility)); the user's Layout choice decides whether its Targets exist, and the Layout rules in [Layouts](layouts.md) govern what happens in `single`. The dependency Catalog is not a Module; it comes from the Release Catalog ([ADR 0024](../adr/0024-pending-modules-catalog-fragments-and-release-cuts.md)).
 - `renovate` ships the configuration described in [renovate](../standards/renovate.md), including the Toolchain pin groups.
 - `adr-docs` backs the conventions in [docs and forge](../standards/docs-and-forge.md).
+
+## Pending Modules
+
+Modules added or bumped after Release `2026.12.0` are Pending until the next Release cut ([ADR 0024](../adr/0024-pending-modules-catalog-fragments-and-release-cuts.md)). Each carries a Catalog fragment (`registry-src/<module>/catalog.json`) listing only the dependencies the released Catalog lacks, and `registry/` is unchanged.
+
+| Module               | Change          | Fragment adds                                                                                     |
+| -------------------- | --------------- | ------------------------------------------------------------------------------------------------- |
+| `eslint-react`       | new, 1.0.0      | `@eslint-react/eslint-plugin`, `eslint-plugin-jsx-a11y`, `eslint-plugin-react-hooks`              |
+| `vitest-react`       | new, 1.0.0      | `@vitest/browser-playwright`, `happy-dom`, `playwright`, `vitest-browser-react`                   |
+| `msw`                | new, 1.0.0      | `msw`                                                                                             |
+| `hono-zod-validator` | new, 1.0.0      | `@hono/zod-validator`                                                                             |
+| `next-themes`        | new, 1.0.0      | `next-themes`                                                                                     |
+| `fontsource`         | new, 1.0.0      | `@fontsource-variable/geist`, `@fontsource-variable/geist-mono`                                   |
+| `oxc`                | bumped to 1.2.0 | `oxlint-tsgolint`                                                                                 |
+| `eslint`             | bumped to 1.1.0 | `@eslint-community/eslint-plugin-eslint-comments`, `eslint-plugin-jsdoc`, `eslint-plugin-unicorn` |
+| `vitest`             | bumped to 1.1.0 | `@vitest/coverage-v8`                                                                             |
+| `tsdown`             | bumped to 1.1.0 | `size-limit`, `@size-limit/file`                                                                  |
 
 ## Consistency checks
 
