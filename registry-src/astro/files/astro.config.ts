@@ -6,7 +6,13 @@ export const integrations = [react()];
 
 export const plugins: PluginOption[] = [];
 
+/**
+ * Resolves `@import "tailwindcss"` to the package stylesheet; without it the Vite CSS resolver
+ * falls back to a relative path under Astro and the build fails with ENOENT.
+ */
+const stylesheetAliases = [{ find: /^tailwindcss$/, replacement: "tailwindcss/index.css" }];
+
 export default defineConfig({
   integrations,
-  vite: { plugins },
+  vite: { plugins, resolve: { alias: stylesheetAliases } },
 });

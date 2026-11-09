@@ -1,7 +1,7 @@
 declare module "astro/config" {
   export function defineConfig(config: {
     integrations?: unknown[];
-    vite?: { plugins?: unknown[] };
+    vite?: { plugins?: unknown[]; resolve?: { alias?: unknown[] } };
   }): unknown;
 }
 
