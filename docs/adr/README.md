@@ -31,6 +31,7 @@ Decisions that are hard to reverse, surprising without context, and the result o
 | 0023 | [The brand kit lives in docs/brand and its rasters are generated](0023-brand-kit-in-docs-brand.md)                                                     | Accepted | S1 to S10 (brand kit spec)          |
 | 0024 | [Pending Modules, Catalog fragments and explicit Release cuts](0024-pending-modules-catalog-fragments-and-release-cuts.md)                             | Accepted | S2, S4, S18 (Module expansion spec) |
 | 0025 | [Manifest env schemas feed env.server and env.client](0025-manifest-env-schemas-feed-t3-env.md)                                                        | Accepted | S6 (Module expansion spec)          |
+| 0026 | [Registry Releases are dated, CLI versions are semver](0026-registry-releases-are-dated-cli-versions-are-semver.md)                                    | Accepted | S1, S2 (Release spec)               |
 
 ## Format
 

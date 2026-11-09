@@ -64,6 +64,7 @@ Every Markdown file under `docs/` has a row here; a test fails when one is missi
 | [adr/0023-brand-kit-in-docs-brand.md](adr/0023-brand-kit-in-docs-brand.md)                                                               | 0023. The brand kit lives in docs/brand and its rasters are generated                                 |
 | [adr/0024-pending-modules-catalog-fragments-and-release-cuts.md](adr/0024-pending-modules-catalog-fragments-and-release-cuts.md)         | 0024. Pending Modules, Catalog fragments and explicit Release cuts                                    |
 | [adr/0025-manifest-env-schemas-feed-t3-env.md](adr/0025-manifest-env-schemas-feed-t3-env.md)                                             | 0025. Manifest env schemas feed env.server and env.client                                             |
+| [adr/0026-registry-releases-are-dated-cli-versions-are-semver.md](adr/0026-registry-releases-are-dated-cli-versions-are-semver.md)       | 0026. Registry Releases are dated, CLI versions are semver                                            |
 
 ## Brand
 
