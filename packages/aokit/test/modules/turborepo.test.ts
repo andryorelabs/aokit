@@ -40,6 +40,17 @@ describe("turborepo", () => {
     expect(root.scripts).toEqual({ task: "turbo run" });
   });
 
+  test.each(["single", "monorepo"] as const)(
+    "declares the package manager Turborepo requires (%s)",
+    async (layout) => {
+      const { plan } = await build(layout);
+      const root = z
+        .object({ packageManager: z.string() })
+        .parse(JSON.parse(String(plan.vfs.read("package.json"))));
+      expect(root.packageManager).toStartWith("bun@");
+    },
+  );
+
   test("monorepo keeps turbo in the root devDependencies next to the workspace", async () => {
     const { plan } = await build("monorepo", ["turborepo", "tsdown"]);
     const root = packageSchema

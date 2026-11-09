@@ -28,7 +28,7 @@ export default defineModule({
       op: "mergeJson",
       target: "root",
       file: "package.json",
-      value: { scripts: { task: "turbo run" } },
+      value: { packageManager: "bun@1.4.4", scripts: { task: "turbo run" } },
     },
   ],
 });

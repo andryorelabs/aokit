@@ -37,6 +37,13 @@ describe("docker-static", () => {
     expect(config).toContain("try_files $uri $uri/ /index.html;");
   });
 
+  test("the CSP lets Astro's inline island script run", async () => {
+    const { plan } = await build("single", ["astro", "docker-static"]);
+    expect(String(plan.vfs.read("nginx.conf"))).toMatch(
+      /Content-Security-Policy "[^"]*script-src 'self' 'unsafe-inline'/,
+    );
+  });
+
   test("works over astro as the web:static provider", async () => {
     const { plan } = await build("single", ["astro", "docker-static"]);
     expect(plan.vfs.has("Dockerfile")).toBe(true);
