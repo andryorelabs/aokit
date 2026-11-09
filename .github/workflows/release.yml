@@ -1,0 +1,175 @@
+name: Release
+
+on:
+  push:
+    tags: ["v*"]
+  workflow_dispatch:
+    inputs:
+      dry-run:
+        description: Run every job and `npm publish --dry-run`; publish nothing. A real publish also needs a v* tag ref.
+        type: boolean
+        default: true
+
+permissions:
+  contents: read
+
+concurrency:
+  group: release-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  verify:
+    name: build and test
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    outputs:
+      version: ${{ steps.release.outputs.version }}
+      dist-tag: ${{ steps.release.outputs.dist-tag }}
+      dry-run: ${{ steps.release.outputs.dry-run }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+          fetch-depth: 0
+
+      - uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2.2.0
+        with:
+          bun-version-file: package.json
+          no-cache: true
+
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version-file: .node-version
+          package-manager-cache: false
+
+      - name: Install
+        run: bun install --frozen-lockfile
+
+      - name: Resolve version, dist-tag and dry-run
+        id: release
+        env:
+          EVENT_NAME: ${{ github.event_name }}
+          REF_TYPE: ${{ github.ref_type }}
+          REF_NAME: ${{ github.ref_name }}
+          INPUT_DRY_RUN: ${{ inputs.dry-run }}
+        run: |
+          version="$(jq -r .version packages/aokit/package.json)"
+          create_version="$(jq -r .version packages/create-aokit/package.json)"
+          create_dependency="$(jq -r .dependencies.aokit packages/create-aokit/package.json)"
+          if [ "$create_version" != "$version" ] || [ "$create_dependency" != "$version" ]; then
+            echo "::error::create-aokit $create_version (aokit dependency $create_dependency) must match aokit $version"
+            exit 1
+          fi
+          case "${version%%+*}" in
+            *-*) dist_tag=next ;;
+            *) dist_tag=latest ;;
+          esac
+          dry_run=true
+          if [ "$REF_TYPE" = tag ]; then
+            if [ "$REF_NAME" != "v$version" ]; then
+              echo "::error::tag $REF_NAME does not match the package version v$version"
+              exit 1
+            fi
+            if [ "$EVENT_NAME" = push ] || [ "$INPUT_DRY_RUN" = false ]; then
+              dry_run=false
+            fi
+          fi
+          {
+            echo "version=$version"
+            echo "dist-tag=$dist_tag"
+            echo "dry-run=$dry_run"
+          } >> "$GITHUB_OUTPUT"
+          echo "aokit and create-aokit $version, dist-tag $dist_tag, dry-run $dry_run"
+
+      - name: Check
+        run: bun run check
+
+      - name: Test
+        run: bun run test
+
+      - name: Build package
+        run: bun run build:package
+
+      - name: Lint package
+        run: bun run lint:package
+
+      - name: Pack tarballs
+        run: |
+          mkdir -p "$RUNNER_TEMP/release/tarballs"
+          (cd packages/aokit && bun pm pack --destination "$RUNNER_TEMP/release/tarballs")
+          (cd packages/create-aokit && bun pm pack --destination "$RUNNER_TEMP/release/tarballs")
+          ls "$RUNNER_TEMP/release/tarballs"
+
+      - name: Installed tarball tests
+        run: |
+          AOKIT_DIST_TARBALLS="$(printf '%s,' "$RUNNER_TEMP"/release/tarballs/*.tgz)" \
+            bun test packages/aokit/test/dist/package
+
+      - name: Release notes
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+        run: bun run release:notes --output "$RUNNER_TEMP/release/release-notes.md"
+
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: release
+          path: ${{ runner.temp }}/release
+          if-no-files-found: error
+          retention-days: 7
+
+  binaries:
+    name: binaries
+    needs: verify
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Placeholder
+        run: echo "The per-target binaries, SHA256SUMS and attestations are not built yet."
+
+  publish:
+    name: publish to npm
+    needs: [verify, binaries]
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    permissions:
+      contents: read
+      id-token: write
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version-file: .node-version
+          package-manager-cache: false
+          registry-url: https://registry.npmjs.org
+
+      - uses: actions/download-artifact@37930b1c2abaa49bbe596cd826c3c89aef350131 # v7.0.0
+        with:
+          name: release
+          path: ${{ runner.temp }}/release
+
+      - name: Check npm supports trusted publishing
+        run: |
+          required=11.5.1
+          current="$(npm --version)"
+          if [ "$(printf '%s\n' "$required" "$current" | sort -V | head -n 1)" != "$required" ]; then
+            echo "::error::npm $current is older than $required, the first version with trusted publishing"
+            exit 1
+          fi
+
+      - name: Publish aokit then create-aokit
+        env:
+          VERSION: ${{ needs.verify.outputs.version }}
+          DIST_TAG: ${{ needs.verify.outputs.dist-tag }}
+          DRY_RUN: ${{ needs.verify.outputs.dry-run }}
+          RELEASE_DIR: ${{ runner.temp }}/release
+        run: |
+          publish_flags=(--provenance --access public --tag "$DIST_TAG")
+          if [ "$DRY_RUN" != false ]; then
+            publish_flags+=(--dry-run)
+          fi
+          for package in aokit create-aokit; do
+            npm publish "$RELEASE_DIR/tarballs/$package-$VERSION.tgz" "${publish_flags[@]}"
+          done
