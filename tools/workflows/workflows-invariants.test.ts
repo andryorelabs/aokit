@@ -13,7 +13,8 @@ type WorkflowRule =
   | "no-expression-in-run"
   | "pinned-actions"
   | "node-version-file"
-  | "bun-cache";
+  | "bun-cache"
+  | "no-cache-on-release";
 
 /** The job slot used for problems that belong to the whole workflow rather than one job. */
 const workflowScope = "(workflow)";
@@ -39,6 +40,13 @@ function isRecord(value: unknown): value is Record<string, unknown> {
 
 function describeProblem(file: string, job: string, rule: WorkflowRule, detail: string): string {
   return `${file}:${job} breaks ${rule}: ${detail}`;
+}
+
+/** A workflow triggered by a tag push publishes what it builds, so it must not restore a cache. */
+function isReleaseWorkflow(workflow: Record<string, unknown>): boolean {
+  const on = workflow["on"];
+  if (!isRecord(on) || !isRecord(on["push"])) return false;
+  return on["push"]["tags"] !== undefined;
 }
 
 function listTriggers(on: unknown): string[] {
@@ -145,7 +153,33 @@ function findStepProblems(
   return problems;
 }
 
-function findJobProblems(file: string, job: string, definition: Record<string, unknown>): string[] {
+/** Release workflows build from a clean install: no cache step and no setup action cache. */
+function findReleaseCacheProblems(
+  file: string,
+  job: string,
+  step: Record<string, unknown>,
+  index: number,
+): string[] {
+  const uses = step["uses"];
+  if (typeof uses !== "string") return [];
+  const label = stepLabel(step, index);
+  const inputs = isRecord(step["with"]) ? step["with"] : {};
+  const detail = uses.startsWith("actions/cache")
+    ? `cache step ${label} restores a cache in a release workflow`
+    : uses.startsWith("oven-sh/setup-bun@") && inputs["no-cache"] !== true
+      ? `setup-bun step ${label} must set no-cache: true`
+      : uses.startsWith("actions/setup-node@") && inputs["package-manager-cache"] !== false
+        ? `setup-node step ${label} must set package-manager-cache: false`
+        : undefined;
+  return detail === undefined ? [] : [describeProblem(file, job, "no-cache-on-release", detail)];
+}
+
+function findJobProblems(
+  file: string,
+  job: string,
+  definition: Record<string, unknown>,
+  isRelease: boolean,
+): string[] {
   const problems: string[] = [];
   const callsReusableWorkflow = definition["uses"] !== undefined;
   if (!callsReusableWorkflow && definition["timeout-minutes"] === undefined) {
@@ -153,9 +187,11 @@ function findJobProblems(file: string, job: string, definition: Record<string, u
   }
   const steps = Array.isArray(definition["steps"]) ? definition["steps"] : [];
   steps.forEach((step: unknown, index) => {
-    if (isRecord(step)) problems.push(...findStepProblems(file, job, step, index));
+    if (!isRecord(step)) return;
+    problems.push(...findStepProblems(file, job, step, index));
+    if (isRelease) problems.push(...findReleaseCacheProblems(file, job, step, index));
   });
-  problems.push(...findBunCacheProblems(file, job, steps));
+  if (!isRelease) problems.push(...findBunCacheProblems(file, job, steps));
   return problems;
 }
 
@@ -237,8 +273,9 @@ function findWorkflowProblems(file: string, text: string): string[] {
   const workflow: unknown = Bun.YAML.parse(text);
   if (!isRecord(workflow)) throw new Error(`${file} is not a YAML mapping`);
   const jobs = isRecord(workflow["jobs"]) ? workflow["jobs"] : {};
+  const isRelease = isReleaseWorkflow(workflow);
   const jobProblems = Object.entries(jobs).flatMap(([job, definition]) =>
-    isRecord(definition) ? findJobProblems(file, job, definition) : [],
+    isRecord(definition) ? findJobProblems(file, job, definition, isRelease) : [],
   );
   return [
     ...findWorkflowLevelProblems(file, workflow),
@@ -470,6 +507,68 @@ describe("S8: workflow hardening invariants", () => {
     expect(findWorkflowProblems("fixture.yml", text)).toEqual([
       `fixture.yml:other breaks bun-cache: install step #1 is not preceded by ${bunCacheDescription}`,
     ]);
+  });
+
+  describe("a workflow triggered by a tag push", () => {
+    const releaseWorkflow = `name: Release
+
+on:
+  push:
+    tags: ["v*"]
+
+permissions:
+  contents: read
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: oven-sh/setup-bun@${sha} # v2.2.0
+        with:
+          no-cache: true
+
+      - uses: actions/setup-node@${sha} # v7.1.0
+        with:
+          node-version-file: .node-version
+          package-manager-cache: false
+
+      - name: Install
+        run: bun install --frozen-lockfile
+`;
+
+    function breakRelease(search: string, replacement: string): string {
+      expect(releaseWorkflow).toContain(search);
+      return releaseWorkflow.replace(search, replacement);
+    }
+
+    test("installs without a cache step and with setup caches off", () => {
+      expect(findWorkflowProblems("release.yml", releaseWorkflow)).toEqual([]);
+    });
+
+    test("fails when it restores the Bun cache before installing", () => {
+      const text = breakRelease(
+        "      - name: Install\n",
+        `${fixtureCacheStep}\n      - name: Install\n`,
+      );
+      expect(findWorkflowProblems("release.yml", text)).toEqual([
+        "release.yml:verify breaks no-cache-on-release: cache step #3 restores a cache in a release workflow",
+      ]);
+    });
+
+    test("fails when setup-bun keeps its cache", () => {
+      const text = breakRelease("          no-cache: true\n", "          bun-version: latest\n");
+      expect(findWorkflowProblems("release.yml", text)).toEqual([
+        "release.yml:verify breaks no-cache-on-release: setup-bun step #1 must set no-cache: true",
+      ]);
+    });
+
+    test("fails when setup-node keeps its package manager cache", () => {
+      const text = breakRelease("          package-manager-cache: false\n", "");
+      expect(findWorkflowProblems("release.yml", text)).toEqual([
+        "release.yml:verify breaks no-cache-on-release: setup-node step #2 must set package-manager-cache: false",
+      ]);
+    });
   });
 
   test("CRLF line endings do not hide an unpinned reference", () => {

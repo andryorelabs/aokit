@@ -2,7 +2,7 @@ import { readFile } from "node:fs/promises";
 import { join } from "node:path";
 import type { ModuleManifest } from "@aokit/module";
 import { AokitError } from "../cli/envelope.ts";
-import { minCliVersionFix } from "../cli/min-cli-version.ts";
+import { meetsMinCliVersion, minCliVersionFix } from "../cli/min-cli-version.ts";
 import type { Git } from "../git/git.ts";
 import type { Lockfile } from "../lockfile/schema.ts";
 import { openProjectRegistry } from "../project/registry.ts";
@@ -38,7 +38,7 @@ const lockedVersionPrefixes = ["catalog:", "workspace:"];
 
 function checkMinCliVersion(lockfile: Lockfile, cliVersion: string): ProjectProblem[] {
   return Object.entries(lockfile.registries)
-    .filter(([, registry]) => Bun.semver.order(cliVersion, registry.minCliVersion) < 0)
+    .filter(([, registry]) => !meetsMinCliVersion(cliVersion, registry.minCliVersion))
     .map(([name, registry]) => ({
       kind: "cli",
       message: `Registry "${name}" needs aokit ${registry.minCliVersion} or newer, but this is ${cliVersion}.`,
