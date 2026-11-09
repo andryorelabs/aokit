@@ -15,6 +15,7 @@ import { openProjectRegistry } from "../../project/registry.ts";
 import { bundledRegistryPath } from "../../registry/bundled.ts";
 import { defineCommand } from "../command.ts";
 import { AokitError } from "../envelope.ts";
+import { lockfileMissingError } from "../errors.ts";
 import { aokitMeta } from "../meta.ts";
 
 const recopyInput = z.object({
@@ -166,11 +167,7 @@ async function readProjectLockfile(directory: string): Promise<Lockfile> {
     }
     throw thrown;
   }
-  throw new AokitError(
-    "LOCKFILE_MISSING",
-    `no ${lockfileName} in \`${directory}\``,
-    "run the command inside an aokit Project, or pass --directory",
-  );
+  throw lockfileMissingError("Run the command inside an aokit Project, or pass --directory.");
 }
 
 async function driftOfProject(directory: string, lockfile: Lockfile): Promise<DriftOf> {
