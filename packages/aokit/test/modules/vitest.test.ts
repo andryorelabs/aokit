@@ -21,6 +21,17 @@ test.each(["single", "monorepo"] as const)(
   },
 );
 
+test.each(["single", "monorepo"] as const)(
+  "vitest adds the coverage provider and the test:coverage script (%s)",
+  async (layout) => {
+    const built = await buildSelection(["vitest"], layout);
+    if (!built.ok) throw new Error(built.error.message);
+    const manifest = packageSchema.parse(JSON.parse(String(built.plan.vfs.read("package.json"))));
+    expect(manifest.scripts["test:coverage"]).toBe("vitest run --coverage");
+    expect(manifest.devDependencies["@vitest/coverage-v8"]).toBe("^5.1.0");
+  },
+);
+
 test("vitest appends its agents Region", async () => {
   const built = await buildSelection(["vitest"], "single");
   if (!built.ok) throw new Error(built.error.message);
