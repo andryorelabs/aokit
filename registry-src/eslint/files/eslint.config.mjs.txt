@@ -7,11 +7,13 @@ export default defineConfig(
   {
     files: ["**/*.{ts,tsx,mts,cts}"],
     extends: [tseslint.configs.recommendedTypeChecked],
-    languageOptions: { parserOptions: {
+    languageOptions: {
+      parserOptions: {
         projectService: {
           allowDefaultProject: ["*.config.{ts,mts}", "e2e/*.ts", "tests/*.ts"],
         },
-      } },
+      },
+    },
   },
   astro.configs.recommended,
 );

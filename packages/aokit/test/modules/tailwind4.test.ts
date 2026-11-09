@@ -3,6 +3,9 @@ import { z } from "zod";
 import { join } from "node:path";
 import { type MigrationFn, parseManifest } from "@aokit/module";
 import { Vfs } from "../../src/engine/index.ts";
+import { mergeProject } from "../../src/merge/index.ts";
+import { createMerger } from "../../src/merger/index.ts";
+import { builtOf, driftOf, lockfileOf, vfsOf } from "../merge/harness.ts";
 import { jsonAt } from "../helpers/cli-json.ts";
 import tailwind4Source from "../../../../registry-src/tailwind4/module.ts";
 import { buildSelection } from "./support/index.ts";
@@ -175,5 +178,36 @@ describe("tailwind4 Migration", () => {
     vfs.write("src/tailwind-provider.tsx", stockProvider.replaceAll("\n\n", "\n"));
     await runMigration(vfs);
     expect(vfs.has("src/tailwind-provider.tsx")).toBe(false);
+  });
+});
+
+describe("tailwind4 2.0.0 update", () => {
+  const providerPath = "src/tailwind-provider.tsx";
+
+  async function update(user: string) {
+    const base = { [providerPath]: stockProvider };
+    return mergeProject({
+      base: vfsOf(base),
+      next: builtOf({}),
+      readUser: (path) => Promise.resolve(path === providerPath ? user : undefined),
+      lockfile: lockfileOf(base),
+      merger: createMerger(),
+      driftOf,
+    });
+  }
+
+  test("an edited provider survives the update with a warning", async () => {
+    const edited = `${stockProvider}\nexport const theme = "dark";\n`;
+    const result = await update(edited);
+    expect(result.plan.changes).toEqual([]);
+    expect(result.vfs.read(providerPath)).toBe(edited);
+    expect(result.warnings.join("\n")).toContain(providerPath);
+  });
+
+  test("an untouched provider is deleted by the update", async () => {
+    const result = await update(stockProvider);
+    expect(result.plan.changes.map((change) => [change.type, change.path])).toEqual([
+      ["delete", providerPath],
+    ]);
   });
 });
