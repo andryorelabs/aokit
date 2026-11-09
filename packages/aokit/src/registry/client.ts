@@ -8,7 +8,7 @@ import {
 } from "@aokit/module";
 import { loadUserConfig, type UserConfig } from "../config/user-config.ts";
 import { createRegistryCache } from "./cache.ts";
-import { minCliVersionFix } from "../cli/min-cli-version.ts";
+import { meetsMinCliVersion, minCliVersionFix } from "../cli/min-cli-version.ts";
 import { RegistryError } from "./errors.ts";
 import {
   type GitLsRemote,
@@ -322,7 +322,7 @@ function parseIndex(transport: RegistryTransport, text: string | undefined): Reg
 }
 
 function checkCliVersion(index: RegistryIndex, cliVersion: string): void {
-  if (Bun.semver.order(cliVersion, index.minCliVersion) < 0) {
+  if (!meetsMinCliVersion(cliVersion, index.minCliVersion)) {
     throw new RegistryError(
       "REGISTRY_CLI_TOO_OLD",
       `Registry "${index.name}" release ${index.release} requires CLI ${index.minCliVersion} or newer: expected >= ${index.minCliVersion}, actual ${cliVersion}.`,

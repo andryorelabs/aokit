@@ -313,9 +313,9 @@ describe("aokit create", () => {
     expect(dryRun.stdout.trimStart().startsWith("{")).toBe(false);
   });
 
-  test("--version prints 0.1.0 and schema create prints the input schema", async () => {
+  test("--version prints the package version and schema create prints the input schema", async () => {
     const version = await spawnAokit(["--version"]);
-    expect(version.stdout).toBe("0.1.0\n");
+    expect(version.stdout).toBe(`${cliVersion}\n`);
     const schema = await runAokit(["schema", "create", "--json"]);
     const data = envelopeData(schema.stdout);
     expect(Object.keys(data.input?.properties ?? {})).toContain("modules");
