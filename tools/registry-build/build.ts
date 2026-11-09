@@ -523,6 +523,18 @@ function latestOf(versions: readonly string[]): string {
   return latest;
 }
 
+async function isUnpublishedVersion(
+  sourceDir: string,
+  name: string,
+  published: ModuleEntry | undefined,
+): Promise<boolean> {
+  if (published === undefined) {
+    return true;
+  }
+  const { manifest } = await compileModule(join(sourceDir, name, moduleSourceFile));
+  return !Object.hasOwn(published.versions, manifest.version);
+}
+
 /**
  * Compiles `sourceDir` (`<name>/module.ts`, `<name>/files/**`, `<name>/migrations/*.ts`, `<name>/renames.json`, `catalog/<release>.json`) into the
  * Registry directory `outDir`, only adding: each new Module version gets
@@ -531,7 +543,8 @@ function latestOf(versions: readonly string[]): string {
  * fails naming `<module>@<version>` (or the Release) when its source content would change. Output
  * is sorted, LF-only and oxfmt-formatted, so a build is reproducible.
  *
- * A Pending Module (a `catalog.json` Catalog fragment and no published version) is skipped, so the
+ * A Pending Module (a `catalog.json` Catalog fragment whose source version is not published yet, be
+ * it a new Module or a bump of a published one) is skipped, so the
  * Registry stays byte-identical until its Release cut. `includePending` builds those Modules too
  * and adds a draft Release whose Catalog is the composed draft Catalog; it is meant for a
  * temporary output directory.
@@ -551,11 +564,14 @@ export async function buildRegistry(
   const fragmentFlags = await Promise.all(
     candidateNames.map((name) => isFile(join(sourceDir, name, moduleCatalogFragmentFile))),
   );
-  const pendingNames = new Set(
-    candidateNames.filter(
-      (name, position) => fragmentFlags[position] === true && existing?.modules[name] === undefined,
+  const pendingFlags = await Promise.all(
+    candidateNames.map(async (name, position) =>
+      fragmentFlags[position] === true
+        ? isUnpublishedVersion(sourceDir, name, existing?.modules[name])
+        : false,
     ),
   );
+  const pendingNames = new Set(candidateNames.filter((_name, position) => pendingFlags[position]));
   const moduleNames = candidateNames.filter((name) => includePending || !pendingNames.has(name));
   const built = await Promise.all(
     moduleNames.map(

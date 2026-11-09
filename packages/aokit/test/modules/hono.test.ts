@@ -83,3 +83,15 @@ test("hono monorepo Dockerfile installs with every workspace manifest on disk", 
   const dockerfile = String(plan.vfs.read("Dockerfile"));
   expect(dockerfile.indexOf("COPY . .")).toBeLessThan(dockerfile.indexOf("bun install"));
 });
+
+test("hono exports the AppType for typed clients", async () => {
+  const { plan } = expectBuilt(await buildSelection(["hono"]));
+  expect(String(plan.vfs.read("src/app.ts"))).toMatch(/^export type AppType = typeof app;$/m);
+  expect(String(plan.vfs.read("AGENTS.md"))).toContain("`type AppType`");
+});
+
+test("hono appends its agents Region at version 1.2.0", async () => {
+  const { plan, lockfile } = expectBuilt(await buildSelection(["hono"]));
+  expect(String(plan.vfs.read("AGENTS.md"))).toContain("aokit:begin hono:agents");
+  expect(lockfile.modules["hono"]?.version).toBe("1.2.0");
+});

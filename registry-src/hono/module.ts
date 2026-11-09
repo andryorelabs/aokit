@@ -2,7 +2,7 @@ import { defineModule } from "@aokit/module";
 
 export default defineModule({
   name: "hono",
-  version: "1.1.0",
+  version: "1.2.0",
   provides: [
     { capability: "server", cardinality: { max: 1 } },
     { capability: "api:http", cardinality: { max: 1 } },
@@ -27,7 +27,7 @@ export default defineModule({
       file: "AGENTS.md",
       region: "agents",
       content:
-        "\n## hono\n\nHono provides the HTTP server Target.\n\nCommands:\n\n- `bun run start`: start the server.\n\nKey files:\n\n- `src/app.ts`: the Hono app; add middleware and routes through its extension points.\n\nSkills:\n\n- `.claude/skills/hono-add-route/SKILL.md`: how to add a route to this server.\n",
+        "\n## hono\n\nHono provides the HTTP server Target.\n\nCommands:\n\n- `bun run start`: start the server.\n\nKey files:\n\n- `src/app.ts`: the Hono app; add middleware and routes through its extension points. It exports `type AppType` for typed clients.\n\nSkills:\n\n- `.claude/skills/hono-add-route/SKILL.md`: how to add a route to this server.\n",
     },
     {
       op: "mergeJson",

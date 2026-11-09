@@ -1,4 +1,4 @@
-import { StrictMode } from "react";
+import { StrictMode, createElement } from "react";
 import { createRoot } from "react-dom/client";
 import { providers } from "./providers";
 import { routes } from "./router";
@@ -10,8 +10,8 @@ if (root === null) {
 
 const route = routes.find((candidate) => candidate.path === window.location.pathname);
 const page = providers.reduceRight(
-  (children, Provider) => <Provider>{children}</Provider>,
+  (children, Provider) => createElement(Provider, null, children),
   route?.element,
 );
 
-createRoot(root).render(<StrictMode>{page}</StrictMode>);
+createRoot(root).render(createElement(StrictMode, null, page));
