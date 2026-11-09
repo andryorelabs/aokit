@@ -1,5 +1,5 @@
 import { afterAll, beforeAll, describe, expect, setDefaultTimeout, test } from "bun:test";
-import { mkdir, mkdtemp, rm, writeFile } from "node:fs/promises";
+import { mkdir, mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { basename, join } from "node:path";
 import { z } from "zod";
@@ -161,4 +161,91 @@ describeWithBoth("S12: npm package and binary digests", () => {
       expect(fromPackage.size).toBeGreaterThan(0);
     });
   }
+});
+
+const describeWithTarballs = tarballPaths.length === 0 ? describe.skip : describe;
+const repositoryRoot = join(import.meta.dir, "..", "..", "..", "..", "..");
+const releaseIndexSchema = z.object({ release: z.string() });
+const lockfileReleaseSchema = z.object({
+  registries: z.record(z.string(), z.object({ release: z.string() })),
+});
+
+async function readReleaseOf(indexPath: string): Promise<string> {
+  return releaseIndexSchema.parse(JSON.parse(await readFile(indexPath, "utf8"))).release;
+}
+
+describeWithTarballs("create-aokit from the packed tarballs", () => {
+  setDefaultTimeout(300_000);
+  let scratch = "";
+  let installDirectory = "";
+
+  beforeAll(async () => {
+    scratch = await mkdtemp(join(tmpdir(), "aokit-e2e-create-aokit-"));
+    installDirectory = join(scratch, "install");
+    await mkdir(installDirectory, { recursive: true });
+    const aokitTarball = tarballPaths.find((path) => basename(path).startsWith("aokit-"));
+    const createTarball = tarballPaths.find((path) => basename(path).startsWith("create-aokit-"));
+    if (aokitTarball === undefined || createTarball === undefined) {
+      throw new Error("AOKIT_DIST_TARBALLS needs aokit- and create-aokit- tarballs.");
+    }
+    await writeFile(
+      join(installDirectory, "package.json"),
+      JSON.stringify({
+        name: "create-consumer",
+        private: true,
+        dependencies: { aokit: `file:${aokitTarball}`, "create-aokit": `file:${createTarball}` },
+        overrides: { aokit: `file:${aokitTarball}` },
+      }),
+    );
+    const install = Bun.spawn(["bun", "install"], {
+      cwd: installDirectory,
+      stdout: "pipe",
+      stderr: "pipe",
+    });
+    expect(await install.exited, await new Response(install.stderr).text()).toBe(0);
+  }, 120_000);
+
+  afterAll(async () => {
+    await rm(scratch, { recursive: true, force: true });
+  });
+
+  test("S4: the packed aokit Registry latest equals the repository Registry latest", async () => {
+    const packed = await readReleaseOf(
+      join(installDirectory, "node_modules", "aokit", "registry", "index.json"),
+    );
+    const repository = await readReleaseOf(join(repositoryRoot, "registry", "index.json"));
+    expect(packed).toBe(repository);
+  });
+
+  test("S1: create-aokit scaffolds vite-react + fontsource on the latest Release", async () => {
+    const cwd = join(scratch, "work");
+    await mkdir(cwd, { recursive: true });
+    const child = Bun.spawn(
+      [
+        join(installDirectory, "node_modules", ".bin", "create-aokit"),
+        "app",
+        "--modules",
+        "vite-react,fontsource",
+        "--yes",
+        "--no-install",
+        "--json",
+      ],
+      { cwd, stdout: "pipe", stderr: "pipe" },
+    );
+    const [stdout, stderr, exitCode] = await Promise.all([
+      new Response(child.stdout).text(),
+      new Response(child.stderr).text(),
+      child.exited,
+    ]);
+    expect(exitCode, stdout + stderr).toBe(0);
+    const main = await readFile(join(cwd, "app", "src", "main.tsx"), "utf8");
+    expect(main).toContain('import "@fontsource-variable/geist";');
+    expect(main).toContain('import "@fontsource-variable/geist-mono";');
+    const lockfile = lockfileReleaseSchema.parse(
+      JSON.parse(await readFile(join(cwd, "app", "aokit.lock.json"), "utf8")),
+    );
+    const repository = await readReleaseOf(join(repositoryRoot, "registry", "index.json"));
+    expect(repository).toBe("2026.12.1");
+    expect(lockfile.registries["official"]?.release).toBe("2026.12.1");
+  });
 });

@@ -268,8 +268,8 @@ test("an invalid renames.json fails naming the file", async () => {
 test("the committed first-party Registry reads cleanly", async () => {
   const registry = await readLocalRegistry(join(import.meta.dir, "../../../../registry"), options);
   expect(registry.name).toBe("official");
-  expect(registry.release).toBe("2026.12.0");
-  expect(registry.currentCatalog.release).toBe("2026.12.0");
+  expect(registry.release).toBe("2026.12.1");
+  expect(registry.currentCatalog.release).toBe("2026.12.1");
 });
 
 async function bumpedRegistry(): Promise<string> {

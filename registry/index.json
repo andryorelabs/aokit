@@ -193,7 +193,7 @@
       }
     },
     "eslint": {
-      "latest": "1.0.0",
+      "latest": "1.1.0",
       "versions": {
         "1.0.0": {
           "files": {
@@ -202,6 +202,39 @@
           "integrity": "sha256-bda3b1491f923055b7af403aa56e00346f3a495a648a50dfd3911fc6516e0f1b",
           "manifest": "modules/eslint/1.0.0/module.json",
           "provides": ["lint:companion"],
+          "schemaVersion": 1
+        },
+        "1.1.0": {
+          "files": {
+            "files/eslint.config.mjs.txt": "sha256-af04c1577728a3ad59c795be3364298e5df2eb143c24692236c0e87435e3f482"
+          },
+          "integrity": "sha256-c9839cb3732d4be714e8763beae9be14f7e84a984b50cf29d8400d4817dfeca9",
+          "manifest": "modules/eslint/1.1.0/module.json",
+          "provides": ["lint:companion"],
+          "schemaVersion": 1
+        }
+      }
+    },
+    "eslint-react": {
+      "latest": "1.0.0",
+      "versions": {
+        "1.0.0": {
+          "files": {},
+          "integrity": "sha256-7c745bfe2136c67638bb96f55b8c6b3c87502ce210d1e58e77b020a5c5478b69",
+          "manifest": "modules/eslint-react/1.0.0/module.json",
+          "provides": [],
+          "schemaVersion": 1
+        }
+      }
+    },
+    "fontsource": {
+      "latest": "1.0.0",
+      "versions": {
+        "1.0.0": {
+          "files": {},
+          "integrity": "sha256-16298c58f802b4de7f7fb87459fcf5b0793174b9230095db421d12ca5d2c6a84",
+          "manifest": "modules/fontsource/1.0.0/module.json",
+          "provides": [],
           "schemaVersion": 1
         }
       }
@@ -278,6 +311,18 @@
         }
       }
     },
+    "hono-zod-validator": {
+      "latest": "1.0.0",
+      "versions": {
+        "1.0.0": {
+          "files": {},
+          "integrity": "sha256-f83a13f52da166c333626b10c6488d0119b0b9d505a09c3b8a9a56dd47fa9499",
+          "manifest": "modules/hono-zod-validator/1.0.0/module.json",
+          "provides": [],
+          "schemaVersion": 1
+        }
+      }
+    },
     "husky": {
       "latest": "1.0.0",
       "versions": {
@@ -328,6 +373,22 @@
         }
       }
     },
+    "msw": {
+      "latest": "1.0.0",
+      "versions": {
+        "1.0.0": {
+          "files": {
+            "files/handlers.ts": "sha256-53ebc4a00793d59a4ea5ff163656ed9ed927f2b8f3a82e0f98b5cacfc17b0add",
+            "files/server.ts": "sha256-83a51eb356c17ca185e7259ad42122fb6da4af234b226a7d0d7fb5f73e14a093",
+            "files/vitest.setup.ts": "sha256-4f8efc6e696f5099a830a15847d6cf3ce24092ea90db2c65bb77f0429fcf5de2"
+          },
+          "integrity": "sha256-a97399c43d782db9136fe2582d34045fd8dd8853b00001965371161238cfca15",
+          "manifest": "modules/msw/1.0.0/module.json",
+          "provides": [],
+          "schemaVersion": 1
+        }
+      }
+    },
     "next": {
       "latest": "1.0.0",
       "versions": {
@@ -369,6 +430,20 @@
         }
       }
     },
+    "next-themes": {
+      "latest": "1.0.0",
+      "versions": {
+        "1.0.0": {
+          "files": {
+            "files/src/theme/provider.tsx": "sha256-f0b0dda7f9f01ca7b24772259b4545077d62d0e6d229c09855b251fd2f1473d1"
+          },
+          "integrity": "sha256-beb47a54d0396e291df95a9e19199d125841404cf5389ebc857e9ace344ae569",
+          "manifest": "modules/next-themes/1.0.0/module.json",
+          "provides": [],
+          "schemaVersion": 1
+        }
+      }
+    },
     "nuqs-next": {
       "latest": "1.0.0",
       "versions": {
@@ -394,7 +469,7 @@
       }
     },
     "oxc": {
-      "latest": "1.1.0",
+      "latest": "1.2.0",
       "versions": {
         "1.0.0": {
           "files": {
@@ -423,6 +498,16 @@
           },
           "integrity": "sha256-e62dd7acaf2a3b7da84b33efe3c3698a1ddd28304a10a2ba24f9ada1470ea587",
           "manifest": "modules/oxc/1.1.0/module.json",
+          "provides": ["lint", "format"],
+          "schemaVersion": 1
+        },
+        "1.2.0": {
+          "files": {
+            "files/oxfmtrc.json": "sha256-7ca658c7bc0bc9c6349df4a082d763b08274f17e1a0f541c3adb65fc6ea93227",
+            "files/oxlintrc.json": "sha256-a01bad19483c7a5db936bbee2acd9145091ee5d5a47c139d62860c8e15e1afe6"
+          },
+          "integrity": "sha256-6f9b672437fcc8181cf5a4d26e811412ec95bde1437e0004b88e2db813d72b68",
+          "manifest": "modules/oxc/1.2.0/module.json",
           "provides": ["lint", "format"],
           "schemaVersion": 1
         }
@@ -563,6 +648,20 @@
           "integrity": "sha256-a0c2a87b39d021df3865c907478ff2dec73d99a12a9c1ba9012b356d0fa33bf4",
           "manifest": "modules/shadcn/1.0.0/module.json",
           "provides": ["ui:components"],
+          "schemaVersion": 1
+        }
+      }
+    },
+    "shadcn-lint": {
+      "latest": "1.0.0",
+      "versions": {
+        "1.0.0": {
+          "files": {
+            "files/oxlintrc.shadcn.json": "sha256-d1674acf2682742159238edcb91aecb60e79d60c94f282e2e82afbb08b0601fb"
+          },
+          "integrity": "sha256-c96cc86149b64535a6bb3e770dcfd3af21811b0b5679909003f03d4fc21c0e93",
+          "manifest": "modules/shadcn-lint/1.0.0/module.json",
+          "provides": [],
           "schemaVersion": 1
         }
       }
@@ -711,7 +810,7 @@
       }
     },
     "tsdown": {
-      "latest": "1.0.0",
+      "latest": "1.1.0",
       "versions": {
         "1.0.0": {
           "files": {
@@ -723,6 +822,19 @@
           },
           "integrity": "sha256-a1895dd24c65ab72624afe7462a21abe110f8fb51d650ac07481b217378e25e3",
           "manifest": "modules/tsdown/1.0.0/module.json",
+          "provides": ["library"],
+          "schemaVersion": 1
+        },
+        "1.1.0": {
+          "files": {
+            "files/cli.ts": "sha256-8d4c376d3d6ecce49ad8b61cd730544a426ec734bc2b53b310f4bec23c376439",
+            "files/index.ts": "sha256-7b396c0d00b49d78e751111818a90fddd6e2af10aa2f7837b469576f204dfa85",
+            "files/skill/SKILL.md": "sha256-803c81e19a1cfd7a0bd7bcc132076b22893e6d5e91a01559f2d292609109265d",
+            "files/tsconfig.lib.json": "sha256-63935e7250e45a110ca0b8c48e2a5c958b8ffd909274c4805593b188c5c1c82d",
+            "files/tsdown.config.ts": "sha256-e17ab163ebefe37a14c6c3f3f8af3d4526ba93677cc2ec2b9e69359f536b10b1"
+          },
+          "integrity": "sha256-1325d9e8de8257ebc343953e8ab50600cd74cbcf317581b55449b386ef39f137",
+          "manifest": "modules/tsdown/1.1.0/module.json",
           "provides": ["library"],
           "schemaVersion": 1
         }
@@ -810,7 +922,7 @@
       }
     },
     "vitest": {
-      "latest": "1.0.0",
+      "latest": "1.1.0",
       "versions": {
         "1.0.0": {
           "files": {
@@ -820,6 +932,32 @@
           "integrity": "sha256-4d8d480c6159ea34b1ee4c34eb57759b7e7d8f11376ced2d9bdc8a56b8ffff9b",
           "manifest": "modules/vitest/1.0.0/module.json",
           "provides": ["test-runner"],
+          "schemaVersion": 1
+        },
+        "1.1.0": {
+          "files": {
+            "files/smoke.test.ts": "sha256-e8b8d969271b560bb92db20d5f7f09b212ba57ccc5d31da963e1a65d3ced646b",
+            "files/vitest.config.ts": "sha256-2b680975f914c950e430b809ec3714a299e4afe3b89889a3bb15d167a6804142"
+          },
+          "integrity": "sha256-01ad61223b0e11faed8871c8e28164e05d739407bdd754bee224f2cad885351c",
+          "manifest": "modules/vitest/1.1.0/module.json",
+          "provides": ["test-runner", "test-runner:vitest"],
+          "schemaVersion": 1
+        }
+      }
+    },
+    "vitest-react": {
+      "latest": "1.0.0",
+      "versions": {
+        "1.0.0": {
+          "files": {
+            "files/greeting.browser-test.tsx": "sha256-5b24d3f0b13d184e5b06c84d0ad7eba5073e3e681ee22d07147faf38e09dec1a",
+            "files/greeting.dom-test.tsx": "sha256-41f4fecc7ceab970657dc5d31918cd885953069de14ae023e1710079514971fb",
+            "files/vitest.react.config.ts": "sha256-8ce5c8622a786340af92b143b6591b1d8ade54ca7a43b2576c3ec8daf65ad08d"
+          },
+          "integrity": "sha256-5b54b119d73087dae753a6716dd5c800692a8396bdd65391e29767da03256a59",
+          "manifest": "modules/vitest-react/1.0.0/module.json",
+          "provides": [],
           "schemaVersion": 1
         }
       }
@@ -846,7 +984,7 @@
     }
   },
   "name": "official",
-  "release": "2026.12.0",
+  "release": "2026.12.1",
   "releases": {
     "2026.11.0": {
       "integrity": "sha256-311a21c45fe4c05a051c42696b855036cb52ee3bd83b435ff53c4c2461256730",
@@ -863,6 +1001,10 @@
     "2026.12.0": {
       "integrity": "sha256-be106252b1c8ef4f0f0bc257ace5c428730c645235b551e9fbaee0ae0d926840",
       "path": "catalog/2026.12.0.json"
+    },
+    "2026.12.1": {
+      "integrity": "sha256-c76fd5fc8bb39b83ec08b07f73006edc8e24a7f980861defbe915615f8319c39",
+      "path": "catalog/2026.12.1.json"
     }
   },
   "schemaVersion": 1
