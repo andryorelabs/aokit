@@ -1,0 +1,1 @@
+{ "slug": "astro-site", "modules": ["oxc", "knip", "astro", "tailwind4"] }
