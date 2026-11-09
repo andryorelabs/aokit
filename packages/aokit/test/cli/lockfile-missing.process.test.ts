@@ -14,6 +14,8 @@ afterAll(async () => {
 });
 
 const commands: ReadonlyArray<readonly [string, (directory: string) => string[]]> = [
+  ["add", (directory) => ["add", "oxc", "--directory", directory]],
+  ["remove", (directory) => ["remove", "oxc", "--directory", directory]],
   ["doctor", (directory) => ["doctor", directory]],
   ["check", (directory) => ["check", directory]],
   ["recopy", (directory) => ["recopy", "--directory", directory]],
