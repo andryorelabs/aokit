@@ -2,14 +2,14 @@ import { defineModule } from "@aokit/module";
 
 export default defineModule({
   name: "tailwind4",
-  version: "1.1.0",
+  version: "2.0.0",
   provides: [{ capability: "styling", cardinality: { max: 1 } }],
-  requires: ["web", "ext:web.providers@^1", "ext:vite.plugins@^1"],
+  requires: ["web", "ext:web.styles@^1"],
   files: [
     { from: "files/styles.css", to: "src/styles.css", target: "web", ownership: "seed" },
     {
-      from: "files/tailwind-provider.tsx",
-      to: "src/tailwind-provider.tsx",
+      from: "files/postcss.config.mjs",
+      to: "postcss.config.mjs",
       target: "web",
       ownership: "managed",
     },
@@ -19,9 +19,18 @@ export default defineModule({
       tailwindcss: { range: "catalog" },
     },
     devDependencies: {
-      "@tailwindcss/vite": { range: "catalog" },
+      "@tailwindcss/postcss": { range: "catalog" },
+      postcss: { range: "catalog" },
     },
   },
+  migrations: [
+    {
+      from: ">=1.0.0 <2.0.0",
+      to: "2.0.0",
+      stage: "after",
+      script: "migrations/remove-tailwind-provider.after.js",
+    },
+  ],
   ops: [
     {
       op: "appendRegion",
@@ -29,7 +38,7 @@ export default defineModule({
       file: "AGENTS.md",
       region: "agents",
       content:
-        "\n## tailwind4\n\nTailwind CSS v4 styles the web Target through the Vite plugin.\n\nKey files:\n\n- `src/styles.css`: imports Tailwind and holds the `@theme` tokens.\n- `src/tailwind-provider.tsx`: loads the stylesheet for the app.\n",
+        "\n## tailwind4\n\nTailwind CSS v4 styles the web Target through PostCSS.\n\nKey files:\n\n- `src/styles.css`: imports Tailwind and holds the `@theme` tokens.\n- `postcss.config.mjs`: enables `@tailwindcss/postcss`.\n",
     },
     {
       op: "addCssAtRule",
@@ -41,32 +50,10 @@ export default defineModule({
     {
       op: "addImport",
       target: "web",
-      extensionPoint: "web.providers",
+      extensionPoint: "web.styles",
       range: "^1",
-      from: "./tailwind-provider",
-      named: ["TailwindProvider"],
-    },
-    {
-      op: "addToArray",
-      target: "web",
-      extensionPoint: "web.providers",
-      range: "^1",
-      element: "TailwindProvider",
-    },
-    {
-      op: "addImport",
-      target: "web",
-      extensionPoint: "vite.plugins",
-      range: "^1",
-      from: "@tailwindcss/vite",
-      default: "tailwindcss",
-    },
-    {
-      op: "addToArray",
-      target: "web",
-      extensionPoint: "vite.plugins",
-      range: "^1",
-      element: "tailwindcss()",
+      from: "./styles.css",
+      sideEffect: true,
     },
   ],
   extensionPoints: [

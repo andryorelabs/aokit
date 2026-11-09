@@ -475,6 +475,30 @@ test("includePending without a Pending Module adds no draft Release", async () =
   expect(Object.keys((await readBuiltIndex(out)).releases)).toEqual(["2026.11.0"]);
 });
 
+async function bumpedFragmentSource(): Promise<string> {
+  const source = await bumpedSource((text) => text.replace('version: "1.0.0"', 'version: "1.1.0"'));
+  await writeFile(join(source, "oxc", "catalog.json"), `{"dependencies":{}}\n`, "utf8");
+  return source;
+}
+
+test("a bumped Module with a Catalog fragment is Pending and skipped", async () => {
+  const baseline = await temporaryDirectory();
+  await buildRegistry(await fixtureSource(), baseline);
+  const out = await temporaryDirectory();
+  await cp(baseline, out, { recursive: true });
+  await buildRegistry(await bumpedFragmentSource(), out);
+  expect(await diffDirectories(out, baseline)).toEqual([]);
+});
+
+test("includePending builds the bumped Module", async () => {
+  const out = await temporaryDirectory();
+  await buildRegistry(await fixtureSource(), out);
+  await buildRegistry(await bumpedFragmentSource(), out, { includePending: true });
+  const index = await readBuiltIndex(out);
+  expect(index.modules.oxc?.latest).toBe("1.1.0");
+  expect(Object.keys(index.modules.oxc?.versions ?? {})).toEqual(["1.0.0", "1.1.0"]);
+});
+
 test("a published Module with a leftover catalog.json is still built", async () => {
   const source = await fixtureSource();
   const out = await temporaryDirectory();

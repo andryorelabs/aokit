@@ -2,10 +2,12 @@ import { defineModule } from "@aokit/module";
 
 export default defineModule({
   name: "vite-react",
-  version: "1.2.0",
+  version: "1.3.0",
   provides: [
     { capability: "web", cardinality: { max: 1 } },
     { capability: "web:spa", cardinality: { max: 1 } },
+    { capability: "web:react", cardinality: { max: 1 } },
+    { capability: "web:static", cardinality: { max: 1 } },
   ],
   files: [
     { from: "files/index.html", to: "index.html", target: "web", ownership: "managed" },
@@ -21,9 +23,12 @@ export default defineModule({
       "react-dom": { range: "catalog" },
     },
     devDependencies: {
+      "@babel/core": { range: "catalog" },
+      "@rolldown/plugin-babel": { range: "catalog" },
       "@types/react": { range: "catalog" },
       "@types/react-dom": { range: "catalog" },
       "@vitejs/plugin-react": { range: "catalog" },
+      "babel-plugin-react-compiler": { range: "catalog" },
       typescript: { range: "catalog" },
       vite: { range: "catalog" },
     },
@@ -43,7 +48,14 @@ export default defineModule({
       file: "AGENTS.md",
       region: "agents",
       content:
-        "\n## vite-react\n\nVite and React provide the web Target as a single-page app.\n\nKey files:\n\n- `index.html`: the HTML entry of the web Target.\n- `vite.config.ts`: Vite configuration and plugins.\n- `src/main.tsx`: mounts the app.\n- `src/providers.tsx`: wraps the app in its providers.\n- `src/router.tsx`: the route table; other Modules register routes here.\n- `tsconfig.json`: TypeScript options for the web Target, yours to edit.\n",
+        "\n## vite-react\n\nVite and React provide the web Target as a single-page app.\n\nKey files:\n\n- `index.html`: the HTML entry of the web Target.\n- `vite.config.ts`: Vite configuration and plugins; React Compiler runs through `@rolldown/plugin-babel`.\n- `src/main.tsx`: mounts the app and imports the stylesheets other Modules register.\n- `src/providers.tsx`: wraps the app in its providers.\n- `src/router.tsx`: the route table; other Modules register routes here.\n- `tsconfig.json`: TypeScript options for the web Target, yours to edit.\n",
+    },
+    {
+      op: "appendRegion",
+      target: "root",
+      file: ".gitignore",
+      region: "vite-react",
+      content: "node_modules\ndist\n*.tsbuildinfo\n",
     },
     {
       op: "mergeJson",
@@ -66,6 +78,14 @@ export default defineModule({
       kind: "array",
       anchor: "plugins",
       file: "vite.config.ts",
+    },
+    {
+      name: "web.styles",
+      version: "1.0.0",
+      target: "web",
+      kind: "import-list",
+      anchor: "root",
+      file: "src/main.tsx",
     },
     {
       name: "web.providers",
