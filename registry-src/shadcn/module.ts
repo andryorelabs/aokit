@@ -1,0 +1,98 @@
+import { defineModule } from "@aokit/module";
+
+export default defineModule({
+  name: "shadcn",
+  version: "1.0.0",
+  provides: [{ capability: "ui:components", cardinality: { max: 1 } }],
+  requires: ["ui:primitives", "styling", "web:react", "ext:styles.theme@^1"],
+  files: [
+    { from: "files/components.json", to: "components.json", target: "web", ownership: "managed" },
+    { from: "files/lib/utils.ts", to: "lib/utils.ts", target: "shared-ui", ownership: "seed" },
+    { from: "files/ui/sonner.tsx", to: "ui/sonner.tsx", target: "shared-ui", ownership: "seed" },
+    {
+      from: "files/skill/SKILL.md",
+      to: ".claude/skills/shadcn/SKILL.md",
+      target: "root",
+      ownership: "managed",
+    },
+  ],
+  deps: {
+    dependencies: {
+      "class-variance-authority": { range: "catalog" },
+      clsx: { range: "catalog" },
+      "lucide-react": { range: "catalog" },
+      sonner: { range: "catalog" },
+      "tailwind-merge": { range: "catalog" },
+    },
+    devDependencies: {
+      "tw-animate-css": { range: "catalog" },
+    },
+  },
+  ops: [
+    {
+      op: "appendRegion",
+      target: "root",
+      file: "AGENTS.md",
+      region: "agents",
+      content:
+        "\n## shadcn\n\nshadcn components on Base UI provide `ui:components`; add items with `aokit add @shadcn/<item>`.\n\nKey files:\n\n- `components.json`: shadcn configuration for Base UI; its aliases match where `aokit add` places items.\n- `lib/utils.ts` (shared-ui Target): the `cn` helper.\n- `ui/sonner.tsx` (shared-ui Target): the toast host.\n- `src/styles.css`: the theme tokens as CSS variables.\n\nSkills:\n\n- `.claude/skills/shadcn/SKILL.md`: how to add and customize shadcn components.\n",
+    },
+    {
+      op: "addCssAtRule",
+      extensionPoint: "styles.theme",
+      range: "^1",
+      rule: "import",
+      params: '"tw-animate-css"',
+    },
+    {
+      op: "addCssVariables",
+      target: "web",
+      file: "src/styles.css",
+      group: "light",
+      variables: {
+        "--background": "oklch(1 0 0)",
+        "--foreground": "oklch(0.145 0 0)",
+        "--primary": "oklch(0.205 0 0)",
+        "--primary-foreground": "oklch(0.985 0 0)",
+        "--muted": "oklch(0.97 0 0)",
+        "--muted-foreground": "oklch(0.556 0 0)",
+        "--border": "oklch(0.922 0 0)",
+        "--ring": "oklch(0.708 0 0)",
+        "--radius": "0.625rem",
+      },
+    },
+    {
+      op: "addCssVariables",
+      target: "web",
+      file: "src/styles.css",
+      group: "dark",
+      variables: {
+        "--background": "oklch(0.145 0 0)",
+        "--foreground": "oklch(0.985 0 0)",
+        "--primary": "oklch(0.922 0 0)",
+        "--primary-foreground": "oklch(0.205 0 0)",
+        "--muted": "oklch(0.269 0 0)",
+        "--muted-foreground": "oklch(0.708 0 0)",
+        "--border": "oklch(1 0 0 / 10%)",
+        "--ring": "oklch(0.556 0 0)",
+      },
+    },
+    {
+      op: "addCssVariables",
+      target: "web",
+      file: "src/styles.css",
+      group: "theme",
+      variables: {
+        "--color-background": "var(--background)",
+        "--color-foreground": "var(--foreground)",
+        "--color-primary": "var(--primary)",
+        "--color-primary-foreground": "var(--primary-foreground)",
+        "--color-muted": "var(--muted)",
+        "--color-muted-foreground": "var(--muted-foreground)",
+        "--color-border": "var(--border)",
+        "--color-ring": "var(--ring)",
+        "--radius-lg": "var(--radius)",
+      },
+    },
+  ],
+});
