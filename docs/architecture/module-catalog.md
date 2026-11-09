@@ -56,7 +56,7 @@ Only current best practice is listed:
 
 Notes:
 
-- `shadcn` is always on Base UI. `base-ui` and `shadcn` are separate Modules so the primitives can be used without the component set. The shadcn lint rules ship with `shadcn`'s tooling files, not as a separate Module.
+- `shadcn` is always on Base UI. `base-ui` and `shadcn` are separate Modules so the primitives can be used without the component set. The shadcn lint rules ship as the separate `shadcn-lint` Module (Pending, see [Quality and tooling](#quality-and-tooling)), so `shadcn` itself needs no lint dependency.
 - `nuqs-next` and `nuqs-vite` both provide `url-state` with Cardinality one and differ by the `web:*` flavor they require, so each is selectable with exactly one kind of base.
 - `next-intl` translates without locale-prefixed routes. It requires `web:app-router` and the `next.plugins` and `web.providers` Extension points that `next` declares, so it is selectable with `next` and not with a base that lacks them.
 - `posthog` is Next only in v1.
@@ -100,6 +100,7 @@ Notes:
 | `oxc`          | `lint` (1), `format` (1)                    | none; conflicts with `eslint-prettier` | declares `lint.ignores` on target `config`; ships `oxlint-tsgolint` for type-aware rules; see the worked example in [Module contract](module-contract.md#worked-example-oxc) |
 | `eslint`       | `lint:companion` (many)                     | `lint`, `ext:lint.ignores@^1`          | declares `eslint.configs` on target `root`; contributes to `lint.ignores`; runs the full project rule set on `**/*.astro` and the type-aware rules Oxlint cannot run         |
 | `eslint-react` | none                                        | `web:react`, `ext:eslint.configs@^1`   | contributes to `eslint.configs`: `jsx-a11y`, `react-hooks` and `@eslint-react` rules                                                                                         |
+| `shadcn-lint`  | none                                        | `ui:components`, `lint`                | Oxlint config with the `@shadcn/lint` JS plugin on target `config`; script `lint:shadcn`                                                                                     |
 | `knip`         | `unused-code` (1)                           | `ext:lint.ignores@^1`                  | contributes to `lint.ignores`                                                                                                                                                |
 | `husky`        | `git-hooks` (1)                             | none                                   | Git hooks                                                                                                                                                                    |
 | `commitlint`   | `commit-lint` (1)                           | `git-hooks`                            | commit message hook                                                                                                                                                          |
@@ -138,6 +139,7 @@ Modules added or bumped after Release `2026.12.0` are Pending until the next Rel
 | `hono-zod-validator` | new, 1.0.0      | `@hono/zod-validator`                                                                             |
 | `next-themes`        | new, 1.0.0      | `next-themes`                                                                                     |
 | `fontsource`         | new, 1.0.0      | `@fontsource-variable/geist`, `@fontsource-variable/geist-mono`                                   |
+| `shadcn-lint`        | new, 1.0.0      | `@shadcn/lint`                                                                                    |
 | `oxc`                | bumped to 1.2.0 | `oxlint-tsgolint`                                                                                 |
 | `eslint`             | bumped to 1.1.0 | `@eslint-community/eslint-plugin-eslint-comments`, `eslint-plugin-jsdoc`, `eslint-plugin-unicorn` |
 | `vitest`             | bumped to 1.1.0 | `@vitest/coverage-v8`                                                                             |

@@ -1,0 +1,5 @@
+{
+  "dependencies": {
+    "@shadcn/lint": "^0.2.5"
+  }
+}
