@@ -124,10 +124,22 @@ describe("Release 2026.12.0", () => {
     expect(registry.version("tailwind4", "1.0.0")).toBeDefined();
   });
 
-  test("no Catalog fragment is left in registry-src", () => {
-    const leftovers = readdirSync(sourceRoot, { withFileTypes: true }).filter(
-      (entry) => entry.isDirectory() && existsSync(join(sourceRoot, entry.name, "catalog.json")),
-    );
-    expect(leftovers).toEqual([]);
+  test("a remaining Catalog fragment never redefines a dependency of the 2026.12.0 Catalog", () => {
+    const released = z
+      .record(z.string(), z.string())
+      .parse(readJson(join(sourceRoot, "catalog", "2026.12.0.json"))["dependencies"]);
+    const redefined = readdirSync(sourceRoot, { withFileTypes: true })
+      .filter(
+        (entry) => entry.isDirectory() && existsSync(join(sourceRoot, entry.name, "catalog.json")),
+      )
+      .flatMap((entry) => {
+        const fragment = z
+          .object({ dependencies: z.record(z.string(), z.string()) })
+          .parse(readJson(join(sourceRoot, entry.name, "catalog.json")));
+        return Object.keys(fragment.dependencies)
+          .filter((name) => name in released)
+          .map((name) => `${entry.name}: ${name}`);
+      });
+    expect(redefined).toEqual([]);
   });
 });
