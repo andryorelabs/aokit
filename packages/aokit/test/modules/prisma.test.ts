@@ -40,6 +40,7 @@ test.each([
     expect(schema).toContain('provider = "postgresql"');
     expect(String(vfs.read(`${dbPath}/prisma.config.ts`))).toContain('env("DATABASE_URL")');
     expect(String(vfs.read(`${dbPath}/client.ts`))).toContain("PrismaPg");
+    expect(String(vfs.read(`${dbPath}/client.ts`))).not.toContain("process");
     expect(String(vfs.read(".env"))).toContain("DATABASE_URL=");
     expect(String(vfs.read(".claude/skills/prisma/SKILL.md"))).toContain("name: prisma");
   },
@@ -102,3 +103,22 @@ test.each([
   });
   expect(String(plan.vfs.read(envPath))).toContain("DATABASE_URL: z.url()");
 });
+
+test.each([
+  ["single", "src/db"],
+  ["monorepo", "packages/db"],
+] as const)(
+  "prisma scripts point the Prisma CLI at the db Target config (%s)",
+  async (layout, dbPath) => {
+    const built = await buildSelection(["prisma"], layout);
+    if (!built.ok) throw new Error(built.error.message);
+    const manifest = z
+      .object({ scripts: z.record(z.string(), z.string()) })
+      .parse(JSON.parse(String(built.plan.vfs.read("package.json"))));
+    expect(manifest.scripts["db:generate"]).toBe(
+      `prisma generate --config ${dbPath}/prisma.config.ts`,
+    );
+    expect(manifest.scripts["db:migrate"]).toContain(`--config ${dbPath}/prisma.config.ts`);
+    expect(manifest.scripts["db:deploy"]).toContain(`--config ${dbPath}/prisma.config.ts`);
+  },
+);

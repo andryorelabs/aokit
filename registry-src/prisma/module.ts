@@ -49,7 +49,19 @@ export default defineModule({
       file: "AGENTS.md",
       region: "agents",
       content:
-        "\n## prisma\n\nPrisma 7 with the `pg` driver adapter is the ORM. `DATABASE_URL` is the only connection setting, so hosted Postgres works without `postgres-compose`.\n\nCommands:\n\n- `bunx prisma migrate dev`: create and apply a migration locally.\n- `bunx prisma generate`: regenerate the client.\n\nKey files:\n\n- `prisma/schema.prisma`: the schema; other Modules add models through the `db.schema` Extension point.\n- `prisma.config.ts`: the Prisma CLI config; reads `DATABASE_URL`.\n- `client.ts`: the shared `PrismaClient` using the `pg` adapter.\n\nSkills:\n\n- `.claude/skills/prisma/SKILL.md`: how to change the schema and run migrations.\n",
+        "\n## prisma\n\nPrisma 7 with the `pg` driver adapter is the ORM. `DATABASE_URL` is the only connection setting, so hosted Postgres works without `postgres-compose`.\n\nCommands:\n\n- `bun run db:migrate`: create and apply a migration locally.\n- `bun run db:generate`: regenerate the client; run it after install and after every schema change.\n- `bun run db:deploy`: apply committed migrations.\n\nKey files:\n\n- `prisma/schema.prisma`: the schema; other Modules add models through the `db.schema` Extension point.\n- `prisma.config.ts`: the Prisma CLI config; reads `DATABASE_URL`.\n- `client.ts`: `createPrismaClient(connectionString)`, which builds a `PrismaClient` with the `pg` adapter.\n\nSkills:\n\n- `.claude/skills/prisma/SKILL.md`: how to change the schema and run migrations.\n",
+    },
+    {
+      op: "mergeJson",
+      target: "root",
+      file: "package.json",
+      value: {
+        scripts: {
+          "db:generate": "prisma generate --config {{target:db}}/prisma.config.ts",
+          "db:migrate": "prisma migrate dev --config {{target:db}}/prisma.config.ts",
+          "db:deploy": "prisma migrate deploy --config {{target:db}}/prisma.config.ts",
+        },
+      },
     },
   ],
   extensionPoints: [

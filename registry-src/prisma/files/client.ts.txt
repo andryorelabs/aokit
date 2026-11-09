@@ -1,6 +1,11 @@
 import { PrismaPg } from "@prisma/adapter-pg";
 import { PrismaClient } from "./generated/client";
 
-const adapter = new PrismaPg({ connectionString: process.env["DATABASE_URL"] });
-
-export const prisma = new PrismaClient({ adapter });
+/**
+ * Builds a `PrismaClient` on the `pg` driver adapter.
+ *
+ * @param connectionString - The Postgres connection string, usually `DATABASE_URL`.
+ */
+export function createPrismaClient(connectionString: string): PrismaClient {
+  return new PrismaClient({ adapter: new PrismaPg({ connectionString }) });
+}
