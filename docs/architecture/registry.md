@@ -159,8 +159,8 @@ Placeholders in file content (imports) are rewritten to the import specifier tha
 | `css`                             | A postcss-based Op on the Tailwind v4 entry file (`@import`, `@plugin`, `@theme`, rules), applied at the Tailwind Module's CSS Extension point ([Engine](engine.md#ops-catalog)). |
 | `cssVars`                         | CSS variable Ops under the `theme`, `light` and `dark` groups of the same Extension point; existing variables are never overwritten without an `override`.                        |
 | `envVars`                         | The Module `env` list, written by the line-based `.env` patcher that never overwrites existing keys.                                                                              |
-| `font`                            | `deps` for the font package plus a CSS Op for the `--font-*` variable and the Extension point for loading it.                                                                     |
-| `base.config`                     | Merged into the config of the UI Module the base targets (for shadcn, its component config) by `mergeJson`; it records the base choice in the Lockfile `answers`.                 |
+| `font`                            | Not supported yet: the item type `registry:font` is rejected with `REGISTRY_ITEM_UNSUPPORTED` (see [What shadcn lacks and aokit adds](#what-shadcn-lacks-and-aokit-adds)).        |
+| `base.config`                     | Not supported yet: the item type `registry:base` is rejected with `REGISTRY_ITEM_UNSUPPORTED` (see [What shadcn lacks and aokit adds](#what-shadcn-lacks-and-aokit-adds)).        |
 | `dependencies`, `devDependencies` | `deps`; ranges as given, since a shadcn registry has no Catalog.                                                                                                                  |
 | `files[].content`                 | Embedded file content, treated like `files[].from`; hashed per file.                                                                                                              |
 

@@ -36,6 +36,8 @@ const windowsDrivePrefix = /^[A-Za-z]:/;
 /**
  * Normalizes a Project-relative path to a `/`-separated key, accepting `\` as a separator on
  * every platform, and rejects absolute paths (POSIX, UNC and Windows drive paths) and escapes.
+ * A leading `<letter>:` is rejected on every platform, even where it would be a valid POSIX
+ * file name, so a Project's keys and Lockfile are identical on Linux, macOS and Windows.
  */
 export function normalizeProjectPath(path: string): string {
   const normalized = posix.normalize(path.replaceAll("\\", "/")).replace(/^\.\//, "");

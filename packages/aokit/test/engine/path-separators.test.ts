@@ -21,8 +21,9 @@ test.each([
   String.raw`C:\project\a.ts`,
   "C:/project/a.ts",
   "c:a.ts",
+  "a:notes",
   String.raw`\\server\share\a.ts`,
-])("a Windows absolute path %s is rejected", (input) => {
+])("a Windows absolute or drive-relative path %s is rejected on every platform", (input) => {
   expect(() => normalizeProjectPath(input)).toThrow(`Invalid file path "${input}".`);
 });
 

@@ -119,7 +119,7 @@ Routed jobs:
 | `ci.yml`          | `commitlint`       | plain  |
 | `determinism.yml` | `compare`          | plain  |
 
-Never routed, on a literal `ubuntu-latest`: `determinism.yml` `digest` (Linux leg), `distribution.yml` `linux-x64`, `docker.yml` `smoke`, `real-build.yml` `build` and `upgrade.yml` `upgrade`. Never routed at all: the macOS legs of `ci.yml` and `determinism.yml`, and any Windows, release, deploy, CodeQL, Scorecard or Lighthouse job. No VPS or self-hosted runners. `tools/workflows/runner-routing.test.ts` holds the `routedJobs` list and fails when a listed job lacks the expression, an unlisted job uses anything but a literal `ubuntu-latest` or `macos-*` label, a label matches `vps-*` or `self-hosted`, or `vars.BLACKSMITH_RUNNER` appears outside these expressions.
+Never routed, on a literal `ubuntu-latest`: `determinism.yml` `digest` (Linux leg), `distribution.yml` `linux-x64`, `docker.yml` `smoke`, `real-build.yml` `build` and `upgrade.yml` `upgrade`. Never routed at all: the macOS legs of `ci.yml` and `determinism.yml`, and any Windows, release, deploy, CodeQL, Scorecard or Lighthouse job. No VPS or self-hosted runners. `tools/workflows/runner-routing.test.ts` holds the `routedJobs` list and fails when a listed job lacks the expression, an unlisted job uses anything but a literal `ubuntu-latest`, `macos-*` or `windows-latest` label, a label matches `vps-*` or `self-hosted`, or `vars.BLACKSMITH_RUNNER` appears outside these expressions.
 
 macOS stays on GitHub-hosted runners: Blacksmith macOS costs $0.08/min, 20x its Linux rate, and the macOS legs exist to catch OS differences, not to run fast.
 
