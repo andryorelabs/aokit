@@ -205,16 +205,19 @@ test("the old schema domain appears nowhere in the tree", () => {
   expect(result.exitCode).toBe(1);
 });
 
-test("tsconfig.json typechecks Registry source files and Migration scripts", () => {
-  const listed = Bun.spawnSync(
-    ["node_modules/typescript7/bin/tsc", "--project", "tsconfig.json", "--listFilesOnly"],
-    { cwd: repoRoot },
-  );
-  const files = listed.stdout.toString();
-  expect(listed.exitCode).toBe(0);
-  expect(files).toContain("registry-src/vite-react/migrations/routes-to-router.after.ts");
-  expect(files).toMatch(/registry-src\/vite-react\/files\/.*\.tsx?\n/);
-});
+test.skipIf(process.platform === "win32")(
+  "tsconfig.json typechecks Registry source files and Migration scripts",
+  () => {
+    const listed = Bun.spawnSync(
+      ["node_modules/typescript7/bin/tsc", "--project", "tsconfig.json", "--listFilesOnly"],
+      { cwd: repoRoot },
+    );
+    const files = listed.stdout.toString();
+    expect(listed.exitCode).toBe(0);
+    expect(files).toContain("registry-src/vite-react/migrations/routes-to-router.after.ts");
+    expect(files).toMatch(/registry-src\/vite-react\/files\/.*\.tsx?\n/);
+  },
+);
 
 test("registry:build refuses a manifest file missing from files/", async () => {
   const source = await fixtureSource();

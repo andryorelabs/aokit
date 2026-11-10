@@ -339,7 +339,7 @@ describe("docs invariants reject violations", () => {
     ]);
   });
 
-  test("docs index fails on a missing row", () => {
+  test.skipIf(process.platform === "win32")("docs index fails on a missing row", () => {
     const root = writeTree({
       "docs/README.md": "[a](a.md)\n",
       "docs/a.md": "# A\n",

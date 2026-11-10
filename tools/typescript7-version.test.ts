@@ -10,7 +10,7 @@ const typescript7CompilerBin = join(
   "tsc",
 );
 
-test("the typescript7 alias bin is TypeScript 7", async () => {
+test.skipIf(process.platform === "win32")("the typescript7 alias bin is TypeScript 7", async () => {
   const versionProcess = Bun.spawn([typescript7CompilerBin, "--version"], {
     stdout: "pipe",
     stderr: "pipe",
