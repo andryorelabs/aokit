@@ -348,3 +348,75 @@ test("resolve does not mutate its inputs", () => {
   expect(registry).toEqual(snapshot);
   expect(modules).toEqual(["better-auth"]);
 });
+
+const authStack = {
+  vite: mod({
+    name: "vite-react",
+    provides: [
+      { capability: "web", cardinality: { max: 1 } },
+      { capability: "web:spa", cardinality: { max: 1 } },
+    ],
+  }),
+  next: mod({
+    name: "next",
+    provides: [
+      { capability: "web", cardinality: { max: 1 } },
+      { capability: "web:app-router", cardinality: { max: 1 } },
+    ],
+  }),
+  prisma: mod({
+    name: "prisma",
+    provides: [
+      { capability: "orm", cardinality: { max: 1 } },
+      { capability: "orm:prisma", cardinality: { max: 1 } },
+    ],
+    extensionPoints: [
+      { name: "db.schema", version: "1.0.0", target: "db", kind: "array", anchor: "schema" },
+    ],
+  }),
+  auth: mod({
+    name: "better-auth",
+    provides: ["auth"],
+    requires: ["orm:prisma", "web:app-router", "ext:db.schema@^1"],
+  }),
+};
+
+test("several unmet requirements are reported together, noting a web provider that cannot coexist", () => {
+  const { vite, next: nextModule, prisma: prismaModule, auth } = authStack;
+  const failure = expectFailure(
+    resolve({ modules: ["vite-react", "better-auth"] }, [vite, nextModule, prismaModule, auth], {
+      intent: "create",
+    }),
+  );
+  expect(failure.error.code).toBe("requirement_unmet");
+  expect(failure.error.requirements).toEqual(["ext:db.schema@^1", "orm:prisma", "web:app-router"]);
+  expect(failure.error.message.match(/web:app-router/g)).toHaveLength(1);
+  expect(failure.error.message.match(/orm:prisma/g)).toHaveLength(1);
+  expect(failure.error.message).toContain('"vite-react"');
+  expect(failure.error.fix).toContain('"better-auth" currently needs');
+  expect(failure.error.fix).toContain("aokit list");
+  expect(failure.error.fix).toContain("module-catalog");
+});
+
+test("several unmet requirements that can all be added get one combined fix", () => {
+  const { next: nextModule, prisma: prismaModule, auth } = authStack;
+  const registry = [nextModule, prismaModule, auth];
+  const created = expectFailure(
+    resolve({ modules: ["better-auth"] }, registry, { intent: "create" }),
+  );
+  expect(created.error.fix).toContain("--modules better-auth,next,prisma");
+  expect(created.error.fix).toContain('"next"');
+  expect(created.error.fix).toContain('"prisma"');
+  const added = expectFailure(resolve({ modules: ["better-auth"] }, registry, { intent: "add" }));
+  expect(added.error.fix).toContain("aokit add");
+});
+
+test("a single unmet requirement keeps the one-line hint", () => {
+  const { prisma: prismaModule } = authStack;
+  const lonely = mod({ name: "lonely", requires: ["orm:prisma"] });
+  const failure = expectFailure(
+    resolve({ modules: ["lonely"] }, [lonely, prismaModule], { intent: "create" }),
+  );
+  expect(failure.error.requirements).toBeUndefined();
+  expect(failure.error.fix).toBe('add "prisma" to --modules, for example --modules lonely,prisma');
+});
