@@ -320,7 +320,9 @@ describe("S19: CI test lanes", () => {
     const combinations = listMatrixCombinations(job);
     expect(combinations).toContainEqual({ os: "ubuntu-latest", bun: "pinned" });
     expect(combinations).toContainEqual({ os: "ubuntu-latest", bun: "latest" });
-    expect(job["continue-on-error"]).toBe("${{ matrix.bun == 'latest' }}");
+    expect(job["continue-on-error"]).toBe(
+      "${{ matrix.bun == 'latest' || matrix.os == 'windows-latest' }}",
+    );
     const setupBun = steps.filter(
       (step) => typeof step["uses"] === "string" && step["uses"].startsWith("oven-sh/setup-bun@"),
     );

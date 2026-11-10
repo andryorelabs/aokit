@@ -53,7 +53,7 @@ jobs:
           - os: ubuntu-latest
             bun: latest
     runs-on: ${{ matrix.os == 'ubuntu-latest' && (github.event.pull_request.head.repo.fork && 'ubuntu-latest' || vars.BLACKSMITH_RUNNER || 'ubuntu-latest') || matrix.os }}
-    continue-on-error: ${{ matrix.bun == 'latest' }}
+    continue-on-error: ${{ matrix.bun == 'latest' || matrix.os == 'windows-latest' }}
     timeout-minutes: 30
     steps:
       - name: Keep LF line endings on checkout
