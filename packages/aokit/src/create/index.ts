@@ -180,7 +180,7 @@ async function plan(request: CreateRequest): Promise<PlannedProject> {
     throw fromResolveError(built.error);
   }
   return {
-    plan: withProjectReadme(built.plan, request.directory, manifests),
+    plan: withProjectReadme(built.plan, resolvePath(request.directory), manifests),
     lockfile: built.lockfile,
     warnings: warningTexts(built.warnings),
     layout: request.layout,

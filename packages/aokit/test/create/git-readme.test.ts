@@ -34,12 +34,15 @@ function workspace(): string {
   return directory;
 }
 
-/** A `bun` that writes a `bun.lock`, so the initial commit has a lockfile to include. */
+/** A `bun` that writes a `bun.lock` and a `node_modules` tree, like a real install. */
 function fakeBun(parent: string): string {
   const bin = join(parent, "bin");
   mkdirSync(bin);
   const shim = join(bin, "bun");
-  writeFileSync(shim, "#!/bin/sh\necho lock > bun.lock\n");
+  writeFileSync(
+    shim,
+    "#!/bin/sh\nmkdir -p node_modules/pkg\necho x > node_modules/pkg/index.js\necho lock > bun.lock\n",
+  );
   chmodSync(shim, 0o755);
   return bin;
 }
@@ -94,6 +97,7 @@ describe("create git init", () => {
     expect(git(target, env, "ls-tree", "-r", "HEAD", "--name-only").split("\n")).toContain(
       "bun.lock",
     );
+    expect(git(target, env, "ls-tree", "-r", "HEAD", "--name-only")).not.toContain("node_modules");
     expect(git(target, env, "log", "-1", "--format=%s")).toBe(initialCommitMessage);
     expect(git(target, env, "status", "--porcelain")).toBe("");
     expect(existsSync(join(parent, "no-global-config"))).toBe(false);

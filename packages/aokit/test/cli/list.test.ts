@@ -100,8 +100,9 @@ describe("aokit list", () => {
     const registry = await registryPromise;
     const result = await runAokit(["list", "--registry", registry]);
     expect(result.exitCode).toBe(0);
-    expect(result.stdout).toContain("described-capability");
-    expect(result.stdout).toContain("A described Module.");
+    expect(result.stdout.trim()).toBe(
+      "described-capability\n  described@1.0.0  A described Module.",
+    );
   });
 
   test("listModules reads the latest version of every Module of an opened Registry", async () => {

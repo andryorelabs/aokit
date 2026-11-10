@@ -40,8 +40,10 @@ async function createProject(useGit: boolean, modules = "oxc"): Promise<string> 
     git: false,
   });
   expect(created.ok).toBe(true);
-  rmSync(join(directory, "README.md"));
-  if (useGit) await runGitChecked(directory, ["init", "-q"]);
+  if (useGit) {
+    await runGitChecked(directory, ["init", "-q"]);
+    await runGitChecked(directory, ["add", "README.md"]);
+  }
   return directory;
 }
 

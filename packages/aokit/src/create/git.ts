@@ -1,9 +1,21 @@
+import { appendFile, mkdir } from "node:fs/promises";
+import { join } from "node:path";
 import { registerShutdownHook } from "../cli/shutdown.ts";
 
 type Environment = Readonly<Record<string, string | undefined>>;
 
 /** The neutral message of the first commit of a new Project. */
 export const initialCommitMessage = "chore: initial commit from aokit";
+
+/**
+ * Keeps installed dependencies out of the initial commit, in the clone-local `.git/info/exclude`,
+ * because the core writes no tracked `.gitignore` and not every selected Module does.
+ */
+async function excludeDependencies(directory: string): Promise<void> {
+  const infoDirectory = join(directory, ".git", "info");
+  await mkdir(infoDirectory, { recursive: true });
+  await appendFile(join(infoDirectory, "exclude"), "node_modules\n");
+}
 
 const fallbackIdentity = ["-c", "user.name=aokit", "-c", "user.email=aokit@localhost"];
 
@@ -96,6 +108,7 @@ export async function initGitRepository(directory: string, env: Environment): Pr
   if (!succeeded(initialized)) {
     return failure("init", initialized);
   }
+  await excludeDependencies(directory);
   const staged = await git(directory, env, ["add", "--all"]);
   if (!succeeded(staged)) {
     return failure("add", staged);
