@@ -56,8 +56,13 @@ jobs:
           version="$(jq -r .version packages/aokit/package.json)"
           create_version="$(jq -r .version packages/create-aokit/package.json)"
           create_dependency="$(jq -r .dependencies.aokit packages/create-aokit/package.json)"
+          module_version="$(jq -r .version packages/module/package.json)"
           if [ "$create_version" != "$version" ] || [ "$create_dependency" != "$version" ]; then
             echo "::error::create-aokit $create_version (aokit dependency $create_dependency) must match aokit $version"
+            exit 1
+          fi
+          if [ "$module_version" != "$version" ]; then
+            echo "::error::@aokit/module $module_version must match aokit $version"
             exit 1
           fi
           case "${version%%+*}" in
@@ -79,7 +84,7 @@ jobs:
             echo "dist-tag=$dist_tag"
             echo "dry-run=$dry_run"
           } >> "$GITHUB_OUTPUT"
-          echo "aokit and create-aokit $version, dist-tag $dist_tag, dry-run $dry_run"
+          echo "@aokit/module, aokit and create-aokit $version, dist-tag $dist_tag, dry-run $dry_run"
 
       - name: Check
         run: bun run check
@@ -98,7 +103,9 @@ jobs:
           mkdir -p "$RUNNER_TEMP/release/tarballs"
           (cd packages/aokit && bun pm pack --destination "$RUNNER_TEMP/release/tarballs")
           (cd packages/create-aokit && bun pm pack --destination "$RUNNER_TEMP/release/tarballs")
-          ls "$RUNNER_TEMP/release/tarballs"
+          mkdir -p "$RUNNER_TEMP/release/module"
+          (cd packages/module/dist && bun pm pack --destination "$RUNNER_TEMP/release/module")
+          ls "$RUNNER_TEMP/release/tarballs" "$RUNNER_TEMP/release/module"
 
       - name: Installed tarball tests
         run: |
@@ -336,7 +343,7 @@ jobs:
             exit 1
           fi
 
-      - name: Publish aokit then create-aokit
+      - name: Publish @aokit/module, aokit, then create-aokit
         env:
           VERSION: ${{ needs.verify.outputs.version }}
           DIST_TAG: ${{ needs.verify.outputs.dist-tag }}
@@ -347,6 +354,65 @@ jobs:
           if [ "$DRY_RUN" != false ]; then
             publish_flags+=(--dry-run)
           fi
+          npm publish "$RELEASE_DIR/module/aokit-module-$VERSION.tgz" "${publish_flags[@]}"
           for package in aokit create-aokit; do
             npm publish "$RELEASE_DIR/tarballs/$package-$VERSION.tgz" "${publish_flags[@]}"
           done
+
+  smoke:
+    name: smoke test the npm release
+    needs: [verify, publish]
+    if: needs.verify.outputs.dry-run == 'false'
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    env:
+      VERSION: ${{ needs.verify.outputs.version }}
+      DIST_TAG: ${{ needs.verify.outputs.dist-tag }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2.2.0
+        with:
+          bun-version-file: package.json
+          no-cache: true
+
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version-file: .node-version
+          package-manager-cache: false
+          registry-url: https://registry.npmjs.org
+
+      - name: Check the npm dist-tags
+        env:
+          RETRY_SECONDS: 15
+        run: |
+          for package in @aokit/module aokit create-aokit; do
+            published=""
+            for attempt in 1 2 3 4 5 6 7 8; do
+              published="$(npm view "$package" "dist-tags.$DIST_TAG" || true)"
+              if [ "$published" = "$VERSION" ]; then
+                break
+              fi
+              if [ "$attempt" -lt 8 ]; then
+                sleep "$RETRY_SECONDS"
+              fi
+            done
+            if [ "$published" != "$VERSION" ]; then
+              echo "::error::npm dist-tag $DIST_TAG of $package is ${published:-missing}, expected $VERSION"
+              exit 1
+            fi
+            echo "$package@$DIST_TAG is $VERSION"
+          done
+
+      - name: Run aokit and create-aokit from npm
+        run: |
+          workdir="$(mktemp -d "$RUNNER_TEMP/smoke-run.XXXXXX")"
+          cd "$workdir"
+          printed="$(bunx "aokit@$VERSION" --version)"
+          if [ "$printed" != "$VERSION" ]; then
+            echo "::error::bunx aokit@$VERSION --version printed $printed"
+            exit 1
+          fi
+          bunx "create-aokit@$VERSION" smoke --yes

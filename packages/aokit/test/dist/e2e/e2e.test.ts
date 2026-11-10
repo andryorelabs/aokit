@@ -174,6 +174,22 @@ async function readReleaseOf(indexPath: string): Promise<string> {
   return releaseIndexSchema.parse(JSON.parse(await readFile(indexPath, "utf8"))).release;
 }
 
+interface SpawnResult {
+  exitCode: number;
+  stdout: string;
+  stderr: string;
+}
+
+async function spawnIn(command: readonly string[], cwd: string): Promise<SpawnResult> {
+  const child = Bun.spawn([...command], { cwd, stdout: "pipe", stderr: "pipe" });
+  const [stdout, stderr, exitCode] = await Promise.all([
+    new Response(child.stdout).text(),
+    new Response(child.stderr).text(),
+    child.exited,
+  ]);
+  return { exitCode, stdout, stderr };
+}
+
 describeWithTarballs("create-aokit from the packed tarballs", () => {
   setDefaultTimeout(300_000);
   let scratch = "";
@@ -247,5 +263,29 @@ describeWithTarballs("create-aokit from the packed tarballs", () => {
     const repository = await readReleaseOf(join(repositoryRoot, "registry", "index.json"));
     expect(repository).toBe("2026.12.1");
     expect(lockfile.registries["official"]?.release).toBe("2026.12.1");
+  });
+
+  test("S11: a Project that create-aokit creates and installs builds with bun run build", async () => {
+    const cwd = join(scratch, "installed");
+    await mkdir(cwd, { recursive: true });
+    const created = await spawnIn(
+      [
+        join(installDirectory, "node_modules", ".bin", "create-aokit"),
+        "app",
+        "--modules",
+        "vite-react",
+        "--yes",
+        "--json",
+      ],
+      cwd,
+    );
+    expect(created.exitCode, created.stdout + created.stderr).toBe(0);
+    const project = join(cwd, "app");
+    const install = await spawnIn(["bun", "install"], project);
+    expect(install.exitCode, install.stdout + install.stderr).toBe(0);
+    const build = await spawnIn(["bun", "run", "build"], project);
+    expect(build.exitCode, build.stdout + build.stderr).toBe(0);
+    const builtIndex = await readFile(join(project, "dist", "index.html"), "utf8");
+    expect(builtIndex).toContain("<script");
   });
 });

@@ -9,17 +9,12 @@ const routedExpression =
 const routedMatrixExpression =
   "${{ matrix.os == 'ubuntu-latest' && (github.event.pull_request.head.repo.fork && 'ubuntu-latest' || vars.BLACKSMITH_RUNNER || 'ubuntu-latest') || matrix.os }}";
 
-/** Jobs routed through `vars.BLACKSMITH_RUNNER`, as `<file>:<job>`; while aokit is private this is every Linux job. */
+/** Jobs routed through `vars.BLACKSMITH_RUNNER`, as `<file>:<job>`; every other job uses a literal label. */
 export const routedJobs: readonly string[] = [
   "ci.yml:check",
   "ci.yml:test",
   "ci.yml:commitlint",
-  "determinism.yml:digest",
   "determinism.yml:compare",
-  "distribution.yml:linux-x64",
-  "docker.yml:smoke",
-  "real-build.yml:build",
-  "upgrade.yml:upgrade",
 ];
 
 const jobLine = /^ {2}([A-Za-z0-9_-]+):\s*$/;
@@ -29,6 +24,7 @@ const osMatrixLine = /^\s+os:\s*(?:\[|$)/;
 const literalLabel = /^(?:ubuntu-latest|ubuntu-24\.04-arm|macos-[A-Za-z0-9.-]+|windows-latest)$/;
 const forbiddenLabel = /vps-|self-hosted/;
 const matrixRunnerExpression = "${{ matrix.runner }}";
+const matrixOsExpression = "${{ matrix.os }}";
 const literalLabelProblem =
   "must use a literal ubuntu-latest, ubuntu-24.04-arm, macos-* or windows-latest label";
 
@@ -37,34 +33,43 @@ interface WorkflowJob {
   runsOn: string | undefined;
   hasOsMatrix: boolean;
   matrixRunners: unknown[];
+  matrixOses: unknown[];
 }
 
-/** Lists every `runner` value of a job's matrix, from a `runner` list and from `include` entries. */
-function listMatrixRunners(parsedWorkflow: unknown, job: string): unknown[] {
+/** Lists every value of a job's matrix `key`, from a `key` list and from `include` entries. */
+function listMatrixValues(parsedWorkflow: unknown, job: string, key: string): unknown[] {
   const matrix = field(field(field(field(parsedWorkflow, "jobs"), job), "strategy"), "matrix");
-  const listed: unknown = field(matrix, "runner");
+  const listed: unknown = field(matrix, key);
   const included: unknown = field(matrix, "include");
-  const runners: unknown[] = [];
-  if (Array.isArray(listed)) runners.push(...(listed as unknown[]));
+  const values: unknown[] = [];
+  if (Array.isArray(listed)) values.push(...(listed as unknown[]));
   if (Array.isArray(included)) {
-    for (const entry of included as unknown[]) runners.push(field(entry, "runner"));
+    for (const entry of included as unknown[]) values.push(field(entry, key));
   }
-  return runners;
+  return values;
+}
+
+/** The matrix key a `runs-on: ${{ matrix.<key> }}` expression reads, or undefined for any other `runs-on`. */
+function matrixLabelKey(runsOn: string | undefined): "runner" | "os" | undefined {
+  if (runsOn === matrixRunnerExpression) return "runner";
+  if (runsOn === matrixOsExpression) return "os";
+  return undefined;
 }
 
 function findLiteralLabelProblem(id: string, job: WorkflowJob): string | undefined {
-  if (job.runsOn !== matrixRunnerExpression) {
+  const key = matrixLabelKey(job.runsOn);
+  if (key === undefined) {
     return literalLabel.test(job.runsOn ?? "")
       ? undefined
       : `${id} is not routed and ${literalLabelProblem}`;
   }
-  const runners = job.matrixRunners;
+  const labels = key === "runner" ? job.matrixRunners : job.matrixOses;
   const allLiteral =
-    runners.length > 0 &&
-    runners.every((runner) => typeof runner === "string" && literalLabel.test(runner));
+    labels.length > 0 &&
+    labels.every((label) => typeof label === "string" && literalLabel.test(label));
   return allLiteral
     ? undefined
-    : `${id} is not routed and every matrix.runner ${literalLabelProblem}`;
+    : `${id} is not routed and every matrix.${key} ${literalLabelProblem}`;
 }
 
 function parseJobs(text: string): WorkflowJob[] {
@@ -86,6 +91,7 @@ function parseJobs(text: string): WorkflowJob[] {
         runsOn: undefined,
         hasOsMatrix: false,
         matrixRunners: [],
+        matrixOses: [],
       };
       jobs.push(current);
       continue;
@@ -116,7 +122,8 @@ export function findRunnerRoutingProblems(file: string, text: string): string[] 
   const parsedWorkflow: unknown = Bun.YAML.parse(text);
   const jobs = parseJobs(text);
   for (const job of jobs) {
-    job.matrixRunners = listMatrixRunners(parsedWorkflow, job.name);
+    job.matrixRunners = listMatrixValues(parsedWorkflow, job.name, "runner");
+    job.matrixOses = listMatrixValues(parsedWorkflow, job.name, "os");
     const id = `${file}:${job.name}`;
     const problem = findJobProblem(id, job, routedJobs.includes(id));
     if (problem !== undefined) problems.push(problem);
@@ -186,9 +193,34 @@ describe("CI runner routing", () => {
   });
 
   test("a routed job on a literal ubuntu-latest fails and names file and job", () => {
-    expect(findRunnerRoutingProblems("upgrade.yml", workflow("upgrade", "ubuntu-latest"))).toEqual([
-      "upgrade.yml:upgrade is routed and must use the BLACKSMITH_RUNNER expression",
-    ]);
+    expect(
+      findRunnerRoutingProblems("determinism.yml", workflow("compare", "ubuntu-latest")),
+    ).toEqual(["determinism.yml:compare is routed and must use the BLACKSMITH_RUNNER expression"]);
+  });
+
+  test.each([
+    ["real-build.yml", "build"],
+    ["docker.yml", "smoke"],
+    ["upgrade.yml", "upgrade"],
+    ["distribution.yml", "linux-x64"],
+    ["determinism.yml", "digest"],
+  ])("%s %s is not routed and fails on the routing expression", (file, job) => {
+    expect(findRunnerRoutingProblems(file, workflow(job, routedExpression))).toContain(
+      `${file}:${job} is not routed and ${literalLabelProblem}`,
+    );
+  });
+
+  test("a matrix.os job passes when every os in the matrix is a literal label", () => {
+    expect(
+      findRunnerRoutingProblems("other.yml", workflow("job", matrixOsExpression, osMatrix)),
+    ).toEqual([]);
+  });
+
+  test("a matrix.os job with a self-hosted os fails", () => {
+    const matrix = "    strategy:\n      matrix:\n        os: [ubuntu-latest, self-hosted]\n";
+    expect(
+      findRunnerRoutingProblems("other.yml", workflow("job", matrixOsExpression, matrix)),
+    ).toEqual([`other.yml:job is not routed and every matrix.os ${literalLabelProblem}`]);
   });
 
   test("a self-hosted label fails and names file and job", () => {
@@ -204,9 +236,9 @@ describe("CI runner routing", () => {
   });
 
   test("a routed job using the routing expression passes", () => {
-    expect(findRunnerRoutingProblems("upgrade.yml", workflow("upgrade", routedExpression))).toEqual(
-      [],
-    );
+    expect(
+      findRunnerRoutingProblems("determinism.yml", workflow("compare", routedExpression)),
+    ).toEqual([]);
   });
 
   test("an os matrix job using the matrix form passes", () => {
@@ -263,9 +295,9 @@ describe("CI runner routing", () => {
   });
 
   test("vars.BLACKSMITH_RUNNER outside a runs-on expression fails", () => {
-    const text = `${workflow("upgrade", routedExpression)}        env:\n          RUNNER: \${{ vars.BLACKSMITH_RUNNER }}\n`;
-    expect(findRunnerRoutingProblems("upgrade.yml", text)).toEqual([
-      "upgrade.yml:10 uses vars.BLACKSMITH_RUNNER outside a runs-on routing expression",
+    const text = `${workflow("compare", routedExpression)}        env:\n          RUNNER: \${{ vars.BLACKSMITH_RUNNER }}\n`;
+    expect(findRunnerRoutingProblems("determinism.yml", text)).toEqual([
+      "determinism.yml:10 uses vars.BLACKSMITH_RUNNER outside a runs-on routing expression",
     ]);
   });
 
@@ -345,8 +377,8 @@ describe("CI runner routing", () => {
   });
 
   test("a routed job missing from its file is reported", () => {
-    expect(findRunnerRoutingProblems("upgrade.yml", workflow("renamed", "ubuntu-latest"))).toEqual([
-      "upgrade.yml:upgrade is listed in routedJobs but missing",
-    ]);
+    expect(
+      findRunnerRoutingProblems("determinism.yml", workflow("renamed", "ubuntu-latest")),
+    ).toEqual(["determinism.yml:compare is listed in routedJobs but missing"]);
   });
 });
