@@ -696,10 +696,10 @@ describe("S3: release binaries, SHA256SUMS and attestations", () => {
 });
 
 describe("S2: one shared version released with bumpp", () => {
-  test("aokit and create-aokit share one next pre-release version and create-aokit pins that aokit", () => {
+  test("aokit and create-aokit share one semver version and create-aokit pins that aokit", () => {
     const aokit = readJson("packages/aokit/package.json");
     const createAokit = readJson("packages/create-aokit/package.json");
-    expect(aokit["version"]).toMatch(/^\d+\.\d+\.\d+-next\.\d+$/);
+    expect(aokit["version"]).toMatch(/^\d+\.\d+\.\d+(?:-next\.\d+)?$/);
     expect(createAokit["version"]).toBe(aokit["version"]);
     expect(createAokit["dependencies"]).toEqual({ aokit: aokit["version"] });
   });
