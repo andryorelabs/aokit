@@ -2,14 +2,14 @@ import { describe, expect, test } from "bun:test";
 import { join } from "node:path";
 
 const repositoryRoot = join(import.meta.dir, "..");
-const commitlintBin = join(repositoryRoot, "node_modules", ".bin", "commitlint");
+const commitlintBin = join(repositoryRoot, "node_modules", "@commitlint", "cli", "cli.js");
 
 /**
  * Runs commitlint with the repository config on one commit message and
  * returns its exit code.
  */
 async function lintCommitMessage(commitMessage: string): Promise<number> {
-  const commitlintProcess = Bun.spawn([commitlintBin], {
+  const commitlintProcess = Bun.spawn([process.execPath, commitlintBin], {
     cwd: repositoryRoot,
     stdin: new Blob([commitMessage]),
     stdout: "pipe",
