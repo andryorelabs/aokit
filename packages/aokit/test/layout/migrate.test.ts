@@ -1,6 +1,6 @@
 import { afterAll, describe, expect, test } from "bun:test";
 import { cp, mkdir, readFile, readdir, rm, writeFile } from "node:fs/promises";
-import { join, posix } from "node:path";
+import { join, posix, relative, sep } from "node:path";
 import { z } from "zod";
 import { runCommand } from "../../src/cli/command.ts";
 import { createCommand } from "../../src/cli/commands/create.ts";
@@ -84,7 +84,7 @@ async function treeOf(directory: string): Promise<Record<string, string>> {
   const entries = await readdir(directory, { recursive: true, withFileTypes: true });
   const files: Record<string, string> = {};
   for (const entry of entries) {
-    const parent = posix.relative(directory, entry.parentPath);
+    const parent = relative(directory, entry.parentPath).split(sep).join("/");
     const path = posix.join(parent, entry.name);
     if (!entry.isFile() || path.startsWith(".git/") || path.includes("node_modules/")) continue;
     // oxlint-disable-next-line eslint/no-await-in-loop -- reads a small fixture tree in order

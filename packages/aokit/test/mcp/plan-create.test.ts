@@ -14,6 +14,9 @@ import {
 
 const workspace = newWorkspace();
 
+/** Creating a symlink on Windows needs a privilege CI runners lack. */
+const symlinkTest = process.platform === "win32" ? test.skip : test;
+
 afterAll(() => {
   rmSync(workspace, { recursive: true, force: true });
 });
@@ -180,7 +183,7 @@ describe("create", () => {
   test("a directory with .. segments plans and creates the normalized directory", async () => {
     const client = await connectClient();
     const target = join(workspace, "dotted");
-    const dotted = `${workspace}/elsewhere/../dotted`;
+    const dotted = join(workspace, "elsewhere", "..", "dotted");
     const planned = await callTool(client, "plan", createInput(dotted));
     expect(planned.data?.["directory"]).toBe(target);
     const created = await callTool(client, "create", {
@@ -192,7 +195,7 @@ describe("create", () => {
     expect(entriesOf(workspace)).not.toContain("elsewhere");
   });
 
-  test("a symlink moved between plan and create is PLAN_REQUIRED", async () => {
+  symlinkTest("a symlink moved between plan and create is PLAN_REQUIRED", async () => {
     const client = await connectClient();
     const one = join(workspace, "link-one");
     const two = join(workspace, "link-two");

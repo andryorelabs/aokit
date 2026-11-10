@@ -76,7 +76,7 @@ describe("exit codes through a real process", () => {
       "--no-install",
       "--json",
     ]);
-    expect(result.exitCode).toBe(4);
+    expect(result).toMatchObject({ exitCode: 4 });
     expect(JSON.parse(result.stdout)).toMatchObject({
       ok: false,
       error: { code: "DEPENDENTS_EXIST" },

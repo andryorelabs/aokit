@@ -22,6 +22,9 @@ import { cliVersion } from "../../src/cli/version.ts";
 import { parseJsonRecord, parseJsonText, parseLockfileJson } from "../helpers/registry-json.ts";
 import { aokitCommand, spawnAokit as spawnAokitProcess } from "../helpers/aokit-process.ts";
 
+/** These tests put a `#!/bin/sh` shim named `bun` on a `:`-joined PATH and send POSIX signals, neither of which exists on Windows. */
+const posixShellTest = process.platform === "win32" ? test.skip : test;
+
 const workspaces: string[] = [];
 
 const envelopeSchema = z.looseObject({
@@ -264,23 +267,26 @@ describe("aokit create", () => {
     expect(envelopeError(result.stdout).code).toBe("INVALID_INPUT");
   });
 
-  test("a failed install leaves the Project, exits 1 and says to rerun bun install", async () => {
-    const parent = workspace();
-    const fakeBin = join(parent, "bin");
-    mkdirSync(fakeBin);
-    writeFileSync(join(fakeBin, "bun"), "#!/bin/sh\necho boom >&2\nexit 7\n");
-    chmodSync(join(fakeBin, "bun"), 0o755);
-    const target = join(parent, "app");
-    const result = await spawnAokit(["create", target, "--modules", "oxc", "--json"], {
-      PATH: `${fakeBin}:${process.env["PATH"] ?? ""}`,
-    });
-    expect(result.exitCode).toBe(1);
-    const { fix } = envelopeError(result.stdout);
-    expect(fix).toContain("bun install");
-    expect(readFileSync(join(target, "aokit.lock.json"), "utf8")).toContain("oxc");
-  });
+  posixShellTest(
+    "a failed install leaves the Project, exits 1 and says to rerun bun install",
+    async () => {
+      const parent = workspace();
+      const fakeBin = join(parent, "bin");
+      mkdirSync(fakeBin);
+      writeFileSync(join(fakeBin, "bun"), "#!/bin/sh\necho boom >&2\nexit 7\n");
+      chmodSync(join(fakeBin, "bun"), 0o755);
+      const target = join(parent, "app");
+      const result = await spawnAokit(["create", target, "--modules", "oxc", "--json"], {
+        PATH: `${fakeBin}:${process.env["PATH"] ?? ""}`,
+      });
+      expect(result.exitCode).toBe(1);
+      const { fix } = envelopeError(result.stdout);
+      expect(fix).toContain("bun install");
+      expect(readFileSync(join(target, "aokit.lock.json"), "utf8")).toContain("oxc");
+    },
+  );
 
-  test("SIGINT during install exits 130", async () => {
+  posixShellTest("SIGINT during install exits 130", async () => {
     const parent = workspace();
     const fakeBin = join(parent, "bin");
     mkdirSync(fakeBin);

@@ -114,6 +114,7 @@ test("runCli puts interactive and the prompt into the context so the CLI trust p
     "--registry",
     url,
     "--allow-dirty",
+    "--no-install",
     "--json",
   ];
   const exitCode = await runAddThroughCli(context, argv, {

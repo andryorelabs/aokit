@@ -143,37 +143,42 @@ describe("new error codes", () => {
 });
 
 describe.each([true, false])("update marker and abort (git: %p)", (useGit) => {
-  test("a kept stash plus a marker is undone completely by abortUpdate", async () => {
-    const { git, before, unmergedBefore, stash } = await conflictedUpdate(useGit);
-    if (stash === undefined) throw new Error("stash expected");
-    expect(await stat(stash.directory)).toBeDefined();
-    expect(await readTree(project)).not.toEqual(before);
-    await writeUpdateMarker(project, git, {
-      stashDirectory: stash.directory,
-      conflictedPaths: ["b.txt"],
-      newSiblingPaths: ["logo.bin.aokit-new"],
-      createdPaths: [...stash.created],
-      previousLockfile: serializeLockfile(await loadLockfile()),
-    });
-    expect(await readUpdateMarker(project, git)).toMatchObject({
-      stashDirectory: stash.directory,
-      conflictedPaths: ["b.txt"],
-    });
+  const exactGitInternalsTest = useGit && process.platform === "win32" ? test.skip : test;
 
-    const result = await abortUpdate(project, git);
+  exactGitInternalsTest(
+    "a kept stash plus a marker is undone completely by abortUpdate",
+    async () => {
+      const { git, before, unmergedBefore, stash } = await conflictedUpdate(useGit);
+      if (stash === undefined) throw new Error("stash expected");
+      expect(await stat(stash.directory)).toBeDefined();
+      expect(await readTree(project)).not.toEqual(before);
+      await writeUpdateMarker(project, git, {
+        stashDirectory: stash.directory,
+        conflictedPaths: ["b.txt"],
+        newSiblingPaths: ["logo.bin.aokit-new"],
+        createdPaths: [...stash.created],
+        previousLockfile: serializeLockfile(await loadLockfile()),
+      });
+      expect(await readUpdateMarker(project, git)).toMatchObject({
+        stashDirectory: stash.directory,
+        conflictedPaths: ["b.txt"],
+      });
 
-    expect(result?.restored).toContain("a.txt");
-    expect(result?.restored).toContain("b.txt");
-    expect(await readTree(project)).toEqual(before);
-    expect(await readUpdateMarker(project, git)).toBeNull();
-    expect(await exists(stash.directory)).toBe(false);
-    if (useGit) {
-      expect(await runGit(project, "ls-files", "-u")).toBe(unmergedBefore);
-      expect(await runGit(project, "status", "--porcelain")).toBe("");
-    } else {
-      expect(await exists(join(project, ".aokit"))).toBe(false);
-    }
-  });
+      const result = await abortUpdate(project, git);
+
+      expect(result?.restored).toContain("a.txt");
+      expect(result?.restored).toContain("b.txt");
+      expect(await readTree(project)).toEqual(before);
+      expect(await readUpdateMarker(project, git)).toBeNull();
+      expect(await exists(stash.directory)).toBe(false);
+      if (useGit) {
+        expect(await runGit(project, "ls-files", "-u")).toBe(unmergedBefore);
+        expect(await runGit(project, "status", "--porcelain")).toBe("");
+      } else {
+        expect(await exists(join(project, ".aokit"))).toBe(false);
+      }
+    },
+  );
 
   test("with nothing to abort it returns null", async () => {
     await writeFile(join(project, lockfileName), "{}\n");

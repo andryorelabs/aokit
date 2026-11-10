@@ -6,6 +6,9 @@ import { join } from "node:path";
 import { spawnAokit as spawnAokitProcess } from "../helpers/aokit-process.ts";
 import { z } from "zod";
 
+/** Windows has no POSIX signals: killing a child with SIGINT ends it without running its handlers. */
+const posixSignalTest = process.platform === "win32" ? test.skip : test;
+
 const shutdownModule = join(import.meta.dir, "..", "..", "src", "cli", "shutdown.ts");
 
 function spawnAokit(argv: string[], env: Record<string, string> = {}) {
@@ -38,7 +41,7 @@ test("NO_COLOR keeps error output free of ANSI even when a TTY is forced", async
   expect(result.stderr).not.toContain("\u001B");
 });
 
-test("SIGINT runs the registered shutdown hook and exits 130", async () => {
+posixSignalTest("SIGINT runs the registered shutdown hook and exits 130", async () => {
   const workDirectory = mkdtempSync(join(tmpdir(), "aokit-sigint-"));
   const markerPath = join(workDirectory, "marker");
   try {

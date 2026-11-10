@@ -1,11 +1,17 @@
 import { expect, test } from "bun:test";
-import { join } from "node:path";
+import { join, resolve } from "node:path";
+import { pathToFileURL } from "node:url";
 import { AokitError } from "../../src/cli/envelope.ts";
 import type { Lockfile } from "../../src/lockfile/schema.ts";
 import { openProjectRegistry, resolveRegistrySource } from "../../src/project/registry.ts";
 import { bundledRegistryPath } from "../../src/registry/bundled.ts";
 
-const context = { projectDir: join("/work", "app"), bundledRegistryPath: join("/opt", "registry") };
+const workDirectory = resolve("/work");
+const serveDirectory = resolve("/srv/registry");
+const context = {
+  projectDir: join(workDirectory, "app"),
+  bundledRegistryPath: join(resolve("/opt"), "registry"),
+};
 
 function thrownBy(run: () => unknown): unknown {
   try {
@@ -21,15 +27,15 @@ test("bundled resolves to the shipped Registry", () => {
 });
 
 test("a relative source resolves from the Project directory", () => {
-  expect(resolveRegistrySource("../registry", context)).toBe(join("/work", "registry"));
+  expect(resolveRegistrySource("../registry", context)).toBe(join(workDirectory, "registry"));
 });
 
 test("an absolute source is kept as is", () => {
-  expect(resolveRegistrySource("/srv/registry", context)).toBe("/srv/registry");
+  expect(resolveRegistrySource(serveDirectory, context)).toBe(serveDirectory);
 });
 
 test("a file: URL resolves to its local directory, as the Registry client reads it", () => {
-  expect(resolveRegistrySource("file:///srv/registry", context)).toBe("/srv/registry");
+  expect(resolveRegistrySource(pathToFileURL(serveDirectory).href, context)).toBe(serveDirectory);
 });
 
 test("an https URL and a github source are rejected until the commands read remote Registries", () => {

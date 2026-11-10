@@ -1,8 +1,9 @@
 import { afterEach, beforeEach, expect, test } from "bun:test";
 import { createHash } from "node:crypto";
+import { realpathSync } from "node:fs";
 import { mkdir, mkdtemp, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
-import { join } from "node:path";
+import { join, resolve } from "node:path";
 import { AokitError } from "../../src/cli/envelope.ts";
 import { volatileHash } from "../../src/drift/hash.ts";
 import { assertCleanTree, openGit } from "../../src/git/index.ts";
@@ -18,7 +19,7 @@ function git(cwd: string, ...args: string[]): Promise<string> {
 }
 
 beforeEach(async () => {
-  root = await mkdtemp(join(tmpdir(), "aokit-git-"));
+  root = realpathSync.native(await mkdtemp(join(tmpdir(), "aokit-git-")));
   repo = join(root, "repo");
   await mkdir(repo);
   await git(repo, "init", "-q");
@@ -78,8 +79,8 @@ test("gitDir resolves for a linked worktree whose .git is a file", async () => {
   await git(repo, "worktree", "add", "-q", "-b", "side", linked);
   const opened = await openGit(linked);
   const expected = (await git(linked, "rev-parse", "--absolute-git-dir")).trim();
-  expect(await opened?.gitDir()).toBe(expected);
-  expect(expected).toContain(join("worktrees", "linked"));
+  expect(resolve((await opened?.gitDir()) ?? "")).toBe(resolve(expected));
+  expect(resolve(expected)).toContain(join("worktrees", "linked"));
   expect(await assertCleanTree(linked, { allowDirty: false })).toEqual({});
 });
 
