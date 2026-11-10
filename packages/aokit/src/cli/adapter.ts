@@ -59,6 +59,7 @@ async function askOnTerminal(question: string): Promise<string> {
 
 interface GlobalFlags {
   json: boolean;
+  quiet: boolean;
   noColor: boolean;
   verbose: boolean;
   version: boolean;
@@ -77,6 +78,7 @@ class ExitRequested extends Error {
 function extractGlobalFlags(argv: readonly string[]): GlobalFlags {
   const flags: GlobalFlags = {
     json: false,
+    quiet: false,
     noColor: false,
     verbose: false,
     version: false,
@@ -91,6 +93,8 @@ function extractGlobalFlags(argv: readonly string[]): GlobalFlags {
       flags.rest.push(argument);
     } else if (argument === "--json") {
       flags.json = true;
+    } else if (argument === "--quiet" || argument === "-q") {
+      flags.quiet = true;
     } else if (argument === "--no-color") {
       flags.noColor = true;
     } else if (argument === "--verbose") {
@@ -135,6 +139,97 @@ function toParserSchema(input: z.ZodType): z.ZodType {
     }),
   );
   return z.object(parserShape);
+}
+
+const globalOptionsHelp = [
+  "Global options:",
+  "  --json     Print the result as JSON on stdout",
+  "  --quiet    Print only errors",
+  "  --verbose  Print the stack trace of an internal failure",
+  "",
+].join("\n");
+
+const groupDescriptions: Readonly<Record<string, string>> = {
+  layout: "Work with the Project Layout",
+  mcp: "Work with the aokit MCP server",
+};
+
+const valueNames: Readonly<Record<string, string>> = {
+  "[values...]": "<value>",
+  "[string]": "<string>",
+  "[number]": "<number>",
+  "[integer]": "<number>",
+  "[json]": "<json>",
+};
+
+function cleanOptionText(text: string): string {
+  return text
+    .replaceAll(/\b(?:Type: \w+|Negatable: true|Min length: \d+)\b[;,]?/g, "")
+    .replace(/\s+array$/, "")
+    .replaceAll(/\s{2,}/g, " ")
+    .trim();
+}
+
+function describeOption(option: HelpOption): string {
+  const parts = [cleanOptionText(option.description)];
+  if (option.argChoices !== undefined) {
+    parts.push(`(choices: ${option.argChoices.map((choice) => `"${choice}"`).join(", ")})`);
+  }
+  const fallback = option.defaultValue;
+  const isNoise =
+    fallback === undefined ||
+    fallback === false ||
+    (Array.isArray(fallback) && fallback.length === 0);
+  if (!isNoise) {
+    parts.push(`(default: ${JSON.stringify(fallback)})`);
+  }
+  return parts.filter((part) => part !== "").join(" ");
+}
+
+interface HelpOption {
+  flags: string;
+  description: string;
+  defaultValue?: unknown;
+  argChoices?: readonly string[];
+}
+
+interface HelpCommand {
+  commands?: readonly HelpCommand[];
+  options?: readonly HelpOption[];
+  name?: () => string;
+  description?: (text?: string) => unknown;
+  configureHelp?: (configuration: { optionDescription: (option: HelpOption) => string }) => void;
+  addHelpText?: (position: "after", text: string) => void;
+}
+
+/**
+ * Rewrites what trpc-cli leaks into `--help` (type hints, negation notes,
+ * empty defaults, the duplicated subcommand list) and lists the global flags.
+ */
+function polishHelp(program: CommanderProgramLike): void {
+  const visit = (command: HelpCommand, isRoot: boolean): void => {
+    for (const option of command.options ?? []) {
+      const [flagsOnly = option.flags] = option.flags.split(/\s+(?=[[<])/, 1);
+      const valueName = option.flags.slice(flagsOnly.length).trim();
+      const replacement = valueNames[valueName];
+      option.flags =
+        replacement === undefined ? flagsOnly : `${flagsOnly} ${replacement}`.trimEnd();
+    }
+    command.configureHelp?.({ optionDescription: describeOption });
+    command.addHelpText?.("after", globalOptionsHelp);
+    const subcommands = command.commands ?? [];
+    if (subcommands.length > 0) {
+      const current = command.description?.();
+      const own = typeof current === "string" ? current : "";
+      const stripped = own.replace(/\n?Available subcommands:.*$/s, "").trim();
+      const name = command.name?.() ?? "";
+      command.description?.(isRoot ? stripped : (groupDescriptions[name] ?? stripped));
+    }
+    for (const subcommand of subcommands) {
+      visit(subcommand, false);
+    }
+  };
+  visit(program, true);
 }
 
 function captureCommanderFailures(
@@ -246,6 +341,7 @@ async function dispatchThroughParser(
     collect(...parts);
   };
   const program = cli.buildProgram();
+  polishHelp(program);
   let requestedExitCode: number | undefined;
   const requestExit = (exitCode: number): never => {
     requestedExitCode ??= exitCode;
@@ -278,12 +374,15 @@ async function dispatchThroughParser(
   return usageFailure(parserMessages.join("\n"));
 }
 
-function renderEnvelope(envelope: Envelope, json: boolean, color: boolean, io: CliIo): void {
-  if (json) {
+function renderEnvelope(envelope: Envelope, flags: GlobalFlags, color: boolean, io: CliIo): void {
+  if (flags.json) {
     io.stdout(`${stringifySorted(envelope)}\n`);
     return;
   }
   if (envelope.ok) {
+    if (flags.quiet) {
+      return;
+    }
     io.stdout(`${renderHuman(envelope.data)}\n`);
     return;
   }
@@ -328,7 +427,7 @@ function notifyAboutUpdate(
     env: options.env,
     isTTY: stderrIsTTY,
     json: flags.json,
-    quiet: flags.rest.some((argument) => argument === "--quiet" || argument === "-q"),
+    quiet: flags.quiet,
     interactive:
       context.interactive === true && !isNonInteractive({ yes, env: options.env, isTTY: true }),
     now: options.now ?? Date.now,
@@ -386,7 +485,7 @@ export async function runCli(options: RunCliOptions): Promise<ExitCode> {
   if (shouldPrintBanner(flags, options.io)) {
     options.io.stdout(renderBanner({ color }));
   }
-  renderEnvelope(envelope, flags.json, color, options.io);
+  renderEnvelope(envelope, flags, color, options.io);
   printInternalStack(envelope, flags.verbose, options.io);
   notifyAboutUpdate(options, flags, context);
   return exitCodeForEnvelope(envelope);
