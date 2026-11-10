@@ -28,7 +28,7 @@
     },
     "packages/aokit": {
       "name": "aokit",
-      "version": "0.1.0-next.0",
+      "version": "0.1.0-next.1",
       "bin": {
         "aokit": "./dist/cli.js",
       },
@@ -53,12 +53,12 @@
     },
     "packages/create-aokit": {
       "name": "create-aokit",
-      "version": "0.1.0-next.0",
+      "version": "0.1.0-next.1",
       "bin": {
         "create-aokit": "./dist/main.js",
       },
       "dependencies": {
-        "aokit": "0.1.0-next.0",
+        "aokit": "0.1.0-next.1",
       },
     },
     "packages/module": {
