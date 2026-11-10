@@ -8,6 +8,7 @@ import { renderFailureReport, renderHuman } from "./human.ts";
 import {
   exitCodeForEnvelope,
   failureEnvelope,
+  internalStackOf,
   stringifySorted,
   successEnvelope,
   type Envelope,
@@ -59,6 +60,7 @@ async function askOnTerminal(question: string): Promise<string> {
 interface GlobalFlags {
   json: boolean;
   noColor: boolean;
+  verbose: boolean;
   version: boolean;
   rest: string[];
 }
@@ -73,7 +75,13 @@ class ExitRequested extends Error {
 }
 
 function extractGlobalFlags(argv: readonly string[]): GlobalFlags {
-  const flags: GlobalFlags = { json: false, noColor: false, version: false, rest: [] };
+  const flags: GlobalFlags = {
+    json: false,
+    noColor: false,
+    verbose: false,
+    version: false,
+    rest: [],
+  };
   let passthrough = false;
   for (const argument of argv) {
     if (passthrough) {
@@ -85,6 +93,8 @@ function extractGlobalFlags(argv: readonly string[]): GlobalFlags {
       flags.json = true;
     } else if (argument === "--no-color") {
       flags.noColor = true;
+    } else if (argument === "--verbose") {
+      flags.verbose = true;
     } else if (argument === "--version" || argument === "-V") {
       flags.version = true;
     } else {
@@ -285,6 +295,16 @@ function renderEnvelope(envelope: Envelope, json: boolean, color: boolean, io: C
   io.stderr(`${label}: ${envelope.error.message}\n  fix:  ${envelope.error.fix}\n`);
 }
 
+function printInternalStack(envelope: Envelope, verbose: boolean, io: CliIo): void {
+  if (!verbose || envelope.ok) {
+    return;
+  }
+  const stack = internalStackOf(envelope.error);
+  if (stack !== undefined) {
+    io.stderr(`${stack}\n`);
+  }
+}
+
 function shouldPrintBanner(flags: GlobalFlags, io: CliIo): boolean {
   if (flags.json || !io.isTTY) {
     return false;
@@ -367,6 +387,7 @@ export async function runCli(options: RunCliOptions): Promise<ExitCode> {
     options.io.stdout(renderBanner({ color }));
   }
   renderEnvelope(envelope, flags.json, color, options.io);
+  printInternalStack(envelope, flags.verbose, options.io);
   notifyAboutUpdate(options, flags, context);
   return exitCodeForEnvelope(envelope);
 }

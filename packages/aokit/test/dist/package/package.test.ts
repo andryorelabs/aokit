@@ -189,6 +189,79 @@ describeWithTarballs("the installed aokit and create-aokit tarballs", () => {
     expect(child.exitCode).toBe(0);
   });
 
+  async function startAokitShim(
+    pathValue: string,
+    args: readonly string[],
+    name: string,
+  ): Promise<ShimChild> {
+    const manifest = binSchema.parse(
+      JSON.parse(await readFile(join(packageRoot, "package.json"), "utf8")),
+    );
+    const nodePath = Bun.which("node");
+    if (nodePath === null) {
+      throw new Error("node is not on PATH.");
+    }
+    return Bun.spawn([nodePath, join(packageRoot, manifest.bin["aokit"] ?? ""), ...args], {
+      cwd: await freshDirectory(name),
+      env: { ...process.env, PATH: pathValue },
+      stdout: "pipe",
+      stderr: "pipe",
+    });
+  }
+
+  async function fakeBunPath(script: string, name: string): Promise<string> {
+    const fakeBin = join(await freshDirectory(name), "fake-bin");
+    await mkdir(fakeBin, { recursive: true });
+    await writeFile(join(fakeBin, "bun"), script, { mode: 0o755 });
+    return fakeBin;
+  }
+
+  test("S4: the aokit bin is a Node shim that explains a missing Bun and exits 1", async () => {
+    const manifest = binSchema.parse(
+      JSON.parse(await readFile(join(packageRoot, "package.json"), "utf8")),
+    );
+    const binPath = join(packageRoot, manifest.bin["aokit"] ?? "");
+    expect((await readFile(binPath, "utf8")).startsWith("#!/usr/bin/env node\n")).toBe(true);
+    const child = await startAokitShim(await freshDirectory("no-bun"), ["--version"], "no-bun-cwd");
+    const [stderr] = await Promise.all([new Response(child.stderr).text(), child.exited]);
+    expect(stderr).toContain("aokit needs Bun (>=1.4.4) on PATH: https://bun.sh");
+    expect(child.exitCode).toBe(1);
+  });
+
+  test("S4: the aokit bin passes its arguments through and relays the exit code", async () => {
+    const fakeBin = await fakeBunPath('#!/bin/sh\necho "args=$*"\nexit 7\n', "aokit-exit");
+    const result = await collectShimRun(await startAokitShim(fakeBin, ["--json", "x"], "exit-cwd"));
+    expect(result.stdout).toMatch(/args=.*dist\/cli\.js --json x/);
+    expect(result.exitCode).toBe(7);
+  });
+
+  test("S4: the aokit bin dies by the same signal as its child", async () => {
+    const fakeBin = await fakeBunPath("#!/bin/sh\nkill -TERM $$\n", "aokit-signal");
+    const result = await collectShimRun(await startAokitShim(fakeBin, [], "signal-cwd"));
+    expect(result.signalCode ?? `exit ${String(result.exitCode)}`).toBe("SIGTERM");
+  });
+
+  test("S4: the aokit bin passes SIGTERM on to its child and waits for it", async () => {
+    const script =
+      "#!/bin/sh\ntrap 'echo got-term; exit 0' TERM\necho ready\nwhile :; do sleep 0.1; done\n";
+    const fakeBin = await fakeBunPath(script, "aokit-forward");
+    const child = await startAokitShim(fakeBin, [], "forward-cwd");
+    const decoder = new TextDecoder();
+    let seen = "";
+    let signalled = false;
+    for await (const chunk of child.stdout) {
+      seen += decoder.decode(chunk, { stream: true });
+      if (!signalled && seen.includes("ready")) {
+        signalled = true;
+        child.kill("SIGTERM");
+      }
+    }
+    await child.exited;
+    expect(signalled).toBe(true);
+    expect(seen).toContain("got-term");
+    expect(child.exitCode).toBe(0);
+  });
+
   test("S2: create resolves the Registry shipped inside the package", async () => {
     const workDirectory = await freshDirectory("create-bundled");
     const result = await spawnIn(

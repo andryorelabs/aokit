@@ -39,17 +39,32 @@ export function errorDataFrom(thrown: unknown): unknown {
   return thrown instanceof AokitError ? thrown.data : null;
 }
 
+const internalStacks = new WeakMap<ErrorPayload, string>();
+
+/**
+ * The stack trace behind an `INTERNAL` payload, kept beside the payload instead of inside it so it
+ * can never reach the serialized envelope; `undefined` for any other payload.
+ */
+export function internalStackOf(payload: ErrorPayload): string | undefined {
+  return internalStacks.get(payload);
+}
+
 /** Converts anything thrown into an error payload; unknown throws become `INTERNAL`. */
 export function errorPayloadFrom(thrown: unknown): ErrorPayload {
   if (thrown instanceof AokitError) {
     return { code: thrown.code, message: thrown.message, fix: thrown.fix };
   }
   const message = thrown instanceof Error ? thrown.message : String(thrown);
-  return {
+  const payload: ErrorPayload = {
     code: "INTERNAL",
     message,
     fix: "rerun with --verbose and report the issue",
   };
+  internalStacks.set(
+    payload,
+    thrown instanceof Error ? (thrown.stack ?? `${thrown.name}: ${message}`) : message,
+  );
+  return payload;
 }
 
 export function exitCodeForEnvelope(envelope: Envelope): ExitCode {

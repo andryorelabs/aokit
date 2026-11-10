@@ -12,7 +12,7 @@ Every `aokit` command, its flags, the exit codes and the environment variables t
 | `--diff`          | Print the Plan as unified diffs per file (implies `--dry-run`). |
 | `--no-color`      | Disable color (same as `NO_COLOR`).                             |
 | `--quiet`, `-q`   | Only errors.                                                    |
-| `--verbose`, `-v` | Print resolver decisions and per-Module timings to stderr.      |
+| `--verbose`       | Print the stack trace of an `INTERNAL` failure to stderr.       |
 | `--help`, `-h`    | Help with examples.                                             |
 | `--version`, `-V` | Print the CLI version only.                                     |
 
