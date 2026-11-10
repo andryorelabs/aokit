@@ -2,7 +2,7 @@ import { afterAll, expect, test } from "bun:test";
 import { mkdtempSync, readFileSync, rmSync } from "node:fs";
 import { readdir } from "node:fs/promises";
 import { tmpdir } from "node:os";
-import { join } from "node:path";
+import { join, sep } from "node:path";
 import { runCommand } from "../../src/cli/command.ts";
 import { parseLockfileJson } from "../helpers/registry-json.ts";
 import { createCommand } from "../../src/cli/commands/create.ts";
@@ -37,7 +37,7 @@ async function tree(directory: string): Promise<Record<string, string>> {
       .filter((entry) => entry.isFile())
       .map((entry) => join(entry.parentPath, entry.name))
       .map((path) => [path.slice(directory.length), readFileSync(path, "utf8")] as const)
-      .filter(([path]) => path !== "/README.md"),
+      .filter(([path]) => path !== `${sep}README.md`),
   );
 }
 
