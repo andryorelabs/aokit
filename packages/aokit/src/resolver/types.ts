@@ -22,6 +22,7 @@ export interface ResolveError {
   readonly module?: string;
   readonly capability?: string;
   readonly providers?: readonly string[];
+  readonly requirements?: readonly string[];
 }
 
 /**
