@@ -10,7 +10,8 @@ import {
 } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import bumppConfig from "../../bumpp.config.ts";
+import { loadBumpConfig } from "bumpp";
+import bumppConfig from "../../bump.config.ts";
 import { parseBinaryTarget } from "../build-binary/targets.ts";
 
 const repositoryRoot = join(import.meta.dir, "..", "..");
@@ -563,5 +564,13 @@ describe("S2: one shared version released with bumpp", () => {
       "packages/create-aokit/package.json",
     ]);
     expect(bumppConfig.preid).toBe("next");
+  });
+
+  test("bumpp itself loads the repository config, so bun run release uses it", async () => {
+    const loaded = await loadBumpConfig(undefined, repositoryRoot);
+    expect(loaded.files).toEqual(bumppConfig.files);
+    expect(loaded.preid).toBe("next");
+    expect(loaded.pr).toEqual(bumppConfig.pr);
+    expect(typeof loaded.execute).toBe("function");
   });
 });
