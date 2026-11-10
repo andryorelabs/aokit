@@ -22,6 +22,8 @@ export default defineModule({
 
 `defineModule()` is an identity function that type-checks the declaration. A build step evaluates it and writes `module.json`. Only the JSON is published. The manifest is data: the Resolver never executes a Module's TypeScript.
 
+Third-party authors install the SDK from npm with `bun add -d @aokit/module`. It ships ESM JavaScript and `.d.ts` declarations at the same version as `aokit`, so the SDK version that type-checks a manifest matches the CLI version that accepts it ([ADR 0027](../adr/0027-module-sdk-is-published.md)).
+
 ## Field table
 
 | Field             | Type                                               | Meaning                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                     |
