@@ -11,6 +11,7 @@ export {
   ManifestError,
   manifestSchema,
   manifestSchemaUrl,
+  legacyManifestDescription,
   parseManifest,
   type ParseManifestOptions,
   supportedManifestSchemaVersion,

@@ -120,6 +120,18 @@ describe("aokit list", () => {
     ]);
   });
 
+  test("lists a Release without a description with an empty description", async () => {
+    const registry = await openRegistry(
+      { kind: "local", path: join(import.meta.dir, "..", "..", "..", "..", "registry") },
+      { cliVersion: "9.9.9" },
+    );
+    const modules = await listModules(registry);
+    expect(modules.find((entry) => entry.name === "adr-docs")?.description).toBe("");
+    for (const entry of modules) {
+      expect(entry.description).not.toContain("No description published");
+    }
+  });
+
   test("is listed by aokit schema", async () => {
     const result = await runAokit(["schema"]);
     expect(result.stdout).toContain('"list"');

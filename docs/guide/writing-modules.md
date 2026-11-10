@@ -28,6 +28,7 @@ import { defineModule } from "@aokit/module";
 export default defineModule({
   name: "my-lint-staged",
   version: "1.0.0",
+  description: "Runs lint-staged on every commit.",
   provides: [{ capability: "staged-lint", cardinality: { max: 1 } }],
   requires: ["git-hooks"],
   files: [
@@ -56,7 +57,7 @@ export default defineModule({
 
 `defineModule` only type-checks the declaration and returns it. Put the plain source files beside it, in `files/lintstagedrc.json` here. Files are valid source with no template language.
 
-- `name` is kebab-case and unique within a Registry. `version` is semver and immutable once published: a change is a new version.
+- `name` is kebab-case and unique within a Registry. `version` is semver and immutable once published: a change is a new version. `description` is required: one sentence of 1 to 120 characters saying what the Module adds, shown by `aokit list` and in a Project README.
 - `provides` lists the Capabilities you offer, each with a Cardinality. `requires` lists Capabilities another selected Module must provide. `conflicts` lists Modules or Capabilities that must not be selected with yours. See [Capabilities](../architecture/capabilities.md).
 - `files` copies files into a logical Target such as `root`, `config`, `web` or `server`. The Layout resolves where a Target lives, so the same Module works in the single and monorepo Layouts ([Layouts](../architecture/layouts.md)). Use `ownership: "seed"` for a file written once that the user then owns, such as a starter page.
 - `deps` names npm dependencies per type. A literal range such as `^16.0.0` works anywhere. `range: "catalog"` takes the version from the Catalog of the Registry Release, so use it only if your Registry ships one.

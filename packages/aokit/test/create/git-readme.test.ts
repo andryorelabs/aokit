@@ -16,6 +16,7 @@ import { cliVersion } from "../../src/cli/version.ts";
 import { Vfs } from "../../src/engine/index.ts";
 import { hashVfs, type Plan } from "../../src/engine/plan.ts";
 import { initialCommitMessage } from "../../src/create/git.ts";
+import { parseManifest } from "@aokit/module";
 import { renderProjectReadme, withProjectReadme } from "../../src/create/readme.ts";
 import { parseJsonRecord } from "../helpers/registry-json.ts";
 
@@ -161,6 +162,24 @@ describe("create README", () => {
     vfs.write("README.md", "from a module\n");
     const plan: Plan = { changes: [], hash: hashVfs(vfs), vfs };
     expect(withProjectReadme(plan, "/tmp/app", [])).toBe(plan);
+  });
+
+  test("lists a Module from a Release without a description as a bare name", () => {
+    const vfs = Vfs.empty();
+    const plan: Plan = { changes: [], hash: hashVfs(vfs), vfs };
+    const legacy = parseManifest(
+      { name: "legacy", version: "1.0.0" },
+      { allowMissingDescription: true },
+    );
+    const described = parseManifest({
+      name: "described",
+      version: "1.0.0",
+      description: "Does a thing.",
+    });
+    const readme = withProjectReadme(plan, "/tmp/app", [legacy, described]).vfs.read("README.md");
+    expect(readme).toContain("- `legacy`\n");
+    expect(readme).toContain("- `described`: Does a thing.");
+    expect(readme).not.toContain("No description published");
   });
 
   test("is deterministic", () => {

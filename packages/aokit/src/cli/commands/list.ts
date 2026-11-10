@@ -1,3 +1,4 @@
+import { legacyManifestDescription } from "@aokit/module";
 import { z } from "zod";
 import { loadCreateRegistries } from "../../project/registry/create.ts";
 import type { Registry } from "../../registry/index.ts";
@@ -73,7 +74,7 @@ export async function listModules(registry: Registry): Promise<ModuleListing[]> 
       return {
         name,
         version: entry.latest,
-        description: manifest.description,
+        description: manifest.description === legacyManifestDescription ? "" : manifest.description,
         provides: manifest.provides.map((provided) => provided.capability),
       };
     }),

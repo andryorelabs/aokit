@@ -16,6 +16,7 @@ import { defineModule } from "@aokit/module";
 export default defineModule({
   name: "my-module",
   version: "1.0.0",
+  description: "Adds a hello script to package.json.",
   ops: [
     {
       op: "mergeJson",

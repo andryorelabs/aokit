@@ -1,5 +1,5 @@
 import { basename } from "node:path";
-import type { ModuleManifest } from "@aokit/module";
+import { legacyManifestDescription, type ModuleManifest } from "@aokit/module";
 import { type Plan, hashVfs } from "../engine/plan.ts";
 
 const readmePath = "README.md";
@@ -108,7 +108,7 @@ export function withProjectReadme(
     name: basename(directory),
     modules: manifests.map((manifest) => ({
       name: manifest.name,
-      description: manifest.description,
+      description: manifest.description === legacyManifestDescription ? "" : manifest.description,
     })),
     scripts: scriptsOf(plan),
   });

@@ -230,7 +230,7 @@ export class ManifestError extends Error {
 /**
  * The description given to a published manifest that predates the required `description` field.
  */
-const legacyManifestDescription = "No description published.";
+export const legacyManifestDescription = "No description published.";
 
 /**
  * Options for {@link parseManifest}.

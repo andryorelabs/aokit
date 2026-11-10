@@ -112,6 +112,13 @@ describe.skipIf(process.platform === "win32")("the staged @aokit/module package"
     expect(declarations).not.toMatch(/\.ts["']/);
   }, 120_000);
 
+  test("the staged index.d.ts leaves workspace-only helpers out", async () => {
+    const declarations = await readFile(join(stagedDirectory, "index.d.ts"), "utf8");
+    expect(declarations).not.toContain("composeDraftCatalog");
+    expect(declarations).not.toContain("sortKeysDeep");
+    expect(declarations).toContain("stableStringify");
+  });
+
   test("a TypeScript consumer imports defineModule from the packed tarball with types", async () => {
     const consumer = await mkdtemp(join(tmpdir(), "aokit-module-consumer-"));
     const tarballName = (
