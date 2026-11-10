@@ -56,7 +56,7 @@ async function openBuilt(): Promise<Registry> {
 
 function lockfileWithout(): Lockfile {
   return {
-    $schema: "https://aokit.dev/lockfile.json",
+    $schema: "https://aokit.andryore.dev/schema/lockfile/v2.json",
     lockfileVersion: currentLockfileVersion,
     cliVersion: "0.1.0",
     protocolVersion: 1,

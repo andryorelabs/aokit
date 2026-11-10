@@ -386,7 +386,7 @@ function renderEnvelope(envelope: Envelope, flags: GlobalFlags, color: boolean, 
     io.stdout(`${renderHuman(envelope.data)}\n`);
     return;
   }
-  const report = renderFailureReport(envelope.data);
+  const report = renderFailureReport(envelope.data, flags.verbose);
   if (report !== "") {
     io.stdout(`${report}\n`);
   }

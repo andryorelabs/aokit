@@ -153,6 +153,7 @@ Every error code maps to exactly one exit code. The envelope printed with `--jso
 | `NOT_IN_LOCKFILE`             | `3`   | The path is not managed by aokit.                                      |
 | `NOT_SELECTED`                | `3`   | The Module is not selected in the Project.                             |
 | `CAPABILITY_CONFLICT`         | `4`   | Two selected Modules conflict on a Capability.                         |
+| `MODULE_UNKNOWN`              | `4`   | A selected Module name is not in the Registry.                         |
 | `REQUIREMENT_UNMET`           | `4`   | A Module requires a Capability nothing provides.                       |
 | `CARDINALITY_EXCEEDED`        | `4`   | More Modules provide a Capability than its cardinality allows.         |
 | `DEPENDENTS_EXIST`            | `4`   | Other Modules still require the Module being removed.                  |

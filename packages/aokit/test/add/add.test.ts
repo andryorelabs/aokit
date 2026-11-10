@@ -119,7 +119,7 @@ describe("aokit add", () => {
     const envelope = await addProject(directory, { modules: ["nope"] });
     expect(envelope.ok).toBe(false);
     if (!envelope.ok) {
-      expect(envelope.error.code).toBe("REQUIREMENT_UNMET");
+      expect(envelope.error.code).toBe("MODULE_UNKNOWN");
       expect(envelope.data).toEqual({ resolverCode: "unknown_module" });
     }
     expect(tree(directory)).toEqual(before);
