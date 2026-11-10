@@ -459,7 +459,9 @@ describe("S8: post-publish smoke job", () => {
     expect(result.exitCode, result.output).toBe(0);
     expect(result.calls).toHaveLength(2);
     expect(result.calls[0]).toMatch(/^bunx aokit@0\.1\.0 --version in smoke-run\./);
-    expect(result.calls[1]).toMatch(/^bunx create-aokit@0\.1\.0 smoke --yes in smoke-run\./);
+    expect(result.calls[1]).toMatch(
+      /^bunx create-aokit@0\.1\.0 smoke --yes --modules oxc in smoke-run\./,
+    );
   });
 
   test("it fails before create-aokit when aokit --version prints another version", () => {
