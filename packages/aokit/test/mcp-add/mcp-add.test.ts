@@ -1,7 +1,7 @@
 import { z } from "zod";
 import { afterAll, beforeAll, describe, expect, test } from "bun:test";
 import { readFileSync, rmSync, symlinkSync, writeFileSync } from "node:fs";
-import { join } from "node:path";
+import { basename, join } from "node:path";
 import {
   builtFixtureRegistry,
   editJson,
@@ -13,6 +13,9 @@ import { callTool, createInput, entriesOf, planChangeCount } from "../mcp/helper
 import { addInput, committedProject, connectClient, git, newWorkspace } from "./helpers.ts";
 
 const workspace = newWorkspace();
+
+/** Creating a symlink on Windows needs a privilege CI runners lack. */
+const symlinkTest = process.platform === "win32" ? test.skip : test;
 const home = join(workspace, "home");
 
 afterAll(async () => {
@@ -242,21 +245,24 @@ describe("add", () => {
     expect(firstPlan.data?.["planId"]).not.toBe(secondPlan.data?.["planId"]);
   });
 
-  test("a directory with .. segments and a symlink names the canonical Project", async () => {
-    const directory = await freshProject();
-    const link = join(workspace, "project-link");
-    symlinkSync(directory, link);
-    const dotted = `${link}/../${directory.split("/").at(-1)}`;
-    const client = await connectClient(home);
-    const planned = await callTool(client, "plan_add", addInput(dotted));
-    expect(planned.error).toBeNull();
-    expect(planned.data?.["directory"]).toBe(directory);
-    const added = await callTool(client, "add", {
-      ...addInput(directory),
-      planId: planned.data?.["planId"],
-    });
-    expect(added.ok).toBe(true);
-  });
+  symlinkTest(
+    "a directory with .. segments and a symlink names the canonical Project",
+    async () => {
+      const directory = await freshProject();
+      const link = join(workspace, "project-link");
+      symlinkSync(directory, link);
+      const dotted = join(link, "..", basename(directory));
+      const client = await connectClient(home);
+      const planned = await callTool(client, "plan_add", addInput(dotted));
+      expect(planned.error).toBeNull();
+      expect(planned.data?.["directory"]).toBe(directory);
+      const added = await callTool(client, "add", {
+        ...addInput(directory),
+        planId: planned.data?.["planId"],
+      });
+      expect(added.ok).toBe(true);
+    },
+  );
 });
 
 describe("untrusted Registry", () => {

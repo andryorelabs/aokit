@@ -1,5 +1,5 @@
 import { createHash } from "node:crypto";
-import { mkdtempSync } from "node:fs";
+import { mkdtempSync, realpathSync } from "node:fs";
 import { readFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
@@ -11,8 +11,9 @@ import { parseLockfile } from "../../src/lockfile/index.ts";
 
 export const context = { version: cliVersion, env: {}, commands: [] };
 
+/** A fresh temporary directory by its canonical path, so Windows 8.3 short names never differ from what the CLI reports. */
 export function newWorkspace(): string {
-  return mkdtempSync(join(tmpdir(), "aokit-lifecycle-"));
+  return realpathSync.native(mkdtempSync(join(tmpdir(), "aokit-lifecycle-")));
 }
 
 export async function createProject(workspace: string, modules = "oxc,vite-react,knip") {

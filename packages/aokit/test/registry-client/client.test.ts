@@ -2,6 +2,7 @@ import { afterEach, expect, test } from "bun:test";
 import { cp, mkdtemp, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join, resolve } from "node:path";
+import { pathToFileURL } from "node:url";
 import { AokitError } from "../../src/cli/envelope.ts";
 import { errorCodeExitCodes, exitCodeForErrorCode } from "../../src/cli/exit-codes.ts";
 import { toAokitError } from "../../src/project/errors.ts";
@@ -26,7 +27,7 @@ import {
 
 const bundledRegistryPath = resolve(import.meta.dir, "..", "..", "..", "..", "registry");
 const context = { cliVersion: "0.1.0" };
-const sourceContext = { projectDir: "/work/app", bundledRegistryPath };
+const sourceContext = { projectDir: join(resolve("/work"), "app"), bundledRegistryPath };
 const temporaryDirectories: string[] = [];
 
 afterEach(async () => {
@@ -227,15 +228,16 @@ test("parseRegistrySource accepts bundled, paths, file: and https: sources", () 
   });
   expect(parseRegistrySource("../registry", sourceContext)).toEqual({
     kind: "local",
-    path: "/work/registry",
+    path: join(resolve("/work"), "registry"),
   });
-  expect(parseRegistrySource("/srv/registry", sourceContext)).toEqual({
+  const serveDirectory = resolve("/srv/registry");
+  expect(parseRegistrySource(serveDirectory, sourceContext)).toEqual({
     kind: "local",
-    path: "/srv/registry",
+    path: serveDirectory,
   });
-  expect(parseRegistrySource("file:///srv/registry", sourceContext)).toEqual({
+  expect(parseRegistrySource(pathToFileURL(serveDirectory).href, sourceContext)).toEqual({
     kind: "local",
-    path: "/srv/registry",
+    path: serveDirectory,
   });
   const url = parseRegistrySource("https://r.test/base/", sourceContext);
   expect(url).toEqual({ kind: "url", url: "https://r.test/base" });

@@ -17,7 +17,7 @@ test("aokitCommand runs the source entry through Bun when AOKIT_BIN is unset", (
   delete process.env["AOKIT_BIN"];
   const command = aokitCommand();
   expect(command[0]).toBe(process.execPath);
-  expect(command[1]).toMatch(/src\/cli\/main\.ts$/);
+  expect(command[1]).toMatch(/src[\\/]cli[\\/]main\.ts$/);
 });
 
 test("spawnAokit captures output and exit code", async () => {

@@ -8,6 +8,12 @@ import { Vfs } from "../../src/engine/index.ts";
 import { diffVfs, hashVfs, type Plan } from "../../src/engine/plan.ts";
 import { parseLockfile, serializeLockfile } from "../../src/lockfile/index.ts";
 
+/** NTFS has no POSIX permission bits, so mode assertions run only where they mean something. */
+const posixModeTest = process.platform === "win32" ? test.skip : test;
+
+/** The mode a file with the executable bit reads back as: NTFS reports every file as 0o666. */
+const executableMode = process.platform === "win32" ? 0o666 : 0o755;
+
 const lockfileFixture = join(
   import.meta.dir,
   "..",
@@ -112,7 +118,7 @@ test("a new Project appears only after the final rename, staged in a unique sibl
   expect(await readFile(join(directory, lockfileName), "utf8")).toBe(serializeLockfile(lockfile));
 });
 
-test("a new Project root follows the umask instead of the 0700 staging mode", async () => {
+posixModeTest("a new Project root follows the umask instead of the 0700 staging mode", async () => {
   const next = Vfs.empty();
   next.write("package.json", "{}\n");
   const directory = join(workspace, "moded");
@@ -189,7 +195,7 @@ test("an existing Project gets create, update, delete and rename, Lockfile writt
     "export const keep = 1;\n",
   );
   expect((await readdir(join(directory, "src"))).toSorted()).toEqual(["added.ts", "keep.ts"]);
-  expect((await stat(join(directory, "run.sh"))).mode & 0o777).toBe(0o755);
+  expect((await stat(join(directory, "run.sh"))).mode & 0o777).toBe(executableMode);
   expect(await readFile(join(directory, lockfileName), "utf8")).toBe(serializeLockfile(lockfile));
   expect(await siblingsOf(workspace)).toEqual(["project"]);
 });
@@ -298,7 +304,7 @@ test("a simulated SIGINT while creating a new Project leaves nothing behind", as
   }
 });
 
-test("the manifest mode is applied on write", async () => {
+posixModeTest("the manifest mode is applied on write", async () => {
   const lockfile = await loadLockfile();
   const next = Vfs.empty();
   next.write("bin/run", "#!/bin/sh\n", { mode: "755" });

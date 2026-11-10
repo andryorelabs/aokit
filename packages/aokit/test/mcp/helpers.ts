@@ -22,7 +22,7 @@ export async function connectClient(): Promise<Client> {
 
 /** A canonical temp directory, so paths compare equal to what the server resolves. */
 export function newWorkspace(): string {
-  return realpathSync(mkdtempSync(join(tmpdir(), "aokit-mcp-")));
+  return realpathSync.native(mkdtempSync(join(tmpdir(), "aokit-mcp-")));
 }
 
 /** The explicit `create` input with every field stated. */

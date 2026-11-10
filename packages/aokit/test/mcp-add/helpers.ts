@@ -25,7 +25,7 @@ export async function connectClient(home: string): Promise<Client> {
 
 /** A canonical temp directory, so paths compare equal to what the server resolves. */
 export function newWorkspace(): string {
-  return realpathSync(mkdtempSync(join(tmpdir(), "aokit-mcp-add-")));
+  return realpathSync.native(mkdtempSync(join(tmpdir(), "aokit-mcp-add-")));
 }
 
 /** Runs git in a directory with a fixed identity and no signing. */
