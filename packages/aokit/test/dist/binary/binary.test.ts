@@ -105,7 +105,7 @@ describeWithBinary("the standalone binary", () => {
       cwd: workDirectory,
       env: { XDG_CACHE_HOME: blocker },
     });
-    expect(result.exitCode).toBe(0);
+    expect(result).toMatchObject({ exitCode: 0 });
     expect(JSON.parse(result.stdout)).toMatchObject({ ok: true });
   });
 
@@ -116,7 +116,7 @@ describeWithBinary("the standalone binary", () => {
       cwd: workDirectory,
       env: { XDG_CACHE_HOME: cacheDirectory },
     });
-    expect(result.exitCode).toBe(0);
+    expect(result).toMatchObject({ exitCode: 0 });
     expect(await Bun.file(join(cacheDirectory, "aokit", "bundled-registry")).exists()).toBe(false);
     expect(await readdir(cacheDirectory)).not.toContain("aokit");
   });
@@ -148,7 +148,7 @@ describeWithBinary("the standalone binary", () => {
       ["create", "my-app", "--modules", "oxc,vite-react", "--yes", "--no-install", "--json"],
       { cwd: workDirectory, env: { XDG_CACHE_HOME: cacheDirectory } },
     );
-    expect(result.exitCode).toBe(0);
+    expect(result).toMatchObject({ exitCode: 0 });
     expect(JSON.parse(result.stdout)).toMatchObject({ ok: true });
   });
 
@@ -165,7 +165,7 @@ describeWithBinary("the standalone binary", () => {
           env,
         },
       );
-      expect(result.exitCode).toBe(0);
+      expect(result).toMatchObject({ exitCode: 0 });
     }
     const extracted = await visibleEntries(join(cacheDirectory, "aokit", "bundled-registry"));
     expect(extracted).toHaveLength(1);
@@ -188,7 +188,7 @@ describeWithBinary("the standalone binary", () => {
         }),
       ),
     );
-    expect(results.map((result) => result.exitCode)).toEqual([0, 0]);
+    expect(results).toMatchObject([{ exitCode: 0 }, { exitCode: 0 }]);
     const registryRoot = join(cacheDirectory, "aokit", "bundled-registry");
     expect(await visibleEntries(registryRoot)).toHaveLength(1);
     expect(await readdir(registryRoot)).toHaveLength(1);
@@ -202,7 +202,7 @@ describeWithBinary("the standalone binary", () => {
       ["create", "latest", "--modules", "vite-react", "--yes", "--no-install", "--json"],
       { cwd: workDirectory, env },
     );
-    expect(created.exitCode).toBe(0);
+    expect(created).toMatchObject({ exitCode: 0 });
     const index = registryIndexSchema.parse(
       JSON.parse(await readFile(join(committedRegistry, "index.json"), "utf8")),
     );
