@@ -423,4 +423,4 @@ jobs:
             echo "::error::bunx aokit@$VERSION --version printed $printed"
             exit 1
           fi
-          bunx "create-aokit@$VERSION" smoke --yes
+          bunx "create-aokit@$VERSION" smoke --yes --modules oxc
