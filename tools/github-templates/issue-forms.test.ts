@@ -67,8 +67,8 @@ describe("issue forms in .github/ISSUE_TEMPLATE", () => {
   );
 
   test("includes the bug report and feature request forms", () => {
-    expect(formFileNames).toContain("bug_report.yml");
-    expect(formFileNames).toContain("feature_request.yml");
+    expect(formFileNames).toContain("1-bug_report.yml");
+    expect(formFileNames).toContain("2-feature_request.yml");
   });
 
   for (const formFileName of formFileNames) {

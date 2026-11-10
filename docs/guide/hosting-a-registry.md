@@ -26,6 +26,8 @@ aokit add my-module --registry ../my-registry
 
 A local Registry is trusted: it is code you already have. The Lockfile records its path relative to the Project directory, so keep that relative path valid for everyone who runs `aokit update` on the Project.
 
+Trusted also means executable: a Migration served from a local Registry is code that runs on your machine during `aokit update`, with your permissions. Read the Migrations of a Registry directory before you point a Project at it.
+
 ## `https://`
 
 Serve the same directory from any static host and pass the URL of its root:
