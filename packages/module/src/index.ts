@@ -1,7 +1,6 @@
 export { catalogSchema, composeDraftCatalog, type Catalog, type CatalogInput } from "./catalog.ts";
 export {
   compileModule,
-  sortKeysDeep,
   stableStringify,
   type CompiledModule,
   type CompileModuleOptions,
