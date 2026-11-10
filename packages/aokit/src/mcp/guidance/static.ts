@@ -42,7 +42,7 @@ aokit turns a selection of **Modules** into a TypeScript **Project** and keeps t
 - \`PLAN_REQUIRED\`: the \`planId\` was not issued in this session, was already used, or the input, the Release, the Lockfile or the Project changed. Plan again.
 - \`DIRTY_TREE\`: commit or stash the Project's uncommitted changes, then plan again.
 - \`REGISTRY_UNTRUSTED\`: the user must approve the Registry; list its name or source in \`trust\`.
-- Resolution errors (\`CAPABILITY_CONFLICT\`, \`REQUIREMENT_UNMET\`, \`CARDINALITY_EXCEEDED\`): change the \`modules\` selection as the \`fix\` says and plan again.
+- Resolution errors (\`CAPABILITY_CONFLICT\`, \`REQUIREMENT_UNMET\`, \`MODULE_UNKNOWN\`, \`CARDINALITY_EXCEEDED\`): change the \`modules\` selection as the \`fix\` says and plan again.
 `,
   modules: `# Modules
 

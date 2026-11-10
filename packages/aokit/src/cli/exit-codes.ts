@@ -21,6 +21,7 @@ export const errorCodeExitCodes = {
   INVALID_CONFIG: exitCodes.usage,
   CAPABILITY_CONFLICT: exitCodes.resolution,
   REQUIREMENT_UNMET: exitCodes.resolution,
+  MODULE_UNKNOWN: exitCodes.resolution,
   CARDINALITY_EXCEEDED: exitCodes.resolution,
   DIRTY_TREE: exitCodes.precondition,
   LOCKFILE_MISSING: exitCodes.precondition,

@@ -427,7 +427,7 @@ async function renderNext(
   const resolved = resolveModules(
     { modules: selection, locked: lockedNames },
     available.map((module) => module.manifest),
-    { acceptSuggestions: true },
+    { acceptSuggestions: true, intent: "add" },
   );
   if (!resolved.ok) throw fromResolveError(resolved.error);
   const fresh: ModuleManifest[] = resolved.modules

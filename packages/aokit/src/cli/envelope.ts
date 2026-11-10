@@ -39,6 +39,22 @@ export function errorDataFrom(thrown: unknown): unknown {
   return thrown instanceof AokitError ? thrown.data : null;
 }
 
+const diagnosticData = new WeakSet<object>();
+
+/**
+ * Marks error data as diagnostic: it stays in the `--json` envelope but a terminal prints it
+ * only with `--verbose`. Returns the same object.
+ */
+export function asDiagnosticData<Data extends object>(data: Data): Data {
+  diagnosticData.add(data);
+  return data;
+}
+
+/** Whether `data` was marked with `asDiagnosticData`. */
+export function isDiagnosticData(data: unknown): boolean {
+  return typeof data === "object" && data !== null && diagnosticData.has(data);
+}
+
 const internalStacks = new WeakMap<ErrorPayload, string>();
 
 /**

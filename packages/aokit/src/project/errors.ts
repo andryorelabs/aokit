@@ -1,12 +1,12 @@
 import { ApplyError } from "../apply/index.ts";
-import { AokitError } from "../cli/envelope.ts";
+import { AokitError, asDiagnosticData } from "../cli/envelope.ts";
 import type { ErrorCode } from "../cli/exit-codes.ts";
 import { FormatError } from "../format/index.ts";
 import { RegistryError } from "../registry/index.ts";
 import type { ResolveError } from "../resolver/types.ts";
 
 const resolverErrorCodes: Record<ResolveError["code"], ErrorCode> = {
-  unknown_module: "REQUIREMENT_UNMET",
+  unknown_module: "MODULE_UNKNOWN",
   requirement_unmet: "REQUIREMENT_UNMET",
   requirement_ambiguous: "REQUIREMENT_UNMET",
   extension_point_unmet: "REQUIREMENT_UNMET",
@@ -21,7 +21,7 @@ export function fromResolveError(error: ResolveError): AokitError {
     resolverErrorCodes[error.code],
     `[${error.code}] ${error.message}`,
     error.fix,
-    { resolverCode: error.code },
+    asDiagnosticData({ resolverCode: error.code }),
   );
 }
 

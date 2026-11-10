@@ -1,8 +1,10 @@
 import type { ModuleManifest } from "@aokit/module";
 import { compareCodepoints, orderTopologically } from "./order.ts";
+import { suggestModuleName } from "./suggest.ts";
 import type {
   ResolveError,
   ResolveFailure,
+  ResolveIntent,
   ResolveOptions,
   ResolveResult,
   ResolveSelection,
@@ -86,7 +88,42 @@ function describeRequirement(requirement: ParsedRequirement): string {
     : `extension point "${requirement.raw.slice(4)}"`;
 }
 
-function describeUnmet(unmet: UnmetRequirement): ResolveError {
+function oneProviderFix(
+  intent: ResolveIntent,
+  provider: string,
+  selected: readonly string[],
+): string {
+  if (intent === "add") {
+    return `aokit add ${provider}`;
+  }
+  const modules = [...selected, provider].toSorted(compareCodepoints).join(",");
+  return `add "${provider}" to --modules, for example --modules ${modules}`;
+}
+
+function manyProvidersFix(
+  intent: ResolveIntent,
+  providers: readonly string[],
+  selected: readonly string[],
+): string {
+  const first = providers[0] ?? "";
+  if (intent === "add") {
+    return `run aokit add with exactly one of ${quotedList(providers)}, for example aokit add ${first}`;
+  }
+  const modules = [...selected, first].toSorted(compareCodepoints).join(",");
+  return `add exactly one of ${quotedList(providers)} to --modules, for example --modules ${modules}`;
+}
+
+function unknownModuleFix(name: string, known: readonly string[]): string {
+  const suggestion = suggestModuleName(name, known);
+  const listing = "run `aokit list` to see the available modules.";
+  return suggestion === undefined ? listing : `did you mean "${suggestion}"? ${listing}`;
+}
+
+function describeUnmet(
+  unmet: UnmetRequirement,
+  intent: ResolveIntent,
+  selected: readonly string[],
+): ResolveError {
   const { module, requirement, candidates } = unmet;
   const what = describeRequirement(requirement);
   if (unmet.rangeMismatch !== undefined) {
@@ -121,7 +158,7 @@ function describeUnmet(unmet: UnmetRequirement): ResolveError {
     return {
       code,
       message: `module "${module.name}" requires ${what} but no selected module provides it.\n  providers: ${listing}`,
-      fix: `aokit add ${only}   (or select one with --module ${only}, or pass --yes to accept it)`,
+      fix: oneProviderFix(intent, only ?? "", selected),
       module: module.name,
       capability: requirement.raw,
       providers: providerNames,
@@ -130,7 +167,7 @@ function describeUnmet(unmet: UnmetRequirement): ResolveError {
   return {
     code: "requirement_ambiguous",
     message: `module "${module.name}" requires ${what} but no selected module provides it and ${candidates.length} modules could.\n  providers: ${providerNames.join(", ")}`,
-    fix: `select exactly one of ${quotedList(providerNames)} with --module.`,
+    fix: manyProvidersFix(intent, providerNames, selected),
     module: module.name,
     capability: requirement.raw,
     providers: providerNames,
@@ -162,7 +199,7 @@ class Resolution {
         throw new ResolveAbort({
           code: "unknown_module",
           message: `module "${name}" is not in the registry index.`,
-          fix: "check the module name, or refresh the registry index.",
+          fix: unknownModuleFix(name, [...this.index.keys()]),
           module: name,
         });
       }
@@ -308,7 +345,7 @@ class Resolution {
     }
   }
 
-  checkRequirements(): void {
+  checkRequirements(intent: ResolveIntent): void {
     const pending = this.collectUnmet();
     for (const unmet of pending) {
       const [only] = unmet.candidates;
@@ -327,7 +364,11 @@ class Resolution {
     }
     const [first] = pending;
     if (first !== undefined) {
-      throw new ResolveAbort(describeUnmet(first));
+      const chosen = [...this.selected.values()]
+        .filter((entry) => entry.source === "selected")
+        .map((entry) => entry.name)
+        .toSorted(compareCodepoints);
+      throw new ResolveAbort(describeUnmet(first, intent, chosen));
     }
   }
 
@@ -401,6 +442,8 @@ function producedItems(manifest: ModuleManifest): ReadonlySet<string> {
  * Resolves a selection against a registry index into the canonical ordered Modules.
  * Pure: no I/O. Modules in `selection.locked` count as selected. A missing requirement with
  * exactly one provider is returned as a suggestion and only applied with `acceptSuggestions`.
+ * `options.intent` words the fix of a missing dependency (`--modules` for `create`, `aokit add`
+ * for `add`) and defaults to `add`.
  */
 export function resolve(
   selection: ResolveSelection,
@@ -414,7 +457,7 @@ export function resolve(
     resolution.expand(options.acceptSuggestions === true);
     resolution.checkCardinality();
     resolution.checkConflicts();
-    resolution.checkRequirements();
+    resolution.checkRequirements(options.intent ?? "add");
     resolution.warnInertOverrides();
     const modules = resolution.order();
     return {
