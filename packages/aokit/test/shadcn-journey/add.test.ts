@@ -1,4 +1,5 @@
 import { afterEach, expect, test } from "bun:test";
+import { rm } from "node:fs/promises";
 import { join } from "node:path";
 import { type CommandContext, runCommand } from "../../src/cli/command.ts";
 import { addCommand } from "../../src/cli/commands/add.ts";
@@ -40,7 +41,9 @@ async function createStyledProject(
     modules: "oxc,vite-react,tailwind4",
     yes: true,
     install: false,
+    git: false,
   });
+  await rm(join(directory, "README.md"), { force: true });
   expect(created).toMatchObject({ ok: true });
   return directory;
 }

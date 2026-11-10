@@ -23,6 +23,7 @@ export async function createProject(workspace: string, modules = "oxc,vite-react
     modules,
     yes: true,
     install: false,
+    git: false,
   });
   if (!envelope.ok) {
     throw new Error(envelope.error.message);

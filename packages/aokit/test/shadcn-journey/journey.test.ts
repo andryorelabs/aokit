@@ -1,5 +1,5 @@
 import { afterEach, expect, test } from "bun:test";
-import { readFile, writeFile } from "node:fs/promises";
+import { readFile, rm, writeFile } from "node:fs/promises";
 import { join } from "node:path";
 import { runCommand } from "../../src/cli/command.ts";
 import { addCommand } from "../../src/cli/commands/add.ts";
@@ -34,9 +34,10 @@ for (const layout of ["single", "monorepo"] as const) {
     fixtures.push(served);
     const { fixture, cards } = served;
     const project = join(await temporaryDirectory(), "app");
-    const create = { layout, modules, yes: true, install: false };
+    const create = { layout, modules, yes: true, install: false, git: false };
     const created = await runCommand(createCommand, context, { ...create, directory: project });
     expect(exitCodeForEnvelope(created)).toBe(0);
+    await rm(join(project, "README.md"), { force: true });
 
     const added = await runCommand(addCommand, context, {
       directory: project,
@@ -45,6 +46,7 @@ for (const layout of ["single", "monorepo"] as const) {
       trust: [fixture.url, cards.trustSource],
       yes: true,
       install: false,
+      git: false,
       allowDirty: true,
     });
     expect(exitCodeForEnvelope(added)).toBe(0);
@@ -81,6 +83,7 @@ for (const layout of ["single", "monorepo"] as const) {
     const fresh = join(await temporaryDirectory(), "app");
     const recreated = await runCommand(createCommand, context, { ...create, directory: fresh });
     expect(exitCodeForEnvelope(recreated)).toBe(0);
+    await rm(join(fresh, "README.md"), { force: true });
     expect(await snapshotTree(project)).toEqual(await snapshotTree(fresh));
   });
 }

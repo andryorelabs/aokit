@@ -43,6 +43,7 @@ export async function createProject(registry: string): Promise<string> {
     registry,
     yes: true,
     install: false,
+    git: false,
   });
   if (!envelope.ok) {
     throw new Error(envelope.error.message);

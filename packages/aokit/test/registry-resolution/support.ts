@@ -87,8 +87,10 @@ export async function createBundledProject(context: CommandContext): Promise<str
     modules: "oxc",
     yes: true,
     install: false,
+    git: false,
   });
   if (!envelope.ok) throw new Error(`create failed: ${JSON.stringify(envelope)}`);
+  await rm(join(directory, "README.md"));
   return directory;
 }
 

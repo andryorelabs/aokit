@@ -38,6 +38,7 @@ export function createInput(
     answer: null,
     registry: null,
     trust: null,
+    git: false,
   };
 }
 
