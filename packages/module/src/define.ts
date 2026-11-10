@@ -1,4 +1,4 @@
-import type { ModuleManifestInput } from "./manifest";
+import type { ModuleManifestInput } from "./manifest.ts";
 
 /**
  * Typed identity function: type-checks a Module declaration and returns it unchanged.

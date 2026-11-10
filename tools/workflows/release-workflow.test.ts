@@ -555,13 +555,14 @@ describe("S2: one shared version released with bumpp", () => {
     },
   );
 
-  test("bun run release runs bumpp over both manifests and release:notes runs changelogithub", () => {
+  test("bun run release runs bumpp over the three manifests and release:notes runs changelogithub", () => {
     const scripts = asRecord(readJson("package.json")["scripts"], "scripts");
     expect(scripts["release"]).toBe("bumpp");
     expect(scripts["release:notes"]).toBe("changelogithub");
     expect(bumppConfig.files).toEqual([
       "packages/aokit/package.json",
       "packages/create-aokit/package.json",
+      "packages/module/package.json",
     ]);
     expect(bumppConfig.preid).toBe("next");
   });

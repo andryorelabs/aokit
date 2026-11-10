@@ -1,7 +1,6 @@
 {
   "name": "@aokit/module",
-  "version": "0.0.0",
-  "private": true,
+  "version": "0.1.0-next.1",
   "description": "The Module manifest contract for aokit Module authors.",
   "keywords": [
     "aokit",
@@ -18,11 +17,27 @@
     "url": "git+https://github.com/andryorelabs/aokit.git",
     "directory": "packages/module"
   },
+  "files": [
+    "dist"
+  ],
   "type": "module",
   "exports": {
     ".": "./src/index.ts"
   },
+  "publishConfig": {
+    "exports": {
+      ".": {
+        "types": "./dist/index.d.ts",
+        "default": "./dist/index.js"
+      }
+    },
+    "access": "public"
+  },
   "dependencies": {
     "zod": "^4.6.7"
+  },
+  "engines": {
+    "bun": ">=1.4.4",
+    "node": ">=20"
   }
 }

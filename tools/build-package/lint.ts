@@ -24,7 +24,8 @@ async function runCommand(command: readonly string[], cwd: string): Promise<stri
   return stdout;
 }
 
-async function packedPathsOf(packageDir: string): Promise<string[]> {
+/** The paths `npm pack` would put in the tarball of the package at `packageDir`. */
+export async function packedPathsOf(packageDir: string): Promise<string[]> {
   const output = await runCommand(["npm", "pack", "--dry-run", "--json"], packageDir);
   const reports: unknown = JSON.parse(output);
   const report: unknown = Array.isArray(reports) ? reports[0] : undefined;
