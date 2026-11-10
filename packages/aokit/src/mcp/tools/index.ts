@@ -4,6 +4,7 @@ import type { CommandContext } from "../../cli/command.ts";
 import type { Envelope } from "../../cli/envelope.ts";
 import type { PlanSession } from "../plan-id.ts";
 import { getGuidanceTool } from "./guidance.ts";
+import { listTool } from "./list.ts";
 import { addTool, planAddTool } from "./plan-add.ts";
 import { createTool, planTool } from "./plan-create.ts";
 import { getSchemaTool } from "./schema.ts";
@@ -24,6 +25,7 @@ export interface McpToolDefinition {
 export const mcpTools: McpToolDefinition[] = [
   getGuidanceTool,
   getSchemaTool,
+  listTool,
   planTool,
   createTool,
   planAddTool,

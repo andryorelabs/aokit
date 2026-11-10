@@ -3,6 +3,8 @@ export const aokitCommandLines = [
   ["aokit add", "add Modules to the Project"],
   ["aokit check", "check the Project against its Lockfile"],
   ["aokit doctor", "report drift between the Project and its Lockfile"],
+  ["aokit list", "list the Modules of the Registry by Capability"],
+  ["aokit update", "update the Project to the latest Registry Release"],
   ["aokit mcp init", "register the aokit MCP server for this Project"],
 ] as const;
 
