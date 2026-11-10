@@ -50,7 +50,9 @@ async function styledProject(context: CommandContext): Promise<string> {
     modules: "oxc,vite-react,tailwind4",
     yes: true,
     install: false,
+    git: false,
   });
+  await rm(join(directory, "README.md"), { force: true });
   expect(created).toMatchObject({ ok: true });
   return directory;
 }
@@ -164,7 +166,9 @@ test("create --registry <shadcn-url> installs Adapted Modules and records the Re
     trust: [fixture.url],
     yes: true,
     install: false,
+    git: false,
   });
+  await rm(join(project, "README.md"), { force: true });
   expect(created).toMatchObject({ ok: true, data: { modules: ["@fixture/utils"] } });
   const lockfile = await readLockfileJson(project);
   expect(lockfile.registries["fixture"]).toMatchObject({
@@ -188,7 +192,9 @@ test("create --registry <shadcn-url> follows registryDependencies and keeps the 
     trust: [fixture.url, cards.trustSource],
     yes: true,
     install: false,
+    git: false,
   });
+  await rm(join(project, "README.md"), { force: true });
   expect(created).toMatchObject({ ok: true });
   const lockfile = await readLockfileJson(project);
   const cardModule = Object.keys(lockfile.modules).find((name) => name.endsWith("/card"));
@@ -224,7 +230,9 @@ test("create --registry <shadcn-url> asks each dependency Registry for its own t
     trust: [fixture.url],
     yes: true,
     install: false,
+    git: false,
   });
+  await rm(join(project, "README.md"), { force: true });
   expect(created).toMatchObject({ ok: false, error: { code: "REGISTRY_UNTRUSTED" } });
   expect(JSON.stringify(created)).toContain(cards.trustSource);
 });
@@ -249,7 +257,9 @@ test("create --modules @ns/item reaches a Namespace of the user config", async (
     trust: [`@alpha=${template}`],
     yes: true,
     install: false,
+    git: false,
   });
+  await rm(join(project, "README.md"), { force: true });
   expect(created).toMatchObject({ ok: true });
   const lockfile = await readLockfileJson(project);
   expect(lockfile.modules["@alpha/alpha"]).toMatchObject({ selected: true });

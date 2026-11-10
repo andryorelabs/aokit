@@ -221,7 +221,7 @@ describeWithBinary("the standalone binary", () => {
     viteReactModule.integrity = olderIntegrity;
     await writeFile(join(workDirectory, "older.lock.json"), JSON.stringify(lockfile));
     const older = await spawnAokit(
-      ["create", "app", "--from", "older.lock.json", "--yes", "--no-install", "--json"],
+      ["create", "app", "--from", "older.lock.json", "--yes", "--no-install", "--no-git", "--json"],
       { cwd: workDirectory, env },
     );
     expect(older.exitCode).toBe(0);

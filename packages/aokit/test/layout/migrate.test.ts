@@ -56,6 +56,7 @@ async function create(layout: Layout, modules: readonly string[]): Promise<strin
     modules: modules.join(","),
     yes: true,
     install: false,
+    git: false,
   });
   if (!envelope.ok) throw new Error(envelope.error.message);
   return directory;
@@ -86,7 +87,13 @@ async function treeOf(directory: string): Promise<Record<string, string>> {
   for (const entry of entries) {
     const parent = relative(directory, entry.parentPath).split(sep).join("/");
     const path = posix.join(parent, entry.name);
-    if (!entry.isFile() || path.startsWith(".git/") || path.includes("node_modules/")) continue;
+    if (
+      !entry.isFile() ||
+      path.startsWith(".git/") ||
+      path === "README.md" ||
+      path.includes("node_modules/")
+    )
+      continue;
     // oxlint-disable-next-line eslint/no-await-in-loop -- reads a small fixture tree in order
     files[path] = await readFile(join(directory, path), "utf8");
   }

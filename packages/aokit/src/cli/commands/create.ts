@@ -69,6 +69,12 @@ const createInput = z.object({
     .describe("Run `bun install` after creating the Project; --no-install skips it")
     .meta({ negatable: true })
     .register(aokitMeta, { flag: "install", examples: ["--no-install"] }),
+  git: z
+    .boolean()
+    .default(true)
+    .describe("Run `git init` and make an initial commit after the install; --no-git skips it")
+    .meta({ negatable: true })
+    .register(aokitMeta, { flag: "git", examples: ["--no-git"] }),
 });
 
 const createOutput = z.object({
@@ -77,6 +83,7 @@ const createOutput = z.object({
   modules: z.array(z.string()),
   applied: z.boolean(),
   installed: z.boolean(),
+  gitInitialized: z.boolean(),
   plan: z.object({
     hash: z.string(),
     changes: z.array(
@@ -140,6 +147,7 @@ export const createCommand = defineCommand({
       dryRun: input.dryRun,
       diff: input.diff,
       install: input.install,
+      git: input.git,
       version: context.version,
       env: context.env,
       ...(context.prompt === undefined ? {} : { adapters: { prompt: context.prompt } }),

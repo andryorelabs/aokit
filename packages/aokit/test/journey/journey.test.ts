@@ -23,7 +23,7 @@ function tree(root: string, prefix = ""): Record<string, string> {
   const files: Record<string, string> = {};
   for (const name of readdirSync(join(root, prefix)).toSorted()) {
     const relative = prefix === "" ? name : `${prefix}/${name}`;
-    if (name === ".git") continue;
+    if (name === ".git" || name === "README.md") continue;
     if (statSync(join(root, relative)).isDirectory()) Object.assign(files, tree(root, relative));
     else files[relative] = readFileSync(join(root, relative), "utf8");
   }
@@ -42,6 +42,7 @@ test("create, add, doctor, edit, diff, restore and remove leave the tree of a fr
     modules: "oxc,vite-react",
     yes: true,
     install: false,
+    git: false,
   });
   expect(exitCodeForEnvelope(created)).toBe(0);
   await commitAll(directory);
@@ -94,6 +95,7 @@ test("create, add, doctor, edit, diff, restore and remove leave the tree of a fr
     modules: "oxc,vite-react",
     yes: true,
     install: false,
+    git: false,
   });
   expect(exitCodeForEnvelope(recreated)).toBe(0);
   expect(tree(directory)).toEqual(tree(fresh));

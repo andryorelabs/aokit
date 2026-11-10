@@ -20,6 +20,36 @@ function isPlanPreview(data: unknown): data is PlanPreview {
   return candidate.applied === false && Array.isArray(candidate.plan?.changes);
 }
 
+interface ModuleList {
+  byCapability: Record<string, { name: string; version: string; description: string }[]>;
+}
+
+function isModuleList(data: unknown): data is ModuleList {
+  if (typeof data !== "object" || data === null) {
+    return false;
+  }
+  const candidate = data as { modules?: unknown; byCapability?: unknown };
+  return (
+    Array.isArray(candidate.modules) &&
+    typeof candidate.byCapability === "object" &&
+    candidate.byCapability !== null
+  );
+}
+
+function renderModuleList(list: ModuleList): string {
+  return Object.entries(list.byCapability)
+    .map(([capability, entries]) =>
+      [
+        capability,
+        ...entries.map(
+          (entry) =>
+            `  ${entry.name}@${entry.version}${entry.description === "" ? "" : `  ${entry.description}`}`,
+        ),
+      ].join("\n"),
+    )
+    .join("\n\n");
+}
+
 /**
  * Renders the report an outcome error (`DRIFT`, `UPDATE_AVAILABLE`) carries
  * next to its message; empty when the failure has no report. Diagnostic data (see
@@ -35,7 +65,7 @@ export function renderFailureReport(data: unknown, verbose = false): string {
 /**
  * Renders a successful command result for a terminal. A Plan preview prints
  * its unified diffs (`--diff`) or its change list with Provenance
- * (`--dry-run`); any other value prints as indented sorted JSON.
+ * (`--dry-run`); a Module list prints grouped by Capability; any other value prints as indented sorted JSON.
  */
 export function renderHuman(data: unknown): string {
   if (typeof data === "string") {
@@ -51,6 +81,9 @@ export function renderHuman(data: unknown): string {
         return `${change.type} ${change.path}${modules === "" ? "" : ` (${modules})`}`;
       })
       .join("\n");
+  }
+  if (isModuleList(data)) {
+    return renderModuleList(data);
   }
   return stringifySorted(data, 2);
 }

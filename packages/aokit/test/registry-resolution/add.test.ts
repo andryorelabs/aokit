@@ -1,5 +1,5 @@
 import { afterEach, expect, test } from "bun:test";
-import { readFile, writeFile } from "node:fs/promises";
+import { readFile, rm, writeFile } from "node:fs/promises";
 import { join } from "node:path";
 import { runCommand } from "../../src/cli/command.ts";
 import { addCommand } from "../../src/cli/commands/add.ts";
@@ -234,7 +234,9 @@ test("an edited kept index and Catalog never write forged dependency versions of
     trust: [server.url],
     yes: true,
     install: false,
+    git: false,
   });
+  await rm(join(project, "README.md"), { force: true });
   expect(created).toMatchObject({ ok: true });
   const lockfile = await readLockfileJson(project);
   expect(lockfile.deps["oxlint"]).toMatchObject({ source: "catalog" });

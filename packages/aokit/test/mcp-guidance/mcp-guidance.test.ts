@@ -9,6 +9,7 @@ import { cliVersion } from "../../src/cli/version.ts";
 import { runCommand } from "../../src/cli/command.ts";
 import { openDefaultRegistry } from "../../src/mcp/tools/schema.ts";
 import { guidanceTopics, renderGuidance } from "../../src/mcp/guidance/index.ts";
+import { renderHeader } from "../../src/engine/agent-files.ts";
 
 const topics = ["overview", "workflow", "modules", "layouts", "errors"] as const;
 
@@ -170,5 +171,13 @@ describe("get_schema", () => {
     const client = await connectClient();
     const result = await callTool(client, "get_schema", { command: "doctor" });
     expect(result.error?.code).toBe("INVALID_INPUT");
+  });
+});
+
+describe("aokitCommandLines", () => {
+  test("lists aokit update and aokit list for the generated AGENTS.md", () => {
+    const header = renderHeader("single");
+    expect(header).toContain("`aokit update`");
+    expect(header).toContain("`aokit list`");
   });
 });

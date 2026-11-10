@@ -65,7 +65,7 @@ describeWithBinary("S12: lifecycle through the binary", () => {
   test("create, add, remove and update emit valid envelopes and exit 0", async () => {
     expect(aokitCommand()).toEqual([binaryPath]);
     const created = await spawnAokit(
-      ["create", "app", "--modules", "oxc", "--yes", "--no-install", "--json"],
+      ["create", "app", "--modules", "oxc", "--yes", "--no-install", "--no-git", "--json"],
       { cwd: scratch },
     );
     expect(created.exitCode, created.stdout + created.stderr).toBe(0);
@@ -140,7 +140,7 @@ describeWithBoth("S12: npm package and binary digests", () => {
     const cwd = join(scratch, label);
     await mkdir(cwd, { recursive: true });
     const child = Bun.spawn(
-      [executable, "create", "app", ...project.args, "--yes", "--no-install", "--json"],
+      [executable, "create", "app", ...project.args, "--yes", "--no-install", "--no-git", "--json"],
       { cwd, stdout: "pipe", stderr: "pipe" },
     );
     const [stdout, stderr, exitCode] = await Promise.all([

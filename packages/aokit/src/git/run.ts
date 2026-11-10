@@ -1,3 +1,5 @@
+import { AokitError } from "../cli/envelope.ts";
+
 /** Outcome of one `git` invocation. */
 export interface GitResult {
   readonly exitCode: number;
@@ -26,7 +28,7 @@ export async function runGit(
   return { exitCode, stdout, stderr };
 }
 
-/** Runs `git` and returns stdout, throwing an `Error` with git's stderr on a non-zero exit. */
+/** Runs `git` and returns stdout, throwing a `GIT_FAILED` error with git's stderr on a non-zero exit. */
 export async function runGitChecked(
   cwd: string,
   args: readonly string[],
@@ -34,7 +36,11 @@ export async function runGitChecked(
 ): Promise<string> {
   const result = await runGit(cwd, args, stdin);
   if (result.exitCode !== 0) {
-    throw new Error(`git ${args.join(" ")} failed (${result.exitCode}): ${result.stderr.trim()}`);
+    throw new AokitError(
+      "GIT_FAILED",
+      `git ${args.join(" ")} failed (${result.exitCode}): ${result.stderr.trim()}`,
+      "Check that git is installed and that this directory is a healthy git repository, then retry.",
+    );
   }
   return result.stdout;
 }

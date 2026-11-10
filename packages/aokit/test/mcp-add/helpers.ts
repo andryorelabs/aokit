@@ -51,7 +51,14 @@ export async function committedProject(directory: string): Promise<void> {
   const envelope = await runCommand(
     createCommand,
     { version: cliVersion, env: {}, commands: [] },
-    { directory, layout: "single", modules: "oxc,vite-react", yes: true, install: false },
+    {
+      directory,
+      layout: "single",
+      modules: "oxc,vite-react",
+      yes: true,
+      install: false,
+      git: false,
+    },
   );
   expect(envelope.ok).toBe(true);
   await git(directory, "init", "-q");

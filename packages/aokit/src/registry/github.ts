@@ -1,4 +1,5 @@
 import { tmpdir } from "node:os";
+import { AokitError } from "../cli/envelope.ts";
 import { runGit } from "../git/run.ts";
 import { RegistryError } from "./errors.ts";
 import { type RegistryTransport, urlTransport } from "./remote.ts";
@@ -31,13 +32,17 @@ export const githubRawBaseUrl = "https://raw.githubusercontent.com";
 const sha40Pattern = /^[0-9a-fA-F]{40}$/;
 
 /**
- * The real `git ls-remote`, run through the git adapter outside any Project. Throws an `Error`
- * with git's stderr when git fails.
+ * The real `git ls-remote`, run through the git adapter outside any Project. Throws a
+ * `REGISTRY_UNREACHABLE` error with git's stderr when git fails.
  */
 export const gitLsRemote: GitLsRemote = async (repositoryUrl, ref) => {
   const result = await runGit(tmpdir(), ["ls-remote", repositoryUrl, ref]);
   if (result.exitCode !== 0) {
-    throw new Error(`git ls-remote exited ${result.exitCode}: ${result.stderr.trim()}`);
+    throw new AokitError(
+      "REGISTRY_UNREACHABLE",
+      `git ls-remote exited ${result.exitCode}: ${result.stderr.trim()}`,
+      "Check your network connection, that the repository exists and that you can read it, then retry.",
+    );
   }
   return result.stdout;
 };

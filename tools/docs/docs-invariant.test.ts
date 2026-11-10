@@ -128,7 +128,9 @@ function checkDocsIndex(root: string): string[] {
   for (const file of listMarkdown(docsDirectory)) {
     if (file === indexPath) continue;
     if (!listed.has(file)) {
-      problems.push(`${relative(root, file)} is not listed in docs/README.md`);
+      problems.push(
+        `${relative(root, file).replaceAll("\\", "/")} is not listed in docs/README.md`,
+      );
     }
   }
   return problems;
@@ -339,7 +341,7 @@ describe("docs invariants reject violations", () => {
     ]);
   });
 
-  test.skipIf(process.platform === "win32")("docs index fails on a missing row", () => {
+  test("docs index fails on a missing row", () => {
     const root = writeTree({
       "docs/README.md": "[a](a.md)\n",
       "docs/a.md": "# A\n",

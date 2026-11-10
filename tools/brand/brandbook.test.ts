@@ -1,8 +1,9 @@
 import { describe, expect, test } from "bun:test";
 import { existsSync, readFileSync } from "node:fs";
 import { resolve } from "node:path";
+import { fileURLToPath } from "node:url";
 
-const BRANDBOOK_DIR = new URL("../../docs/brand/brandbook/", import.meta.url).pathname;
+const BRANDBOOK_DIR = fileURLToPath(new URL("../../docs/brand/brandbook/", import.meta.url));
 
 const LOGO_FILES = [
   "mark.svg",

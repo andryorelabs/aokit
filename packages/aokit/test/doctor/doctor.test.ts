@@ -37,9 +37,13 @@ async function createProject(useGit: boolean, modules = "oxc"): Promise<string> 
     modules,
     yes: true,
     install: false,
+    git: false,
   });
   expect(created.ok).toBe(true);
-  if (useGit) await runGitChecked(directory, ["init", "-q"]);
+  if (useGit) {
+    await runGitChecked(directory, ["init", "-q"]);
+    await runGitChecked(directory, ["add", "README.md"]);
+  }
   return directory;
 }
 

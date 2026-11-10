@@ -1,5 +1,5 @@
 import { afterEach, expect, test } from "bun:test";
-import { readFile, writeFile } from "node:fs/promises";
+import { readFile, rm, writeFile } from "node:fs/promises";
 import { join } from "node:path";
 import { type CommandContext, runCommand } from "../../src/cli/command.ts";
 import { addCommand } from "../../src/cli/commands/add.ts";
@@ -40,7 +40,9 @@ async function createRemoteProject(
     trust: [server.url],
     yes: true,
     install: false,
+    git: false,
   });
+  await rm(join(directory, "README.md"), { force: true });
   expect(created).toMatchObject({ ok: true });
   return directory;
 }

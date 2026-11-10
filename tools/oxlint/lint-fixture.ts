@@ -3,7 +3,7 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 
 const repositoryRoot = join(import.meta.dir, "..", "..");
-const oxlintBinaryPath = join(repositoryRoot, "node_modules", ".bin", "oxlint");
+const oxlintBinaryPath = join(repositoryRoot, "node_modules", "oxlint", "bin", "oxlint");
 const localPluginPath = join(import.meta.dir, "local-plugin.ts");
 
 /**
@@ -50,7 +50,15 @@ export async function createLocalRuleLinter(ruleName: string): Promise<LocalRule
       const fixturePath = join(scratchDirectory, `fixture-${fixtureCounter}.ts`);
       await Bun.write(fixturePath, sourceText);
       const lintProcess = Bun.spawn(
-        [oxlintBinaryPath, "--config", configPath, "--format", "json", fixturePath],
+        [
+          process.execPath,
+          oxlintBinaryPath,
+          "--config",
+          configPath,
+          "--format",
+          "json",
+          fixturePath,
+        ],
         { cwd: scratchDirectory, stdout: "pipe", stderr: "pipe" },
       );
       const [standardOutput, standardError] = await Promise.all([

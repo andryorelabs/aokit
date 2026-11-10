@@ -1,5 +1,6 @@
 import { mkdir, mkdtemp, rename as renamePath, rm } from "node:fs/promises";
 import { dirname, join } from "node:path";
+import { AokitError } from "../../cli/envelope.ts";
 import { xdgCacheDir } from "../../xdg.ts";
 import { RegistryError } from "../errors.ts";
 
@@ -99,7 +100,11 @@ export async function extractRegistryTo(
 /** Where {@link ensureEmbeddedRegistry} puts the embedded Registry, whether or not it exists yet. */
 export function embeddedRegistryTarget(env: CacheEnvironment): string {
   if (registeredRegistry === undefined) {
-    throw new Error("No Registry is embedded in this build of aokit.");
+    throw new AokitError(
+      "REGISTRY_NOT_EMBEDDED",
+      "No Registry is embedded in this build of aokit.",
+      "Use a released aokit binary, or pass --registry to point at a Registry source.",
+    );
   }
   return join(xdgCacheDir(env), "bundled-registry", registeredRegistry.contentHash);
 }

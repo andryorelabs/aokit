@@ -28,6 +28,7 @@ async function createProject(registryPath: string, modules: string): Promise<str
     registry: registryPath,
     yes: true,
     install: false,
+    git: false,
   });
   if (!envelope.ok) throw new Error(envelope.error.message);
   return directory;
