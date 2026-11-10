@@ -1,9 +1,8 @@
-import { createHash } from "node:crypto";
 import { readFile } from "node:fs/promises";
 import { join } from "node:path";
 import { AokitError } from "../cli/envelope.ts";
 import type { Lockfile } from "../lockfile/schema.ts";
-import { volatileHash } from "../drift/hash.ts";
+import { hashTrackedFile, volatileHash } from "../drift/hash.ts";
 import { openGit } from "./git.ts";
 
 /** Options of {@link assertCleanTree}. */
@@ -30,10 +29,7 @@ async function changedSinceLockfile(dir: string, lockfile: Lockfile): Promise<st
   const checks = tracked.map(async ([path, entry]) => {
     try {
       const bytes = await readFile(join(dir, path));
-      const comparable = bytes.includes(0)
-        ? bytes
-        : Buffer.from(bytes.toString("utf8").replaceAll("\r\n", "\n"));
-      const hash = `sha256-${createHash("sha256").update(comparable).digest("hex")}`;
+      const hash = hashTrackedFile(path, bytes);
       return hash === entry.hash ? null : path;
     } catch (error) {
       if (error instanceof Error && "code" in error && error.code === "ENOENT") return path;
