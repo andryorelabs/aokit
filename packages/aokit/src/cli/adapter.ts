@@ -166,8 +166,14 @@ function cleanOptionText(text: string): string {
   return text
     .replaceAll(/\b(?:Type: \w+|Negatable: true|Min length: \d+)\b[;,]?/g, "")
     .replace(/\s+array$/, "")
+    .replace(/^(?:array|string|number|boolean)\s+/, "")
     .replaceAll(/\s{2,}/g, " ")
+    .replace(/;$/, "")
     .trim();
+}
+
+function describeArgument(argument: { description: string }): string {
+  return cleanOptionText(argument.description);
 }
 
 function describeOption(option: HelpOption): string {
@@ -183,7 +189,10 @@ function describeOption(option: HelpOption): string {
   if (!isNoise) {
     parts.push(`(default: ${JSON.stringify(fallback)})`);
   }
-  return parts.filter((part) => part !== "").join(" ");
+  return parts
+    .filter((part) => part !== "")
+    .join(" ")
+    .replace(/;\s+\(default/, " (default");
 }
 
 interface HelpOption {
@@ -198,7 +207,10 @@ interface HelpCommand {
   options?: readonly HelpOption[];
   name?: () => string;
   description?: (text?: string) => unknown;
-  configureHelp?: (configuration: { optionDescription: (option: HelpOption) => string }) => void;
+  configureHelp?: (configuration: {
+    optionDescription: (option: HelpOption) => string;
+    argumentDescription: (argument: { description: string }) => string;
+  }) => void;
   addHelpText?: (position: "after", text: string) => void;
 }
 
@@ -215,7 +227,10 @@ function polishHelp(program: CommanderProgramLike): void {
       option.flags =
         replacement === undefined ? flagsOnly : `${flagsOnly} ${replacement}`.trimEnd();
     }
-    command.configureHelp?.({ optionDescription: describeOption });
+    command.configureHelp?.({
+      optionDescription: describeOption,
+      argumentDescription: describeArgument,
+    });
     command.addHelpText?.("after", globalOptionsHelp);
     const subcommands = command.commands ?? [];
     if (subcommands.length > 0) {

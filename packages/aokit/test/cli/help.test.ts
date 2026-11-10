@@ -126,3 +126,11 @@ describe("failure diagnostics", () => {
     expect(quiet).not.toContain("registryCode");
   });
 });
+
+describe("positional argument help", () => {
+  test("drops trpc-cli type words and stray separators", async () => {
+    const text = await help(["add", "--help"]);
+    expect(text).not.toMatch(/\barray\b/);
+    expect(text).not.toContain("; (");
+  });
+});

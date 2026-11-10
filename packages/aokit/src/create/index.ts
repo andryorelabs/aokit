@@ -151,6 +151,7 @@ async function plan(request: CreateRequest): Promise<PlannedProject> {
   const formatter = formatterForSelection({ catalog: primary.catalog, modules: manifests });
   const built = await buildProject({
     selection,
+    intent: "create",
     locked: pulledIn,
     available,
     answers,
