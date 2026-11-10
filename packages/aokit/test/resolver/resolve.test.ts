@@ -420,3 +420,57 @@ test("a single unmet requirement keeps the one-line hint", () => {
   expect(failure.error.requirements).toBeUndefined();
   expect(failure.error.fix).toBe('add "prisma" to --modules, for example --modules lonely,prisma');
 });
+
+test("a blocked requirement next to one with no provider offers no retry that cannot succeed", () => {
+  const { vite, next: nextModule } = authStack;
+  const needy = mod({ name: "needy", requires: ["web:app-router", "ghost"] });
+  const failure = expectFailure(
+    resolve({ modules: ["needy", "vite-react"] }, [vite, nextModule, needy], { intent: "create" }),
+  );
+  expect(failure.error.code).toBe("requirement_unmet");
+  expect(failure.error.fix).not.toContain("for example --modules");
+  expect(failure.error.fix).toContain("no usable provider");
+});
+
+test("a blocked requirement next to an ambiguous one offers no retry that stays ambiguous", () => {
+  const { vite, next: nextModule } = authStack;
+  const drizzleOrm = mod({
+    name: "drizzle",
+    provides: [{ capability: "orm", cardinality: { max: 1 } }],
+  });
+  const prismaOrm = mod({
+    name: "prisma",
+    provides: [{ capability: "orm", cardinality: { max: 1 } }],
+  });
+  const needy = mod({ name: "needy", requires: ["web:app-router", "orm"] });
+  const failure = expectFailure(
+    resolve(
+      { modules: ["needy", "vite-react"] },
+      [vite, nextModule, drizzleOrm, prismaOrm, needy],
+      {
+        intent: "create",
+      },
+    ),
+  );
+  expect(failure.error.fix).not.toContain("for example --modules");
+});
+
+test("when every unmet requirement is ambiguous the fix gives no example that cannot succeed", () => {
+  const cacheA = mod({
+    name: "cache-a",
+    provides: [{ capability: "cache", cardinality: { max: 1 } }],
+  });
+  const cacheB = mod({
+    name: "cache-b",
+    provides: [{ capability: "cache", cardinality: { max: 1 } }],
+  });
+  const ormA = mod({ name: "orm-a", provides: [{ capability: "orm", cardinality: { max: 1 } }] });
+  const ormB = mod({ name: "orm-b", provides: [{ capability: "orm", cardinality: { max: 1 } }] });
+  const both = mod({ name: "both", requires: ["orm", "cache"] });
+  const registry = [cacheA, cacheB, ormA, ormB, both];
+  const added = expectFailure(resolve({ modules: ["both"] }, registry, { intent: "add" }));
+  expect(added.error.fix).not.toMatch(/for example aokit add\s*$/);
+  expect(added.error.fix).not.toContain("for example");
+  const created = expectFailure(resolve({ modules: ["both"] }, registry, { intent: "create" }));
+  expect(created.error.fix).not.toContain("for example");
+});

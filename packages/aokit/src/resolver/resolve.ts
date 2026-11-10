@@ -269,10 +269,11 @@ function describeAllUnmet(
       .map((unmet) => `one of ${quotedList(unmet.candidates.map((candidate) => candidate.name))}`);
     const needed = [...providers.map((name) => `"${name}"`), ...choices].join(", ");
     const example = [...selected, ...providers].toSorted(compareCodepoints).join(",");
+    const exampleable = choices.length === 0;
     const fix =
       intent === "add"
-        ? `run aokit add with ${needed}, for example aokit add ${providers.join(" ")}`
-        : `add ${needed} to --modules, for example --modules ${example}`;
+        ? `run aokit add with ${needed}${exampleable ? `, for example aokit add ${providers.join(" ")}` : ""}`
+        : `add ${needed} to --modules${exampleable ? `, for example --modules ${example}` : ""}`;
     const ambiguous = group.every((unmet) => unmet.candidates.length > 1);
     return { ...base, code: ambiguous ? "requirement_ambiguous" : "requirement_unmet", fix };
   }
@@ -286,19 +287,25 @@ function describeAllUnmet(
       return `${unmet.requirement.raw}${by}`;
     })
     .join(" plus ");
+  const unfixable = assessments.some(
+    (assessment) => assessment.unsatisfiable && assessment.blockers.length === 0,
+  );
+  const retryable =
+    blockers.length > 0 && !unfixable && group.every((unmet) => unmet.candidates.length === 1);
   const clash =
     blockers.length === 0
       ? "no selection of catalog modules satisfies all of them"
-      : `${quotedList(blockers)} cannot be combined with the modules that provide them`;
+      : unfixable
+        ? `${quotedList(blockers)} cannot be combined with the modules that provide them, and at least one requirement has no usable provider`
+        : `${quotedList(blockers)} cannot be combined with the modules that provide them`;
   const retryModules = [...selected.filter((name) => !blockers.includes(name)), ...providers]
     .toSorted(compareCodepoints)
     .join(",");
-  const retry =
-    blockers.length === 0
-      ? ""
-      : intent === "add"
-        ? ` Remove ${quotedList(blockers)} from the Project first, then run aokit add ${providers.join(" ")}.`
-        : ` Drop ${quotedList(blockers)}, for example --modules ${retryModules}.`;
+  const retry = !retryable
+    ? ""
+    : intent === "add"
+      ? ` Remove ${quotedList(blockers)} from the Project first, then run aokit add ${providers.join(" ")}.`
+      : ` Drop ${quotedList(blockers)}, for example --modules ${retryModules}.`;
   const fix = `"${moduleName}" currently needs ${needs}, and ${clash}.${retry} Run \`aokit list\` to see the available modules, and see docs/architecture/module-catalog.md.`;
   return { ...base, code: "requirement_unmet", fix };
 }
