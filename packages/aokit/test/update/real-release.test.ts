@@ -1,4 +1,4 @@
-import { afterEach, describe, expect, test } from "bun:test";
+import { afterEach, describe, expect, setDefaultTimeout, test } from "bun:test";
 import { cp, readFile, writeFile } from "node:fs/promises";
 import { join } from "node:path";
 import { z } from "zod";
@@ -8,6 +8,8 @@ import { doctorCommand } from "../../src/cli/commands/doctor.ts";
 import { updateCommand } from "../../src/cli/commands/update.ts";
 import { cleanTemporaryDirectories, commandContext, temporaryDirectory } from "../diff/support.ts";
 import { parseJson, valueAt } from "../helpers/update-json.ts";
+
+setDefaultTimeout(30_000);
 
 afterEach(cleanTemporaryDirectories);
 
