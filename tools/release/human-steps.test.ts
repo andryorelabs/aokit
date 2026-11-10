@@ -4,7 +4,8 @@ import { join } from "node:path";
 const scriptPath = join(import.meta.dir, "human-steps.sh");
 
 describe("owner wizard", () => {
-  test("is syntactically valid bash", async () => {
+  /** Skipped on Windows: the owner runs this POSIX bash wizard, and `bash` there may be WSL's. */
+  test.skipIf(process.platform === "win32")("is syntactically valid bash", async () => {
     const result = Bun.spawn(["bash", "-n", scriptPath], { stderr: "pipe", stdout: "pipe" });
     const exitCode = await result.exited;
     expect(await new Response(result.stderr).text()).toBe("");

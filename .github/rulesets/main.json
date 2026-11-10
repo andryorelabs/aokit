@@ -10,9 +10,15 @@
   },
   "bypass_actors": [],
   "rules": [
-    { "type": "deletion" },
-    { "type": "non_fast_forward" },
-    { "type": "required_linear_history" },
+    {
+      "type": "deletion"
+    },
+    {
+      "type": "non_fast_forward"
+    },
+    {
+      "type": "required_linear_history"
+    },
     {
       "type": "pull_request",
       "parameters": {
@@ -29,7 +35,48 @@
       "parameters": {
         "do_not_enforce_on_create": false,
         "strict_required_status_checks_policy": false,
-        "required_status_checks": [{ "context": "CI passed", "integration_id": 15368 }]
+        "required_status_checks": [
+          {
+            "context": "CI passed",
+            "integration_id": 15368
+          },
+          {
+            "context": "digest (ubuntu-latest)",
+            "integration_id": 15368
+          },
+          {
+            "context": "digest (macos-latest)",
+            "integration_id": 15368
+          },
+          {
+            "context": "compare digests",
+            "integration_id": 15368
+          },
+          {
+            "context": "package and binary (linux-x64)",
+            "integration_id": 15368
+          },
+          {
+            "context": "package and binary (aokit-linux-arm64)",
+            "integration_id": 15368
+          },
+          {
+            "context": "package and binary (aokit-darwin-arm64)",
+            "integration_id": 15368
+          },
+          {
+            "context": "analyze (javascript-typescript)",
+            "integration_id": 15368
+          },
+          {
+            "context": "analyze (actions)",
+            "integration_id": 15368
+          },
+          {
+            "context": "docs links",
+            "integration_id": 15368
+          }
+        ]
       }
     }
   ]
