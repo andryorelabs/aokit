@@ -1,4 +1,4 @@
-export { catalogSchema, composeDraftCatalog, type Catalog, type CatalogInput } from "./catalog.ts";
+export { catalogSchema, type Catalog, type CatalogInput } from "./catalog.ts";
 export {
   compileModule,
   stableStringify,
@@ -11,7 +11,9 @@ export {
   ManifestError,
   manifestSchema,
   manifestSchemaUrl,
+  legacyManifestDescription,
   parseManifest,
+  type ParseManifestOptions,
   supportedManifestSchemaVersion,
   type Migration,
   type ModuleManifest,

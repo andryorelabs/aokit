@@ -27,6 +27,7 @@ const secondCatalog = `${JSON.stringify(
 const secondModule = `export default {
   name: "oxc",
   version: "1.1.0",
+  description: "Fixture Module.",
   provides: ["lint", "format"],
   answers: { router: { type: "string", default: "none" } },
   files: [

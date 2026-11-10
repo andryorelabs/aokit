@@ -342,6 +342,7 @@ async function readModuleVersion(
             "Fix the Module source and rebuild the Registry.",
           ),
       ),
+      { allowMissingDescription: true },
     );
   } catch (error) {
     if (error instanceof ManifestError) {

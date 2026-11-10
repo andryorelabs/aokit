@@ -35,7 +35,7 @@ test("buildPlan records Provenance aokit and the Lockfile owner aokit, managed",
   const plan = await buildPlan({
     modules: [
       {
-        manifest: parseManifest({ name: "solo", version: "1.0.0" }),
+        manifest: parseManifest({ name: "solo", version: "1.0.0", description: "Fixture Module." }),
         readFile: () => "",
       },
     ],

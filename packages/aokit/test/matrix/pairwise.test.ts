@@ -1,10 +1,11 @@
 import { describe, expect, test } from "bun:test";
-import { type ModuleManifest, parseManifest } from "@aokit/module";
+import { type ModuleManifest } from "@aokit/module";
 import { resolve } from "../../src/resolver/resolve.ts";
 import { pairwiseSelections } from "./pairwise.ts";
+import { fixtureManifest } from "../helpers/fixture-manifest.ts";
 
 function mod(input: { name: string; provides?: string[]; requires?: string[] }): ModuleManifest {
-  return parseManifest({ version: "1.0.0", ...input });
+  return fixtureManifest(input);
 }
 
 function cover(manifests: readonly ModuleManifest[]): string[][] {

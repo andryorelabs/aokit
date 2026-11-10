@@ -188,3 +188,21 @@ test("compiling the declared Module equals compiling it from its path", async ()
   const fromPath = await compileModule(join(import.meta.dir, "fixtures", "oxc.module.ts"));
   expect(fromObject.json).toBe(fromPath.json);
 });
+
+test("a manifest without a description fails validation naming the field", () => {
+  expect(() => parseManifest({ name: "plain", version: "1.0.0" })).toThrow(/description/);
+});
+
+test("a manifest with an over-long description fails validation naming the field", () => {
+  expect(() =>
+    parseManifest({ name: "plain", version: "1.0.0", description: "x".repeat(121) }),
+  ).toThrow(/description must be at most 120/);
+});
+
+test("allowMissingDescription lets a published manifest without a description parse", () => {
+  const manifest = parseManifest(
+    { name: "plain", version: "1.0.0" },
+    { allowMissingDescription: true },
+  );
+  expect(manifest.description).toBe("No description published.");
+});

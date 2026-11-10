@@ -534,19 +534,13 @@ test("a conflicts entry naming a Module or a provided Capability builds", async 
   await buildRegistry(source, await temporaryDirectory());
 });
 
-test("a Module without a description fails the build naming the Module and field", async () => {
+test("a Module without a description fails the build naming the field", async () => {
   const source = await bumpedSource((text) => text.replace(/ {2}description: "[^"]*",\n/, ""));
   const message = String(
-    await buildRegistry(source, await temporaryDirectory(), { requireDescriptions: true }).then(
+    await buildRegistry(source, await temporaryDirectory()).then(
       () => undefined,
       (error: unknown) => error,
     ),
   );
-  expect(message).toContain("oxc");
   expect(message).toContain("description");
-});
-
-test("a Module without a description builds unless descriptions are required", async () => {
-  const source = await bumpedSource((text) => text.replace(/ {2}description: "[^"]*",\n/, ""));
-  await buildRegistry(source, await temporaryDirectory());
 });

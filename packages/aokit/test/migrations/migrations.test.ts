@@ -24,6 +24,7 @@ const context = { now: new Date(0), random: () => 0 };
 const moduleSource = (migrations: string) => `export default {
   name: "oxc",
   version: "3.0.0",
+  description: "Fixture Module.",
   provides: ["lint", "format"],
   files: [{ from: "files/.oxlintrc.json", to: ".oxlintrc.json", target: "config" }],
   migrations: [${migrations}],

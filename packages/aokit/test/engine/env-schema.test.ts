@@ -1,6 +1,7 @@
 import { expect, test } from "bun:test";
-import { type ModuleManifestInput, parseManifest } from "@aokit/module";
+import { type ModuleManifestInput } from "@aokit/module";
 import { type EngineContext, type EngineModule, buildPlan } from "../../src/engine/index.ts";
+import { fixtureManifest } from "../helpers/fixture-manifest.ts";
 
 const context: EngineContext = { now: new Date(0), random: () => 0.5, env: {} };
 
@@ -14,7 +15,7 @@ function moduleOf(
   sources: Record<string, string> = {},
 ): EngineModule {
   return {
-    manifest: parseManifest({ version: "1.0.0", ...manifest }),
+    manifest: fixtureManifest(manifest),
     readFile: (from) => sources[from] ?? "",
   };
 }

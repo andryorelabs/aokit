@@ -2,7 +2,8 @@ import { afterEach, expect, test } from "bun:test";
 import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { catalogSchema, composeDraftCatalog } from "@aokit/module";
+import { catalogSchema } from "@aokit/module";
+import { composeDraftCatalog } from "@aokit/module/catalog";
 
 const releaseCatalog = {
   release: "2026.11.2",

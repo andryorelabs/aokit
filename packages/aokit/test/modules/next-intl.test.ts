@@ -38,6 +38,7 @@ async function buildWithFixture(proxyContent: string) {
       defineModule({
         name: "proxy-fixture",
         version: "1.0.0",
+        description: "Proxy fixture.",
         requires: ["web:app-router"],
         files: [{ from: "proxy.ts", to: "src/proxy.ts", target: "web", ownership: "managed" }],
       }),

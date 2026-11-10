@@ -112,6 +112,13 @@ describe.skipIf(process.platform === "win32")("the staged @aokit/module package"
     expect(declarations).not.toMatch(/\.ts["']/);
   }, 120_000);
 
+  test("the staged index.d.ts leaves workspace-only helpers out", async () => {
+    const declarations = await readFile(join(stagedDirectory, "index.d.ts"), "utf8");
+    expect(declarations).not.toContain("composeDraftCatalog");
+    expect(declarations).not.toContain("sortKeysDeep");
+    expect(declarations).toContain("stableStringify");
+  });
+
   test("a TypeScript consumer imports defineModule from the packed tarball with types", async () => {
     const consumer = await mkdtemp(join(tmpdir(), "aokit-module-consumer-"));
     const tarballName = (
@@ -131,10 +138,10 @@ describe.skipIf(process.platform === "win32")("the staged @aokit/module package"
       [
         'import { defineModule } from "@aokit/module";',
         "",
-        'export const module = defineModule({ name: "consumer", version: "1.0.0", ops: [] });',
+        'export const module = defineModule({ name: "consumer", version: "1.0.0", description: "Consumer fixture.", ops: [] });',
         'export const name: "consumer" = module.name;',
         "// @ts-expect-error -- a Module needs a version, so the types are real",
-        'export const invalid = defineModule({ name: "broken", ops: [] });',
+        'export const invalid = defineModule({ name: "broken", description: "Broken fixture.", ops: [] });',
         "",
       ].join("\n"),
     );

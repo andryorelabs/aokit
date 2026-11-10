@@ -59,6 +59,7 @@ const oxcModule = {
   manifest: parseManifest({
     name: "oxc",
     version: "1.0.0",
+    description: "Fixture Module.",
     provides: ["lint", "format"],
     files: [{ from: "main.tsx", to: "src/main.tsx", target: "root" }],
   }),
@@ -186,7 +187,12 @@ export function main() {
 
 describe("formatterForSelection", () => {
   test("returns no Formatter when no selected Module provides format", () => {
-    const other = parseManifest({ name: "web", version: "1.0.0", provides: ["web"] });
+    const other = parseManifest({
+      name: "web",
+      version: "1.0.0",
+      description: "Fixture Module.",
+      provides: ["web"],
+    });
     expect(formatterForSelection({ catalog, modules: [other] })).toBeUndefined();
   });
 });
