@@ -12,7 +12,8 @@ contributedConfigs.push(
 
 export default defineModule({
   name: "eslint-react",
-  version: "1.0.0",
+  version: "1.0.1",
+  description: "React-specific ESLint rules from eslint-react.",
   requires: ["web:react", "ext:eslint.configs@^1"],
   deps: {
     devDependencies: {

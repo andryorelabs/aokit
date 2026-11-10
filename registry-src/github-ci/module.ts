@@ -16,7 +16,8 @@ const seed = (from: string, to: string) => ({
 
 export default defineModule({
   name: "github-ci",
-  version: "1.0.0",
+  version: "1.1.0",
+  description: "GitHub Actions workflows for CI, security analysis, PR title linting and labels.",
   provides: [{ capability: "ci", cardinality: { max: 1 } }],
   files: [
     managed("workflows/ci.yml", ".github/workflows/ci.yml"),
@@ -38,7 +39,7 @@ export default defineModule({
       file: "AGENTS.md",
       region: "agents",
       content:
-        "\n## github-ci\n\nGitHub Actions workflows with every action pinned by commit SHA. Package scripts run with `--if-present`, so the workflows work for any selection.\n\nKey files:\n\n- `.github/workflows/ci.yml`: typecheck, lint, format check and test.\n- `.github/workflows/codeql.yml`, `scorecard.yml`: security analysis on public repositories.\n- `.github/workflows/lint-pr.yml`: conventional PR titles.\n- `.github/workflows/lint-workflows.yml`: actionlint and zizmor.\n- `.github/workflows/labels.yml` and `.github/labels.yml`: the label set, synced on `main`.\n- `.github/PULL_REQUEST_TEMPLATE.md` and `.github/ISSUE_TEMPLATE/`: templates you own.\n",
+        "\n## github-ci\n\nGitHub Actions workflows with every action pinned by commit SHA. Package scripts run with `--if-present`, so the workflows work for any selection.\n\nKey files:\n\n- `.github/workflows/ci.yml`: typecheck, lint, format check and test, each only when the Project has that script.\n- `.github/workflows/codeql.yml`, `scorecard.yml`: security analysis on public repositories.\n- `.github/workflows/lint-pr.yml`: conventional PR titles.\n- `.github/workflows/lint-workflows.yml`: actionlint and zizmor.\n- `.github/workflows/labels.yml` and `.github/labels.yml`: the label set, synced on `main`.\n- `.github/PULL_REQUEST_TEMPLATE.md` and `.github/ISSUE_TEMPLATE/`: templates you own.\n",
     },
   ],
 });

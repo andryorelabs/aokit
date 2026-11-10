@@ -99,7 +99,7 @@ describe("wxt", () => {
   test("appends the agents Region", async () => {
     const { plan, lockfile } = await build("single");
     expect(String(plan.vfs.read("AGENTS.md"))).toContain("aokit:begin wxt:agents");
-    expect(lockfile.modules["wxt"]?.version).toBe("1.0.0");
+    expect(lockfile.modules["wxt"]?.version).toBe("1.1.0");
   });
 
   test("coexists with a vite-react web base", async () => {

@@ -2,7 +2,8 @@ import { defineModule } from "@aokit/module";
 
 export default defineModule({
   name: "tanstack-form",
-  version: "1.0.0",
+  version: "1.0.1",
+  description: "Type-safe forms with TanStack Form.",
   provides: [{ capability: "forms", cardinality: { max: 1 } }],
   requires: ["web:react"],
   files: [

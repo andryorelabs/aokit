@@ -72,9 +72,15 @@ export interface ResolveSelection {
 }
 
 /**
+ * The command a resolution serves; it decides how an error's fix is worded.
+ */
+export type ResolveIntent = "create" | "add";
+
+/**
  * Resolver behaviour switches.
  */
 export interface ResolveOptions {
+  readonly intent?: ResolveIntent;
   readonly acceptSuggestions?: boolean;
 }
 

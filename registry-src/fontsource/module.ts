@@ -2,7 +2,8 @@ import { defineModule } from "@aokit/module";
 
 export default defineModule({
   name: "fontsource",
-  version: "1.0.0",
+  version: "1.0.1",
+  description: "Self-hosted fonts through Fontsource packages.",
   requires: ["ext:web.styles@^1"],
   deps: {
     dependencies: {

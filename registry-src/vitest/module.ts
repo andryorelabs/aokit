@@ -2,7 +2,8 @@ import { defineModule } from "@aokit/module";
 
 export default defineModule({
   name: "vitest",
-  version: "1.1.0",
+  version: "1.1.1",
+  description: "Unit tests with Vitest.",
   provides: [
     { capability: "test-runner", cardinality: { max: 1 } },
     { capability: "test-runner:vitest", cardinality: { max: 1 } },

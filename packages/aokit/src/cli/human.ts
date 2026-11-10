@@ -1,4 +1,4 @@
-import { stringifySorted } from "./envelope.ts";
+import { isDiagnosticData, stringifySorted } from "./envelope.ts";
 
 interface PlanPreview {
   applied: false;
@@ -22,10 +22,14 @@ function isPlanPreview(data: unknown): data is PlanPreview {
 
 /**
  * Renders the report an outcome error (`DRIFT`, `UPDATE_AVAILABLE`) carries
- * next to its message; empty when the failure has no report.
+ * next to its message; empty when the failure has no report. Diagnostic data (see
+ * `asDiagnosticData`) prints only when `verbose` is set.
  */
-export function renderFailureReport(data: unknown): string {
-  return data === null || data === undefined ? "" : renderHuman(data);
+export function renderFailureReport(data: unknown, verbose = false): string {
+  if (data === null || data === undefined) {
+    return "";
+  }
+  return isDiagnosticData(data) && !verbose ? "" : renderHuman(data);
 }
 
 /**

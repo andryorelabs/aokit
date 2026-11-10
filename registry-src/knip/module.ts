@@ -2,7 +2,8 @@ import { defineModule } from "@aokit/module";
 
 export default defineModule({
   name: "knip",
-  version: "1.1.0",
+  version: "1.1.1",
+  description: "Finds unused files, exports and dependencies with Knip.",
   provides: [{ capability: "unused-code", cardinality: { max: 1 } }],
   requires: ["ext:lint.ignores@^1"],
   files: [{ from: "files/knip.json", to: "knip.json", target: "root", ownership: "managed" }],

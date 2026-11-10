@@ -2,7 +2,8 @@ import { defineModule } from "@aokit/module";
 
 export default defineModule({
   name: "adr-docs",
-  version: "1.0.0",
+  version: "1.0.1",
+  description: "Architecture Decision Records: a docs/adr folder with a template and an index.",
   provides: [{ capability: "docs:adr", cardinality: { max: 1 } }],
   files: [
     { from: "files/adr/README.md", to: "docs/adr/README.md", target: "root", ownership: "seed" },

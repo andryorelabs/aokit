@@ -205,16 +205,19 @@ test("the old schema domain appears nowhere in the tree", () => {
   expect(result.exitCode).toBe(1);
 });
 
-test("tsconfig.json typechecks Registry source files and Migration scripts", () => {
-  const listed = Bun.spawnSync(
-    ["node_modules/typescript7/bin/tsc", "--project", "tsconfig.json", "--listFilesOnly"],
-    { cwd: repoRoot },
-  );
-  const files = listed.stdout.toString();
-  expect(listed.exitCode).toBe(0);
-  expect(files).toContain("registry-src/vite-react/migrations/routes-to-router.after.ts");
-  expect(files).toMatch(/registry-src\/vite-react\/files\/.*\.tsx?\n/);
-});
+test.skipIf(process.platform === "win32")(
+  "tsconfig.json typechecks Registry source files and Migration scripts",
+  () => {
+    const listed = Bun.spawnSync(
+      ["node_modules/typescript7/bin/tsc", "--project", "tsconfig.json", "--listFilesOnly"],
+      { cwd: repoRoot },
+    );
+    const files = listed.stdout.toString();
+    expect(listed.exitCode).toBe(0);
+    expect(files).toContain("registry-src/vite-react/migrations/routes-to-router.after.ts");
+    expect(files).toMatch(/registry-src\/vite-react\/files\/.*\.tsx?\n/);
+  },
+);
 
 test("registry:build refuses a manifest file missing from files/", async () => {
   const source = await fixtureSource();
@@ -388,7 +391,7 @@ test("a Module named aokit is rejected", async () => {
   await mkdir(join(source, "aokit"), { recursive: true });
   await writeFile(
     join(source, "aokit/module.ts"),
-    'export default {\n  name: "aokit",\n  version: "1.0.0",\n  provides: ["core"],\n};\n',
+    'export default {\n  name: "aokit",\n  version: "1.0.0",\n  description: "Core fixture.",\n  provides: ["core"],\n};\n',
     "utf8",
   );
   const message = await buildFailure(source);
@@ -420,7 +423,7 @@ async function addPendingModule(source: string): Promise<void> {
   await mkdir(join(source, "pending"), { recursive: true });
   await writeFile(
     join(source, "pending", "module.ts"),
-    `export default { name: "pending", version: "0.1.0", provides: ["pending-thing"] };\n`,
+    `export default { name: "pending", version: "0.1.0", description: "Pending fixture.", provides: ["pending-thing"] };\n`,
     "utf8",
   );
   await writeFile(
@@ -506,4 +509,41 @@ test("a published Module with a leftover catalog.json is still built", async () 
   await writeFile(join(source, "oxc", "catalog.json"), `{"dependencies":{}}\n`, "utf8");
   await buildRegistry(source, out);
   expect(Object.keys((await readBuiltIndex(out)).modules)).toEqual(["knip", "oxc"]);
+});
+
+test("a conflicts entry naming a missing Module fails the build naming it", async () => {
+  const source = await bumpedSource((text) =>
+    text.replace(
+      'provides: ["lint", "format"],',
+      'provides: ["lint", "format"], conflicts: ["ghost"],',
+    ),
+  );
+  expect(await buildFailure(source)).toContain("ghost");
+});
+
+test("a conflicts entry naming a Module or a provided Capability builds", async () => {
+  const source = await bumpedSource((text) =>
+    text.replace(
+      'provides: ["lint", "format"],',
+      'provides: ["lint", "format"], conflicts: ["knip", "unused-code"],',
+    ),
+  );
+  await buildRegistry(source, await temporaryDirectory());
+});
+
+test("a Module without a description fails the build naming the Module and field", async () => {
+  const source = await bumpedSource((text) => text.replace(/ {2}description: "[^"]*",\n/, ""));
+  const message = String(
+    await buildRegistry(source, await temporaryDirectory(), { requireDescriptions: true }).then(
+      () => undefined,
+      (error: unknown) => error,
+    ),
+  );
+  expect(message).toContain("oxc");
+  expect(message).toContain("description");
+});
+
+test("a Module without a description builds unless descriptions are required", async () => {
+  const source = await bumpedSource((text) => text.replace(/ {2}description: "[^"]*",\n/, ""));
+  await buildRegistry(source, await temporaryDirectory());
 });

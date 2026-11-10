@@ -2,7 +2,8 @@ import { defineModule } from "@aokit/module";
 
 export default defineModule({
   name: "hono",
-  version: "1.2.0",
+  version: "1.2.1",
+  description: "Hono server with typed routes and middleware.",
   provides: [
     { capability: "server", cardinality: { max: 1 } },
     { capability: "api:http", cardinality: { max: 1 } },

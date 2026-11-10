@@ -2,7 +2,8 @@ import { defineModule } from "@aokit/module";
 
 export default defineModule({
   name: "wxt",
-  version: "1.0.0",
+  version: "1.1.0",
+  description: "Browser extension built with WXT and React.",
   provides: [{ capability: "extension", cardinality: { max: 1 } }],
   files: [
     {
@@ -86,6 +87,7 @@ export default defineModule({
           "ext:dev": "bun run --cwd {{target:extension}} wxt",
           "ext:build": "bun run --cwd {{target:extension}} wxt build",
           "ext:zip": "bun run --cwd {{target:extension}} wxt zip",
+          typecheck: "bun run --cwd {{target:extension}} tsc --noEmit",
         },
       },
     },

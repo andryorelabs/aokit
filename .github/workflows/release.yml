@@ -313,6 +313,7 @@ jobs:
   publish:
     name: publish to npm
     needs: [verify, binaries, release]
+    environment: npm
     runs-on: ubuntu-latest
     timeout-minutes: 15
     permissions:

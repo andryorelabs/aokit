@@ -87,7 +87,12 @@ test("@aokit/module shares the version of aokit and its publishConfig.exports po
   expect(sdk).not.toHaveProperty("private");
 });
 
-describe("the staged @aokit/module package", () => {
+/**
+ * Skipped on Windows: staging and consuming the package exec the extensionless typescript7
+ * `bin/tsc` script, `npm` (a `.cmd` shim there) and `tar` directly, and symlink a directory.
+ * The package is only built and published from Linux runners.
+ */
+describe.skipIf(process.platform === "win32")("the staged @aokit/module package", () => {
   beforeAll(async () => {
     await buildModuleSdk(repoRoot, moduleDirectory);
   }, 120_000);

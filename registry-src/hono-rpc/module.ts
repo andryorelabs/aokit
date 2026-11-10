@@ -2,7 +2,8 @@ import { defineModule } from "@aokit/module";
 
 export default defineModule({
   name: "hono-rpc",
-  version: "1.0.0",
+  version: "1.0.1",
+  description: "Typed Hono RPC client shared with the frontend.",
   provides: [{ capability: "api:rpc", cardinality: { max: 1 } }],
   requires: ["ext:server.routes@^1"],
   files: [

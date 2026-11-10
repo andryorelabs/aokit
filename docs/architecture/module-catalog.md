@@ -79,7 +79,7 @@ Notes:
 Notes:
 
 - `prisma` provides `orm` and the flavor `orm:prisma`, because a namespaced name never implies the bare one ([Naming](capabilities.md#naming)). It does not provide `db:postgres`: Prisma works against any `DATABASE_URL`, including hosted Postgres. `postgres-compose` provides `db:postgres`, and a Module that needs a local Postgres requires that Capability.
-- `better-auth` requires `orm:prisma`, not `prisma`, and the `db.schema` Extension point that `prisma` declares; it adds its models through that point. It is Next only (`web:app-router`).
+- `better-auth` requires `orm:prisma`, not `prisma`, and the `db.schema` Extension point that `prisma` declares; it adds its models through that point. It is Next only (`web:app-router`) and Prisma only (`orm:prisma`); there is no Vite, Astro or Drizzle variant, and its `description` says so. Pairing it with another web or ORM Module fails resolution with a missing Capability.
 - `t3-env` and `dotenvx` are independent; neither requires the other.
 - `resend` and `react-email` are two Modules so each is usable alone; `react-email` does not require `resend`.
 

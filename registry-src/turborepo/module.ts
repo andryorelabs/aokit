@@ -2,7 +2,8 @@ import { defineModule } from "@aokit/module";
 
 export default defineModule({
   name: "turborepo",
-  version: "1.0.0",
+  version: "1.0.1",
+  description: "Monorepo task running and caching with Turborepo.",
   provides: [{ capability: "task-runner", cardinality: { max: 1 } }],
   files: [{ from: "files/turbo.json", to: "turbo.json", target: "root", ownership: "managed" }],
   deps: {

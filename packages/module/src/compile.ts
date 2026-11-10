@@ -6,7 +6,7 @@ import { type ModuleManifest, parseManifest } from "./manifest.ts";
 /**
  * Recursively sorts object keys by Unicode codepoint order; arrays keep their order.
  */
-export function sortKeysDeep(value: unknown): unknown {
+function sortKeysDeep(value: unknown): unknown {
   if (Array.isArray(value)) {
     return value.map(sortKeysDeep);
   }

@@ -2,7 +2,8 @@ import { defineModule } from "@aokit/module";
 
 export default defineModule({
   name: "tailwind4",
-  version: "2.0.0",
+  version: "2.0.1",
+  description: "Tailwind CSS 4 styling with a shared theme.",
   provides: [{ capability: "styling", cardinality: { max: 1 } }],
   requires: ["web", "ext:web.styles@^1"],
   files: [

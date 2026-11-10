@@ -90,8 +90,8 @@ test("hono exports the AppType for typed clients", async () => {
   expect(String(plan.vfs.read("AGENTS.md"))).toContain("`type AppType`");
 });
 
-test("hono appends its agents Region at version 1.2.0", async () => {
+test("hono appends its agents Region at version 1.2.1", async () => {
   const { plan, lockfile } = expectBuilt(await buildSelection(["hono"]));
   expect(String(plan.vfs.read("AGENTS.md"))).toContain("aokit:begin hono:agents");
-  expect(lockfile.modules["hono"]?.version).toBe("1.2.0");
+  expect(lockfile.modules["hono"]?.version).toBe("1.2.1");
 });

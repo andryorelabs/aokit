@@ -6,6 +6,8 @@ const repoRoot = join(import.meta.dir, "..", "..");
 const workflowsDirectory = join(repoRoot, ".github", "workflows");
 const rulesetsDirectory = join(repoRoot, ".github", "rulesets");
 const aggregateJobName = "CI passed";
+const githubActionsIntegrationId = 15368;
+const repositoryAdminRoleId = 5;
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null && !Array.isArray(value);
@@ -20,14 +22,49 @@ function parseJobs(text: string): Record<string, unknown> {
   return isRecord(workflow) && isRecord(workflow["jobs"]) ? workflow["jobs"] : {};
 }
 
-/** The check names a workflow's jobs report: the literal `name:`, or the job id when there is none. */
+/** The matrix combinations of a job: the product of its list keys, then each `include` entry. */
+function listMatrixCombinations(job: Record<string, unknown>): Record<string, unknown>[] {
+  const strategy = job["strategy"];
+  const matrix = isRecord(strategy) ? strategy["matrix"] : undefined;
+  if (!isRecord(matrix)) return [{}];
+  const listedKeys = Object.entries(matrix).filter(
+    ([key]) => key !== "include" && key !== "exclude",
+  );
+  let product: Record<string, unknown>[] = listedKeys.length === 0 ? [] : [{}];
+  for (const [key, values] of listedKeys) {
+    const next: Record<string, unknown>[] = [];
+    for (const combination of product) {
+      for (const value of asArray(values))
+        next.push(Object.assign({}, combination, { [key]: value }));
+    }
+    product = next;
+  }
+  return product.concat(asArray(matrix["include"]).filter(isRecord));
+}
+
+/**
+ * The check names a workflow's jobs report: the literal `name:` with each `${{ matrix.<key> }}`
+ * expanded per matrix combination, or the job id when there is none. A name with any other
+ * expression is left out, since its value is only known at run time.
+ */
 function listCheckNames(text: string): string[] {
   return Object.entries(parseJobs(text)).flatMap(([id, job]) => {
-    const name = isRecord(job) ? job["name"] : undefined;
+    if (!isRecord(job)) return [];
+    const name = job["name"];
     if (name === undefined) return [id];
-    return typeof name === "string" && !name.includes("${{") ? [name] : [];
+    if (typeof name !== "string") return [];
+    const expanded = listMatrixCombinations(job).map((combination) =>
+      name.replaceAll(/\$\{\{\s*matrix\.([\w-]+)\s*\}\}/g, (expression, key: string) => {
+        const value = combination[key];
+        return typeof value === "string" ? value : expression;
+      }),
+    );
+    return Array.from(new Set(expanded.filter((checkName) => !checkName.includes("${{"))));
   });
 }
+
+/** The gating workflows whose every check `main` must require besides `CI passed`. */
+const gatingWorkflowFiles = ["determinism.yml", "distribution.yml", "codeql.yml", "lint-docs.yml"];
 
 function readWorkflows(): { file: string; text: string }[] {
   return readdirSync(workflowsDirectory)
@@ -173,9 +210,70 @@ describe("S9: rulesets", () => {
     ]);
   });
 
-  test("main requires CI passed, squash merges, linear history and blocks force pushes and deletion", () => {
+  test("a matrix job name expands to one check per matrix combination", () => {
+    const text = [
+      "jobs:",
+      "  digest:",
+      "    name: digest (${{ matrix.os }})",
+      "    strategy:",
+      "      matrix:",
+      "        os: [ubuntu-latest, macos-latest]",
+      "        include:",
+      "          - os: windows-latest",
+      "  arm64:",
+      "    name: binary (${{ matrix.artifact }})",
+      "    strategy:",
+      "      matrix:",
+      "        include:",
+      "          - artifact: linux-arm64",
+      "          - artifact: darwin-arm64",
+      "  dynamic:",
+      "    name: build (${{ github.ref }})",
+      "  plain:",
+      "    runs-on: ubuntu-latest",
+    ].join("\n");
+    expect(listCheckNames(text)).toEqual([
+      "digest (ubuntu-latest)",
+      "digest (macos-latest)",
+      "digest (windows-latest)",
+      "binary (linux-arm64)",
+      "binary (darwin-arm64)",
+      "plain",
+    ]);
+  });
+
+  test("S17: main requires CI passed and every determinism, distribution, CodeQL and lint-docs check", () => {
+    const gatingChecks = gatingWorkflowFiles.flatMap((file) =>
+      listCheckNames(readFileSync(join(workflowsDirectory, file), "utf8")),
+    );
+    expect(gatingChecks).toEqual([
+      "digest (ubuntu-latest)",
+      "digest (macos-latest)",
+      "compare digests",
+      "package and binary (linux-x64)",
+      "package and binary (aokit-linux-arm64)",
+      "package and binary (aokit-darwin-arm64)",
+      "analyze (javascript-typescript)",
+      "analyze (actions)",
+      "docs links",
+    ]);
+    expect(listRequiredChecks(mainRuleset)).toEqual([aggregateJobName, ...gatingChecks]);
+  });
+
+  test("every required check on main comes from GitHub Actions", () => {
+    const checks = listRules(mainRuleset)
+      .filter((rule) => rule["type"] === "required_status_checks")
+      .flatMap((rule) =>
+        asArray(isRecord(rule["parameters"]) ? rule["parameters"]["required_status_checks"] : []),
+      );
+    expect(checks.length).toBeGreaterThan(0);
+    for (const check of checks) {
+      expect(isRecord(check) && check["integration_id"]).toBe(githubActionsIntegrationId);
+    }
+  });
+
+  test("main requires squash merges, linear history and blocks force pushes and deletion", () => {
     expect(isRecord(mainRuleset) && mainRuleset["target"]).toBe("branch");
-    expect(listRequiredChecks(mainRuleset)).toEqual([aggregateJobName]);
     const pullRequest = findRule(mainRuleset, "pull_request");
     expect(
       isRecord(pullRequest?.["parameters"]) && pullRequest["parameters"]["allowed_merge_methods"],
@@ -189,6 +287,49 @@ describe("S9: rulesets", () => {
     expect(isRecord(tagsRuleset) && tagsRuleset["target"]).toBe("tag");
     expect(findRule(tagsRuleset, "update")).toBeDefined();
     expect(findRule(tagsRuleset, "deletion")).toBeDefined();
+  });
+
+  test("S17: only repository admins can create v* tags", () => {
+    expect(findRule(tagsRuleset, "creation")).toBeDefined();
+    const conditions = isRecord(tagsRuleset) ? tagsRuleset["conditions"] : undefined;
+    const refName = isRecord(conditions) ? conditions["ref_name"] : undefined;
+    const included = isRecord(refName) ? asArray(refName["include"]) : [];
+    const excluded = isRecord(refName) ? asArray(refName["exclude"]) : [];
+    expect(included.some((pattern) => pattern === "~ALL" || pattern === "refs/tags/v*")).toBe(true);
+    expect(excluded).toEqual([]);
+    expect(isRecord(tagsRuleset) && tagsRuleset["bypass_actors"]).toEqual([
+      { actor_id: repositoryAdminRoleId, actor_type: "RepositoryRole", bypass_mode: "always" },
+    ]);
+  });
+});
+
+describe("S19: CI test lanes", () => {
+  const testJob = parseJobs(ciText)["test"];
+  const job = isRecord(testJob) ? testJob : {};
+  const steps = asArray(job["steps"]).filter(isRecord);
+
+  test("the Windows lane runs the packages and tools tests", () => {
+    const windowsRuns = steps
+      .filter((step) => step["if"] === "runner.os == 'Windows'")
+      .map((step) => step["run"]);
+    expect(windowsRuns).toContain("bun test packages tools");
+    expect(listMatrixCombinations(job)).toContainEqual({ os: "windows-latest", bun: "pinned" });
+  });
+
+  test("a non-blocking lane runs the tests on the latest Bun next to the pinned one", () => {
+    const combinations = listMatrixCombinations(job);
+    expect(combinations).toContainEqual({ os: "ubuntu-latest", bun: "pinned" });
+    expect(combinations).toContainEqual({ os: "ubuntu-latest", bun: "latest" });
+    expect(job["continue-on-error"]).toBe(
+      "${{ matrix.bun == 'latest' || matrix.os == 'windows-latest' }}",
+    );
+    const setupBun = steps.filter(
+      (step) => typeof step["uses"] === "string" && step["uses"].startsWith("oven-sh/setup-bun@"),
+    );
+    expect(setupBun.map((step) => [step["if"], step["with"]])).toEqual([
+      ["matrix.bun == 'pinned'", { "bun-version-file": "package.json" }],
+      ["matrix.bun == 'latest'", { "bun-version": "latest" }],
+    ]);
   });
 });
 

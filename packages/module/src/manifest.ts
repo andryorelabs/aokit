@@ -172,6 +172,11 @@ export const manifestSchema = z
       .default(supportedManifestSchemaVersion),
     name: scopedKebabName,
     version: semver,
+    description: z
+      .string()
+      .min(1, { error: "description must not be empty" })
+      .max(120, { error: "description must be at most 120 characters" })
+      .optional(),
     provides: z.array(provideEntry).default([]),
     requires: z.array(requirement).default([]),
     conflicts: z.array(capabilityName).default([]),

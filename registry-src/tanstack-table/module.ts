@@ -2,7 +2,8 @@ import { defineModule } from "@aokit/module";
 
 export default defineModule({
   name: "tanstack-table",
-  version: "1.0.0",
+  version: "1.0.1",
+  description: "Headless data tables with TanStack Table.",
   provides: [{ capability: "data-table", cardinality: { max: 1 } }],
   requires: ["web:react"],
   files: [

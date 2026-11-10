@@ -15,7 +15,7 @@ import type { Lockfile } from "../lockfile/schema.ts";
 import { serializeLockfile } from "../lockfile/serialize.ts";
 import { computeIntegrity } from "../registry/integrity.ts";
 import { resolve } from "../resolver/resolve.ts";
-import type { ResolveError, ResolveWarning } from "../resolver/types.ts";
+import type { ResolveError, ResolveIntent, ResolveWarning } from "../resolver/types.ts";
 import { type AssembledModule, type RegistryInfo, assembleLockfile } from "./assemble.ts";
 
 /**
@@ -48,6 +48,8 @@ interface PipelineInputBase {
   /** Runs on the files this build renders only, never on files that came from `base`. */
   readonly formatter?: Formatter;
   readonly acceptSuggestions?: boolean;
+  /** Which command's wording the Resolver uses in its fix lines; defaults to `add`. */
+  readonly intent?: ResolveIntent;
   readonly opHandlers?: ReadonlyMap<string, OpHandler>;
 }
 
@@ -101,7 +103,10 @@ export async function buildProject(input: PipelineInput): Promise<BuiltProject |
   const resolved = resolve(
     { modules: input.selection, ...(input.locked === undefined ? {} : { locked: input.locked }) },
     input.available.map((module) => module.manifest),
-    { acceptSuggestions: input.acceptSuggestions === true },
+    {
+      acceptSuggestions: input.acceptSuggestions === true,
+      ...(input.intent === undefined ? {} : { intent: input.intent }),
+    },
   );
   if (!resolved.ok) {
     return { ok: false, error: resolved.error, warnings: resolved.warnings };

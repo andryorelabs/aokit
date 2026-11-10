@@ -17,12 +17,12 @@ const oxcWorkedExample = {
   schemaVersion: 1,
   name: "oxc",
   version: "1.0.0",
+  description: "Oxlint linting and Oxfmt formatting.",
   provides: [
     { capability: "lint", cardinality: { max: 1 } },
     { capability: "format", cardinality: { max: 1 } },
   ],
   requires: [],
-  conflicts: ["eslint-prettier"],
   files: [
     {
       from: "files/oxlintrc.json",
@@ -79,6 +79,7 @@ test("bare-string provides normalizes to { max: 1 } and many is accepted", () =>
   const manifest = parseManifest({
     name: "docker",
     version: "1.0.0",
+    description: "Docker fixture.",
     provides: ["orm", { capability: "deploy", cardinality: "many" }],
   });
   expect(manifest.provides).toEqual([

@@ -2,7 +2,8 @@ import { defineModule } from "@aokit/module";
 
 export default defineModule({
   name: "vite-react",
-  version: "1.3.0",
+  version: "1.4.0",
+  description: "Vite and React single-page web app with the React Compiler.",
   provides: [
     { capability: "web", cardinality: { max: 1 } },
     { capability: "web:spa", cardinality: { max: 1 } },
@@ -66,6 +67,7 @@ export default defineModule({
           dev: "bun run --cwd {{target:web}} vite",
           build: "bun run --cwd {{target:web}} vite build",
           preview: "bun run --cwd {{target:web}} vite preview",
+          typecheck: "bun run --cwd {{target:web}} tsc --noEmit",
         },
       },
     },

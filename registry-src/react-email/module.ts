@@ -2,7 +2,8 @@ import { defineModule } from "@aokit/module";
 
 export default defineModule({
   name: "react-email",
-  version: "1.0.0",
+  version: "1.0.1",
+  description: "React Email templates for transactional emails.",
   provides: [{ capability: "email:templates", cardinality: { max: 1 } }],
   files: [
     {

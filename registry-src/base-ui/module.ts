@@ -2,7 +2,8 @@ import { defineModule } from "@aokit/module";
 
 export default defineModule({
   name: "base-ui",
-  version: "1.0.0",
+  version: "1.0.1",
+  description: "Base UI unstyled, accessible React primitives for building your own components.",
   provides: [{ capability: "ui:primitives", cardinality: { max: 1 } }],
   requires: ["web:react"],
   files: [

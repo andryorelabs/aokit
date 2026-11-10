@@ -2,7 +2,8 @@ import { defineModule } from "@aokit/module";
 
 export default defineModule({
   name: "dotenvx",
-  version: "1.0.0",
+  version: "1.0.1",
+  description: "Encrypted .env files with dotenvx.",
   provides: [{ capability: "env:encryption", cardinality: { max: 1 } }],
   files: [{ from: "files/env.example", to: ".env.example", target: "root", ownership: "seed" }],
   deps: {

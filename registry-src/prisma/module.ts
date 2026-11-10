@@ -2,7 +2,8 @@ import { defineModule } from "@aokit/module";
 
 export default defineModule({
   name: "prisma",
-  version: "1.0.0",
+  version: "1.0.1",
+  description: "Prisma ORM with a PostgreSQL schema, client and migrations.",
   provides: [
     { capability: "orm", cardinality: { max: 1 } },
     { capability: "orm:prisma", cardinality: { max: 1 } },

@@ -2,7 +2,8 @@ import { defineModule } from "@aokit/module";
 
 export default defineModule({
   name: "next-intl",
-  version: "1.0.0",
+  version: "1.0.1",
+  description: "Internationalization for Next.js with next-intl.",
   provides: [{ capability: "i18n", cardinality: { max: 1 } }],
   requires: ["web:app-router", "ext:next.plugins@^1", "ext:web.providers@^1"],
   files: [

@@ -342,7 +342,8 @@ describe("CI runner routing", () => {
     expect(field(gate, "needs")).toEqual(["check", "test", "commitlint"]);
   });
 
-  test.each([
+  /** Skipped on Windows: the ci-passed script runs on ubuntu-latest and needs a POSIX `sh`. */
+  test.skipIf(process.platform === "win32").each([
     ["success", "success", "success", 0],
     ["success", "success", "skipped", 0],
     ["success", "skipped", "success", 1],

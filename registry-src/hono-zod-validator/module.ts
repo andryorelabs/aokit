@@ -2,7 +2,8 @@ import { defineModule } from "@aokit/module";
 
 export default defineModule({
   name: "hono-zod-validator",
-  version: "1.0.0",
+  version: "1.0.1",
+  description: "Request validation for Hono routes with Zod.",
   requires: ["ext:server.routes@^1"],
   deps: {
     dependencies: {

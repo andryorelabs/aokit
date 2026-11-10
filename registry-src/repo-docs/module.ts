@@ -9,7 +9,8 @@ const seed = (name: string, to: string) => ({
 
 export default defineModule({
   name: "repo-docs",
-  version: "1.0.0",
+  version: "1.0.1",
+  description: "Repository docs: README, CONTRIBUTING, license and agent guidance files.",
   provides: [{ capability: "repo-docs", cardinality: { max: 1 } }],
   files: [
     seed("CODE_OF_CONDUCT.md", "CODE_OF_CONDUCT.md"),

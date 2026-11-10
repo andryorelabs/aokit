@@ -2,7 +2,8 @@ import { defineModule } from "@aokit/module";
 
 export default defineModule({
   name: "coolify",
-  version: "1.1.0",
+  version: "1.1.1",
+  description: "Deploy configuration for self-hosted Coolify.",
   provides: [{ capability: "deploy", cardinality: "many" }],
   requires: ["container"],
   files: [

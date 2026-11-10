@@ -58,9 +58,9 @@ describe("oxc", () => {
     expect(String(built.plan.vfs.read("AGENTS.md"))).toContain("aokit:begin oxc:agents");
   });
 
-  test("declares lint.ignores as a json point and conflicts with eslint-prettier", () => {
-    expect(manifest.version).toBe("1.2.0");
-    expect(manifest.conflicts).toEqual(["eslint-prettier"]);
+  test("declares lint.ignores as a json point and declares no conflicts", () => {
+    expect(manifest.version).toBe("1.3.0");
+    expect(manifest.conflicts).toEqual([]);
     expect(manifest.extensionPoints).toEqual([
       {
         name: "lint.ignores",

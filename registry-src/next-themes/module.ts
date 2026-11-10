@@ -2,7 +2,8 @@ import { defineModule } from "@aokit/module";
 
 export default defineModule({
   name: "next-themes",
-  version: "1.0.0",
+  version: "1.0.1",
+  description: "Light and dark theme switching for Next.js with next-themes.",
   requires: ["web:app-router", "ext:web.providers@^1"],
   files: [
     {

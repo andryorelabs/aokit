@@ -2,7 +2,8 @@ import { defineModule } from "@aokit/module";
 
 export default defineModule({
   name: "shadcn-lint",
-  version: "1.0.0",
+  version: "1.0.1",
+  description: "Lint rules that keep shadcn/ui components consistent.",
   requires: ["ui:components", "lint"],
   files: [
     {

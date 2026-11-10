@@ -2,7 +2,8 @@ import { defineModule } from "@aokit/module";
 
 export default defineModule({
   name: "bun-test",
-  version: "1.0.0",
+  version: "1.0.1",
+  description: "Unit tests with Bun's built-in test runner.",
   provides: [{ capability: "test-runner", cardinality: { max: 1 } }],
   files: [
     { from: "files/smoke.test.ts", to: "tests/smoke.test.ts", target: "root", ownership: "seed" },

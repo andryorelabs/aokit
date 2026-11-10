@@ -2,7 +2,8 @@ import { defineModule } from "@aokit/module";
 
 export default defineModule({
   name: "renovate",
-  version: "1.0.0",
+  version: "1.0.1",
+  description: "Automated dependency update pull requests with Renovate.",
   provides: [{ capability: "dep-updates", cardinality: { max: 1 } }],
   files: [
     { from: "files/renovate.json", to: "renovate.json", target: "root", ownership: "managed" },

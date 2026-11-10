@@ -1,6 +1,7 @@
 import { expect, test } from "bun:test";
 import { parseManifest, type ModuleManifest, type ModuleManifestInput } from "@aokit/module";
 import { resolve } from "../../src/resolver/resolve.ts";
+import { suggestModuleName } from "../../src/resolver/suggest.ts";
 import type { ResolveFailure, ResolveSuccess } from "../../src/resolver/types.ts";
 
 function mod(input: Omit<ModuleManifestInput, "version"> & { version?: string }): ModuleManifest {
@@ -234,6 +235,46 @@ test("an unknown module is a coded error", () => {
   expect(result.error.module).toBe("ghost");
   const locked = expectFailure(resolve({ modules: [], locked: ["ghost"] }, [prisma]));
   expect(locked.error.code).toBe("unknown_module");
+});
+
+test("the fix of a missing dependency names --modules in create and aokit add in add", () => {
+  const registry = [betterAuth, prisma];
+  const create = expectFailure(
+    resolve({ modules: ["better-auth"] }, registry, { intent: "create" }),
+  );
+  expect(create.error.fix).toBe(
+    'add "prisma" to --modules, for example --modules better-auth,prisma',
+  );
+  expect(create.error.fix).not.toContain("--yes");
+  expect(create.error.fix).not.toContain("--module ");
+  const added = expectFailure(resolve({ modules: ["better-auth"] }, registry, { intent: "add" }));
+  expect(added.error.fix).toBe("aokit add prisma");
+});
+
+test("an ambiguous requirement fix is per intent and never mentions --module", () => {
+  const registry = [betterAuth, prisma, drizzle];
+  const create = expectFailure(
+    resolve({ modules: ["better-auth"] }, registry, { intent: "create" }),
+  );
+  expect(create.error.fix).toContain("--modules better-auth,drizzle");
+  expect(create.error.fix).not.toContain("--module ");
+  const added = expectFailure(resolve({ modules: ["better-auth"] }, registry, { intent: "add" }));
+  expect(added.error.fix).toContain("aokit add drizzle");
+});
+
+test("an unknown module suggests a close name and points to aokit list", () => {
+  const close = expectFailure(resolve({ modules: ["prismo"] }, [prisma]));
+  expect(close.error.fix).toContain('did you mean "prisma"?');
+  expect(close.error.fix).toContain("aokit list");
+  const far = expectFailure(resolve({ modules: ["zzzzzzzz"] }, [prisma]));
+  expect(far.error.fix).not.toContain("did you mean");
+  expect(far.error.fix).toContain("aokit list");
+});
+
+test("suggestModuleName matches by edit distance and containment", () => {
+  expect(suggestModuleName("nextjs", ["next", "oxc"])).toBe("next");
+  expect(suggestModuleName("tailwnd4", ["tailwind4", "oxc"])).toBe("tailwind4");
+  expect(suggestModuleName("qqqq", ["next", "oxc"])).toBeUndefined();
 });
 
 test("order is topological with codepoint tie-break regardless of input order", () => {

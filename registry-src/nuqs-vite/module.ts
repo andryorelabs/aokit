@@ -2,7 +2,8 @@ import { defineModule } from "@aokit/module";
 
 export default defineModule({
   name: "nuqs-vite",
-  version: "1.0.0",
+  version: "1.0.1",
+  description: "Type-safe URL query state for Vite and React with nuqs.",
   provides: [{ capability: "url-state", cardinality: { max: 1 } }],
   requires: ["web:spa", "ext:web.providers@^1"],
   deps: {

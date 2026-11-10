@@ -2,7 +2,8 @@ import { defineModule } from "@aokit/module";
 
 export default defineModule({
   name: "docker-static",
-  version: "1.0.0",
+  version: "1.0.1",
+  description: "Dockerfile that serves a static build from a minimal web server container.",
   provides: [
     { capability: "deploy", cardinality: "many" },
     { capability: "container", cardinality: { max: 1 } },

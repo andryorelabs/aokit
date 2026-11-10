@@ -129,7 +129,7 @@ describe("tailwind4", () => {
   });
 
   test("declares styles.theme as a region point and requires web.styles", () => {
-    expect(tailwind4.version).toBe("2.0.0");
+    expect(tailwind4.version).toBe("2.0.1");
     expect(tailwind4.requires).toEqual(["web", "ext:web.styles@^1"]);
     expect(tailwind4.extensionPoints).toEqual([
       {

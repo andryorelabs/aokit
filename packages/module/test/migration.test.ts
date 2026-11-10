@@ -1,7 +1,7 @@
 import { expect, test } from "bun:test";
 import { defineMigration, ManifestError, parseManifest } from "@aokit/module";
 
-const baseManifest = { name: "web", version: "2.0.0" };
+const baseManifest = { name: "web", version: "2.0.0", description: "Web fixture." };
 
 function withMigration(migration: Record<string, unknown>): unknown {
   return { ...baseManifest, migrations: [migration] };

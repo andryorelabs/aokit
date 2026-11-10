@@ -140,6 +140,7 @@ async function plan(request: CreateRequest): Promise<PlannedProject> {
   const resolved = resolve(
     { modules: selection, locked: pulledIn },
     available.map((module) => module.manifest),
+    { intent: "create" },
   );
   if (!resolved.ok) {
     throw fromResolveError(resolved.error);
@@ -150,6 +151,7 @@ async function plan(request: CreateRequest): Promise<PlannedProject> {
   const formatter = formatterForSelection({ catalog: primary.catalog, modules: manifests });
   const built = await buildProject({
     selection,
+    intent: "create",
     locked: pulledIn,
     available,
     answers,

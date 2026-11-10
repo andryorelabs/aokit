@@ -201,10 +201,24 @@ describe("Release 2026.12.1", () => {
     }
   });
 
-  test("no Catalog fragment is left in registry-src", () => {
-    const leftovers = readdirSync(sourceRoot, { withFileTypes: true }).filter(
-      (entry) => entry.isDirectory() && existsSync(join(sourceRoot, entry.name, "catalog.json")),
-    );
+  test("a Catalog fragment is left only for a Pending Module version", async () => {
+    const registry = await openRegistry();
+    const published = new Set(registry.releases());
+    expect(published.size).toBeGreaterThan(0);
+    const index = readJson(join(repositoryRoot, "registry", "index.json"));
+    const indexModules = z
+      .record(z.string(), z.object({ versions: z.record(z.string(), z.unknown()) }))
+      .parse(index["modules"]);
+    const leftovers = readdirSync(sourceRoot, { withFileTypes: true })
+      .filter(
+        (entry) => entry.isDirectory() && existsSync(join(sourceRoot, entry.name, "catalog.json")),
+      )
+      .filter((entry) => {
+        const source = readFileSync(join(sourceRoot, entry.name, "module.ts"), "utf8");
+        const version = /version: "([^"]+)"/.exec(source)?.[1] ?? "";
+        return Object.hasOwn(indexModules[entry.name]?.versions ?? {}, version);
+      })
+      .map((entry) => entry.name);
     expect(leftovers).toEqual([]);
   });
 });

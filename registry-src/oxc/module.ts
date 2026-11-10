@@ -2,12 +2,12 @@ import { defineModule } from "@aokit/module";
 
 export default defineModule({
   name: "oxc",
-  version: "1.2.0",
+  version: "1.3.0",
+  description: "Oxlint linting and Oxfmt formatting.",
   provides: [
     { capability: "lint", cardinality: { max: 1 } },
     { capability: "format", cardinality: { max: 1 } },
   ],
-  conflicts: ["eslint-prettier"],
   files: [
     { from: "files/oxlintrc.json", to: ".oxlintrc.json", target: "config", ownership: "managed" },
     { from: "files/oxfmtrc.json", to: ".oxfmtrc.json", target: "root", ownership: "managed" },
