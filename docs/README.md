@@ -4,9 +4,10 @@ Every Markdown file under `docs/` has a row here; a test fails when one is missi
 
 ## Overview
 
-| Doc                      | Title   |
-| ------------------------ | ------- |
-| [roadmap.md](roadmap.md) | Roadmap |
+| Doc                             | Title     |
+| ------------------------------- | --------- |
+| [stability.md](stability.md)    | Stability |
+| [CHANGELOG.md](../CHANGELOG.md) | Changelog |
 
 ## Reference
 

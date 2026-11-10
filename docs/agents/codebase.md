@@ -44,7 +44,6 @@
 - `registry-src/` (219 files)
 - `registry/` (256 files)
 - `renovate.json5`
-- `ROADMAP.md`
 - `schema/` (5 files)
 - `skills-lock.json`
 - `SUPPORT.md`
@@ -161,7 +160,6 @@
 
 ## Hotspots
 
-- `docs/roadmap.md` (17 commits)
 - `docs/adr/README.md` (15 commits)
 - `packages/aokit/test/registry/read.test.ts` (13 commits)
 - `packages/aokit/src/engine/build.ts` (12 commits)

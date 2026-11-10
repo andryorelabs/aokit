@@ -5,7 +5,7 @@ body:
   - type: markdown
     attributes:
       value: |
-        Check the [roadmap](https://github.com/andryorelabs/aokit/blob/main/ROADMAP.md) first, including its out-of-scope list.
+        Search the existing issues first to avoid duplicates.
   - type: textarea
     id: problem
     attributes:

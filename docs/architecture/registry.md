@@ -121,20 +121,20 @@ Adapted items are declarative only. They map to `files`, `deps`, `env`, and a sm
 
 shadcn's twelve item types map to aokit concepts as follows.
 
-| shadcn item type     | aokit concept                                                           | Notes                                                                                      |
-| -------------------- | ----------------------------------------------------------------------- | ------------------------------------------------------------------------------------------ |
-| `registry:ui`        | Module `files` to Target `shared-ui`                                    | A primitive component.                                                                     |
-| `registry:component` | Module `files` to Target `shared-ui`                                    | A composed component.                                                                      |
-| `registry:block`     | Module `files` to Targets `web` and `shared-ui`                         | Multi-file; each file keeps its own `target` field when given, else `web`.                 |
-| `registry:page`      | Module `files` to Target `web`                                          | A route file; its `target` path is a path inside the Target, not a repo path.              |
-| `registry:hook`      | Module `files` to Target `shared-ui` (`hooks/`)                         | Alias `@hooks/`.                                                                           |
-| `registry:lib`       | Module `files` to Target `shared-ui` (`lib/`)                           | Alias `@lib/`.                                                                             |
-| `registry:file`      | Module `files` to the Target implied by its `target` field, else `root` | An arbitrary file; `target` paths starting `~/` resolve against `root`.                    |
-| `registry:theme`     | Ops on the Tailwind entry CSS (`css`, `cssVars`)                        | Contributes to the CSS Extension point of the `tailwind4` Module.                          |
-| `registry:style`     | Ops on the Tailwind entry CSS plus `deps`                               | A style bundle: `css`, `cssVars`, `registryDependencies`, `dependencies`.                  |
-| `registry:base`      | Module `deps` plus `base.config` handling                               | The base a style set builds on; see [`base.config`](#css-cssvars-envvars-font-baseconfig). |
-| `registry:font`      | `font` handling                                                         | See below.                                                                                 |
-| `registry:item`      | A generic Module built only from the generic fields                     | Used when no more specific type applies.                                                   |
+| shadcn item type     | aokit concept                                                           | Notes                                                                         |
+| -------------------- | ----------------------------------------------------------------------- | ----------------------------------------------------------------------------- |
+| `registry:ui`        | Module `files` to Target `shared-ui`                                    | A primitive component.                                                        |
+| `registry:component` | Module `files` to Target `shared-ui`                                    | A composed component.                                                         |
+| `registry:block`     | Module `files` to Targets `web` and `shared-ui`                         | Multi-file; each file keeps its own `target` field when given, else `web`.    |
+| `registry:page`      | Module `files` to Target `web`                                          | A route file; its `target` path is a path inside the Target, not a repo path. |
+| `registry:hook`      | Module `files` to Target `shared-ui` (`hooks/`)                         | Alias `@hooks/`.                                                              |
+| `registry:lib`       | Module `files` to Target `shared-ui` (`lib/`)                           | Alias `@lib/`.                                                                |
+| `registry:file`      | Module `files` to the Target implied by its `target` field, else `root` | An arbitrary file; `target` paths starting `~/` resolve against `root`.       |
+| `registry:theme`     | Ops on the Tailwind entry CSS (`css`, `cssVars`)                        | Contributes to the CSS Extension point of the `tailwind4` Module.             |
+| `registry:style`     | Ops on the Tailwind entry CSS plus `deps`                               | A style bundle: `css`, `cssVars`, `registryDependencies`, `dependencies`.     |
+| `registry:base`      | Unsupported: rejected with `REGISTRY_ITEM_UNSUPPORTED`                  | Not adapted; the item is refused.                                             |
+| `registry:font`      | Unsupported: rejected with `REGISTRY_ITEM_UNSUPPORTED`                  | Not adapted; the item is refused.                                             |
+| `registry:item`      | A generic Module built only from the generic fields                     | Used when no more specific type applies.                                      |
 
 Unknown types fail with an error naming the item, they are never skipped silently.
 

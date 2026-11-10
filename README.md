@@ -35,7 +35,7 @@ cd my-app && bun run dev
 - **Works inside coding agents.** `aokit mcp init` registers the aokit MCP server in Claude, Cursor, VS Code or Codex.
 - **No telemetry.** The CLI, the MCP server and generated projects send no usage data.
 
-The design is in [`docs/`](docs/): start with the [roadmap](docs/roadmap.md), the [architecture overview](docs/architecture/overview.md) and the [glossary](GLOSSARY.md).
+The design is in [`docs/`](docs/): start with the [architecture overview](docs/architecture/overview.md) and the [glossary](GLOSSARY.md).
 
 ## Verify a release
 
@@ -74,7 +74,7 @@ Tooling follows [`docs/standards`](docs/standards/README.md): Oxfmt and Oxlint (
 
 ## Contributing
 
-Agents start at [AGENTS.md](AGENTS.md). Contributors read [CONTRIBUTING.md](CONTRIBUTING.md), [GOVERNANCE.md](GOVERNANCE.md), [CODE_OF_CONDUCT.md](CODE_OF_CONDUCT.md), [SUPPORT.md](SUPPORT.md), the [roadmap](ROADMAP.md) and the [blame ignore list](.git-blame-ignore-revs).
+Agents start at [AGENTS.md](AGENTS.md). Contributors read [CONTRIBUTING.md](CONTRIBUTING.md), [GOVERNANCE.md](GOVERNANCE.md), [CODE_OF_CONDUCT.md](CODE_OF_CONDUCT.md), [SUPPORT.md](SUPPORT.md) and the [blame ignore list](.git-blame-ignore-revs).
 
 ## Licence
 

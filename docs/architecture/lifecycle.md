@@ -19,7 +19,7 @@
 | `check`                                 | Say whether an update is available (CI).                           | Nothing.                            |
 | `recopy`                                | Re-render everything at the Lockfile versions, ignoring history.   | Plan changes, Lockfile.             |
 
-The commands ship in two phases. Phase 4a (foundations): `doctor`, `diff`, `check`, `eject`, `restore`, `add`, `remove`, `recopy` and `create --from <path>`. Phase 4b: `update` and its `--plan` / `--apply` / `--abort` flags, Module migrations, the renames manifest and the N-1 to N upgrade job. Phase 5a: `create --from <url>` and remote Registries. `layout migrate` follows in phase 8 ([roadmap](../roadmap.md#8-layout-migration-and-engine-debt)). Sections below that describe `update`, [Migrations](#migrations) and [Renames manifest](#renames-manifest) are the design that phase 4b implements.
+The commands ship in two phases. Phase 4a (foundations): `doctor`, `diff`, `check`, `eject`, `restore`, `add`, `remove`, `recopy` and `create --from <path>`. Phase 4b: `update` and its `--plan` / `--apply` / `--abort` flags, Module migrations, the renames manifest and the N-1 to N upgrade job. Phase 5a: `create --from <url>` and remote Registries. `layout migrate` follows in phase 8. Sections below that describe `update`, [Migrations](#migrations) and [Renames manifest](#renames-manifest) are the design that phase 4b implements.
 
 Every command that builds a Plan accepts `--dry-run` and `--diff` ([Engine](engine.md#vfs-and-plan-before-apply)). Flags, `--json`, `--yes` and the full exit-code table belong to the CLI UX design; this page names only the exit codes that carry lifecycle meaning.
 
