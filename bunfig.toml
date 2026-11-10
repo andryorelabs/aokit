@@ -2,3 +2,4 @@
 coverage = true
 coverageSkipTestFiles = true
 coverageThreshold = { line = 0.97, function = 0.98 }
+coveragePathIgnorePatterns = ["**/aokit-registry-src-*/**"]
