@@ -2,7 +2,8 @@ import { defineModule } from "@aokit/module";
 
 export default defineModule({
   name: "docker",
-  version: "1.1.0",
+  version: "1.1.1",
+  description: "Dockerfile and compose file to build and run the app as a container.",
   provides: [
     { capability: "deploy", cardinality: "many" },
     { capability: "container", cardinality: { max: 1 } },

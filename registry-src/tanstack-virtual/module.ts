@@ -2,7 +2,8 @@ import { defineModule } from "@aokit/module";
 
 export default defineModule({
   name: "tanstack-virtual",
-  version: "1.0.0",
+  version: "1.0.1",
+  description: "List and grid virtualization with TanStack Virtual.",
   provides: [{ capability: "virtualization", cardinality: { max: 1 } }],
   requires: ["web:react"],
   files: [

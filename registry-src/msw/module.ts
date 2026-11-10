@@ -2,7 +2,8 @@ import { defineModule } from "@aokit/module";
 
 export default defineModule({
   name: "msw",
-  version: "1.0.0",
+  version: "1.0.1",
+  description: "API mocking for tests and development with Mock Service Worker.",
   files: [
     { from: "files/handlers.ts", to: "src/mocks/handlers.ts", target: "root", ownership: "seed" },
     { from: "files/server.ts", to: "src/mocks/server.ts", target: "root", ownership: "seed" },

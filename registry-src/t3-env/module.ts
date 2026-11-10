@@ -2,7 +2,8 @@ import { defineModule } from "@aokit/module";
 
 export default defineModule({
   name: "t3-env",
-  version: "1.0.0",
+  version: "1.0.1",
+  description: "Type-safe, validated environment variables with T3 Env.",
   provides: [{ capability: "env:validation", cardinality: { max: 1 } }],
   files: [{ from: "files/env.ts.txt", to: "src/env.ts", target: "config", ownership: "managed" }],
   deps: {

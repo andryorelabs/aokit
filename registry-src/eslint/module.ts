@@ -2,7 +2,8 @@ import { defineModule } from "@aokit/module";
 
 export default defineModule({
   name: "eslint",
-  version: "1.1.0",
+  version: "1.1.1",
+  description: "ESLint companion that runs the rules Oxlint does not cover.",
   provides: [{ capability: "lint:companion", cardinality: "many" }],
   requires: ["lint", "ext:lint.ignores@^1"],
   files: [

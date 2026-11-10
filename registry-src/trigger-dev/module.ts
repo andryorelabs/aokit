@@ -2,7 +2,8 @@ import { defineModule } from "@aokit/module";
 
 export default defineModule({
   name: "trigger-dev",
-  version: "1.0.0",
+  version: "1.0.1",
+  description: "Background jobs and scheduled tasks with Trigger.dev.",
   provides: [{ capability: "jobs", cardinality: { max: 1 } }],
   files: [
     {

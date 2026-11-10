@@ -2,7 +2,8 @@ import { defineModule } from "@aokit/module";
 
 export default defineModule({
   name: "postgres-compose",
-  version: "1.0.0",
+  version: "1.0.1",
+  description: "Local PostgreSQL database through Docker Compose.",
   provides: [{ capability: "db:postgres", cardinality: { max: 1 } }],
   files: [{ from: "files/compose.yml", to: "compose.yml", target: "root", ownership: "managed" }],
   env: [

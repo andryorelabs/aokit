@@ -2,7 +2,8 @@ import { defineModule } from "@aokit/module";
 
 export default defineModule({
   name: "next",
-  version: "1.0.0",
+  version: "1.1.0",
+  description: "Next.js web app using the App Router and the React Compiler.",
   provides: [
     { capability: "web", cardinality: { max: 1 } },
     { capability: "web:ssr", cardinality: { max: 1 } },
@@ -64,6 +65,7 @@ export default defineModule({
           dev: "bun run --cwd {{target:web}} next dev",
           build: "bun run --cwd {{target:web}} next build",
           start: "bun run --cwd {{target:web}} next start",
+          typecheck: "bun run --cwd {{target:web}} tsc --noEmit",
         },
       },
     },

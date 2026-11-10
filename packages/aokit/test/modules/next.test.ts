@@ -46,6 +46,7 @@ describe("next", () => {
       build: "bun run --cwd . next build",
       dev: "bun run --cwd . next dev",
       start: "bun run --cwd . next start",
+      typecheck: "bun run --cwd . tsc --noEmit",
     });
     expect(manifest.dependencies).toMatchObject({
       next: "^16.4.5",

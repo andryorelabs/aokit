@@ -536,6 +536,43 @@ async function isUnpublishedVersion(
 }
 
 /**
+ * Fails when `requireDescriptions` is set and a Module has no `description`, or when a `conflicts` entry of any Module names neither a Module in the Registry nor a
+ * Capability one of them provides, so a typo or a removed Module cannot linger unnoticed.
+ */
+async function validateManifests(
+  sourceDir: string,
+  candidateNames: readonly string[],
+  requireDescriptions: boolean,
+): Promise<void> {
+  const manifests = await Promise.all(
+    candidateNames.map(
+      async (name) => (await compileModule(join(sourceDir, name, moduleSourceFile))).manifest,
+    ),
+  );
+  for (const manifest of manifests) {
+    if (requireDescriptions && manifest.description === undefined) {
+      throw new Error(`registry:build: Module ${manifest.name} is missing the description field`);
+    }
+  }
+  const known = new Set<string>();
+  for (const manifest of manifests) {
+    known.add(manifest.name);
+    for (const provided of manifest.provides) {
+      known.add(provided.capability);
+    }
+  }
+  for (const manifest of manifests) {
+    for (const target of manifest.conflicts) {
+      if (!known.has(target)) {
+        throw new Error(
+          `registry:build: Module ${manifest.name} declares conflicts with "${target}", which is not a Module or Capability in the Registry`,
+        );
+      }
+    }
+  }
+}
+
+/**
  * Compiles `sourceDir` (`<name>/module.ts`, `<name>/files/**`, `<name>/migrations/*.ts`, `<name>/renames.json`, `catalog/<release>.json`) into the
  * Registry directory `outDir`, only adding: each new Module version gets
  * `modules/<name>/<version>/`, each Release one `catalog/<release>.json`, and `index.json` lists
@@ -552,7 +589,7 @@ async function isUnpublishedVersion(
 export async function buildRegistry(
   sourceDir: string,
   outDir: string,
-  options: { includePending?: boolean } = {},
+  options: { includePending?: boolean; requireDescriptions?: boolean } = {},
 ): Promise<void> {
   const includePending = options.includePending === true;
   const entries = await readdir(sourceDir, { withFileTypes: true });
@@ -561,6 +598,7 @@ export async function buildRegistry(
     .filter((entry) => entry.isDirectory() && entry.name !== catalogDirectory)
     .map((entry) => entry.name)
     .toSorted(byCodepoint);
+  await validateManifests(sourceDir, candidateNames, options.requireDescriptions === true);
   const fragmentFlags = await Promise.all(
     candidateNames.map((name) => isFile(join(sourceDir, name, moduleCatalogFragmentFile))),
   );

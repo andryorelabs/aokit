@@ -2,7 +2,8 @@ import { defineModule } from "@aokit/module";
 
 export default defineModule({
   name: "lint-staged",
-  version: "1.0.0",
+  version: "1.0.1",
+  description: "Runs linters and formatters on staged files only.",
   provides: [{ capability: "staged-checks", cardinality: { max: 1 } }],
   requires: ["git-hooks", "lint", "format"],
   files: [

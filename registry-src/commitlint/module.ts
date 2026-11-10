@@ -2,7 +2,8 @@ import { defineModule } from "@aokit/module";
 
 export default defineModule({
   name: "commitlint",
-  version: "1.0.0",
+  version: "1.0.1",
+  description: "Conventional commit message linting with commitlint.",
   provides: [{ capability: "commit-lint", cardinality: { max: 1 } }],
   requires: ["git-hooks"],
   files: [

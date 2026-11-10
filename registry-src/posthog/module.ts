@@ -2,7 +2,8 @@ import { defineModule } from "@aokit/module";
 
 export default defineModule({
   name: "posthog",
-  version: "1.0.0",
+  version: "1.0.1",
+  description: "Product analytics with PostHog.",
   provides: [{ capability: "analytics", cardinality: { max: 1 } }],
   requires: ["web:app-router", "ext:web.providers@^1"],
   files: [

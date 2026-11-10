@@ -43,6 +43,7 @@ describe("vite-react", () => {
       build: "bun run --cwd . vite build",
       dev: "bun run --cwd . vite",
       preview: "bun run --cwd . vite preview",
+      typecheck: "bun run --cwd . tsc --noEmit",
     });
     expect(manifest.dependencies).toEqual({ react: "^19.3.1", "react-dom": "^19.3.1" });
     expect(manifest.devDependencies).toMatchObject({
@@ -104,7 +105,7 @@ describe("vite-react", () => {
   });
 
   test("provides web, web:spa, web:react and web:static and declares the Extension points", () => {
-    expect(viteReact.version).toBe("1.3.0");
+    expect(viteReact.version).toBe("1.4.0");
     expect(viteReact.provides.map((entry) => entry.capability)).toEqual([
       "web",
       "web:spa",

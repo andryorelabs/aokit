@@ -2,7 +2,8 @@ import { defineModule } from "@aokit/module";
 
 export default defineModule({
   name: "shadcn",
-  version: "1.0.0",
+  version: "1.0.1",
+  description: "shadcn/ui component setup and configuration.",
   provides: [{ capability: "ui:components", cardinality: { max: 1 } }],
   requires: ["ui:primitives", "styling", "web:react", "ext:styles.theme@^1"],
   files: [

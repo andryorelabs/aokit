@@ -285,6 +285,11 @@
       },
       "type": "object"
     },
+    "description": {
+      "maxLength": 120,
+      "minLength": 1,
+      "type": "string"
+    },
     "env": {
       "default": [],
       "items": {

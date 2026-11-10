@@ -2,7 +2,8 @@ import { defineModule } from "@aokit/module";
 
 export default defineModule({
   name: "starlight",
-  version: "1.0.0",
+  version: "1.0.1",
+  description: "Documentation site built with Astro Starlight.",
   provides: [{ capability: "docs-site", cardinality: { max: 1 } }],
   requires: ["ext:astro.integrations@^1"],
   override: [

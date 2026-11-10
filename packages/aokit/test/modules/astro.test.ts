@@ -107,7 +107,7 @@ describe("astro", () => {
   });
 
   test("provides web, web:react and web:static and declares the Extension points", () => {
-    expect(astro.version).toBe("1.0.0");
+    expect(astro.version).toBe("1.1.0");
     expect(astro.provides.map((entry) => entry.capability)).toEqual([
       "web",
       "web:react",

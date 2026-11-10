@@ -2,7 +2,8 @@ import { defineModule } from "@aokit/module";
 
 export default defineModule({
   name: "resend",
-  version: "1.0.0",
+  version: "1.0.1",
+  description: "Send transactional emails with Resend.",
   provides: [{ capability: "email:send", cardinality: { max: 1 } }],
   files: [{ from: "files/client.ts", to: "client.ts", target: "emails", ownership: "seed" }],
   deps: {

@@ -2,7 +2,8 @@ import { defineModule } from "@aokit/module";
 
 export default defineModule({
   name: "playwright",
-  version: "1.0.0",
+  version: "1.0.1",
+  description: "End-to-end browser tests with Playwright.",
   provides: [{ capability: "e2e", cardinality: { max: 1 } }],
   requires: ["web"],
   files: [

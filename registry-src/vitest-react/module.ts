@@ -2,7 +2,8 @@ import { defineModule } from "@aokit/module";
 
 export default defineModule({
   name: "vitest-react",
-  version: "1.0.0",
+  version: "1.0.1",
+  description: "React component testing with Vitest and Testing Library.",
   requires: ["web:react", "test-runner:vitest"],
   files: [
     {

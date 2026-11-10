@@ -2,7 +2,8 @@ import { defineModule } from "@aokit/module";
 
 export default defineModule({
   name: "astro",
-  version: "1.0.0",
+  version: "1.1.0",
+  description: "Astro web app with React islands and static output.",
   provides: [
     { capability: "web", cardinality: { max: 1 } },
     { capability: "web:react", cardinality: { max: 1 } },
@@ -76,6 +77,7 @@ export default defineModule({
           dev: "bun run --cwd {{target:web}} astro dev",
           build: "bun run --cwd {{target:web}} astro build",
           preview: "bun run --cwd {{target:web}} astro preview",
+          typecheck: "bun run --cwd {{target:web}} tsc --noEmit",
         },
       },
     },

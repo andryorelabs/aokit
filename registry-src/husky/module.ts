@@ -2,7 +2,8 @@ import { defineModule } from "@aokit/module";
 
 export default defineModule({
   name: "husky",
-  version: "1.0.0",
+  version: "1.0.1",
+  description: "Git hooks managed with Husky.",
   provides: [{ capability: "git-hooks", cardinality: { max: 1 } }],
   deps: {
     devDependencies: {

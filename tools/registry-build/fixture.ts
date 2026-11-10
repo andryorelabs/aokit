@@ -15,6 +15,7 @@ const fixtureFiles: Record<string, string> = {
   "oxc/module.ts": `export default {
   name: "oxc",
   version: "1.0.0",
+  description: "Fixture Oxc linting.",
   provides: ["lint", "format"],
   files: [
     { from: "files/.oxlintrc.json", to: ".oxlintrc.json", target: "config" },
@@ -28,6 +29,7 @@ const fixtureFiles: Record<string, string> = {
   "knip/module.ts": `export default {
   name: "knip",
   version: "2.1.0",
+  description: "Fixture unused code finder.",
   provides: ["unused-code"],
   requires: ["lint"],
 };
@@ -37,6 +39,7 @@ const fixtureFiles: Record<string, string> = {
 const migrationModuleSource = `export default {
   name: "oxc",
   version: "2.0.0",
+  description: "Fixture Oxc linting.",
   provides: ["lint", "format"],
   files: [{ from: "files/.oxlintrc.json", to: ".oxlintrc.json", target: "config" }],
   migrations: [

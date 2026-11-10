@@ -15,4 +15,5 @@ const output = values.out === undefined ? join(repoRoot, "registry") : resolve(v
 
 await buildRegistry(join(repoRoot, "registry-src"), output, {
   includePending: values["include-pending"] === true,
+  requireDescriptions: true,
 });

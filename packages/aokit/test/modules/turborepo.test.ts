@@ -64,6 +64,6 @@ describe("turborepo", () => {
   test("appends the agents Region", async () => {
     const { plan, lockfile } = await build("single");
     expect(String(plan.vfs.read("AGENTS.md"))).toContain("aokit:begin turborepo:agents");
-    expect(lockfile.modules["turborepo"]?.version).toBe("1.0.0");
+    expect(lockfile.modules["turborepo"]?.version).toBe("1.0.1");
   });
 });

@@ -153,6 +153,6 @@ describe("tsdown", () => {
     expect(String(plan.vfs.read(".claude/skills/tsdown-library/SKILL.md"))).toContain(
       "name: tsdown-library",
     );
-    expect(lockfile.modules["tsdown"]?.version).toBe("1.1.0");
+    expect(lockfile.modules["tsdown"]?.version).toBe("1.1.1");
   });
 });

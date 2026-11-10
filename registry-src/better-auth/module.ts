@@ -65,7 +65,8 @@ model Verification {
 
 export default defineModule({
   name: "better-auth",
-  version: "1.0.0",
+  version: "1.0.1",
+  description: "Better Auth authentication; needs Next (App Router) and Prisma.",
   provides: [{ capability: "auth", cardinality: { max: 1 } }],
   requires: ["orm:prisma", "web:app-router", "ext:db.schema@^1"],
   files: [
