@@ -80,7 +80,7 @@ test("gitDir resolves for a linked worktree whose .git is a file", async () => {
   const opened = await openGit(linked);
   const expected = (await git(linked, "rev-parse", "--absolute-git-dir")).trim();
   expect(resolve((await opened?.gitDir()) ?? "")).toBe(resolve(expected));
-  expect(expected).toContain(join("worktrees", "linked"));
+  expect(resolve(expected)).toContain(join("worktrees", "linked"));
   expect(await assertCleanTree(linked, { allowDirty: false })).toEqual({});
 });
 
