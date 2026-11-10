@@ -53,19 +53,22 @@ The design is in [`docs/`](docs/): start with the [architecture overview](docs/a
 
 Each [GitHub Release](https://github.com/andryorelabs/aokit/releases) attaches a standalone binary per platform, so you can run aokit without Bun. Download the one for your platform: `aokit-linux-x64`, `aokit-linux-arm64`, `aokit-darwin-arm64`, `aokit-darwin-x64` or `aokit-windows-x64.exe`.
 
-On Linux and macOS, make it executable and put it on your `PATH`:
+On Linux and macOS, make it executable and put it on your `PATH`. The `export` line applies to the current shell only; add it to your shell profile to keep it:
 
 ```sh
 chmod +x aokit-linux-x64
+mkdir -p ~/.local/bin
 mv aokit-linux-x64 ~/.local/bin/aokit
+export PATH="$HOME/.local/bin:$PATH"
 aokit --version
 ```
 
-On Windows, rename `aokit-windows-x64.exe` to `aokit.exe`, move it to a directory on your `PATH` and run it from a new terminal:
+On Windows, rename `aokit-windows-x64.exe` to `aokit.exe` and move it to a directory on your `PATH`. The commands below add that directory to `PATH` for the current session only; add it to your user `PATH` in Windows settings to keep it:
 
 ```powershell
 New-Item -ItemType Directory -Force $HOME\bin
 Move-Item aokit-windows-x64.exe $HOME\bin\aokit.exe
+$env:Path = "$HOME\bin;$env:Path"
 aokit --version
 ```
 

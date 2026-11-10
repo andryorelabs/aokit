@@ -138,13 +138,24 @@ function resolveRelease(inputs: ReleaseInputs): ResolvedRelease {
 }
 
 /** Runs the publish step with a fake `npm` on PATH and returns each recorded `npm` call. */
-function publishCalls(dryRun: string, distTag = "next", version = "0.1.0-next.0"): string[] {
+function publishCalls(
+  dryRun: string,
+  distTag = "next",
+  version = "0.1.0-next.0",
+  alreadyPublished: readonly string[] = [],
+): string[] {
   const directory = temporaryDirectory();
   const binDirectory = join(directory, "bin");
   mkdirSync(binDirectory);
   const callLog = join(directory, "npm-calls");
   const fakeNpm = join(binDirectory, "npm");
-  writeFileSync(fakeNpm, `#!/usr/bin/env bash\necho "npm $*" >> "${callLog}"\n`);
+  const publishedLookups = alreadyPublished
+    .map((name) => `  "${name}@${version}") echo "${version}" ;;`)
+    .join("\n");
+  writeFileSync(
+    fakeNpm,
+    `#!/usr/bin/env bash\nif [ "$1" = view ]; then\ncase "$2" in\n${publishedLookups}\nesac\nexit 0\nfi\necho "npm $*" >> "${callLog}"\n`,
+  );
   chmodSync(fakeNpm, 0o755);
   writeFileSync(callLog, "");
   const result = runBash(runScript("publish", publishStepName), directory, {
@@ -323,6 +334,18 @@ describe("S2: release workflow", () => {
         "npm publish /release/tarballs/aokit-0.1.0-next.0.tgz --provenance --access public --tag next",
         "npm publish /release/tarballs/create-aokit-0.1.0-next.0.tgz --provenance --access public --tag next",
       ]);
+    });
+
+    test("a package already on npm at the version is skipped and the others still publish", () => {
+      expect(publishCalls("false", "next", "0.1.0-next.0", ["@aokit/module"])).toEqual([
+        "npm publish /release/tarballs/aokit-0.1.0-next.0.tgz --provenance --access public --tag next",
+        "npm publish /release/tarballs/create-aokit-0.1.0-next.0.tgz --provenance --access public --tag next",
+      ]);
+    });
+
+    test("a dry run publishes all three even when npm already has the version", () => {
+      const calls = publishCalls("true", "next", "0.1.0-next.0", ["@aokit/module"]);
+      expect(calls).toHaveLength(3);
     });
   });
 });

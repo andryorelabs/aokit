@@ -354,9 +354,17 @@ jobs:
           if [ "$DRY_RUN" != false ]; then
             publish_flags+=(--dry-run)
           fi
-          npm publish "$RELEASE_DIR/module/aokit-module-$VERSION.tgz" "${publish_flags[@]}"
+          publish_package() {
+            local name="$1" tarball="$2"
+            if [ "$DRY_RUN" = false ] && [ -n "$(npm view "$name@$VERSION" version 2>/dev/null)" ]; then
+              echo "$name@$VERSION is already on npm, skipping"
+              return 0
+            fi
+            npm publish "$tarball" "${publish_flags[@]}"
+          }
+          publish_package @aokit/module "$RELEASE_DIR/module/aokit-module-$VERSION.tgz"
           for package in aokit create-aokit; do
-            npm publish "$RELEASE_DIR/tarballs/$package-$VERSION.tgz" "${publish_flags[@]}"
+            publish_package "$package" "$RELEASE_DIR/tarballs/$package-$VERSION.tgz"
           done
 
   smoke:
