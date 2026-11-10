@@ -7,6 +7,7 @@ import {
   parseManifest,
   stableStringify,
 } from "@aokit/module";
+import { AokitError } from "../../cli/envelope.ts";
 import { RegistryError } from "../errors.ts";
 import { computeModuleIntegrity, type Integrity } from "../integrity.ts";
 import type { ShadcnItem } from "./schema.ts";
@@ -215,7 +216,13 @@ function dependencyMap(specs: readonly string[]): Record<string, { range: string
 
 function cssRuleName(name: string | undefined): CssRuleName {
   const known = cssRuleNames.find((candidate) => candidate === name);
-  if (known === undefined) throw new Error(`unexpected css rule ${name ?? ""}`);
+  if (known === undefined) {
+    throw new AokitError(
+      "REGISTRY_ITEM_UNSUPPORTED",
+      `unexpected css rule ${name ?? ""}`,
+      "Use a shadcn item whose css only uses @import, @plugin, @theme, @layer, @utility, @keyframes or @custom-variant rules.",
+    );
+  }
   return known;
 }
 

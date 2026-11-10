@@ -1,5 +1,6 @@
 import { mkdir, readFile, writeFile } from "node:fs/promises";
 import { dirname, join } from "node:path";
+import { AokitError } from "../../cli/envelope.ts";
 import {
   claudeAddInstructions,
   codexTomlBlock,
@@ -42,7 +43,13 @@ export async function initMcpClient(options: McpInitOptions): Promise<McpInitRes
     return { client, path: null, changed: false, content: `${claudeAddInstructions}\n` };
   }
   const layout = jsonClientLayout(client);
-  if (layout === null) throw new Error(`no JSON config layout for ${client}`);
+  if (layout === null) {
+    throw new AokitError(
+      "MCP_CLIENT_UNSUPPORTED",
+      `no JSON config layout for ${client}`,
+      "Pick a client that stores its MCP servers in a JSON config file, or use --print for the manual steps.",
+    );
+  }
   const file = join(options.directory, layout.path);
   const existing = await readIfPresent(file);
   const content = registerServer(layout.path, existing ?? "", layout);

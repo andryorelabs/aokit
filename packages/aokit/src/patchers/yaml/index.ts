@@ -1,3 +1,4 @@
+import { AokitError } from "../../cli/envelope.ts";
 import { Document, isAlias, isMap, isSeq, parseDocument, YAMLMap, type YAMLSeq } from "yaml";
 
 /** A YAML-compatible value. */
@@ -70,7 +71,11 @@ function mergeMap(document: Document, map: YAMLMap, incoming: { [key: string]: Y
 export function mergeYaml(text: string, patch: { [key: string]: YamlValue }): string {
   const document = text.trim() === "" ? new Document({}) : parseDocument(text);
   if (document.errors.length > 0) {
-    throw new Error(`Cannot patch invalid YAML: ${document.errors[0]?.message ?? "unknown error"}`);
+    throw new AokitError(
+      "PATCH_INVALID",
+      `Cannot patch invalid YAML: ${document.errors[0]?.message ?? "unknown error"}`,
+      "Fix the YAML syntax in the file being patched, then retry.",
+    );
   }
   const root = isMap(document.contents) ? document.contents : new YAMLMap();
   document.contents = root;

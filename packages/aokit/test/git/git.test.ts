@@ -14,6 +14,16 @@ import type { Lockfile } from "../../src/lockfile/schema.ts";
 let root = "";
 let repo = "";
 
+test("runGitChecked raises GIT_FAILED with a fix", async () => {
+  const failure = await runGitChecked(tmpdir(), ["rev-parse", "--verify", "nope"]).catch(
+    (error: unknown) => error,
+  );
+  expect(failure).toBeInstanceOf(AokitError);
+  if (!(failure instanceof AokitError)) throw new Error("expected an AokitError");
+  expect(failure.code).toBe("GIT_FAILED");
+  expect(failure.fix).not.toBe("");
+});
+
 function git(cwd: string, ...args: string[]): Promise<string> {
   return runGitChecked(cwd, ["-c", "user.name=t", "-c", "user.email=t@t", ...args]);
 }

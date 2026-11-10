@@ -1,5 +1,21 @@
 import { expect, test } from "bun:test";
+import { AokitError } from "../../src/cli/envelope.ts";
 import { mergeYaml } from "../../src/patchers/yaml/index.ts";
+
+test("mergeYaml raises PATCH_INVALID with a fix on invalid YAML", () => {
+  const failure = (() => {
+    try {
+      mergeYaml("a: [unclosed", { b: 1 });
+    } catch (error) {
+      return error;
+    }
+    return null;
+  })();
+  expect(failure).toBeInstanceOf(AokitError);
+  if (!(failure instanceof AokitError)) throw new Error("expected an AokitError");
+  expect(failure.code).toBe("PATCH_INVALID");
+  expect(failure.fix).not.toBe("");
+});
 
 const source = `# top comment
 base: &base

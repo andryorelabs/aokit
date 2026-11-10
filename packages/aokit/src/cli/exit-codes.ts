@@ -46,6 +46,11 @@ export const errorCodeExitCodes = {
   REGISTRY_ENV_UNSET: exitCodes.outcome,
   REGISTRY_ITEM_UNSUPPORTED: exitCodes.failure,
   REGISTRY_ITEM_CHANGED: exitCodes.failure,
+  REGISTRY_UNREACHABLE: exitCodes.failure,
+  REGISTRY_NOT_EMBEDDED: exitCodes.failure,
+  GIT_FAILED: exitCodes.failure,
+  PATCH_INVALID: exitCodes.failure,
+  MCP_CLIENT_UNSUPPORTED: exitCodes.usage,
 } as const satisfies Record<string, ExitCode>;
 
 export type ErrorCode = keyof typeof errorCodeExitCodes;
