@@ -5,7 +5,7 @@ import { mkdir, mkdtemp, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join, resolve } from "node:path";
 import { AokitError } from "../../src/cli/envelope.ts";
-import { volatileHash } from "../../src/drift/hash.ts";
+import { hashTrackedFile, volatileHash } from "../../src/drift/hash.ts";
 import { assertCleanTree, openGit } from "../../src/git/index.ts";
 import { createMerger } from "../../src/merger/index.ts";
 import { runGitChecked } from "../../src/git/run.ts";
@@ -109,6 +109,31 @@ test("outside git the check compares Lockfile hashes and warns", async () => {
   expect((await assertCleanTree(project, { allowDirty: true, lockfile })).warning).toContain(
     "no undo",
   );
+});
+
+test("outside git a Region file edited outside its Regions stays clean, inside a Region it is dirty", async () => {
+  const project = join(root, "regions");
+  await mkdir(project);
+  const written = "<!-- aokit:begin hono:agents -->\nuses hono\n<!-- aokit:end hono:agents -->\n";
+  const hash = hashTrackedFile("AGENTS.md", new TextEncoder().encode(written));
+  const lockfile: Lockfile = {
+    $schema: "https://example.test/lock.json",
+    lockfileVersion: 2,
+    cliVersion: "0.0.0",
+    protocolVersion: 1,
+    layout: "single",
+    registries: {},
+    modules: {},
+    files: { "AGENTS.md": { owners: ["m"], mode: "managed", hash } },
+    deps: {},
+  };
+  await writeFile(join(project, "AGENTS.md"), `my notes\n\n${written}\nmore\n`);
+  const clean = await assertCleanTree(project, { allowDirty: false, lockfile });
+  expect(clean.warning).toContain("no undo");
+  await writeFile(join(project, "AGENTS.md"), written.replace("uses hono", "edited"));
+  const error = await thrown(assertCleanTree(project, { allowDirty: false, lockfile }));
+  expect(error.code).toBe("DIRTY_TREE");
+  expect(error.message).toContain("AGENTS.md");
 });
 
 test("mergeFile merges cleanly and reports conflicts with labels", async () => {
