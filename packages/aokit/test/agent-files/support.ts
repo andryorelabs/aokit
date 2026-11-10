@@ -28,6 +28,7 @@ function agentsModuleSource(module: { name: string; version: string; extra: stri
   return `export default {
   name: "${module.name}",
   version: "${module.version}",
+  description: "Fixture Module.",
   ${module.extra}
   ops: [
     {

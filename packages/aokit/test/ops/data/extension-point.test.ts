@@ -6,6 +6,7 @@ import {
   Vfs,
   buildPlan,
 } from "../../../src/engine/index.ts";
+import { fixtureManifest } from "../../helpers/fixture-manifest.ts";
 
 const context: EngineContext = { now: new Date(0), random: () => 0.5, env: {} };
 
@@ -24,7 +25,7 @@ const configPath = "packages/config/.oxlintrc.json";
 
 function moduleOf(manifest: Partial<ModuleManifestInput> & { name: string }): EngineModule {
   return {
-    manifest: parseManifest({ version: "1.0.0", ...manifest }),
+    manifest: fixtureManifest(manifest),
     readFile() {
       throw new Error("no files");
     },
@@ -35,6 +36,7 @@ function mergeIgnores(value: unknown, range = "^1"): ModuleManifestInput["ops"] 
   return parseManifest({
     name: "knip",
     version: "1.0.0",
+    description: "Fixture Module.",
     ops: [{ op: "mergeJson", extensionPoint: "lint.ignores", range, value }],
   }).ops;
 }
@@ -141,6 +143,7 @@ test("a json Extension point needs a file and a JSON pointer anchor", () => {
     parseManifest({
       name: "oxc",
       version: "1.0.0",
+      description: "Fixture Module.",
       extensionPoints: [{ ...point, anchor: "/ignorePatterns" }],
     }),
   ).toThrow(/must declare the file/);
@@ -148,6 +151,7 @@ test("a json Extension point needs a file and a JSON pointer anchor", () => {
     parseManifest({
       name: "oxc",
       version: "1.0.0",
+      description: "Fixture Module.",
       extensionPoints: [{ ...point, anchor: "ignorePatterns", file: ".oxlintrc.json" }],
     }),
   ).toThrow(/JSON pointer/);
@@ -167,6 +171,7 @@ test("addCssAtRule through a region Extension point writes the declared file onc
   const ops = parseManifest({
     name: "tailwind4",
     version: "1.0.0",
+    description: "Fixture Module.",
     ops: [
       {
         op: "addCssAtRule",

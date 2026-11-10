@@ -108,7 +108,7 @@ export function withProjectReadme(
     name: basename(directory),
     modules: manifests.map((manifest) => ({
       name: manifest.name,
-      description: manifest.description ?? "",
+      description: manifest.description,
     })),
     scripts: scriptsOf(plan),
   });

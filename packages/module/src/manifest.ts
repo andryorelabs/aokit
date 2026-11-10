@@ -173,10 +173,9 @@ export const manifestSchema = z
     name: scopedKebabName,
     version: semver,
     description: z
-      .string()
+      .string({ error: "description is required" })
       .min(1, { error: "description must not be empty" })
-      .max(120, { error: "description must be at most 120 characters" })
-      .optional(),
+      .max(120, { error: "description must be at most 120 characters" }),
     provides: z.array(provideEntry).default([]),
     requires: z.array(requirement).default([]),
     conflicts: z.array(capabilityName).default([]),
@@ -229,10 +228,31 @@ export class ManifestError extends Error {
 }
 
 /**
- * Validates raw manifest data. A newer `schemaVersion` fails telling the user to update the CLI;
- * unknown fields fail naming the field.
+ * The description given to a published manifest that predates the required `description` field.
  */
-export function parseManifest(raw: unknown): ModuleManifest {
+const legacyManifestDescription = "No description published.";
+
+/**
+ * Options for {@link parseManifest}.
+ */
+export interface ParseManifestOptions {
+  /** Accept a manifest with no `description`, as already published Releases are immutable. */
+  readonly allowMissingDescription?: boolean;
+}
+
+function withLegacyDescription(raw: unknown): unknown {
+  if (typeof raw === "object" && raw !== null && !Array.isArray(raw) && !("description" in raw)) {
+    return { ...raw, description: legacyManifestDescription };
+  }
+  return raw;
+}
+
+/**
+ * Validates raw manifest data. A newer `schemaVersion` fails telling the user to update the CLI;
+ * unknown fields fail naming the field. `description` is required unless
+ * `allowMissingDescription` is set for reading already published manifests.
+ */
+export function parseManifest(raw: unknown, options: ParseManifestOptions = {}): ModuleManifest {
   if (typeof raw === "object" && raw !== null && "schemaVersion" in raw) {
     const version: unknown = raw.schemaVersion;
     if (typeof version === "number" && version > supportedManifestSchemaVersion) {
@@ -242,7 +262,9 @@ export function parseManifest(raw: unknown): ModuleManifest {
       );
     }
   }
-  const result = manifestSchema.safeParse(raw);
+  const result = manifestSchema.safeParse(
+    options.allowMissingDescription === true ? withLegacyDescription(raw) : raw,
+  );
   if (!result.success) {
     const details = result.error.issues
       .map(

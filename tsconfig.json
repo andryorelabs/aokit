@@ -3,7 +3,8 @@
   "compilerOptions": {
     "jsx": "react-jsx",
     "paths": {
-      "@aokit/module": ["./packages/module/src/index.ts"]
+      "@aokit/module": ["./packages/module/src/index.ts"],
+      "@aokit/module/catalog": ["./packages/module/src/catalog.ts"]
     }
   },
   "include": [

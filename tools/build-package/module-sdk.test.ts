@@ -131,10 +131,10 @@ describe.skipIf(process.platform === "win32")("the staged @aokit/module package"
       [
         'import { defineModule } from "@aokit/module";',
         "",
-        'export const module = defineModule({ name: "consumer", version: "1.0.0", ops: [] });',
+        'export const module = defineModule({ name: "consumer", version: "1.0.0", description: "Consumer fixture.", ops: [] });',
         'export const name: "consumer" = module.name;',
         "// @ts-expect-error -- a Module needs a version, so the types are real",
-        'export const invalid = defineModule({ name: "broken", ops: [] });',
+        'export const invalid = defineModule({ name: "broken", description: "Broken fixture.", ops: [] });',
         "",
       ].join("\n"),
     );

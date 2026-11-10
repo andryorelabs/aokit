@@ -48,7 +48,7 @@ export async function conflictingRegistry(workspace: string): Promise<string> {
   await mkdir(join(source, "eslint"), { recursive: true });
   await writeFile(
     join(source, "eslint", "module.ts"),
-    `export default { name: "eslint", version: "1.0.0", provides: ["eslint"], conflicts: ["lint"] };\n`,
+    `export default { name: "eslint", version: "1.0.0", description: "Fixture Module.", provides: ["eslint"], conflicts: ["lint"] };\n`,
   );
   const out = join(workspace, "conflicting-registry");
   await buildRegistry(source, out);

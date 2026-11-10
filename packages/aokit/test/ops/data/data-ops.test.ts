@@ -1,10 +1,5 @@
 import { expect, test } from "bun:test";
-import {
-  type Catalog,
-  type ModuleManifestInput,
-  catalogSchema,
-  parseManifest,
-} from "@aokit/module";
+import { type Catalog, type ModuleManifestInput, catalogSchema } from "@aokit/module";
 import {
   type EngineContext,
   type EngineModule,
@@ -15,12 +10,13 @@ import {
 import type { LayoutName } from "../../../src/engine/layout.ts";
 import { applyDeps } from "../../../src/ops/data/index.ts";
 import { applyEnv } from "../../../src/ops/data/index.ts";
+import { fixtureManifest } from "../../helpers/fixture-manifest.ts";
 
 const context: EngineContext = { now: new Date(0), random: () => 0.5, env: {} };
 
 function moduleOf(manifest: Partial<ModuleManifestInput> & { name: string }): EngineModule {
   return {
-    manifest: parseManifest({ version: "1.0.0", ...manifest }),
+    manifest: fixtureManifest(manifest),
     readFile() {
       throw new Error("no files");
     },

@@ -23,6 +23,7 @@ const ignoresBase: EngineModule = {
   manifest: parseManifest({
     name: "ignores-base",
     version: "1.0.0",
+    description: "Fixture Module.",
     files: [{ from: "ignores.json", to: ".oxlintrc.json", target: "config" }],
     extensionPoints: [
       {

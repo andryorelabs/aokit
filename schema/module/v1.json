@@ -1232,7 +1232,8 @@
   },
   "required": [
     "name",
-    "version"
+    "version",
+    "description"
   ],
   "type": "object"
 }

@@ -22,6 +22,7 @@ const databaseModule: EngineModule = {
   manifest: parseManifest({
     name: "database",
     version: "1.0.0",
+    description: "Fixture Module.",
     env: [
       {
         key: "DATABASE_URL",

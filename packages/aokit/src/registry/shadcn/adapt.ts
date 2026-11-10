@@ -341,6 +341,7 @@ export function adaptShadcnItem(item: ShadcnItem, context: AdaptContext): Adapte
   const input: ModuleManifestInput = {
     name: moduleName,
     version,
+    description: `Adapted shadcn ${type} "${item.name}".`.slice(0, 120),
     requires: needsStyling ? ["styling"] : [],
     files: fileEntries,
     ...(dependencies === undefined && devDependencies === undefined

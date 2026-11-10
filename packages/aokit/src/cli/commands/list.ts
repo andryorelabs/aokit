@@ -73,7 +73,7 @@ export async function listModules(registry: Registry): Promise<ModuleListing[]> 
       return {
         name,
         version: entry.latest,
-        description: manifest.description ?? "",
+        description: manifest.description,
         provides: manifest.provides.map((provided) => provided.capability),
       };
     }),

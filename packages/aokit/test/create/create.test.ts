@@ -332,6 +332,7 @@ describe("answers", () => {
   const demo = parseManifest({
     name: "demo",
     version: "1.0.0",
+    description: "Fixture Module.",
     answers: {
       flag: { type: "boolean" },
       count: { type: "number", default: 2 },

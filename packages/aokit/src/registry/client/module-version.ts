@@ -141,7 +141,7 @@ export function parseModuleManifest(
     invalid(reason, "Fix the Module source and rebuild the Registry."),
   );
   try {
-    return parseManifest(raw);
+    return parseManifest(raw, { allowMissingDescription: true });
   } catch (error) {
     if (error instanceof ManifestError) {
       throw invalid(

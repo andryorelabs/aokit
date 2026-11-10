@@ -1,6 +1,7 @@
 import { expect, test } from "bun:test";
-import { opSchema, parseManifest } from "@aokit/module";
+import { opSchema } from "@aokit/module";
 import { type EngineContext, type EngineModule, buildPlan } from "../../src/engine/index.ts";
+import { fixtureManifest } from "../helpers/fixture-manifest.ts";
 
 const context: EngineContext = { now: new Date(0), random: () => 0.5, env: {} };
 const layouts = ["single", "monorepo"] as const;
@@ -8,7 +9,7 @@ const stylesSource = `import "./reset.css";\n\nexport const styles = [];\n`;
 
 function moduleOf(manifest: Record<string, unknown>, sources: Record<string, string> = {}) {
   return {
-    manifest: parseManifest({ version: "1.0.0", ...manifest }),
+    manifest: fixtureManifest(manifest),
     readFile: (from: string) => sources[from] ?? "",
   } satisfies EngineModule;
 }

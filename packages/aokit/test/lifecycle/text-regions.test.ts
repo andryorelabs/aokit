@@ -24,6 +24,7 @@ function moduleSource(name: string, version: string, extra: string): string {
   return `export default {
   name: "${name}",
   version: "${version}",
+  description: "Fixture Module.",
   ${extra}
   ops: [${gitignoreRegion(name)}
   ],
@@ -94,6 +95,7 @@ const writer = (target: string) => ({
   manifest: parseManifest({
     name: `${target}-app`,
     version: "1.0.0",
+    description: "Fixture Module.",
     files: [{ from: "package.json", to: "package.json", target }],
   }),
   readFile: () => `{\n  "name": "${target}-app",\n  "version": "0.0.0"\n}\n`,

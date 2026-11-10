@@ -4,8 +4,17 @@ import { resolve } from "../../src/resolver/resolve.ts";
 import { suggestModuleName } from "../../src/resolver/suggest.ts";
 import type { ResolveFailure, ResolveSuccess } from "../../src/resolver/types.ts";
 
-function mod(input: Omit<ModuleManifestInput, "version"> & { version?: string }): ModuleManifest {
-  return parseManifest({ version: "1.0.0", ...input });
+function mod(
+  input: Omit<ModuleManifestInput, "version" | "description"> & {
+    version?: string;
+    description?: string;
+  },
+): ModuleManifest {
+  return parseManifest({
+    version: "1.0.0",
+    description: `Fixture Module ${input.name}.`,
+    ...input,
+  });
 }
 
 function expectOk(result: ReturnType<typeof resolve>): ResolveSuccess {

@@ -54,7 +54,12 @@ function engineModule(adapted: AdaptedModule): EngineModule {
 }
 
 const stylingProvider: EngineModule = {
-  manifest: parseManifest({ name: "tailwind4", version: "1.0.0", provides: ["styling"] }),
+  manifest: parseManifest({
+    name: "tailwind4",
+    version: "1.0.0",
+    description: "Fixture Module.",
+    provides: ["styling"],
+  }),
   readFile() {
     throw new Error("no files");
   },
@@ -439,8 +444,12 @@ test("the registry and item schemas read only what the adapter needs", () => {
 test("scoped names are accepted only for Adapted Modules", () => {
   const adapted = adapt({});
   expect(parseManifest(adapted.manifest).name).toBe("@shadcn/button");
-  expect(() => parseManifest({ name: "@shadcn/button", version: "1.0.0" })).toThrow(/Adapted/);
-  expect(() => parseManifest({ name: "button", version: "1.0.0" })).not.toThrow();
+  expect(() =>
+    parseManifest({ name: "@shadcn/button", version: "1.0.0", description: "Fixture Module." }),
+  ).toThrow(/Adapted/);
+  expect(() =>
+    parseManifest({ name: "button", version: "1.0.0", description: "Fixture Module." }),
+  ).not.toThrow();
 
   const lockfile = (name: string, version: string) =>
     lockfileSchema.safeParse({

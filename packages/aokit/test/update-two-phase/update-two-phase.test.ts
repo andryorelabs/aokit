@@ -37,6 +37,7 @@ const secondCatalog = `${JSON.stringify(
 const secondModule = `export default {
   name: "oxc",
   version: "1.1.0",
+  description: "Fixture Module.",
   provides: ["lint", "format"],
   files: [
     { from: "files/.oxlintrc.json", to: ".oxlintrc.json", target: "config" },

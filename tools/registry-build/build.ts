@@ -1,12 +1,7 @@
 import { mkdir, readdir, readFile, stat, writeFile } from "node:fs/promises";
 import { dirname, join, posix } from "node:path";
-import {
-  type ModuleManifest,
-  catalogSchema,
-  compileModule,
-  composeDraftCatalog,
-  stableStringify,
-} from "@aokit/module";
+import { type ModuleManifest, catalogSchema, compileModule, stableStringify } from "@aokit/module";
+import { composeDraftCatalog } from "@aokit/module/catalog";
 import { format } from "oxfmt";
 import { layoutTables } from "../../packages/aokit/src/engine/layout.ts";
 import {
@@ -536,24 +531,18 @@ async function isUnpublishedVersion(
 }
 
 /**
- * Fails when `requireDescriptions` is set and a Module has no `description`, or when a `conflicts` entry of any Module names neither a Module in the Registry nor a
+ * Fails when a `conflicts` entry of any Module names neither a Module in the Registry nor a
  * Capability one of them provides, so a typo or a removed Module cannot linger unnoticed.
  */
 async function validateManifests(
   sourceDir: string,
   candidateNames: readonly string[],
-  requireDescriptions: boolean,
 ): Promise<void> {
   const manifests = await Promise.all(
     candidateNames.map(
       async (name) => (await compileModule(join(sourceDir, name, moduleSourceFile))).manifest,
     ),
   );
-  for (const manifest of manifests) {
-    if (requireDescriptions && manifest.description === undefined) {
-      throw new Error(`registry:build: Module ${manifest.name} is missing the description field`);
-    }
-  }
   const known = new Set<string>();
   for (const manifest of manifests) {
     known.add(manifest.name);
@@ -589,7 +578,7 @@ async function validateManifests(
 export async function buildRegistry(
   sourceDir: string,
   outDir: string,
-  options: { includePending?: boolean; requireDescriptions?: boolean } = {},
+  options: { includePending?: boolean } = {},
 ): Promise<void> {
   const includePending = options.includePending === true;
   const entries = await readdir(sourceDir, { withFileTypes: true });
@@ -598,7 +587,7 @@ export async function buildRegistry(
     .filter((entry) => entry.isDirectory() && entry.name !== catalogDirectory)
     .map((entry) => entry.name)
     .toSorted(byCodepoint);
-  await validateManifests(sourceDir, candidateNames, options.requireDescriptions === true);
+  await validateManifests(sourceDir, candidateNames);
   const fragmentFlags = await Promise.all(
     candidateNames.map((name) => isFile(join(sourceDir, name, moduleCatalogFragmentFile))),
   );
