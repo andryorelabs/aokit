@@ -4,7 +4,7 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 
 const repositoryRoot = join(import.meta.dir, "..", "..");
-const oxlintBin = join(repositoryRoot, "node_modules", ".bin", "oxlint");
+const oxlintBin = join(repositoryRoot, "node_modules", "oxlint", "bin", "oxlint");
 const localPluginPath = join(import.meta.dir, "local-plugin.ts");
 const ruleName = "local/no-non-doc-comments";
 
@@ -37,6 +37,7 @@ async function lintWithLocalRule(sourceText: string): Promise<string[]> {
   await Bun.write(fixturePath, sourceText);
   const lintProcess = Bun.spawn(
     [
+      process.execPath,
       oxlintBin,
       "--config",
       join(scratchDirectory, ".oxlintrc.json"),
