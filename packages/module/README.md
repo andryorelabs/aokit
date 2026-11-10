@@ -18,6 +18,7 @@ import { defineModule } from "@aokit/module";
 export default defineModule({
   name: "my-lint-staged",
   version: "1.0.0",
+  description: "Runs lint-staged on every commit.",
   provides: [{ capability: "staged-lint", cardinality: { max: 1 } }],
   requires: ["git-hooks"],
   files: [
