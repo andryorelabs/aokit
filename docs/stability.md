@@ -6,6 +6,8 @@ What aokit promises across versions and which versions get fixes. Terms follow [
 
 The CLI follows semver. While the major version is 0, a minor release may include breaking changes and a patch release never does. Registry Releases are dated, not semver, as decided in [ADR-0026](adr/0026-registry-releases-are-dated-cli-versions-are-semver.md).
 
+A Registry Release is named `YYYY.MM.PATCH`: the year, the month and a counter within that month. Release `2026.12.1` is therefore a name, not a date in the past, and it is never renamed. Registry Releases and CLI versions (`0.1.0`) move independently.
+
 Release notes are on [GitHub Releases](https://github.com/andryorelabs/aokit/releases); see the [changelog](../CHANGELOG.md).
 
 ## Module SDK

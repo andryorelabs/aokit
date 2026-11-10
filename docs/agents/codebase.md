@@ -46,7 +46,6 @@
 - `renovate.json5`
 - `schema/` (5 files)
 - `skills-lock.json`
-- `SUPPORT.md`
 - `tools/` (83 files)
 - `tsconfig.base.json`
 - `tsconfig.json`

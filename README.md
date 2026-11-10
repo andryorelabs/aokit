@@ -10,10 +10,10 @@
 
 <p align="center"><strong>Projects from Modules. Updates that merge.</strong></p>
 
-<p align="center">
-  <a href="https://github.com/andryorelabs/aokit/actions/workflows/ci.yml"><img alt="CI" src="https://github.com/andryorelabs/aokit/actions/workflows/ci.yml/badge.svg"></a>
-  <a href="LICENSE"><img alt="License: MIT" src="https://img.shields.io/badge/license-MIT-blue.svg"></a>
-</p>
+[![CI](https://github.com/andryorelabs/aokit/actions/workflows/ci.yml/badge.svg)](https://github.com/andryorelabs/aokit/actions/workflows/ci.yml)
+[![Release](https://img.shields.io/github/v/release/andryorelabs/aokit)](https://github.com/andryorelabs/aokit/releases/latest)
+[![License: MIT](https://img.shields.io/github/license/andryorelabs/aokit)](LICENSE)
+[![OpenSSF Scorecard](https://api.scorecard.dev/projects/github.com/andryorelabs/aokit/badge)](https://scorecard.dev/viewer/?uri=github.com/andryorelabs/aokit)
 
 aokit is a Bun-only CLI that creates TypeScript projects from composable Modules and keeps them up to date. A Lockfile stores a hash for every generated file, so an update merges with your edits and never overwrites them.
 
@@ -29,12 +29,20 @@ The CLI runs on Bun 1.4.4 or newer, and the standalone binaries need no Bun. All
 
 ## Quickstart
 
-Run `bunx aokit create my-app`, pick your Modules, and start the dev server.
+Run `bunx create-aokit` (or `bun create aokit`), answer the prompts, and start the dev server.
 
 ```sh
-bunx aokit create my-app
+bunx create-aokit my-app
 cd my-app && bun run dev
 ```
+
+To skip the prompts, name the Layout and the Modules:
+
+```sh
+bunx create-aokit my-app --layout single --modules next,tailwind4,oxc --yes
+```
+
+`bun run dev` depends on the Modules you select: the framework Module (for example `next` or `vite-react`) provides the `dev` script, so read the `scripts` in the generated `package.json`. `aokit list` prints every Module of the Registry, grouped by the Capability it provides.
 
 For a walkthrough, read [Getting started](docs/guide/getting-started.md). To extend aokit, read [Writing a Module](docs/guide/writing-modules.md) and [Hosting a Registry](docs/guide/hosting-a-registry.md).
 
@@ -42,6 +50,7 @@ For a walkthrough, read [Getting started](docs/guide/getting-started.md). To ext
 
 - **Pick Modules, get a project.** `aokit create` generates a TypeScript project from Modules such as next, vite-react, astro, hono, prisma, better-auth, tailwind4, shadcn, oxc, docker and coolify. The full list is in the [Module catalog](docs/architecture/module-catalog.md).
 - **Updates keep your edits.** The Lockfile records a hash for every file, and `aokit update` merges changes with what you wrote.
+- **Browse the catalog.** `aokit list` shows every Module with its version and description.
 - **See changes before they land.** `aokit diff` and `aokit check` show what would change.
 - **Bun only.** aokit supports Bun and no other package manager.
 - **Works inside coding agents.** `aokit mcp init` registers the aokit MCP server in Claude, Cursor, VS Code or Codex.
@@ -83,7 +92,7 @@ sha256sum -c SHA256SUMS --ignore-missing
 gh attestation verify aokit-linux-x64 --repo andryorelabs/aokit
 ```
 
-On macOS, use `shasum -a 256 -c SHA256SUMS --ignore-missing`. To try the npm pre-release instead, run `bunx create-aokit@next my-app`. Details are in [Distribution](docs/architecture/distribution.md#github-releases).
+On macOS, use `shasum -a 256 -c SHA256SUMS --ignore-missing`. Details are in [Distribution](docs/architecture/distribution.md#github-releases).
 
 ## Workspace
 
@@ -111,7 +120,7 @@ Tooling follows [`docs/standards`](docs/standards/README.md): Oxfmt and Oxlint (
 
 ## Contributing
 
-Agents start at [AGENTS.md](AGENTS.md). Contributors read [CONTRIBUTING.md](CONTRIBUTING.md), [GOVERNANCE.md](GOVERNANCE.md), [CODE_OF_CONDUCT.md](CODE_OF_CONDUCT.md), [SUPPORT.md](SUPPORT.md) and the [blame ignore list](.git-blame-ignore-revs).
+Agents start at [AGENTS.md](AGENTS.md). Contributors read [CONTRIBUTING.md](CONTRIBUTING.md), [GOVERNANCE.md](GOVERNANCE.md), [CODE_OF_CONDUCT.md](CODE_OF_CONDUCT.md), [SUPPORT.md](.github/SUPPORT.md) and the [blame ignore list](.git-blame-ignore-revs).
 
 ## Licence
 

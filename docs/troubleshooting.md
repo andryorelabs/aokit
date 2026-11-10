@@ -16,7 +16,7 @@ Each entry gives the symptom you see, its cause and the fix. Error codes and exi
 
 **Cause:** There is no readable `aokit.lock.json` in the directory.
 
-**Fix:** Run the command inside the Project, or pass `--directory <path>`. To start a Project, use `aokit create`.
+**Fix:** Run the command inside the Project, or pass the directory as a positional argument: `aokit doctor ./my-app`, `aokit check ./my-app` and `aokit diff ./my-app`. Commands that change a Project, such as `aokit add`, take `--directory <path>` instead. To start a Project, use `aokit create`.
 
 ## An untrusted Registry is refused
 

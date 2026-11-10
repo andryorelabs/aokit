@@ -7,7 +7,7 @@ aokit is pre-1.0 (alpha). In 0.x a minor version may break; see [Stability](../s
 ## Prerequisites
 
 - [Bun](https://bun.sh) 1.4.4 or newer on `PATH`. aokit supports Bun and no other package manager ([ADR 0006](../adr/0006-bun-only.md)).
-- Git, for the clean-tree check that commands writing to a Project make.
+- Git, for the initial commit `create` makes and for the clean-tree check that commands writing to a Project make.
 - Without Bun, the [standalone binaries](../../README.md#install-the-binary) run the same CLI.
 
 ## Create a Project
@@ -23,6 +23,8 @@ bunx aokit create my-app --layout single --modules next,tailwind4,oxc
 ```
 
 The [Module catalog](../architecture/module-catalog.md) lists every Module you can pick. To see what would be written before anything is, add `--dry-run` or `--diff`. `--no-install` skips the dependency install.
+
+After the install, `create` runs `git init` and makes one initial commit, so the first `aokit add` or `aokit update` starts from a clean working tree. It skips the step, with a warning, when git is not installed or the directory is already inside a git work tree. Pass `--no-git` to skip it yourself and manage git on your own.
 
 The new Project holds an `aokit.lock.json`: the Lockfile that records the Registry, the Release, each Module version and a hash for every generated file. Commit it with the rest ([Lockfile](../architecture/lockfile.md)).
 
@@ -73,6 +75,14 @@ aokit doctor
 ```
 
 `doctor` is read-only. It reports Drift (files that no longer match the Lockfile), integrity problems, Resolver issues and dependencies, and prints the command that fixes each one. It exits `1` when it finds Drift. To restore one file to its Render, run `aokit restore <path>`.
+
+## Upgrade the CLI
+
+`bunx aokit@latest <command>` runs the newest published CLI. A plain `bunx aokit` can reuse a copy cached from an earlier run, so add `@latest` when you want the newest one. With the standalone binary, download the new binary from the [GitHub Releases](https://github.com/andryorelabs/aokit/releases) and replace the old one. Upgrading the CLI does not change a Project: run `aokit check` and `aokit update` for that.
+
+## Uninstall the standalone binary
+
+Delete the file you installed: `rm ~/.local/bin/aokit` on Linux and macOS, or `Remove-Item $HOME\bin\aokit.exe` on Windows, then remove the `PATH` line you added to your shell profile or user `PATH`. Projects keep working because they hold no reference to the binary. aokit writes a user config to `$XDG_CONFIG_HOME/aokit/config.json` and a Registry cache under `XDG_CACHE_HOME`; delete them too if you want no trace.
 
 ## Next steps
 
