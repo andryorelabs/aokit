@@ -140,13 +140,20 @@ jobs:
             tested: true
           - target: bun-darwin-x64
             artifact: aokit-darwin-x64
-            runner: macos-latest
-            tested: false
+            runner: macos-15-intel
+            tested: true
           - target: bun-windows-x64
             artifact: aokit-windows-x64.exe
-            runner: ubuntu-latest
-            tested: false
+            runner: windows-latest
+            tested: true
+    defaults:
+      run:
+        shell: bash
     steps:
+      - name: Keep LF line endings on checkout
+        if: runner.os == 'Windows'
+        run: git config --global core.autocrlf false
+
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
@@ -192,8 +199,10 @@ jobs:
         env:
           ARTIFACT: ${{ matrix.artifact }}
         run: |
-          AOKIT_BIN="$GITHUB_WORKSPACE/dist/bin/$ARTIFACT" \
-          AOKIT_DIST_TARBALLS="$(printf '%s,' "$RUNNER_TEMP"/release/tarballs/*.tgz)" \
+          workspace="${GITHUB_WORKSPACE//\\//}"
+          runner_temp="${RUNNER_TEMP//\\//}"
+          AOKIT_BIN="$workspace/dist/bin/$ARTIFACT" \
+          AOKIT_DIST_TARBALLS="$(printf '%s,' "$runner_temp"/release/tarballs/*.tgz)" \
             bun test packages/aokit/test/dist/e2e
 
       - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
@@ -263,7 +272,7 @@ jobs:
 
           On macOS, run \`shasum -a 256 -c SHA256SUMS --ignore-missing\` instead of \`sha256sum\`. Mark the binary executable with \`chmod +x\` before running it.
 
-          The linux-x64, linux-arm64 and darwin-arm64 binaries passed the process and end-to-end tests on native runners. The Windows and darwin-x64 binaries were not tested end to end.
+          Every binary passed the process and end-to-end tests on a native runner: linux-x64, linux-arm64, darwin-arm64, darwin-x64 (Intel macOS) and windows-x64.
           NOTES
 
       - name: Create the GitHub Release

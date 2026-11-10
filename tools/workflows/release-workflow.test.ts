@@ -325,7 +325,8 @@ const releasedBinaries = [
   "aokit-linux-x64",
   "aokit-windows-x64.exe",
 ];
-const untestedSentence = "The Windows and darwin-x64 binaries were not tested end to end.";
+const testedSentence =
+  "Every binary passed the process and end-to-end tests on a native runner: linux-x64, linux-arm64, darwin-arm64, darwin-x64 (Intel macOS) and windows-x64.";
 
 interface MatrixEntry {
   target: string;
@@ -423,16 +424,24 @@ describe("S3: release binaries, SHA256SUMS and attestations", () => {
     expect(matrix.map((entry) => entry.artifact).toSorted()).toEqual(releasedBinaries);
   });
 
-  test("linux-x64, linux-arm64 and darwin-arm64 are tested on native runners; the rest are not", () => {
-    const tested = binaryMatrix()
-      .filter((entry) => entry.tested)
-      .map((entry) => [entry.artifact, entry.runner]);
-    expect(tested).toEqual([
+  test("all five binaries are tested on native runners, darwin-x64 on Intel macOS", () => {
+    const matrix = binaryMatrix();
+    expect(matrix.every((entry) => entry.tested)).toBe(true);
+    expect(matrix.map((entry) => [entry.artifact, entry.runner])).toEqual([
       ["aokit-linux-x64", "ubuntu-latest"],
       ["aokit-linux-arm64", "ubuntu-24.04-arm"],
       ["aokit-darwin-arm64", "macos-latest"],
+      ["aokit-darwin-x64", "macos-15-intel"],
+      ["aokit-windows-x64.exe", "windows-latest"],
     ]);
     expect(job("binaries")["runs-on"]).toBe("${{ matrix.runner }}");
+  });
+
+  test("the binary jobs run bash on every runner and keep LF checkouts on Windows", () => {
+    expect(job("binaries")["defaults"]).toEqual({ run: { shell: "bash" } });
+    const [first] = steps("binaries");
+    expect(first?.["if"]).toBe("runner.os == 'Windows'");
+    expect(first?.["run"]).toBe("git config --global core.autocrlf false");
   });
 
   test("each binary job builds its target and runs the process and e2e tests only when tested", () => {
@@ -493,7 +502,7 @@ describe("S3: release binaries, SHA256SUMS and attestations", () => {
     });
   });
 
-  test("the release notes carry the verification steps and the untested-binaries sentence", () => {
+  test("the release notes carry the verification steps and the tested-binaries sentence", () => {
     const directory = temporaryDirectory();
     const notesFile = join(directory, "release-notes.md");
     writeFileSync(notesFile, "## Features\n");
@@ -507,7 +516,8 @@ describe("S3: release binaries, SHA256SUMS and attestations", () => {
     expect(notes).toStartWith("## Features\n");
     expect(notes).toContain("sha256sum -c SHA256SUMS");
     expect(notes).toContain("gh attestation verify aokit-linux-x64 --repo andryorelabs/aokit");
-    expect(notes).toContain(untestedSentence);
+    expect(notes).toContain(testedSentence);
+    expect(notes).not.toContain("not tested end to end");
   });
 
   test.each(["true", "", "False"])('DRY_RUN "%s" never creates the GitHub Release', (dryRun) => {
