@@ -28,7 +28,7 @@ cd my-app && bun run dev
 
 ## What you get
 
-- **Pick Modules, get a project.** `aokit create` generates a TypeScript project from Modules such as next, vite-react, astro, hono, prisma, better-auth, tailwind4, shadcn, oxc, docker and coolify. `eslint-react`, `vitest-react`, `msw`, `hono-zod-validator`, `next-themes`, `fontsource` and `shadcn-lint` are Pending until the next Release. The full list is in the [Module catalog](docs/architecture/module-catalog.md).
+- **Pick Modules, get a project.** `aokit create` generates a TypeScript project from Modules such as next, vite-react, astro, hono, prisma, better-auth, tailwind4, shadcn, oxc, docker and coolify. The full list is in the [Module catalog](docs/architecture/module-catalog.md).
 - **Updates keep your edits.** The Lockfile records a hash for every file, and `aokit update` merges changes with what you wrote.
 - **See changes before they land.** `aokit diff` and `aokit check` show what would change.
 - **Bun only.** aokit supports Bun and no other package manager.
@@ -36,6 +36,17 @@ cd my-app && bun run dev
 - **No telemetry.** The CLI, the MCP server and generated projects send no usage data.
 
 The design is in [`docs/`](docs/): start with the [roadmap](docs/roadmap.md), the [architecture overview](docs/architecture/overview.md) and the [glossary](GLOSSARY.md).
+
+## Verify a release
+
+Each GitHub Release attaches standalone binaries and `SHA256SUMS`. Download the binaries you need and `SHA256SUMS` into one directory, then check the checksums and the build provenance attestation:
+
+```sh
+sha256sum -c SHA256SUMS --ignore-missing
+gh attestation verify aokit-linux-x64 --repo andryorelabs/aokit
+```
+
+On macOS, use `shasum -a 256 -c SHA256SUMS --ignore-missing`. The Windows and darwin-x64 binaries are not tested end to end. To try the npm pre-release instead, run `bunx create-aokit@next my-app`. Details are in [Distribution](docs/architecture/distribution.md#github-releases).
 
 ## Workspace
 

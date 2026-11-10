@@ -1,6 +1,6 @@
 # Module catalog
 
-The first-party [Modules](../../GLOSSARY.md) in `registry-src/`, with the [Capabilities](capabilities.md) and [Extension points](capabilities.md#extension-points) each one declares in its manifest. It is a worked test of the [Module contract](module-contract.md). The tables list every Module in `registry-src/`, released or Pending; the manifests are the source of truth, and this page follows them. [Pending Modules](#pending-modules) are listed separately.
+The first-party [Modules](../../GLOSSARY.md) in `registry-src/`, with the [Capabilities](capabilities.md) and [Extension points](capabilities.md#extension-points) each one declares in its manifest. It is a worked test of the [Module contract](module-contract.md). The tables list every Module in `registry-src/`, the manifests are the source of truth, and this page follows them. The [Modules added in Release `2026.12.1`](#added-in-release-2026121) are listed separately.
 
 ## Scope and filter
 
@@ -56,7 +56,7 @@ Only current best practice is listed:
 
 Notes:
 
-- `shadcn` is always on Base UI. `base-ui` and `shadcn` are separate Modules so the primitives can be used without the component set. The shadcn lint rules ship as the separate `shadcn-lint` Module (Pending, see [Quality and tooling](#quality-and-tooling)), so `shadcn` itself needs no lint dependency.
+- `shadcn` is always on Base UI. `base-ui` and `shadcn` are separate Modules so the primitives can be used without the component set. The shadcn lint rules ship as the separate `shadcn-lint` Module (see [Quality and tooling](#quality-and-tooling)), so `shadcn` itself needs no lint dependency.
 - `nuqs-next` and `nuqs-vite` both provide `url-state` with Cardinality one and differ by the `web:*` flavor they require, so each is selectable with exactly one kind of base.
 - `next-intl` translates without locale-prefixed routes. It requires `web:app-router` and the `next.plugins` and `web.providers` Extension points that `next` declares, so it is selectable with `next` and not with a base that lacks them.
 - `posthog` is Next only in v1.
@@ -127,11 +127,11 @@ Notes:
 - `renovate` ships the configuration described in [renovate](../standards/renovate.md), including the Toolchain pin groups.
 - `adr-docs` backs the conventions in [docs and forge](../standards/docs-and-forge.md).
 
-## Pending Modules
+## Added in Release 2026.12.1
 
-Modules added or bumped after Release `2026.12.0` are Pending until the next Release cut ([ADR 0024](../adr/0024-pending-modules-catalog-fragments-and-release-cuts.md)). Each carries a Catalog fragment (`registry-src/<module>/catalog.json`) listing only the dependencies the released Catalog lacks, and `registry/` is unchanged.
+Release `2026.12.1` added or bumped these Modules after Release `2026.12.0`, cut under [ADR 0024](../adr/0024-pending-modules-catalog-fragments-and-release-cuts.md). Their Catalog fragments were folded into `registry-src/catalog/2026.12.1.json` and `registry/` was rebuilt. The last column lists the dependencies each one added to the Catalog.
 
-| Module               | Change          | Fragment adds                                                                                     |
+| Module               | Change          | Catalog adds                                                                                      |
 | -------------------- | --------------- | ------------------------------------------------------------------------------------------------- |
 | `eslint-react`       | new, 1.0.0      | `@eslint-react/eslint-plugin`, `eslint-plugin-jsx-a11y`, `eslint-plugin-react-hooks`              |
 | `vitest-react`       | new, 1.0.0      | `@vitest/browser-playwright`, `happy-dom`, `playwright`, `vitest-browser-react`                   |

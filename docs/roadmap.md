@@ -27,21 +27,21 @@ flowchart LR
   P4B --> P8[8 Layout migration and engine debt]
 ```
 
-| Phase                               | Depends on | Delivers                                                                                                                                |
-| ----------------------------------- | ---------- | --------------------------------------------------------------------------------------------------------------------------------------- |
-| 1. Core + schema + VFS              | none       | Manifest schema, Resolver, VFS and Plan, command layer, Lockfile read/write.                                                            |
-| 2. Engine ops                       | 1          | Edit engine and Ops catalog.                                                                                                            |
-| 3. First modules                    | 1, 2       | A curated set of Modules and an end-to-end `create`.                                                                                    |
-| 4a. Lifecycle foundations           | 3          | Merger, merge procedure, `add`, `remove`, `recopy`, `doctor`, `diff`, `check`, `eject`, `restore`, `create --from`.                     |
-| 4b. Updates and migrations          | 4a         | `update`, migrations, renames, upgrade job.                                                                                             |
-| 5a. Registry client                 | 3, 4a      | Remote and `github:` Registries, cache, Pins, trust, yank, `create --from <url>`.                                                       |
-| 5b. shadcn adapter                  | 5a         | Adapter, namespaces, `registryDependencies`.                                                                                            |
-| 6a. MCP server                      | 4b, 5b     | MCP server, `aokit schema`, `aokit mcp init`.                                                                                           |
-| 6b. Agent files                     | 4b, 5b     | Agent files in generated Projects.                                                                                                      |
-| 7a. Distributable CLI               | 5b, 6a, 6b | npm packages, standalone binary, update notices, binary tests.                                                                          |
-| 9. Module expansion                 | 4b, 5b, 6b | About 40 first-party Modules, new Targets, Pending Modules and one Release `2026.12.0`.                                                 |
-| 7b. Release pipeline                | 7a         | Publishing, provenance, checksums, attestations, releases.                                                                              |
-| 8. Layout migration and engine debt | 4b         | `layout migrate`, one edit batch per file, one Extension point resolver, formatter support by extension, the docs index invariant test. |
+| Phase                               | Depends on | Delivers                                                                                                                                      |
+| ----------------------------------- | ---------- | --------------------------------------------------------------------------------------------------------------------------------------------- |
+| 1. Core + schema + VFS              | none       | Manifest schema, Resolver, VFS and Plan, command layer, Lockfile read/write.                                                                  |
+| 2. Engine ops                       | 1          | Edit engine and Ops catalog.                                                                                                                  |
+| 3. First modules                    | 1, 2       | A curated set of Modules and an end-to-end `create`.                                                                                          |
+| 4a. Lifecycle foundations           | 3          | Merger, merge procedure, `add`, `remove`, `recopy`, `doctor`, `diff`, `check`, `eject`, `restore`, `create --from`.                           |
+| 4b. Updates and migrations          | 4a         | `update`, migrations, renames, upgrade job.                                                                                                   |
+| 5a. Registry client                 | 3, 4a      | Remote and `github:` Registries, cache, Pins, trust, yank, `create --from <url>`.                                                             |
+| 5b. shadcn adapter                  | 5a         | Adapter, namespaces, `registryDependencies`.                                                                                                  |
+| 6a. MCP server                      | 4b, 5b     | MCP server, `aokit schema`, `aokit mcp init`.                                                                                                 |
+| 6b. Agent files                     | 4b, 5b     | Agent files in generated Projects.                                                                                                            |
+| 7a. Distributable CLI               | 5b, 6a, 6b | npm packages, standalone binary, update notices, binary tests.                                                                                |
+| 9. Module expansion                 | 4b, 5b, 6b | About 40 first-party Modules, new Targets, Pending Modules and the Releases `2026.12.0` and `2026.12.1`. Done.                                |
+| 7b. Release pipeline                | 7a         | Publishing, provenance, checksums, attestations, releases. Done except the owner steps.                                                       |
+| 8. Layout migration and engine debt | 4b         | `layout migrate`, one edit batch per file, one Extension point resolver, formatter support by extension, the docs index invariant test. Done. |
 
 ### 1. Core + schema + VFS
 
@@ -173,7 +173,7 @@ Exit criteria:
 - A 2026.11.2 Project with vite-react and tailwind4 updated to 2026.12.0 has zero Conflicts.
 - After the cut, `aokit create` offers every new Module and no `registry-src/*/catalog.json` remains.
 
-Module expansion 2 (stack gaps) is Pending until the next Release cut. It adds `eslint-react`, `vitest-react`, `msw`, `hono-zod-validator`, `next-themes`, `fontsource` and `shadcn-lint`, and bumps `oxc` 1.2.0, `eslint` 1.1.0, `vitest` 1.1.0 and `tsdown` 1.1.0, each with a Catalog fragment. `shadcn-lint` runs `@shadcn/lint`, which ships no bin, through Oxlint as a JS plugin (`lint:shadcn`). `registry/` is unchanged and no Release exists for them. The [Module catalog](architecture/module-catalog.md#pending-modules) lists them.
+Module expansion 2 (stack gaps) shipped in Release `2026.12.1`, cut under [ADR 0024](adr/0024-pending-modules-catalog-fragments-and-release-cuts.md) with the Catalog fragments merged into the Catalog and removed. It adds `eslint-react`, `vitest-react`, `msw`, `hono-zod-validator`, `next-themes`, `fontsource` and `shadcn-lint`, and bumps `oxc` 1.2.0, `eslint` 1.1.0, `vitest` 1.1.0 and `tsdown` 1.1.0, each with a Catalog fragment. `shadcn-lint` runs `@shadcn/lint`, which ships no bin, through Oxlint as a JS plugin (`lint:shadcn`). The version scheme, dated Releases and semver packages, is in [ADR 0026](adr/0026-registry-releases-are-dated-cli-versions-are-semver.md). The [Module catalog](architecture/module-catalog.md#added-in-release-2026121) lists them.
 
 ### 7. Distribution
 
@@ -192,21 +192,28 @@ Exit criteria:
 
 #### 7b. Release pipeline
 
-Scope: the release workflow with bumpp and changelogithub, npm trusted publishing with provenance, the five-target build matrix, `SHA256SUMS` and attestations, e2e on native linux-x64, linux-arm64 and macOS arm64 runners, publishing the Registry release with the CLI. It starts after the repository is public and the first `0.1.0-next.0` publish by token is done. Going public also runs `gh variable delete BLACKSMITH_RUNNER` and narrows the Blacksmith routing to the light jobs, `ci.yml` `check`, `test` (Linux leg) and `commitlint` and `determinism.yml` `compare`; the other workflows go back to a literal `ubuntu-latest` and the `routedJobs` list in `tools/workflows/runner-routing.test.ts` is updated to match ([CI runners](architecture/distribution.md#ci-runners)). Going public also applies the rulesets and labels and enables private vulnerability reporting. These steps run by hand, once, and never before going public:
+Status: done except the owner steps below. The pipeline is `.github/workflows/release.yml` ([Distribution](architecture/distribution.md#publishing-to-npm), [ADR 0026](adr/0026-registry-releases-are-dated-cli-versions-are-semver.md)).
 
-1. Apply `.github/rulesets/main.json` (required check `CI passed`, squash merges only, linear history, no force push or deletion) and `.github/rulesets/tags.json` (tags cannot be updated or deleted), for example with `gh api repos/{owner}/{repo}/rulesets --method POST --input .github/rulesets/main.json`.
-2. Apply the labels in `.github/labels.yml`, including the five [triage labels](agents/triage-labels.md).
-3. Enable private vulnerability reporting, the channel `.github/SECURITY.md` points reporters to.
+Scope: a `v*` tag, or `workflow_dispatch` with `dry-run`, runs the workflow; `bun run release` runs `bumpp` and `changelogithub` writes the notes; `aokit` and `create-aokit` share one version (`0.1.0-next.0`, dist-tag `next`) and publish through npm trusted publishing with provenance; the five-target binary matrix (`aokit-linux-x64`, `aokit-linux-arm64`, `aokit-darwin-arm64`, `aokit-darwin-x64`, `aokit-windows-x64.exe`); process and end-to-end tests on native linux-x64, linux-arm64 and macOS arm64 runners; a sorted `SHA256SUMS`, a build provenance attestation per binary and the GitHub Release with verification steps in its notes; Release `2026.12.1` published with the CLI.
 
 Exit criteria:
 
-- A release dry run publishes with provenance and attaches verifiable checksums and attestations.
+- A release dry run runs every job, publishes nothing and uploads the binaries and `SHA256SUMS` as workflow artifacts.
 - `bunx create-aokit` and `bunx aokit add` work from a published pre-release.
 - Windows and darwin-x64 binaries are published without an e2e run, and the release notes say so.
 
+Owner steps remain, run once with `tools/release/human-steps.sh`, an interactive wizard that asks for confirmation before each step and never stores a token. They start after the repository is public:
+
+1. The first `0.1.0-next.0` publish of both packages with a short-lived npm token, then revoke the token.
+2. Trusted publishers on npmjs.com for `aokit` and `create-aokit` (workflow `release.yml`).
+3. Apply `.github/rulesets/main.json` (required check `CI passed`, squash merges only, linear history, no force push or deletion) and `.github/rulesets/tags.json` (tags cannot be updated or deleted) with `gh api`, and the labels in `.github/labels.yml`, including the five [triage labels](agents/triage-labels.md).
+4. `gh variable delete BLACKSMITH_RUNNER`. Going public also narrows the Blacksmith routing to the light jobs, `ci.yml` `check`, `test` (Linux leg) and `commitlint` and `determinism.yml` `compare`; the other workflows go back to a literal `ubuntu-latest` and the `routedJobs` list in `tools/workflows/runner-routing.test.ts` is updated to match ([CI runners](architecture/distribution.md#ci-runners)).
+5. Enable private vulnerability reporting, the channel `.github/SECURITY.md` points reporters to.
+6. A final `bunx create-aokit@next` smoke test.
+
 ### 8. Layout migration and engine debt
 
-Phase 8 needs only phase 4b, so it ships before or after 7b.
+Phase 8 needs only phase 4b, so it ships before or after 7b. It is done: the `layout migrate` equivalence test runs over every curated real-build set in both directions, and the determinism check compares the curated sets to a committed digest baseline (`packages/aokit/test/matrix/curated-digests.txt`).
 
 Scope: `aokit layout migrate <single|monorepo>` with `--dry-run`, `--diff`, `--yes`, `--json`, `--allow-dirty` and `--abort`, built on the lifecycle orchestrator and the merge procedure, with files paired by Provenance and seed files moved as they are ([Layouts](architecture/layouts.md#layout-migrate), [ADR 0021](adr/0021-layout-migration-pairs-files-by-provenance.md)); an undo marker with a `kind`; one edit batch per file across Modules ([ADR 0010](adr/0010-locate-and-splice-edit-engine.md)); one Extension point resolver for data and code Ops; formatter support decided by an extension allowlist and ordered `ignorePatterns` with `!`; the docs index invariant test.
 
@@ -215,20 +222,20 @@ Exit criteria:
 - A Project with no user edits migrated in either direction equals a fresh `create` at the new Layout, for every curated selection.
 - A managed edit and a seed edit survive `single` to `monorepo` to `single` with zero Conflicts.
 - A conflicted migration is undone by `layout migrate --abort`, and `update --abort` refuses its marker.
-- Matrix snapshots and determinism digests are unchanged by the edit batching.
+- Determinism digests are unchanged by the edit batching.
 - A new ADR file without an index row, or a link to a missing heading, fails `bun run test`.
 
 ## Testing strategy
 
-| Layer                                     | What it proves                                                                                                                                                                              | Runs                                                 |
-| ----------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------- |
-| Per-Module VFS tests                      | A Module's files, deps, env and Ops produce the expected tree in the VFS, alone and on a minimal base, with no disk or network.                                                             | Every PR.                                            |
-| Capability-derived matrix with snapshots  | Valid selections (pairwise) crossed with both Layouts generate a stable tree; an unintended output change shows as a reviewed snapshot diff ([versions](architecture/versions.md#ci)).      | Every PR.                                            |
-| Generate-twice determinism hash           | Two runs give one digest, and the digest is the same on Linux and macOS, for the npm build and the binary ([Distribution](architecture/distribution.md#ci-determinism-on-linux-and-macos)). | Every PR, on both operating systems.                 |
-| Real build and typecheck of a curated set | Generated Projects install, build and type-check. Slower, so a subset.                                                                                                                      | Every PR for the core set; the wider set on release. |
-| Upgrade job                               | Release N-1 to N produces zero conflicts after representative edits.                                                                                                                        | Every Registry release.                              |
-| Binary e2e with `--yes --json`            | The compiled binary runs `create`, `add`, `remove` and `update` non-interactively and returns valid envelopes and exit codes.                                                               | Every release.                                       |
-| Docs index invariant                      | Every ADR is indexed, every link exists, required sections are present ([docs and forge](standards/docs-and-forge.md#living-adrs)).                                                         | Every PR.                                            |
+| Layer                                     | What it proves                                                                                                                                                                                                                 | Runs                                                                     |
+| ----------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | ------------------------------------------------------------------------ |
+| Per-Module VFS tests                      | A Module's files, deps, env and Ops produce the expected tree in the VFS, alone and on a minimal base, with no disk or network.                                                                                                | Every PR.                                                                |
+| Capability-derived matrix                 | Valid selections (pairwise) crossed with both Layouts generate the same tree twice; no stored snapshots ([versions](architecture/versions.md#ci)).                                                                             | Every PR.                                                                |
+| Generate-twice determinism hash           | Two runs give one digest, the same on Linux and macOS, for the npm build and the binary; the curated sets also match a committed digest list ([Distribution](architecture/distribution.md#ci-determinism-on-linux-and-macos)). | Every PR, on both operating systems.                                     |
+| Real build and typecheck of a curated set | Generated Projects install, build and type-check. Slower, so a subset.                                                                                                                                                         | Every PR for the core set; the wider set on release.                     |
+| Upgrade job                               | Release N-1 to N produces zero conflicts after representative edits.                                                                                                                                                           | Every Registry release.                                                  |
+| Binary e2e with `--yes --json`            | The compiled binary runs `create`, `add`, `remove` and `update` non-interactively and returns valid envelopes and exit codes.                                                                                                  | Every release, on native linux-x64, linux-arm64 and macOS arm64 runners. |
+| Docs index invariant                      | Every ADR is indexed, every link exists, required sections are present ([docs and forge](standards/docs-and-forge.md#living-adrs)).                                                                                            | Every PR.                                                                |
 
 ## Deliberately deferred
 
@@ -239,3 +246,4 @@ Exit criteria:
 - Cross-repo integration between Projects, and Python, C++ and Swift stacks (out of scope).
 - Revisiting changesets, only if packages must version independently ([Distribution](architecture/distribution.md#release-tooling)).
 - Dropping the Bun catalog workaround, once Renovate supports Bun catalogs ([versions](architecture/versions.md#renovate-and-the-registry-catalog)).
+- Adopting an existing repository (`aokit adopt`): `add`, `update` and friends need a Lockfile; a repo without one gets a clear error pointing to `create`.
