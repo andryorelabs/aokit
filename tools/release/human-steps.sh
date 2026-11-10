@@ -228,8 +228,10 @@ if confirm "Publish aokit and create-aokit 0.1.0-next.0 now?"; then
   (cd packages/aokit && bun pm pack --destination "$PACK_DIR")
   (cd packages/create-aokit && bun pm pack --destination "$PACK_DIR")
   for package in aokit create-aokit; do
-    env "npm_config_//registry.npmjs.org/:_authToken=$NPM_PUBLISH_TOKEN" \
+    (
+      export "npm_config_//registry.npmjs.org/:_authToken=$NPM_PUBLISH_TOKEN"
       npm publish "$PACK_DIR/$package-0.1.0-next.0.tgz" --access public --tag next
+    )
   done
   unset NPM_PUBLISH_TOKEN
   step "Revoke the token on npmjs.com now."
@@ -306,7 +308,9 @@ else
 fi
 
 stage "Verify a release"
-say "After the tag v0.1.0-next.0 is pushed, the Release workflow publishes with provenance."
+say "0.1.0-next.0 is already on npm, so the first tag must carry a new version."
+say "Run bun run release to bump (for example to 0.1.0-next.1), then push the tag it creates."
+say "The Release workflow then publishes with provenance; a tag equal to an existing version fails with E403."
 say "Check the binaries with: sha256sum -c SHA256SUMS --ignore-missing"
 say "and: gh attestation verify aokit-linux-x64 --repo $REPO"
 pause "Press Enter to finish."

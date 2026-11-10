@@ -173,7 +173,7 @@ Exit criteria:
 - A 2026.11.2 Project with vite-react and tailwind4 updated to 2026.12.0 has zero Conflicts.
 - After the cut, `aokit create` offers every new Module and no `registry-src/*/catalog.json` remains.
 
-Module expansion 2 (stack gaps) shipped in Release `2026.12.1`, cut under [ADR 0024](adr/0024-pending-modules-catalog-fragments-and-release-cuts.md) with the Catalog fragments merged into the Catalog and removed. It adds `eslint-react`, `vitest-react`, `msw`, `hono-zod-validator`, `next-themes`, `fontsource` and `shadcn-lint`, and bumps `oxc` 1.2.0, `eslint` 1.1.0, `vitest` 1.1.0 and `tsdown` 1.1.0, each with a Catalog fragment. `shadcn-lint` runs `@shadcn/lint`, which ships no bin, through Oxlint as a JS plugin (`lint:shadcn`). The version scheme, dated Releases and semver packages, is in [ADR 0026](adr/0026-registry-releases-are-dated-cli-versions-are-semver.md). The [Module catalog](architecture/module-catalog.md#pending-modules) lists them.
+Module expansion 2 (stack gaps) shipped in Release `2026.12.1`, cut under [ADR 0024](adr/0024-pending-modules-catalog-fragments-and-release-cuts.md) with the Catalog fragments merged into the Catalog and removed. It adds `eslint-react`, `vitest-react`, `msw`, `hono-zod-validator`, `next-themes`, `fontsource` and `shadcn-lint`, and bumps `oxc` 1.2.0, `eslint` 1.1.0, `vitest` 1.1.0 and `tsdown` 1.1.0, each with a Catalog fragment. `shadcn-lint` runs `@shadcn/lint`, which ships no bin, through Oxlint as a JS plugin (`lint:shadcn`). The version scheme, dated Releases and semver packages, is in [ADR 0026](adr/0026-registry-releases-are-dated-cli-versions-are-semver.md). The [Module catalog](architecture/module-catalog.md#added-in-release-2026121) lists them.
 
 ### 7. Distribution
 

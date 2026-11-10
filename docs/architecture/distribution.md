@@ -45,7 +45,7 @@ The jobs run on GitHub-hosted runners and are never routed to Blacksmith. `id-to
 - **Trusted publishing (OIDC).** The `publish` job publishes `aokit` and `create-aokit` with npm trusted publishing, so no long-lived npm token exists in the repository or in CI secrets. Each package must list `release.yml` of this repository as a trusted publisher on npmjs.com.
 - **Provenance.** `npm publish --provenance --access public` links each version to the commit and workflow run that built it.
 - **Dist-tag.** A version with a pre-release part (`0.1.0-next.0`) publishes with `--tag next`; any other version with `--tag latest` ([ADR 0026](../adr/0026-registry-releases-are-dated-cli-versions-are-semver.md)).
-- **First publish.** Trusted publishers can only be configured for a package that exists, so the first `0.1.0-next.0` is published by hand with a short-lived token. [`tools/release/human-steps.sh`](../../tools/release/human-steps.sh) walks the owner through it and the other manual steps, and never stores the token.
+- **First publish.** Trusted publishers can only be configured for a package that exists, so the first `0.1.0-next.0` is published by hand with a short-lived token. [`tools/release/human-steps.sh`](../../tools/release/human-steps.sh) walks the owner through it and the other manual steps, and never stores the token. The workflow cannot republish a version that exists, so the first tag must come from `bun run release` at a new version such as `0.1.0-next.1`.
 
 ## GitHub Releases
 
