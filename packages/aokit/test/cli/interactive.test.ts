@@ -26,6 +26,7 @@ async function projectAndRegistry(
     modules: "oxc,vite-react,tailwind4",
     yes: true,
     install: false,
+    git: false,
   });
   expect(created).toMatchObject({ ok: true });
   const served = await serveJourneyFixture();

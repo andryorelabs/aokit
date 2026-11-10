@@ -76,6 +76,7 @@ describe("aokit update against the committed Registry", () => {
       registry,
       yes: true,
       install: false,
+      git: false,
     });
     if (!created.ok) throw new Error(created.error.message);
     const routesPath = join(directory, "src/routes.tsx");
@@ -117,6 +118,7 @@ describe("aokit update against the committed Registry", () => {
       registry,
       yes: true,
       install: false,
+      git: false,
     });
     if (!created.ok) throw new Error(created.error.message);
     const pinned = parseJson(await readFile(join(directory, "aokit.lock.json"), "utf8"));

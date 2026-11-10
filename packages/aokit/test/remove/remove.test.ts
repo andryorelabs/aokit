@@ -33,8 +33,10 @@ async function create(modules: string[], layout: Layout): Promise<string> {
     modules: modules.join(","),
     yes: true,
     install: false,
+    git: false,
   });
   if (!envelope.ok) throw new Error(envelope.error.message);
+  await rm(join(directory, "README.md"), { force: true });
   return directory;
 }
 
@@ -63,7 +65,10 @@ async function tree(directory: string, prefix = ""): Promise<Record<string, stri
   const entries = await readdir(join(directory, prefix), { withFileTypes: true });
   const parts = await Promise.all(
     entries
-      .filter((entry) => entry.name !== "node_modules" && entry.name !== ".git")
+      .filter(
+        (entry) =>
+          entry.name !== "node_modules" && entry.name !== ".git" && entry.name !== "README.md",
+      )
       .map(async (entry): Promise<Record<string, string>> => {
         const path = prefix === "" ? entry.name : `${prefix}/${entry.name}`;
         return entry.isDirectory()

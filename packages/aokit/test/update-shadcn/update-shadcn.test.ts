@@ -67,6 +67,7 @@ async function project(): Promise<{ directory: string; served: ServedShadcnRegis
     trust: [served.url],
     yes: true,
     install: false,
+    git: false,
   });
   if (!created.ok) throw new Error(created.error.message);
   await gitIn(directory, "init", "-q");
@@ -85,6 +86,7 @@ async function mixedProject(): Promise<{ directory: string; served: ServedShadcn
     modules: "oxc,vite-react",
     yes: true,
     install: false,
+    git: false,
   });
   if (!created.ok) throw new Error(created.error.message);
   const added = await runCommand(addCommand, commandContext, {

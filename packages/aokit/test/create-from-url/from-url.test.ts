@@ -60,7 +60,7 @@ function newDirectory(): string {
 }
 
 function create(input: Record<string, unknown>) {
-  return runCommand(createCommand, context, { yes: true, install: false, ...input });
+  return runCommand(createCommand, context, { yes: true, install: false, git: false, ...input });
 }
 
 async function bundledSource(): Promise<string> {

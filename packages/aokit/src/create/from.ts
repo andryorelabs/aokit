@@ -17,6 +17,7 @@ import {
   type RegistryAdapters,
 } from "../project/registry.ts";
 import { bundledRegistryPath } from "../registry/bundled.ts";
+import type { Registry } from "../registry/index.ts";
 
 /** Inputs of {@link renderFromSource}. */
 export interface FromSourceRequest {
@@ -40,6 +41,8 @@ export interface FromSourceRender {
   readonly built: BuiltProject;
   /** The Lockfile of the new Project, with Registry sources relative to the new directory. */
   readonly lockfile: Lockfile;
+  /** The manifest of every Module of the Lockfile, sorted by name. */
+  readonly manifests: readonly ModuleManifest[];
 }
 
 function isUrl(value: string): boolean {
@@ -252,6 +255,28 @@ async function openSourceRegistries(
   }
 }
 
+async function manifestsOfLockfile(
+  lockfile: Lockfile,
+  registries: ReadonlyMap<string, Registry>,
+): Promise<ModuleManifest[]> {
+  const entries = Object.entries(lockfile.modules).toSorted(([left], [right]) =>
+    left < right ? -1 : left > right ? 1 : 0,
+  );
+  return Promise.all(
+    entries.map(async ([name, entry]) => {
+      const registry = registries.get(entry.registry);
+      if (registry === undefined) {
+        throw new AokitError(
+          "INVALID_INPUT",
+          `Module "${name}" refers to Registry "${entry.registry}", which the Lockfile does not list.`,
+          "restore the Lockfile from version control",
+        );
+      }
+      return (await registry.version(name, entry.version)).manifest;
+    }),
+  );
+}
+
 /**
  * Renders a new Project from a Lockfile, local or fetched from an `http(s)` URL: its Layout,
  * Module versions, answers and Registries, with `--answer` flags overriding single answers. Every
@@ -273,8 +298,10 @@ export async function renderFromSource(request: FromSourceRequest): Promise<From
     registries: opened.registries,
   });
   assertIntegrity(source, built.lockfile);
+  const manifests = await manifestsOfLockfile(built.lockfile, opened.registries);
   return {
     built,
+    manifests,
     lockfile: {
       ...built.lockfile,
       registries: withTrust(

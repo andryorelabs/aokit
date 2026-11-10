@@ -52,6 +52,7 @@ async function createProject(
     modules,
     yes: true,
     install: false,
+    git: false,
   });
   expect(envelope.ok).toBe(true);
   if (repository) {
@@ -75,7 +76,7 @@ function tree(root: string, prefix = ""): Record<string, string> {
   const files: Record<string, string> = {};
   for (const name of readdirSync(join(root, prefix)).toSorted()) {
     const relative = prefix === "" ? name : `${prefix}/${name}`;
-    if (name === ".git" || name === "aokit.lock.json") continue;
+    if (name === ".git" || name === "aokit.lock.json" || name === "README.md") continue;
     if (statSync(join(root, relative)).isDirectory()) Object.assign(files, tree(root, relative));
     else files[relative] = readFileSync(join(root, relative), "utf8");
   }

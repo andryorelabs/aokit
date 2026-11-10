@@ -23,7 +23,7 @@ afterAll(async () => {
 });
 
 function create(input: Record<string, unknown>) {
-  return runCommand(createCommand, context, { yes: true, install: false, ...input });
+  return runCommand(createCommand, context, { yes: true, install: false, git: false, ...input });
 }
 
 function uniqueDirectory(prefix: string): string {
@@ -36,7 +36,8 @@ async function tree(directory: string): Promise<Record<string, string>> {
     entries
       .filter((entry) => entry.isFile())
       .map((entry) => join(entry.parentPath, entry.name))
-      .map((path) => [path.slice(directory.length), readFileSync(path, "utf8")] as const),
+      .map((path) => [path.slice(directory.length), readFileSync(path, "utf8")] as const)
+      .filter(([path]) => path !== "/README.md"),
   );
 }
 

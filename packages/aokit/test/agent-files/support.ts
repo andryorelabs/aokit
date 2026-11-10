@@ -93,6 +93,7 @@ export async function createProject(
     registry,
     yes: true,
     install: false,
+    git: false,
   });
   if (!envelope.ok) throw new Error(envelope.error.message);
   return directory;
@@ -148,7 +149,10 @@ export async function tree(directory: string, prefix = ""): Promise<Record<strin
   const entries = await readdir(join(directory, prefix), { withFileTypes: true });
   const parts = await Promise.all(
     entries
-      .filter((entry) => entry.name !== "node_modules" && entry.name !== ".git")
+      .filter(
+        (entry) =>
+          entry.name !== "node_modules" && entry.name !== ".git" && entry.name !== "README.md",
+      )
       .map(async (entry): Promise<Record<string, string>> => {
         const path = prefix === "" ? entry.name : `${prefix}/${entry.name}`;
         return entry.isDirectory()

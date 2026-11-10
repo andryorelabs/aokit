@@ -32,7 +32,7 @@ describe("tool listing", () => {
     expect(create?.annotations?.destructiveHint).toBe(true);
     const planProperties = Object.keys(plan?.inputSchema.properties ?? {}).toSorted();
     expect(planProperties).toEqual(
-      ["answer", "directory", "from", "layout", "modules", "registry", "trust"].toSorted(),
+      ["answer", "directory", "from", "git", "layout", "modules", "registry", "trust"].toSorted(),
     );
     expect([...(plan?.inputSchema.required ?? [])].toSorted()).toEqual(planProperties);
     expect(create?.inputSchema.required).toContain("planId");

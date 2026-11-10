@@ -21,6 +21,8 @@ import {
 import type { Registry } from "../registry/index.ts";
 import { reproduceCommand } from "../project/reproduce.ts";
 import { renderFromSource } from "./from.ts";
+import { initGitRepository } from "./git.ts";
+import { withProjectReadme } from "./readme.ts";
 import { checkTarget } from "./target.ts";
 
 /** Everything `create` needs besides the process. */
@@ -33,6 +35,8 @@ export interface CreateRequest {
   readonly dryRun: boolean;
   readonly diff: boolean;
   readonly install: boolean;
+  /** Run `git init` and make an initial commit after the install; `true` by default. */
+  readonly git?: boolean;
   /** Local Lockfile to create from; Modules, Layout and Registries come from it. */
   readonly from?: string | undefined;
   readonly version: string;
@@ -61,6 +65,7 @@ export interface CreateResult {
   readonly modules: string[];
   readonly applied: boolean;
   readonly installed: boolean;
+  readonly gitInitialized: boolean;
   readonly plan: { readonly hash: string; readonly changes: CreatePlanChange[] };
   readonly diff?: string;
   readonly warnings: string[];
@@ -81,11 +86,20 @@ export function toPlanChange(change: PlanChange): CreatePlanChange {
     path: change.path,
     mode: change.mode ?? null,
     ownership: change.ownership,
-    provenance: change.provenance.map((entry) => ({
-      module: entry.module,
-      source: describeEntry(entry.entry),
-    })),
+    provenance: mergeProvenance(change.provenance),
   };
+}
+
+/** One entry per Module, in first-seen order, with its distinct sources joined. */
+function mergeProvenance(provenance: PlanChange["provenance"]): CreatePlanChange["provenance"] {
+  const sources = new Map<string, string[]>();
+  for (const entry of provenance) {
+    const described = describeEntry(entry.entry);
+    const known = sources.get(entry.module) ?? [];
+    if (!known.includes(described)) known.push(described);
+    sources.set(entry.module, known);
+  }
+  return [...sources].map(([module, known]) => ({ module, source: known.join(", ") }));
 }
 
 function warningTexts(warnings: readonly { readonly message: string }[]): string[] {
@@ -166,7 +180,7 @@ async function plan(request: CreateRequest): Promise<PlannedProject> {
     throw fromResolveError(built.error);
   }
   return {
-    plan: built.plan,
+    plan: withProjectReadme(built.plan, request.directory, manifests),
     lockfile: built.lockfile,
     warnings: warningTexts(built.warnings),
     layout: request.layout,
@@ -212,6 +226,11 @@ function reproduceFrom(request: CreateRequest): string {
   ].join(" ");
 }
 
+/** The reproducing command with `--no-git` before its closing `--yes`. */
+function withoutGit(reproduce: string): string {
+  return reproduce.replace(/ --yes$/, " --no-git --yes");
+}
+
 function shellWord(value: string): string {
   return /^[A-Za-z0-9_@%+=:,./-]+$/.test(value) ? value : `'${value.replaceAll("'", "'\\''")}'`;
 }
@@ -227,7 +246,7 @@ async function planFrom(request: CreateRequest, directory: string): Promise<Plan
     adapters: { env: request.env, ...request.adapters },
   });
   return {
-    plan: rendered.built.plan,
+    plan: withProjectReadme(rendered.built.plan, directory, rendered.manifests),
     lockfile: rendered.lockfile,
     warnings: warningTexts(rendered.built.warnings),
     layout: rendered.lockfile.layout,
@@ -254,7 +273,7 @@ export async function runCreate(request: CreateRequest): Promise<CreateResult> {
       modules: planned.moduleNames,
       plan: { hash: planned.plan.hash, changes },
       warnings: planned.warnings,
-      reproduce: planned.reproduce,
+      reproduce: request.git === false ? withoutGit(planned.reproduce) : planned.reproduce,
       release: releaseOf(planned.lockfile),
     };
     if (request.dryRun || request.diff) {
@@ -262,6 +281,7 @@ export async function runCreate(request: CreateRequest): Promise<CreateResult> {
         ...base,
         applied: false,
         installed: false,
+        gitInitialized: false,
         ...(request.diff ? { diff: unifiedDiff(planned.plan) } : {}),
       };
     }
@@ -269,7 +289,14 @@ export async function runCreate(request: CreateRequest): Promise<CreateResult> {
     if (request.install) {
       await runInstall(directory, request.env);
     }
-    return { ...base, applied: true, installed: request.install };
+    const git = request.git === false ? undefined : await initGitRepository(directory, request.env);
+    return {
+      ...base,
+      warnings: git?.status === "skipped" ? [...base.warnings, git.warning] : base.warnings,
+      applied: true,
+      installed: request.install,
+      gitInitialized: git?.status === "committed",
+    };
   } catch (thrown) {
     throw toAokitError(thrown);
   }

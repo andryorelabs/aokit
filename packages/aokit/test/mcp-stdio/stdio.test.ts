@@ -91,6 +91,7 @@ function createInput(directory: string): Record<string, unknown> {
     answer: null,
     registry: null,
     trust: null,
+    git: false,
   };
 }
 
