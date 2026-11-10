@@ -19,6 +19,13 @@ const releaseWorkflowPath = join(repositoryRoot, ".github", "workflows", "releas
 const resolveStepName = "Resolve version, dist-tag and dry-run";
 const publishStepName = "Publish @aokit/module, aokit, then create-aokit";
 
+/**
+ * Skipped on Windows: these run release.yml `run:` scripts, which only ever run on Linux runners,
+ * through bash with a colon-joined POSIX PATH and fake shebang executables Windows cannot exec.
+ */
+const isWindows = process.platform === "win32";
+const bashStepTest = test.skipIf(isWindows);
+
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null && !Array.isArray(value);
 }
@@ -200,6 +207,13 @@ describe("S2: release workflow", () => {
     }
   });
 
+  test("S18: only the publish job runs in the protected npm environment", () => {
+    expect(job("publish")["environment"]).toBe("npm");
+    for (const jobName of Object.keys(jobs).filter((id) => id !== "publish")) {
+      expect(job(jobName)["environment"]).toBeUndefined();
+    }
+  });
+
   test("verify checks, tests, builds, lints and packs all three packages", () => {
     const commands = steps("verify")
       .map((step) => step["run"])
@@ -229,7 +243,7 @@ describe("S2: release workflow", () => {
     }
   });
 
-  describe("resolving the version, dist-tag and dry-run", () => {
+  describe.skipIf(isWindows)("resolving the version, dist-tag and dry-run", () => {
     test("a pushed pre-release tag publishes for real under next", () => {
       const result = resolveRelease({
         aokitVersion: "0.1.0-next.0",
@@ -318,7 +332,7 @@ describe("S2: release workflow", () => {
     });
   });
 
-  describe("publishing", () => {
+  describe.skipIf(isWindows)("publishing", () => {
     test.each(["true", "", "yes", "False"])(
       'DRY_RUN "%s" reaches only npm publish --dry-run, for all three packages',
       (dryRun) => {
@@ -410,7 +424,7 @@ describe("S8: post-publish smoke job", () => {
     expect(env["DIST_TAG"]).toBe("${{ needs.verify.outputs.dist-tag }}");
   });
 
-  test("a stable version on latest for all three packages passes", () => {
+  bashStepTest("a stable version on latest for all three packages passes", () => {
     const result = runSmoke(distTagStepName, "0.1.0", "latest", {
       "@aokit/module dist-tags.latest": "0.1.0",
       "aokit dist-tags.latest": "0.1.0",
@@ -424,7 +438,7 @@ describe("S8: post-publish smoke job", () => {
     ]);
   });
 
-  test("a pre-release on next passes when every package's next tag holds it", () => {
+  bashStepTest("a pre-release on next passes when every package's next tag holds it", () => {
     const result = runSmoke(distTagStepName, "0.2.0-next.1", "next", {
       "@aokit/module dist-tags.next": "0.2.0-next.1",
       "aokit dist-tags.next": "0.2.0-next.1",
@@ -433,7 +447,7 @@ describe("S8: post-publish smoke job", () => {
     expect(result.exitCode, result.output).toBe(0);
   });
 
-  test("a stable tag fails when npm latest of aokit differs from the version", () => {
+  bashStepTest("a stable tag fails when npm latest of aokit differs from the version", () => {
     const result = runSmoke(distTagStepName, "0.1.0", "latest", {
       "@aokit/module dist-tags.latest": "0.1.0",
       "aokit dist-tags.latest": "0.1.0-next.0",
@@ -443,7 +457,7 @@ describe("S8: post-publish smoke job", () => {
     expect(result.output).toContain("npm dist-tag latest of aokit is 0.1.0-next.0, expected 0.1.0");
   });
 
-  test("a missing dist-tag fails and names the package", () => {
+  bashStepTest("a missing dist-tag fails and names the package", () => {
     const result = runSmoke(distTagStepName, "0.1.0", "latest", {
       "@aokit/module dist-tags.latest": "0.1.0",
       "aokit dist-tags.latest": "0.1.0",
@@ -454,17 +468,20 @@ describe("S8: post-publish smoke job", () => {
     );
   });
 
-  test("it runs aokit --version and create-aokit smoke --yes from npm in a temporary directory", () => {
-    const result = runSmoke(runStepName, "0.1.0", "latest", {});
-    expect(result.exitCode, result.output).toBe(0);
-    expect(result.calls).toHaveLength(2);
-    expect(result.calls[0]).toMatch(/^bunx aokit@0\.1\.0 --version in smoke-run\./);
-    expect(result.calls[1]).toMatch(
-      /^bunx create-aokit@0\.1\.0 smoke --yes --modules oxc in smoke-run\./,
-    );
-  });
+  bashStepTest(
+    "it runs aokit --version and create-aokit smoke --yes from npm in a temporary directory",
+    () => {
+      const result = runSmoke(runStepName, "0.1.0", "latest", {});
+      expect(result.exitCode, result.output).toBe(0);
+      expect(result.calls).toHaveLength(2);
+      expect(result.calls[0]).toMatch(/^bunx aokit@0\.1\.0 --version in smoke-run\./);
+      expect(result.calls[1]).toMatch(
+        /^bunx create-aokit@0\.1\.0 smoke --yes --modules oxc in smoke-run\./,
+      );
+    },
+  );
 
-  test("it fails before create-aokit when aokit --version prints another version", () => {
+  bashStepTest("it fails before create-aokit when aokit --version prints another version", () => {
     const result = runSmoke(runStepName, "0.1.0", "latest", {}, "0.1.0-next.1");
     expect(result.exitCode).toBe(1);
     expect(result.output).toContain("bunx aokit@0.1.0 --version printed 0.1.0-next.1");
@@ -629,7 +646,7 @@ describe("S3: release binaries, SHA256SUMS and attestations", () => {
     });
   });
 
-  test("SHA256SUMS is sorted, covers exactly the five binaries and checks out", () => {
+  bashStepTest("SHA256SUMS is sorted, covers exactly the five binaries and checks out", () => {
     const result = writeChecksums(releasedBinaries.toReversed());
     expect(result.exitCode).toBe(0);
     const lines = result.sums.trimEnd().split("\n");
@@ -638,7 +655,7 @@ describe("S3: release binaries, SHA256SUMS and attestations", () => {
     expect(result.output).toContain("aokit-linux-x64: OK");
   });
 
-  test.each([
+  bashStepTest.each([
     ["a missing binary", releasedBinaries.slice(1)],
     ["an extra file", [...releasedBinaries, "aokit-linux-x64-musl"]],
   ])("SHA256SUMS fails with %s", (_label, files) => {
@@ -656,29 +673,35 @@ describe("S3: release binaries, SHA256SUMS and attestations", () => {
     });
   });
 
-  test("the release notes carry the verification steps and the tested-binaries sentence", () => {
-    const directory = temporaryDirectory();
-    const notesFile = join(directory, "release-notes.md");
-    writeFileSync(notesFile, "## Features\n");
-    const result = runBash(
-      runScript("release", "Add verification steps to the release notes"),
-      directory,
-      { NOTES_FILE: notesFile, REPOSITORY: "andryorelabs/aokit" },
-    );
-    expect(result.exitCode).toBe(0);
-    const notes = readFileSync(notesFile, "utf8");
-    expect(notes).toStartWith("## Features\n");
-    expect(notes).toContain("sha256sum -c SHA256SUMS");
-    expect(notes).toContain("gh attestation verify aokit-linux-x64 --repo andryorelabs/aokit");
-    expect(notes).toContain(testedSentence);
-    expect(notes).not.toContain("not tested end to end");
-  });
+  bashStepTest(
+    "the release notes carry the verification steps and the tested-binaries sentence",
+    () => {
+      const directory = temporaryDirectory();
+      const notesFile = join(directory, "release-notes.md");
+      writeFileSync(notesFile, "## Features\n");
+      const result = runBash(
+        runScript("release", "Add verification steps to the release notes"),
+        directory,
+        { NOTES_FILE: notesFile, REPOSITORY: "andryorelabs/aokit" },
+      );
+      expect(result.exitCode).toBe(0);
+      const notes = readFileSync(notesFile, "utf8");
+      expect(notes).toStartWith("## Features\n");
+      expect(notes).toContain("sha256sum -c SHA256SUMS");
+      expect(notes).toContain("gh attestation verify aokit-linux-x64 --repo andryorelabs/aokit");
+      expect(notes).toContain(testedSentence);
+      expect(notes).not.toContain("not tested end to end");
+    },
+  );
 
-  test.each(["true", "", "False"])('DRY_RUN "%s" never creates the GitHub Release', (dryRun) => {
-    expect(releaseCalls(dryRun, "next").calls).toEqual([]);
-  });
+  bashStepTest.each(["true", "", "False"])(
+    'DRY_RUN "%s" never creates the GitHub Release',
+    (dryRun) => {
+      expect(releaseCalls(dryRun, "next").calls).toEqual([]);
+    },
+  );
 
-  test.each([
+  bashStepTest.each([
     ["next", " --prerelease"],
     ["latest", ""],
   ])("a real release under %s attaches the binaries and SHA256SUMS", (distTag, prerelease) => {
