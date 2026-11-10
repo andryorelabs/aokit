@@ -22,9 +22,10 @@
     "directory": "packages/aokit"
   },
   "bin": {
-    "aokit": "./dist/cli.js"
+    "aokit": "./bin/aokit.js"
   },
   "files": [
+    "bin",
     "dist",
     "registry"
   ],

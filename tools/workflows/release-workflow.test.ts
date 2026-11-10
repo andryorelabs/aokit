@@ -17,7 +17,7 @@ import { parseBinaryTarget } from "../build-binary/targets.ts";
 const repositoryRoot = join(import.meta.dir, "..", "..");
 const releaseWorkflowPath = join(repositoryRoot, ".github", "workflows", "release.yml");
 const resolveStepName = "Resolve version, dist-tag and dry-run";
-const publishStepName = "Publish aokit then create-aokit";
+const publishStepName = "Publish @aokit/module, aokit, then create-aokit";
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null && !Array.isArray(value);
@@ -87,6 +87,7 @@ interface ReleaseInputs {
   aokitVersion: string;
   createAokitVersion?: string;
   createAokitDependency?: string;
+  moduleVersion?: string;
   eventName: "push" | "workflow_dispatch";
   refType: "tag" | "branch";
   refName: string;
@@ -101,6 +102,11 @@ function resolveRelease(inputs: ReleaseInputs): ResolvedRelease {
   const directory = temporaryDirectory();
   mkdirSync(join(directory, "packages", "aokit"), { recursive: true });
   mkdirSync(join(directory, "packages", "create-aokit"), { recursive: true });
+  mkdirSync(join(directory, "packages", "module"), { recursive: true });
+  writeFileSync(
+    join(directory, "packages", "module", "package.json"),
+    JSON.stringify({ name: "@aokit/module", version: inputs.moduleVersion ?? inputs.aokitVersion }),
+  );
   writeFileSync(
     join(directory, "packages", "aokit", "package.json"),
     JSON.stringify({ name: "aokit", version: inputs.aokitVersion }),
@@ -132,13 +138,24 @@ function resolveRelease(inputs: ReleaseInputs): ResolvedRelease {
 }
 
 /** Runs the publish step with a fake `npm` on PATH and returns each recorded `npm` call. */
-function publishCalls(dryRun: string, distTag = "next", version = "0.1.0-next.0"): string[] {
+function publishCalls(
+  dryRun: string,
+  distTag = "next",
+  version = "0.1.0-next.0",
+  alreadyPublished: readonly string[] = [],
+): string[] {
   const directory = temporaryDirectory();
   const binDirectory = join(directory, "bin");
   mkdirSync(binDirectory);
   const callLog = join(directory, "npm-calls");
   const fakeNpm = join(binDirectory, "npm");
-  writeFileSync(fakeNpm, `#!/usr/bin/env bash\necho "npm $*" >> "${callLog}"\n`);
+  const publishedLookups = alreadyPublished
+    .map((name) => `  "${name}@${version}") echo "${version}" ;;`)
+    .join("\n");
+  writeFileSync(
+    fakeNpm,
+    `#!/usr/bin/env bash\nif [ "$1" = view ]; then\ncase "$2" in\n${publishedLookups}\nesac\nexit 0\nfi\necho "npm $*" >> "${callLog}"\n`,
+  );
   chmodSync(fakeNpm, 0o755);
   writeFileSync(callLog, "");
   const result = runBash(runScript("publish", publishStepName), directory, {
@@ -163,8 +180,8 @@ describe("S2: release workflow", () => {
     expect(Object.keys(on).toSorted()).toEqual(["push", "workflow_dispatch"]);
   });
 
-  test("verify runs first, then binaries, then the GitHub Release, and publish runs last", () => {
-    expect(Object.keys(jobs)).toEqual(["verify", "binaries", "release", "publish"]);
+  test("verify runs first, then binaries, then the GitHub Release, then publish, then smoke", () => {
+    expect(Object.keys(jobs)).toEqual(["verify", "binaries", "release", "publish", "smoke"]);
     expect(job("binaries")["needs"]).toBe("verify");
     expect(job("release")["needs"]).toEqual(["verify", "binaries"]);
     expect(job("publish")["needs"]).toEqual(["verify", "binaries", "release"]);
@@ -183,7 +200,7 @@ describe("S2: release workflow", () => {
     }
   });
 
-  test("verify checks, tests, builds, lints and packs both packages", () => {
+  test("verify checks, tests, builds, lints and packs all three packages", () => {
     const commands = steps("verify")
       .map((step) => step["run"])
       .filter((run): run is string => typeof run === "string")
@@ -195,6 +212,7 @@ describe("S2: release workflow", () => {
       "bun run lint:package",
       "(cd packages/aokit && bun pm pack",
       "(cd packages/create-aokit && bun pm pack",
+      '(cd packages/module/dist && bun pm pack --destination "$RUNNER_TEMP/release/module")',
       "bun test packages/aokit/test/dist/package",
       "bun run release:notes",
     ]) {
@@ -203,7 +221,7 @@ describe("S2: release workflow", () => {
   });
 
   test("npm publish appears only in the publish job", () => {
-    for (const name of ["verify", "binaries", "release"]) {
+    for (const name of ["verify", "binaries", "release", "smoke"]) {
       const runs = steps(name).map((step) => step["run"]);
       expect(runs.some((run) => typeof run === "string" && run.includes("npm publish"))).toBe(
         false,
@@ -286,6 +304,7 @@ describe("S2: release workflow", () => {
     test.each([
       ["create-aokit at another version", { createAokitVersion: "0.1.0" }],
       ["create-aokit depending on another aokit", { createAokitDependency: "0.1.0" }],
+      ["@aokit/module at another version", { moduleVersion: "0.1.0" }],
     ])("%s fails", (_label, mismatch) => {
       const result = resolveRelease({
         aokitVersion: "0.1.0-next.0",
@@ -301,20 +320,153 @@ describe("S2: release workflow", () => {
 
   describe("publishing", () => {
     test.each(["true", "", "yes", "False"])(
-      'DRY_RUN "%s" reaches only npm publish --dry-run',
+      'DRY_RUN "%s" reaches only npm publish --dry-run, for all three packages',
       (dryRun) => {
         const calls = publishCalls(dryRun);
-        expect(calls).toHaveLength(2);
+        expect(calls).toHaveLength(3);
         for (const call of calls) expect(call).toEndWith("--dry-run");
       },
     );
 
-    test("a real publish sends aokit then create-aokit with provenance and the dist-tag", () => {
+    test("a real publish sends @aokit/module, then aokit, then create-aokit with provenance and the dist-tag", () => {
       expect(publishCalls("false", "next")).toEqual([
+        "npm publish /release/module/aokit-module-0.1.0-next.0.tgz --provenance --access public --tag next",
         "npm publish /release/tarballs/aokit-0.1.0-next.0.tgz --provenance --access public --tag next",
         "npm publish /release/tarballs/create-aokit-0.1.0-next.0.tgz --provenance --access public --tag next",
       ]);
     });
+
+    test("a package already on npm at the version is skipped and the others still publish", () => {
+      expect(publishCalls("false", "next", "0.1.0-next.0", ["@aokit/module"])).toEqual([
+        "npm publish /release/tarballs/aokit-0.1.0-next.0.tgz --provenance --access public --tag next",
+        "npm publish /release/tarballs/create-aokit-0.1.0-next.0.tgz --provenance --access public --tag next",
+      ]);
+    });
+
+    test("a dry run publishes all three even when npm already has the version", () => {
+      const calls = publishCalls("true", "next", "0.1.0-next.0", ["@aokit/module"]);
+      expect(calls).toHaveLength(3);
+    });
+  });
+});
+
+interface SmokeRun extends ScriptResult {
+  calls: string[];
+}
+
+/**
+ * Runs a smoke step with fake `npm` and `bunx` on PATH. The fake `npm view` prints the version
+ * `publishedTags` maps for the asked dist-tag of the asked package, the fake `bunx … --version`
+ * prints `printedVersion`, and each call is recorded.
+ */
+function runSmoke(
+  stepName: string,
+  version: string,
+  distTag: string,
+  publishedTags: Record<string, string>,
+  printedVersion = version,
+): SmokeRun {
+  const directory = temporaryDirectory();
+  const binDirectory = join(directory, "bin");
+  mkdirSync(binDirectory);
+  const callLog = join(directory, "calls");
+  writeFileSync(callLog, "");
+  const lookups = Object.entries(publishedTags)
+    .map(([key, value]) => `  "${key}") echo "${value}" ;;`)
+    .join("\n");
+  writeFileSync(
+    join(binDirectory, "npm"),
+    `#!/usr/bin/env bash\necho "npm $*" >> "${callLog}"\ncase "$2 $3" in\n${lookups}\nesac\n`,
+  );
+  writeFileSync(
+    join(binDirectory, "bunx"),
+    `#!/usr/bin/env bash\necho "bunx $* in $(basename "$PWD")" >> "${callLog}"\nif [ "$2" = --version ]; then echo "${printedVersion}"; fi\n`,
+  );
+  chmodSync(join(binDirectory, "npm"), 0o755);
+  chmodSync(join(binDirectory, "bunx"), 0o755);
+  const result = runBash(runScript("smoke", stepName), directory, {
+    PATH: `${binDirectory}:${process.env["PATH"] ?? ""}`,
+    VERSION: version,
+    DIST_TAG: distTag,
+    RETRY_SECONDS: "0",
+    RUNNER_TEMP: directory,
+  });
+  return { ...result, calls: readFileSync(callLog, "utf8").split("\n").filter(Boolean) };
+}
+
+const distTagStepName = "Check the npm dist-tags";
+const runStepName = "Run aokit and create-aokit from npm";
+
+describe("S8: post-publish smoke job", () => {
+  test("smoke runs after publish and only on a real release", () => {
+    expect(job("smoke")["needs"]).toEqual(["verify", "publish"]);
+    expect(job("smoke")["if"]).toBe("needs.verify.outputs.dry-run == 'false'");
+    expect(job("smoke")["permissions"]).toBeUndefined();
+  });
+
+  test("smoke reads the version and dist-tag that verify resolved", () => {
+    const env = asRecord(job("smoke")["env"], "smoke env");
+    expect(env["VERSION"]).toBe("${{ needs.verify.outputs.version }}");
+    expect(env["DIST_TAG"]).toBe("${{ needs.verify.outputs.dist-tag }}");
+  });
+
+  test("a stable version on latest for all three packages passes", () => {
+    const result = runSmoke(distTagStepName, "0.1.0", "latest", {
+      "@aokit/module dist-tags.latest": "0.1.0",
+      "aokit dist-tags.latest": "0.1.0",
+      "create-aokit dist-tags.latest": "0.1.0",
+    });
+    expect(result.exitCode, result.output).toBe(0);
+    expect(result.calls).toEqual([
+      "npm view @aokit/module dist-tags.latest",
+      "npm view aokit dist-tags.latest",
+      "npm view create-aokit dist-tags.latest",
+    ]);
+  });
+
+  test("a pre-release on next passes when every package's next tag holds it", () => {
+    const result = runSmoke(distTagStepName, "0.2.0-next.1", "next", {
+      "@aokit/module dist-tags.next": "0.2.0-next.1",
+      "aokit dist-tags.next": "0.2.0-next.1",
+      "create-aokit dist-tags.next": "0.2.0-next.1",
+    });
+    expect(result.exitCode, result.output).toBe(0);
+  });
+
+  test("a stable tag fails when npm latest of aokit differs from the version", () => {
+    const result = runSmoke(distTagStepName, "0.1.0", "latest", {
+      "@aokit/module dist-tags.latest": "0.1.0",
+      "aokit dist-tags.latest": "0.1.0-next.0",
+      "create-aokit dist-tags.latest": "0.1.0",
+    });
+    expect(result.exitCode).toBe(1);
+    expect(result.output).toContain("npm dist-tag latest of aokit is 0.1.0-next.0, expected 0.1.0");
+  });
+
+  test("a missing dist-tag fails and names the package", () => {
+    const result = runSmoke(distTagStepName, "0.1.0", "latest", {
+      "@aokit/module dist-tags.latest": "0.1.0",
+      "aokit dist-tags.latest": "0.1.0",
+    });
+    expect(result.exitCode).toBe(1);
+    expect(result.output).toContain(
+      "npm dist-tag latest of create-aokit is missing, expected 0.1.0",
+    );
+  });
+
+  test("it runs aokit --version and create-aokit smoke --yes from npm in a temporary directory", () => {
+    const result = runSmoke(runStepName, "0.1.0", "latest", {});
+    expect(result.exitCode, result.output).toBe(0);
+    expect(result.calls).toHaveLength(2);
+    expect(result.calls[0]).toMatch(/^bunx aokit@0\.1\.0 --version in smoke-run\./);
+    expect(result.calls[1]).toMatch(/^bunx create-aokit@0\.1\.0 smoke --yes in smoke-run\./);
+  });
+
+  test("it fails before create-aokit when aokit --version prints another version", () => {
+    const result = runSmoke(runStepName, "0.1.0", "latest", {}, "0.1.0-next.1");
+    expect(result.exitCode).toBe(1);
+    expect(result.output).toContain("bunx aokit@0.1.0 --version printed 0.1.0-next.1");
+    expect(result.calls).toHaveLength(1);
   });
 });
 

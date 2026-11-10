@@ -20,7 +20,7 @@ Rules for how the `aokit` CLI behaves in a terminal, in CI and under a coding ag
 | `--diff`          | Print the Plan as unified diffs per file (implies `--dry-run`). |
 | `--no-color`      | Disable color (same as `NO_COLOR`).                             |
 | `--quiet`, `-q`   | Only errors.                                                    |
-| `--verbose`, `-v` | Print resolver decisions and per-Module timings to stderr.      |
+| `--verbose`       | Print the stack trace of an `INTERNAL` error to stderr.         |
 | `--help`, `-h`    | Help with examples.                                             |
 | `--version`, `-V` | Print the CLI version only.                                     |
 
@@ -152,7 +152,7 @@ error: cannot add `drizzle`
         or keep prisma and drop drizzle from --modules
 ```
 
-Resolver messages follow [Capabilities: error messages](capabilities.md#error-messages). Errors go to stderr (or into `error` with `--json`), carry a stable `code`, and never print a stack trace unless `--verbose`. Unexpected exceptions print the code `INTERNAL`, the path of a log file with the trace, and the issue URL.
+Resolver messages follow [Capabilities: error messages](capabilities.md#error-messages). Errors go to stderr (or into `error` with `--json`), carry a stable `code`, and never print a stack trace unless `--verbose`. Unexpected exceptions print the code `INTERNAL` and the issue URL; with `--verbose` the stack trace goes to stderr and the `--json` envelope is unchanged.
 
 ## Safe Ctrl+C
 

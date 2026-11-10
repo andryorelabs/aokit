@@ -9,6 +9,14 @@ Every Markdown file under `docs/` has a row here; a test fails when one is missi
 | [stability.md](stability.md)    | Stability |
 | [CHANGELOG.md](../CHANGELOG.md) | Changelog |
 
+## Guides
+
+| Doc                                                        | Title              |
+| ---------------------------------------------------------- | ------------------ |
+| [guide/getting-started.md](guide/getting-started.md)       | Getting started    |
+| [guide/writing-modules.md](guide/writing-modules.md)       | Writing a Module   |
+| [guide/hosting-a-registry.md](guide/hosting-a-registry.md) | Hosting a Registry |
+
 ## Reference
 
 | Doc                                      | Title           |
