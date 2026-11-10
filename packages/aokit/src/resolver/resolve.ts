@@ -174,6 +174,142 @@ function describeUnmet(
   };
 }
 
+function capabilityLimit(entry: ModuleManifest["provides"][number]): number {
+  return entry.cardinality === "many" ? Number.POSITIVE_INFINITY : entry.cardinality.max;
+}
+
+function blockersOf(candidate: ModuleManifest, selected: readonly ModuleManifest[]): string[] {
+  const blockers = new Set<string>();
+  for (const entry of candidate.provides) {
+    const holders = selected.filter((other) =>
+      other.provides.some((held) => held.capability === entry.capability),
+    );
+    const limits = holders.flatMap((holder) =>
+      holder.provides
+        .filter((held) => held.capability === entry.capability)
+        .map((held) => capabilityLimit(held)),
+    );
+    if (holders.length + 1 > Math.min(capabilityLimit(entry), ...limits)) {
+      for (const holder of holders) blockers.add(holder.name);
+    }
+  }
+  for (const other of selected) {
+    const conflicting =
+      candidate.conflicts.includes(other.name) ||
+      other.conflicts.includes(candidate.name) ||
+      other.provides.some((held) => candidate.conflicts.includes(held.capability)) ||
+      candidate.provides.some((held) => other.conflicts.includes(held.capability));
+    if (conflicting) blockers.add(other.name);
+  }
+  return [...blockers].toSorted(compareCodepoints);
+}
+
+interface UnmetAssessment {
+  readonly unmet: UnmetRequirement;
+  readonly blockers: readonly string[];
+  readonly unsatisfiable: boolean;
+}
+
+function assessUnmet(
+  unmet: UnmetRequirement,
+  selected: readonly ModuleManifest[],
+): UnmetAssessment {
+  if (unmet.rangeMismatch !== undefined || unmet.candidates.length === 0) {
+    return { unmet, blockers: [], unsatisfiable: true };
+  }
+  const perCandidate = unmet.candidates.map((candidate) => blockersOf(candidate, selected));
+  const blocked = perCandidate.every((blockers) => blockers.length > 0);
+  return {
+    unmet,
+    blockers: blocked ? [...new Set(perCandidate.flat())].toSorted(compareCodepoints) : [],
+    unsatisfiable: blocked,
+  };
+}
+
+function describeAssessment({ unmet, blockers }: UnmetAssessment): string {
+  const what = describeRequirement(unmet.requirement);
+  if (unmet.rangeMismatch !== undefined) {
+    const { provider, version } = unmet.rangeMismatch;
+    return `${what}: "${provider}" provides ${version}`;
+  }
+  if (unmet.candidates.length === 0) {
+    return `${what}: no module provides it`;
+  }
+  const names = unmet.candidates.map((candidate) => candidate.name);
+  const listing = names.length === 1 ? quotedList(names) : `one of ${quotedList(names)}`;
+  const note = blockers.length === 0 ? "" : ` (cannot be added alongside ${quotedList(blockers)})`;
+  return `${what}: provided by ${listing}${note}`;
+}
+
+function describeAllUnmet(
+  group: readonly UnmetRequirement[],
+  intent: ResolveIntent,
+  selected: readonly string[],
+  pool: readonly ModuleManifest[],
+): ResolveError {
+  const [head] = group;
+  const moduleName = head?.module.name ?? "";
+  const assessments = group.map((unmet) => assessUnmet(unmet, pool));
+  const requirements = group.map((unmet) => unmet.requirement.raw);
+  const message = `module "${moduleName}" has ${group.length} unmet requirements:\n${assessments
+    .map((assessment) => `  - ${describeAssessment(assessment)}`)
+    .join("\n")}`;
+  const providers = [
+    ...new Set(
+      group.flatMap((unmet) =>
+        (unmet.candidates.length === 1 ? unmet.candidates : []).map((c) => c.name),
+      ),
+    ),
+  ].toSorted(compareCodepoints);
+  const stuck = assessments.some((assessment) => assessment.unsatisfiable);
+  const base = { message, module: moduleName, requirements, providers };
+  if (!stuck) {
+    const choices = group
+      .filter((unmet) => unmet.candidates.length > 1)
+      .map((unmet) => `one of ${quotedList(unmet.candidates.map((candidate) => candidate.name))}`);
+    const needed = [...providers.map((name) => `"${name}"`), ...choices].join(", ");
+    const example = [...selected, ...providers].toSorted(compareCodepoints).join(",");
+    const exampleable = choices.length === 0;
+    const fix =
+      intent === "add"
+        ? `run aokit add with ${needed}${exampleable ? `, for example aokit add ${providers.join(" ")}` : ""}`
+        : `add ${needed} to --modules${exampleable ? `, for example --modules ${example}` : ""}`;
+    const ambiguous = group.every((unmet) => unmet.candidates.length > 1);
+    return { ...base, code: ambiguous ? "requirement_ambiguous" : "requirement_unmet", fix };
+  }
+  const blockers = [...new Set(assessments.flatMap((assessment) => assessment.blockers))].toSorted(
+    compareCodepoints,
+  );
+  const needs = group
+    .map((unmet) => {
+      const [first] = unmet.candidates;
+      const by = unmet.candidates.length === 1 && first !== undefined ? ` (${first.name})` : "";
+      return `${unmet.requirement.raw}${by}`;
+    })
+    .join(" plus ");
+  const unfixable = assessments.some(
+    (assessment) => assessment.unsatisfiable && assessment.blockers.length === 0,
+  );
+  const retryable =
+    blockers.length > 0 && !unfixable && group.every((unmet) => unmet.candidates.length === 1);
+  const clash =
+    blockers.length === 0
+      ? "no selection of catalog modules satisfies all of them"
+      : unfixable
+        ? `${quotedList(blockers)} cannot be combined with the modules that provide them, and at least one requirement has no usable provider`
+        : `${quotedList(blockers)} cannot be combined with the modules that provide them`;
+  const retryModules = [...selected.filter((name) => !blockers.includes(name)), ...providers]
+    .toSorted(compareCodepoints)
+    .join(",");
+  const retry = !retryable
+    ? ""
+    : intent === "add"
+      ? ` Remove ${quotedList(blockers)} from the Project first, then run aokit add ${providers.join(" ")}.`
+      : ` Drop ${quotedList(blockers)}, for example --modules ${retryModules}.`;
+  const fix = `"${moduleName}" currently needs ${needs}, and ${clash}.${retry} Run \`aokit list\` to see the available modules, and see docs/architecture/module-catalog.md.`;
+  return { ...base, code: "requirement_unmet", fix };
+}
+
 class Resolution {
   private readonly index: ReadonlyMap<string, ModuleManifest>;
   private readonly registry: readonly ModuleManifest[];
@@ -364,11 +500,16 @@ class Resolution {
     }
     const [first] = pending;
     if (first !== undefined) {
+      const group = pending.filter((unmet) => unmet.module.name === first.module.name);
       const chosen = [...this.selected.values()]
         .filter((entry) => entry.source === "selected")
         .map((entry) => entry.name)
         .toSorted(compareCodepoints);
-      throw new ResolveAbort(describeUnmet(first, intent, chosen));
+      const error =
+        group.length > 1
+          ? describeAllUnmet(group, intent, chosen, this.selectedManifests())
+          : describeUnmet(first, intent, chosen);
+      throw new ResolveAbort(error);
     }
   }
 
