@@ -35,7 +35,7 @@ Words and habits that do not appear in public copy:
 - Em dashes used as asides. Use a comma, a colon or two sentences.
 - Exclamation marks, rhetorical questions and "simply" or "just".
 - Superlatives and comparisons with no source: fastest, best, only, first.
-- Any promise about future versions outside the [roadmap](../roadmap.md).
+- Any promise about future versions.
 
 ## Examples
 
