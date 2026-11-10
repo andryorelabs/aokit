@@ -1,4 +1,4 @@
-import { mkdir, mkdtemp, rename, rm } from "node:fs/promises";
+import { mkdir, mkdtemp, rename as renamePath, rm } from "node:fs/promises";
 import { dirname, join } from "node:path";
 import { xdgCacheDir } from "../../xdg.ts";
 import { RegistryError } from "../errors.ts";
@@ -38,6 +38,34 @@ async function pathExists(path: string): Promise<boolean> {
   }
 }
 
+const transientRenameCodes = new Set(["EPERM", "EBUSY", "EACCES"]);
+const renameAttempts = 8;
+const renameBackoffMs = 40;
+
+/**
+ * Renames a freshly written directory. Windows refuses with EPERM, EBUSY or EACCES while an
+ * antivirus scan or an indexer still holds the new files, so those codes are retried with a
+ * growing delay before the last error is thrown.
+ */
+export async function renameWithRetry(
+  source: string,
+  destination: string,
+  rename: (source: string, destination: string) => Promise<void> = renamePath,
+): Promise<void> {
+  for (let attempt = 1; ; attempt += 1) {
+    try {
+      // oxlint-disable-next-line eslint/no-await-in-loop -- each retry must wait for the previous attempt
+      await rename(source, destination);
+      return;
+    } catch (thrown) {
+      const code = thrown instanceof Error && "code" in thrown ? String(thrown.code) : "";
+      if (attempt >= renameAttempts || !transientRenameCodes.has(code)) throw thrown;
+      // oxlint-disable-next-line eslint/no-await-in-loop -- backs off before the next attempt
+      await Bun.sleep(renameBackoffMs * attempt);
+    }
+  }
+}
+
 /**
  * Writes `registry` to `<cacheRoot>/bundled-registry/<content-hash>/` through a temporary sibling
  * directory and one rename, and returns that directory. An existing copy is reused as it is.
@@ -59,7 +87,7 @@ export async function extractRegistryTo(
         await Bun.write(destination, Bun.file(file.source));
       }),
     );
-    await rename(staging, target);
+    await renameWithRetry(staging, target);
   } catch (thrown) {
     await rm(staging, { recursive: true, force: true });
     if (await pathExists(target)) return target;
