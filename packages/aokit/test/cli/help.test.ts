@@ -72,3 +72,57 @@ describe("--help", () => {
     expect(await help(["--quiet", "schema", "check"])).toBe("");
   });
 });
+
+async function failureOutput(argv: string[]): Promise<string> {
+  let output = "";
+  await runCli({
+    argv,
+    commands: exposedCommands,
+    env: {},
+    version: "9.9.9",
+    io: {
+      stdout: (text) => {
+        output += text;
+      },
+      stderr: (text) => {
+        output += text;
+      },
+      isTTY: false,
+    },
+    interactive: false,
+    updateNotice: false,
+  });
+  return output;
+}
+
+describe("failure diagnostics", () => {
+  test("hide raw diagnostic data unless --verbose is set", async () => {
+    const quiet = await failureOutput(["create", "x", "--modules", "nextjs", "--yes", "--dry-run"]);
+    expect(quiet).toContain("did you mean");
+    expect(quiet).not.toContain("resolverCode");
+    const verbose = await failureOutput([
+      "create",
+      "x",
+      "--modules",
+      "nextjs",
+      "--yes",
+      "--dry-run",
+      "--verbose",
+    ]);
+    expect(verbose).toContain("resolverCode");
+  });
+
+  test("hide raw Registry error data without --verbose", async () => {
+    const quiet = await failureOutput([
+      "create",
+      "x",
+      "--modules",
+      "hono",
+      "--registry",
+      "nope",
+      "--yes",
+      "--dry-run",
+    ]);
+    expect(quiet).not.toContain("registryCode");
+  });
+});

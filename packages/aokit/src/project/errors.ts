@@ -44,7 +44,7 @@ export function toAokitError(thrown: unknown): unknown {
       registryErrorCodes[thrown.code] ?? "IO_ERROR",
       `[${thrown.code}] ${thrown.message}`,
       thrown.fix,
-      { registryCode: thrown.code, ...thrown.data },
+      asDiagnosticData({ registryCode: thrown.code, ...thrown.data }),
     );
   }
   if (thrown instanceof FormatError) {
