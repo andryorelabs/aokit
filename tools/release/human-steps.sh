@@ -200,7 +200,7 @@ finish() {
 
 run_wizard() {
 
-TOTAL_STAGES=8
+TOTAL_STAGES=11
 
 banner "aokit release: owner steps"
 
@@ -249,6 +249,47 @@ for package in aokit create-aokit; do
   step "Workflow filename: release.yml. Environment name: leave empty. Save."
   pause "Press Enter when $package is configured."
 done
+
+stage "npm org aokit"
+say "@aokit/module needs the npm organization aokit to own the @aokit scope."
+open_url "https://www.npmjs.com/org/create"
+step "Create the organization aokit on the free plan (public packages only)."
+step "Keep your own account as the owner; add other maintainers later from the org page."
+pause "Press Enter once the org aokit exists."
+
+stage "First publish of @aokit/module with a token"
+MODULE_VERSION=$(bun -e 'console.log((await Bun.file("packages/module/package.json").json()).version)')
+MODULE_TAG=latest
+[[ "$MODULE_VERSION" == *-* ]] && MODULE_TAG=next
+say "Publishes @aokit/module $MODULE_VERSION under the dist-tag $MODULE_TAG."
+say "bun run build:package stages the package in packages/module/dist, which is what gets packed."
+say "The token is read hidden, passed to npm for one command only and never written to disk."
+warn "This publishes to the public npm registry and cannot be undone."
+if confirm "Publish @aokit/module $MODULE_VERSION now?"; then
+  open_url "https://www.npmjs.com/settings/~/tokens/granular-access-tokens/new"
+  step "Create a granular token: read and write on packages and on the aokit org, short expiry."
+  ask_secret NPM_PUBLISH_TOKEN "Paste the npm token:"
+  MODULE_PACK_DIR=$(mktemp -d)
+  bun run build:package
+  (cd packages/module/dist && bun pm pack --destination "$MODULE_PACK_DIR")
+  (
+    export "npm_config_//registry.npmjs.org/:_authToken=$NPM_PUBLISH_TOKEN"
+    npm publish "$MODULE_PACK_DIR/aokit-module-$MODULE_VERSION.tgz" --access public --tag "$MODULE_TAG"
+  )
+  unset NPM_PUBLISH_TOKEN
+  step "Revoke the token on npmjs.com now."
+  pause "Press Enter once the token is revoked."
+  note "The tarball is left in $MODULE_PACK_DIR; delete that directory when you are done."
+else
+  SKIPPED+=("First publish of @aokit/module $MODULE_VERSION")
+fi
+
+stage "Trusted publisher for @aokit/module"
+say "Later versions of @aokit/module publish from the release workflow, like aokit and create-aokit."
+open_url "https://www.npmjs.com/package/@aokit/module/access"
+step "Trusted Publisher, GitHub Actions: the owner and repository of $REPO."
+step "Workflow filename: release.yml. Environment name: leave empty. Save."
+pause "Press Enter when @aokit/module is configured."
 
 stage "Repository rulesets"
 say "Applies .github/rulesets/main.json and .github/rulesets/tags.json with gh api."

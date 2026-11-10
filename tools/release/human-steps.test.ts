@@ -16,4 +16,20 @@ describe("owner wizard", () => {
     expect(source).not.toMatch(/NPM_PUBLISH_TOKEN[^\n]*>>?\s/);
     expect(source).not.toContain("npm config set");
   });
+
+  test("declares as many stages as it runs", async () => {
+    const source = await Bun.file(scriptPath).text();
+    const declared = Number([...source.matchAll(/^TOTAL_STAGES=(\d+)$/gm)].at(-1)?.[1]);
+    const stages = source.match(/^stage "/gm) ?? [];
+    expect(stages.length).toBe(declared);
+  });
+
+  test("walks the owner through the npm org, first publish and trusted publisher of @aokit/module", async () => {
+    const source = await Bun.file(scriptPath).text();
+    expect(source).toContain('stage "npm org aokit"');
+    expect(source).toContain("https://www.npmjs.com/org/create");
+    expect(source).toContain("(cd packages/module/dist && bun pm pack");
+    expect(source).toContain("https://www.npmjs.com/package/@aokit/module/access");
+    expect(source).toContain("Workflow filename: release.yml");
+  });
 });
