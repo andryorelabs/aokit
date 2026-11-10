@@ -1,6 +1,7 @@
 import { mkdtemp, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join, resolve } from "node:path";
+import { AokitError } from "../cli/envelope.ts";
 import { runGit, runGitChecked } from "./run.ts";
 
 /** Labels written into conflict markers by {@link Git.mergeFile}. */
@@ -85,7 +86,11 @@ async function mergeFileIn(
       join(scratch, "next"),
     ]);
     if (result.exitCode > 127) {
-      throw new Error(`git merge-file failed (${result.exitCode}): ${result.stderr.trim()}`);
+      throw new AokitError(
+        "GIT_FAILED",
+        `git merge-file failed (${result.exitCode}): ${result.stderr.trim()}`,
+        "Check that git is installed and that the files being merged are readable, then retry.",
+      );
     }
     return { content: result.stdout, conflict: result.exitCode > 0 };
   } finally {
@@ -127,7 +132,11 @@ function createGit(dir: string): Git {
     mergeFile: (base, user, next, labels) => mergeFileIn(dir, base, user, next, labels),
     async writeConflictStages(path, stages) {
       if (path.includes("\n") || path.includes("\0")) {
-        throw new Error(`cannot record a conflict for a path with a newline or NUL: ${path}`);
+        throw new AokitError(
+          "INVALID_INPUT",
+          `cannot record a conflict for a path with a newline or NUL: ${path}`,
+          "Rename the file so its path has no newline or NUL character, then retry.",
+        );
       }
       const [base, user, next] = await Promise.all([
         hashObject(dir, stages.base),
@@ -144,7 +153,11 @@ function createGit(dir: string): Git {
     },
     async clearConflictStages(path) {
       if (path.includes("\n") || path.includes("\0")) {
-        throw new Error(`cannot clear a conflict for a path with a newline or NUL: ${path}`);
+        throw new AokitError(
+          "INVALID_INPUT",
+          `cannot clear a conflict for a path with a newline or NUL: ${path}`,
+          "Rename the file so its path has no newline or NUL character, then retry.",
+        );
       }
       await runGitChecked(
         dir,
