@@ -278,12 +278,53 @@ test("the new Registry error codes map to their stable exit codes", () => {
 });
 
 test("xdg helpers honor absolute XDG variables and fall back to HOME", () => {
-  expect(xdgConfigDir({ XDG_CONFIG_HOME: "/x/config", HOME: "/home/u" })).toBe("/x/config/aokit");
-  expect(xdgCacheDir({ XDG_CACHE_HOME: "/x/cache", HOME: "/home/u" })).toBe("/x/cache/aokit");
-  expect(xdgConfigDir({ HOME: "/home/u" })).toBe("/home/u/.config/aokit");
-  expect(xdgCacheDir({ HOME: "/home/u" })).toBe("/home/u/.cache/aokit");
-  expect(xdgConfigDir({ XDG_CONFIG_HOME: "relative", HOME: "/home/u" })).toBe(
+  expect(xdgConfigDir({ XDG_CONFIG_HOME: "/x/config", HOME: "/home/u" }, "linux")).toBe(
+    "/x/config/aokit",
+  );
+  expect(xdgCacheDir({ XDG_CACHE_HOME: "/x/cache", HOME: "/home/u" }, "linux")).toBe(
+    "/x/cache/aokit",
+  );
+  expect(xdgConfigDir({ HOME: "/home/u" }, "darwin")).toBe("/home/u/.config/aokit");
+  expect(xdgCacheDir({ HOME: "/home/u" }, "darwin")).toBe("/home/u/.cache/aokit");
+  expect(xdgConfigDir({ XDG_CONFIG_HOME: "relative", HOME: "/home/u" }, "linux")).toBe(
     "/home/u/.config/aokit",
   );
-  expect(xdgCacheDir({ XDG_CACHE_HOME: "", HOME: "/home/u" })).toBe("/home/u/.cache/aokit");
+  expect(xdgCacheDir({ XDG_CACHE_HOME: "", HOME: "/home/u" }, "linux")).toBe(
+    "/home/u/.cache/aokit",
+  );
+});
+
+test("on win32 xdg helpers use APPDATA for config and LOCALAPPDATA for cache", () => {
+  const env = {
+    APPDATA: String.raw`C:\Users\u\AppData\Roaming`,
+    LOCALAPPDATA: String.raw`C:\Users\u\AppData\Local`,
+    USERPROFILE: String.raw`C:\Users\u`,
+  };
+  expect(xdgConfigDir(env, "win32")).toBe(String.raw`C:\Users\u\AppData\Roaming\aokit`);
+  expect(xdgCacheDir(env, "win32")).toBe(String.raw`C:\Users\u\AppData\Local\aokit`);
+});
+
+test("on win32 absolute XDG variables still take precedence over APPDATA and LOCALAPPDATA", () => {
+  const env = {
+    XDG_CONFIG_HOME: String.raw`D:\xdg\config`,
+    XDG_CACHE_HOME: "D:/xdg/cache",
+    APPDATA: String.raw`C:\Users\u\AppData\Roaming`,
+    LOCALAPPDATA: String.raw`C:\Users\u\AppData\Local`,
+  };
+  expect(xdgConfigDir(env, "win32")).toBe(String.raw`D:\xdg\config\aokit`);
+  expect(xdgCacheDir(env, "win32")).toBe(String.raw`D:\xdg\cache\aokit`);
+});
+
+test("on win32 xdg helpers fall back to the profile's AppData when the variables are unusable", () => {
+  const env = { APPDATA: "", LOCALAPPDATA: "relative", USERPROFILE: String.raw`C:\Users\u` };
+  expect(xdgConfigDir(env, "win32")).toBe(String.raw`C:\Users\u\AppData\Roaming\aokit`);
+  expect(xdgCacheDir(env, "win32")).toBe(String.raw`C:\Users\u\AppData\Local\aokit`);
+  expect(xdgCacheDir({ HOME: String.raw`C:\Users\h` }, "win32")).toBe(
+    String.raw`C:\Users\h\AppData\Local\aokit`,
+  );
+});
+
+test("xdg helpers default to the running platform", () => {
+  const env = { XDG_CACHE_HOME: process.platform === "win32" ? String.raw`C:\c` : "/c" };
+  expect(xdgCacheDir(env)).toBe(xdgCacheDir(env, process.platform));
 });
