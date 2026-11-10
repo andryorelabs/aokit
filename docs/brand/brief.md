@@ -43,4 +43,4 @@ Plain, exact, quiet. The identity is Soot: dark first, one ink, no accent colour
 - Colours outside the Soot palette, and any accent colour.
 - A tool name in any case other than lowercase `aokit`.
 - Calling Modules plugins, presets or templates (see the Avoid lists in [GLOSSARY.md](../../GLOSSARY.md)).
-- Promising dates for the roadmap. Planned work lives in the [roadmap](../roadmap.md).
+- Promising dates for future work.

@@ -8,7 +8,7 @@ Guide for coding agents working in aokit. Terms follow [GLOSSARY.md](GLOSSARY.md
 - `packages/module/`: `@aokit/module`, the Module manifest contract. Package rules: [packages/module/AGENTS.md](packages/module/AGENTS.md).
 - `registry-src/`: first-party Module sources. `registry/`: the built Registry (generated, never edited by hand).
 - `tools/`: dev-only scripts and invariant tests (lint plugin, docs, workflows, Claude hooks, pre-push).
-- `docs/`: architecture, ADRs, standards, roadmap. Index: [docs/README.md](docs/README.md).
+- `docs/`: architecture, ADRs, standards. Index: [docs/README.md](docs/README.md).
 - `docs/agents/`: per-repo `/emet` config prose. Start with [codebase map](docs/agents/codebase.md), [domain vocabulary](docs/agents/domain.md), [emet config](docs/agents/emet.md), [issue tracker](docs/agents/issue-tracker.md) and [triage labels](docs/agents/triage-labels.md).
 - Root: dev tooling config.
 

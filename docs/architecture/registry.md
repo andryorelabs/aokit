@@ -121,20 +121,20 @@ Adapted items are declarative only. They map to `files`, `deps`, `env`, and a sm
 
 shadcn's twelve item types map to aokit concepts as follows.
 
-| shadcn item type     | aokit concept                                                           | Notes                                                                                      |
-| -------------------- | ----------------------------------------------------------------------- | ------------------------------------------------------------------------------------------ |
-| `registry:ui`        | Module `files` to Target `shared-ui`                                    | A primitive component.                                                                     |
-| `registry:component` | Module `files` to Target `shared-ui`                                    | A composed component.                                                                      |
-| `registry:block`     | Module `files` to Targets `web` and `shared-ui`                         | Multi-file; each file keeps its own `target` field when given, else `web`.                 |
-| `registry:page`      | Module `files` to Target `web`                                          | A route file; its `target` path is a path inside the Target, not a repo path.              |
-| `registry:hook`      | Module `files` to Target `shared-ui` (`hooks/`)                         | Alias `@hooks/`.                                                                           |
-| `registry:lib`       | Module `files` to Target `shared-ui` (`lib/`)                           | Alias `@lib/`.                                                                             |
-| `registry:file`      | Module `files` to the Target implied by its `target` field, else `root` | An arbitrary file; `target` paths starting `~/` resolve against `root`.                    |
-| `registry:theme`     | Ops on the Tailwind entry CSS (`css`, `cssVars`)                        | Contributes to the CSS Extension point of the `tailwind4` Module.                          |
-| `registry:style`     | Ops on the Tailwind entry CSS plus `deps`                               | A style bundle: `css`, `cssVars`, `registryDependencies`, `dependencies`.                  |
-| `registry:base`      | Module `deps` plus `base.config` handling                               | The base a style set builds on; see [`base.config`](#css-cssvars-envvars-font-baseconfig). |
-| `registry:font`      | `font` handling                                                         | See below.                                                                                 |
-| `registry:item`      | A generic Module built only from the generic fields                     | Used when no more specific type applies.                                                   |
+| shadcn item type     | aokit concept                                                           | Notes                                                                         |
+| -------------------- | ----------------------------------------------------------------------- | ----------------------------------------------------------------------------- |
+| `registry:ui`        | Module `files` to Target `shared-ui`                                    | A primitive component.                                                        |
+| `registry:component` | Module `files` to Target `shared-ui`                                    | A composed component.                                                         |
+| `registry:block`     | Module `files` to Targets `web` and `shared-ui`                         | Multi-file; each file keeps its own `target` field when given, else `web`.    |
+| `registry:page`      | Module `files` to Target `web`                                          | A route file; its `target` path is a path inside the Target, not a repo path. |
+| `registry:hook`      | Module `files` to Target `shared-ui` (`hooks/`)                         | Alias `@hooks/`.                                                              |
+| `registry:lib`       | Module `files` to Target `shared-ui` (`lib/`)                           | Alias `@lib/`.                                                                |
+| `registry:file`      | Module `files` to the Target implied by its `target` field, else `root` | An arbitrary file; `target` paths starting `~/` resolve against `root`.       |
+| `registry:theme`     | Ops on the Tailwind entry CSS (`css`, `cssVars`)                        | Contributes to the CSS Extension point of the `tailwind4` Module.             |
+| `registry:style`     | Ops on the Tailwind entry CSS plus `deps`                               | A style bundle: `css`, `cssVars`, `registryDependencies`, `dependencies`.     |
+| `registry:base`      | Unsupported: rejected with `REGISTRY_ITEM_UNSUPPORTED`                  | Not adapted; the item is refused.                                             |
+| `registry:font`      | Unsupported: rejected with `REGISTRY_ITEM_UNSUPPORTED`                  | Not adapted; the item is refused.                                             |
+| `registry:item`      | A generic Module built only from the generic fields                     | Used when no more specific type applies.                                      |
 
 Unknown types fail with an error naming the item, they are never skipped silently.
 
@@ -159,8 +159,8 @@ Placeholders in file content (imports) are rewritten to the import specifier tha
 | `css`                             | A postcss-based Op on the Tailwind v4 entry file (`@import`, `@plugin`, `@theme`, rules), applied at the Tailwind Module's CSS Extension point ([Engine](engine.md#ops-catalog)). |
 | `cssVars`                         | CSS variable Ops under the `theme`, `light` and `dark` groups of the same Extension point; existing variables are never overwritten without an `override`.                        |
 | `envVars`                         | The Module `env` list, written by the line-based `.env` patcher that never overwrites existing keys.                                                                              |
-| `font`                            | `deps` for the font package plus a CSS Op for the `--font-*` variable and the Extension point for loading it.                                                                     |
-| `base.config`                     | Merged into the config of the UI Module the base targets (for shadcn, its component config) by `mergeJson`; it records the base choice in the Lockfile `answers`.                 |
+| `font`                            | Not supported yet: the item type `registry:font` is rejected with `REGISTRY_ITEM_UNSUPPORTED` (see [What shadcn lacks and aokit adds](#what-shadcn-lacks-and-aokit-adds)).        |
+| `base.config`                     | Not supported yet: the item type `registry:base` is rejected with `REGISTRY_ITEM_UNSUPPORTED` (see [What shadcn lacks and aokit adds](#what-shadcn-lacks-and-aokit-adds)).        |
 | `dependencies`, `devDependencies` | `deps`; ranges as given, since a shadcn registry has no Catalog.                                                                                                                  |
 | `files[].content`                 | Embedded file content, treated like `files[].from`; hashed per file.                                                                                                              |
 

@@ -1,13 +1,13 @@
-export { catalogSchema, composeDraftCatalog, type Catalog, type CatalogInput } from "./catalog";
+export { catalogSchema, composeDraftCatalog, type Catalog, type CatalogInput } from "./catalog.ts";
 export {
   compileModule,
   sortKeysDeep,
   stableStringify,
   type CompiledModule,
   type CompileModuleOptions,
-} from "./compile";
-export { defineModule } from "./define";
-export { generateManifestJsonSchema, manifestJsonSchemaText } from "./json-schema";
+} from "./compile.ts";
+export { defineModule } from "./define.ts";
+export { generateManifestJsonSchema, manifestJsonSchemaText } from "./json-schema.ts";
 export {
   ManifestError,
   manifestSchema,
@@ -17,12 +17,12 @@ export {
   type Migration,
   type ModuleManifest,
   type ModuleManifestInput,
-} from "./manifest";
+} from "./manifest.ts";
 export {
   defineMigration,
   type MigrationContext,
   type MigrationFn,
   type MigrationInput,
   type MigrationVfs,
-} from "./migration";
-export { opSchema, targetSchema, type Op } from "./ops";
+} from "./migration.ts";
+export { opSchema, targetSchema, type Op } from "./ops.ts";

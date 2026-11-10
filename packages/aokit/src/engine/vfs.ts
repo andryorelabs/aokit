@@ -30,10 +30,23 @@ function normalizeLineEndings(text: string): string {
   return text.replace(/\r\n?/g, "\n");
 }
 
-/** Normalizes a Project-relative path and rejects absolute paths and escapes. */
+/** A Windows drive prefix (`C:`), which makes a path absolute or drive-relative on win32. */
+const windowsDrivePrefix = /^[A-Za-z]:/;
+
+/**
+ * Normalizes a Project-relative path to a `/`-separated key, accepting `\` as a separator on
+ * every platform, and rejects absolute paths (POSIX, UNC and Windows drive paths) and escapes.
+ * A leading `<letter>:` is rejected on every platform, even where it would be a valid POSIX
+ * file name, so a Project's keys and Lockfile are identical on Linux, macOS and Windows.
+ */
 export function normalizeProjectPath(path: string): string {
   const normalized = posix.normalize(path.replaceAll("\\", "/")).replace(/^\.\//, "");
-  if (normalized === "" || normalized === "." || posix.isAbsolute(normalized)) {
+  if (
+    normalized === "" ||
+    normalized === "." ||
+    posix.isAbsolute(normalized) ||
+    windowsDrivePrefix.test(normalized)
+  ) {
     throw new EngineError("engine.invalid-path", `Invalid file path "${path}".`);
   }
   if (normalized === ".." || normalized.startsWith("../")) {

@@ -26,10 +26,11 @@ const jobLine = /^ {2}([A-Za-z0-9_-]+):\s*$/;
 const topLevelLine = /^\S/;
 const runsOnLine = /^ {4}runs-on:\s*(.*?)\s*$/;
 const osMatrixLine = /^\s+os:\s*(?:\[|$)/;
-const literalLabel = /^(?:ubuntu-latest|ubuntu-24\.04-arm|macos-[A-Za-z0-9.-]+)$/;
+const literalLabel = /^(?:ubuntu-latest|ubuntu-24\.04-arm|macos-[A-Za-z0-9.-]+|windows-latest)$/;
 const forbiddenLabel = /vps-|self-hosted/;
 const matrixRunnerExpression = "${{ matrix.runner }}";
-const literalLabelProblem = "must use a literal ubuntu-latest, ubuntu-24.04-arm or macos-* label";
+const literalLabelProblem =
+  "must use a literal ubuntu-latest, ubuntu-24.04-arm, macos-* or windows-latest label";
 
 interface WorkflowJob {
   name: string;
@@ -233,7 +234,7 @@ describe("CI runner routing", () => {
     expect(findRunnerRoutingProblems("other.yml", workflow("job", "macos-latest"))).toEqual([]);
     expect(findRunnerRoutingProblems("other.yml", workflow("job", "ubuntu-24.04-arm"))).toEqual([]);
     expect(findRunnerRoutingProblems("other.yml", workflow("job", routedExpression))).toEqual([
-      "other.yml:job is not routed and must use a literal ubuntu-latest, ubuntu-24.04-arm or macos-* label",
+      "other.yml:job is not routed and must use a literal ubuntu-latest, ubuntu-24.04-arm, macos-* or windows-latest label",
     ]);
   });
 
@@ -257,7 +258,7 @@ describe("CI runner routing", () => {
     expect(
       findRunnerRoutingProblems("other.yml", workflow("job", matrixRunnerExpression, matrix)),
     ).toEqual([
-      "other.yml:job is not routed and every matrix.runner must use a literal ubuntu-latest, ubuntu-24.04-arm or macos-* label",
+      "other.yml:job is not routed and every matrix.runner must use a literal ubuntu-latest, ubuntu-24.04-arm, macos-* or windows-latest label",
     ]);
   });
 
@@ -271,7 +272,7 @@ describe("CI runner routing", () => {
   test("a ci.yml without the split jobs reports each one missing", () => {
     const text = workflow("check-and-test", routedMatrixExpression, osMatrix);
     expect(findRunnerRoutingProblems("ci.yml", text)).toEqual([
-      "ci.yml:check-and-test is not routed and must use a literal ubuntu-latest, ubuntu-24.04-arm or macos-* label",
+      "ci.yml:check-and-test is not routed and must use a literal ubuntu-latest, ubuntu-24.04-arm, macos-* or windows-latest label",
       "ci.yml:check is listed in routedJobs but missing",
       "ci.yml:test is listed in routedJobs but missing",
       "ci.yml:commitlint is listed in routedJobs but missing",

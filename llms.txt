@@ -23,4 +23,3 @@
 
 - [Documentation index](https://github.com/andryorelabs/aokit/blob/main/docs/README.md): every page under `docs/`.
 - [Glossary](https://github.com/andryorelabs/aokit/blob/main/GLOSSARY.md): the vocabulary used across the docs.
-- [Roadmap](https://github.com/andryorelabs/aokit/blob/main/ROADMAP.md): what is planned and out of scope.
