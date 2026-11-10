@@ -17,7 +17,7 @@ bunx aokit add auth
 
 ## Compiled binary
 
-A standalone binary is built per platform with `bun build --compile` (linux-x64, linux-arm64, darwin-x64, darwin-arm64, windows-x64). It is for people and CI images that do not have Bun yet.
+A standalone binary is built per platform with `bun build --compile` (linux-x64, linux-arm64, darwin-x64, darwin-arm64, windows-x64), by the [release workflow](#release-workflow). It is for people and CI images that do not have Bun yet.
 
 Settings and constraints:
 
@@ -27,21 +27,35 @@ Settings and constraints:
 - **Optional oxfmt imports are stubbed.** oxfmt imports `@astrojs/compiler-rs` and several prettier plugins that are not installed, so bundling fails. One build plugin, shared by the package bundle and the binary, replaces them with stubs that throw `<name> is not bundled with aokit` if called; no file type of the curated Modules reaches them.
 - **The binary is not an update channel.** `aokit update` of a Project uses the Registry; the binary only needs a newer CLI when the Lockfile's `minCliVersion` demands it, in which case the error says which download or `bunx` command to use ([exit code 5](cli-ux.md#exit-codes)).
 
+## Release workflow
+
+`.github/workflows/release.yml` runs on a `v*` tag push, or by hand with `workflow_dispatch` and the input `dry-run` (default `true`). The tag must equal `v<version>` of `packages/aokit/package.json`, and `create-aokit` must have the same version and depend on exactly that `aokit` version. A dry run runs every job and `npm publish --dry-run`, creates no GitHub Release and publishes nothing; a real publish needs a tag ref. Default permissions are `contents: read`.
+
+| Job        | Runs on                                                                      | Does                                                                                                                                                                                                                            |
+| ---------- | ---------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `verify`   | `ubuntu-latest`                                                              | Resolves the version, the dist-tag and the dry-run flag; runs `bun run check`, `bun run test`, `build:package` and `lint:package`; packs both tarballs, runs the installed tarball tests and generates the release notes.       |
+| `binaries` | a five-target matrix                                                         | Builds one binary per target. linux-x64, linux-arm64 and darwin-arm64 run on native runners and pass the process tests (`AOKIT_BIN`) and the end-to-end and digest comparison tests; darwin-x64 and windows-x64 are built only. |
+| `release`  | `ubuntu-latest`, `contents: write`, `id-token: write`, `attestations: write` | Writes `SHA256SUMS`, attests the binaries, adds the verification steps to the notes and creates the GitHub Release (a pre-release for a pre-release version). Needs `verify` and `binaries`.                                    |
+| `publish`  | `ubuntu-latest`, `id-token: write`                                           | Checks npm is at least 11.5.1, then publishes `aokit` and then `create-aokit` from the verified tarballs. Needs `verify`, `binaries` and `release`.                                                                             |
+
+The jobs run on GitHub-hosted runners and are never routed to Blacksmith. `id-token: write` appears only in `release` (for the attestations) and `publish` (for npm trusted publishing and provenance); `tools/workflows/release-workflow.test.ts` asserts the triggers, permissions, pinning and the dry-run behavior.
+
 ## Publishing to npm
 
-- **Trusted publishing (OIDC).** The release workflow publishes `aokit` and `create-aokit` from GitHub Actions using npm trusted publishing, so no long-lived npm token exists in the repository or in CI secrets.
-- **Provenance.** Packages are published with provenance, linking each version to the commit and workflow run that built it.
-- The workflow has `id-token: write` only in the publish job; build and test jobs run with read-only permissions. Third-party actions are pinned by commit SHA.
+- **Trusted publishing (OIDC).** The `publish` job publishes `aokit` and `create-aokit` with npm trusted publishing, so no long-lived npm token exists in the repository or in CI secrets. Each package must list `release.yml` of this repository as a trusted publisher on npmjs.com.
+- **Provenance.** `npm publish --provenance --access public` links each version to the commit and workflow run that built it.
+- **Dist-tag.** A version with a pre-release part (`0.1.0-next.0`) publishes with `--tag next`; any other version with `--tag latest` ([ADR 0026](../adr/0026-registry-releases-are-dated-cli-versions-are-semver.md)).
+- **First publish.** Trusted publishers can only be configured for a package that exists, so the first `0.1.0-next.0` is published by hand with a short-lived token. [`tools/release/human-steps.sh`](../../tools/release/human-steps.sh) walks the owner through it and the other manual steps, and never stores the token.
 
 ## GitHub Releases
 
 Each release attaches:
 
-- one binary per platform,
-- `SHA256SUMS`, a sorted list of hashes of every attached binary,
-- build provenance attestations for each binary (`actions/attest-build-provenance`), verifiable with `gh attestation verify <file> --repo <owner>/aokit`.
+- the five binaries `aokit-linux-x64`, `aokit-linux-arm64`, `aokit-darwin-arm64`, `aokit-darwin-x64` and `aokit-windows-x64.exe`,
+- `SHA256SUMS`, a sorted list of hashes of exactly those binaries,
+- a build provenance attestation per binary (`actions/attest-build-provenance`, from the checksum file), verifiable with `gh attestation verify <file> --repo <owner>/aokit`.
 
-Verification instructions (download, `sha256sum -c SHA256SUMS`, `gh attestation verify`) are in the release notes and the README. The Registry's own integrity hashes (recorded per Module in the Lockfile) are separate: they cover Modules, not the CLI.
+The notes list the changes (`changelogithub`) and the verification steps: download the binaries and `SHA256SUMS` into one directory, run `sha256sum -c SHA256SUMS --ignore-missing` (`shasum -a 256 -c` on macOS) and `gh attestation verify`. They also say the Windows and darwin-x64 binaries were not tested end to end. The same steps are in the [README](../../README.md#verify-a-release). The Registry's own integrity hashes (recorded per Module in the Lockfile) are separate: they cover Modules, not the CLI.
 
 ## Release tooling
 
@@ -56,9 +70,9 @@ Two options were compared for versioning, changelog and tagging.
 | npm trusted publishing                 | Works; publish step in CI after the release PR merges.                                                                   | Works; publish step runs on the pushed tag.                                                                                               |
 | Maintenance                            | More moving parts (action, bot PR, config).                                                                              | Two small tools.                                                                                                                          |
 
-**Decision: bumpp + changelogithub.** aokit has two packages released together at one version (`aokit` and `create-aokit`), a single maintainer, and commit messages that already follow a strict convention, so generated notes cost nothing and a per-change changeset file would be duplicated effort. The release flow is: `bumpp` creates the version commit and tag, the tag triggers the workflow, which builds, tests, publishes to npm with provenance, builds the binaries, generates `SHA256SUMS` and attestations, and runs `changelogithub` to fill the GitHub Release. Revisit changesets only if the repository grows packages that must version independently.
+**Decision: bumpp + changelogithub.** aokit has two packages released together at one version (`aokit` and `create-aokit`), a single maintainer, and commit messages that already follow a strict convention, so generated notes cost nothing and a per-change changeset file would be duplicated effort. The release flow is: `bumpp` creates the version commit and tag, the tag triggers the [release workflow](#release-workflow), which builds, tests, builds the binaries, generates `SHA256SUMS` and attestations, fills the GitHub Release with `changelogithub` notes and publishes to npm with provenance. Revisit changesets only if the repository grows packages that must version independently.
 
-The release workflow is also the place that publishes the Registry release (Catalog and Module manifests) so a CLI version and the Registry releases it supports stay traceable through `minCliVersion`.
+A Registry Release is not published by the workflow: its Catalog and Module manifests are committed under `registry/` at the Release cut ([ADR 0024](../adr/0024-pending-modules-catalog-fragments-and-release-cuts.md)) and travel inside the `aokit` tarball and the binaries, so a CLI version and the Releases it supports stay traceable through `minCliVersion`. Release names are dated (`2026.12.1`) and package versions are semver ([ADR 0026](../adr/0026-registry-releases-are-dated-cli-versions-are-semver.md)).
 
 ## Telemetry
 
@@ -74,7 +88,7 @@ Generation must be byte-identical across machines ([Engine: determinism](engine.
 4. Run the same job on a Linux runner and a macOS runner and fail if the digests differ **across** operating systems (this catches path separators, line endings, locale-dependent sorting and file-mode differences).
 5. Run it for both the npm build and the compiled binary, and fail if their digests differ. Both embed the same native parser, so a difference points at bundling, asset embedding or the extraction path.
 
-The digests are stored as snapshots next to the capability-derived matrix, so an unintended change in generated output shows up as a reviewed snapshot diff.
+The matrix stores no snapshots. The digests of the curated real-build sets are compared to a committed baseline (`packages/aokit/test/matrix/curated-digests.txt`), so an unintended change in generated output fails `bun run test`; an intended one regenerates the file on purpose.
 
 ## CI runners
 
