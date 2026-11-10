@@ -1,6 +1,7 @@
 import { chmod, cp, mkdir, rm } from "node:fs/promises";
 import { join } from "node:path";
 import { oxfmtStubPlugin } from "../build-shared/oxfmt-stubs.ts";
+import { buildModuleSdk } from "./module-sdk.ts";
 
 const shebang = "#!/usr/bin/env bun\n";
 
@@ -72,7 +73,10 @@ async function copyPackageDocuments(
   );
 }
 
-/** Builds both publishable packages under `repoRoot/packages` and copies the LICENSE and a README into each. */
+/**
+ * Builds the three publishable packages under `repoRoot/packages` and copies the LICENSE and a
+ * README into each; `@aokit/module` is staged in its `dist/`, the directory that is packed.
+ */
 export async function buildPackages(repoRoot: string): Promise<void> {
   const aokitDir = join(repoRoot, "packages", "aokit");
   const createAokitDir = join(repoRoot, "packages", "create-aokit");
@@ -80,4 +84,5 @@ export async function buildPackages(repoRoot: string): Promise<void> {
   await buildCreateAokit(createAokitDir);
   await copyPackageDocuments(repoRoot, aokitDir, "aokit");
   await copyPackageDocuments(repoRoot, createAokitDir, "create-aokit");
+  await buildModuleSdk(repoRoot, join(repoRoot, "packages", "module"));
 }

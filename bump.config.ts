@@ -4,6 +4,7 @@ import { defineConfig } from "bumpp";
 
 const aokitManifest = "packages/aokit/package.json";
 const createAokitManifest = "packages/create-aokit/package.json";
+const moduleManifest = "packages/module/package.json";
 
 /**
  * Pins `create-aokit`'s dependency on `aokit` to the new shared version and refreshes `bun.lock`,
@@ -20,12 +21,12 @@ function pinCreateAokitDependency(newVersion: string): void {
 }
 
 /**
- * `bun run release`: bumps `aokit` and `create-aokit` to one shared version on a release branch
+ * `bun run release`: bumps `aokit`, `create-aokit` and `@aokit/module` to one shared version on a release branch
  * and opens a pull request. The `v<version>` tag that triggers `.github/workflows/release.yml` is
  * pushed on the merged commit of `main`.
  */
 export default defineConfig({
-  files: [aokitManifest, createAokitManifest],
+  files: [aokitManifest, createAokitManifest, moduleManifest],
   preid: "next",
   commit: "chore: 🔖 release v%s",
   all: true,

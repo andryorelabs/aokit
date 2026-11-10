@@ -1,6 +1,6 @@
 import { z } from "zod";
-import { stableStringify } from "./compile";
-import { manifestSchema } from "./manifest";
+import { stableStringify } from "./compile.ts";
+import { manifestSchema } from "./manifest.ts";
 
 /**
  * Generates the manifest JSON Schema from the Zod schema (input side).

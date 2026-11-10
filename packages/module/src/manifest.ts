@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { opSchema, targetSchema } from "./ops";
+import { opSchema, targetSchema } from "./ops.ts";
 
 /**
  * The newest manifest `schemaVersion` this release of `@aokit/module` reads.

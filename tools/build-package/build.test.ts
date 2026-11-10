@@ -81,7 +81,7 @@ test.each(publishedPackageDirectories)(
   },
 );
 
-test.each(["aokit.md", "create-aokit.md"])(
+test.each(["aokit.md", "create-aokit.md", "module.md"])(
   "npm README source %s uses only absolute image URLs",
   async (fileName) => {
     const source = await readFile(join(import.meta.dir, "assets", fileName), "utf8");
