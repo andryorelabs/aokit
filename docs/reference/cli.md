@@ -34,6 +34,7 @@ Create a new Project from a selection of Modules. Usage: `aokit create [director
 | `--answer <module.key=value>`                  | Answer of a Module; repeatable. The only override allowed with `--from`.                          |
 | `--registry <name\|source>`                    | A local directory, an `https://` URL or `github:owner/repo#ref`; the bundled Registry by default. |
 | `--trust <name\|source>`                       | Trust a Registry; repeatable. `--yes` never grants trust.                                         |
+| `--no-git`                                     | Skip `git init` and the initial commit.                                                           |
 | `--dry-run`, `--diff`, `--yes`, `--no-install` | As in the common flags.                                                                           |
 
 ### `add`
@@ -47,6 +48,15 @@ Add Modules to a Project. Usage: `aokit add <modules...>`.
 | `--registry <name\|source>`                                     | Registry to look the added Modules up in first.           |
 | `--trust <name\|source>`                                        | Trust a Registry; repeatable. `--yes` never grants trust. |
 | `--dry-run`, `--diff`, `--yes`, `--allow-dirty`, `--no-install` | As in the common flags and `--allow-dirty` below.         |
+
+### `list`
+
+List every Module of the active Registry, grouped by the Capability it provides, with its name, version and description. Read-only and needs no Project. Usage: `aokit list`.
+
+| Flag                        | Meaning                                                   |
+| --------------------------- | --------------------------------------------------------- |
+| `--registry <name\|source>` | Registry to list; the bundled Registry by default.        |
+| `--trust <name\|source>`    | Trust a Registry; repeatable. `--yes` never grants trust. |
 
 ### `doctor`
 
@@ -177,6 +187,11 @@ Every error code maps to exactly one exit code. The envelope printed with `--jso
 | `REGISTRY_INTEGRITY_MISMATCH` | `1`   | A fetched artifact does not match its recorded integrity hash.         |
 | `REGISTRY_ITEM_UNSUPPORTED`   | `1`   | A shadcn item has a type aokit cannot adapt.                           |
 | `REGISTRY_ITEM_CHANGED`       | `1`   | A shadcn item changed since it was recorded.                           |
+| `GIT_FAILED`                  | `1`   | A git command or `git merge-file` failed.                              |
+| `REGISTRY_UNREACHABLE`        | `1`   | `git ls-remote` could not reach the Registry repository.               |
+| `PATCH_INVALID`               | `1`   | A file to patch contains invalid YAML.                                 |
+| `REGISTRY_NOT_EMBEDDED`       | `1`   | This build embeds no Registry.                                         |
+| `MCP_CLIENT_UNSUPPORTED`      | `3`   | The MCP client has no JSON config layout.                              |
 
 A code outside this table is treated as an unexpected failure (`1`).
 
