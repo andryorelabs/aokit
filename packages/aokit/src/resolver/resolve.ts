@@ -273,7 +273,8 @@ function describeAllUnmet(
       intent === "add"
         ? `run aokit add with ${needed}, for example aokit add ${providers.join(" ")}`
         : `add ${needed} to --modules, for example --modules ${example}`;
-    return { ...base, code: "requirement_unmet", fix };
+    const ambiguous = group.every((unmet) => unmet.candidates.length > 1);
+    return { ...base, code: ambiguous ? "requirement_ambiguous" : "requirement_unmet", fix };
   }
   const blockers = [...new Set(assessments.flatMap((assessment) => assessment.blockers))].toSorted(
     compareCodepoints,
