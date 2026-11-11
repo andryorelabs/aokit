@@ -133,7 +133,8 @@ describe("renovate.json5", () => {
 
   test("S3: opens its pull requests against develop only", async () => {
     const config = await loadRenovateConfig();
-    expect(config["baseBranches"]).toEqual(["develop"]);
+    expect(config["baseBranchPatterns"]).toEqual(["develop"]);
+    expect(config["baseBranches"]).toBeUndefined();
   });
 
   test("enables lockfile maintenance", async () => {
