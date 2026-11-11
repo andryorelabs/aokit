@@ -32,24 +32,19 @@ function stdioEntry(): { [key: string]: JsoncValue } {
   return { command: "bunx", args: ["aokit", "mcp"] };
 }
 
-/** Where and how each JSON-config client stores the server; `codex` has none. */
-export function jsonClientLayout(client: McpClient): JsonClientLayout | null {
-  switch (client) {
-    case "claude":
-      return { path: ".mcp.json", key: "mcpServers", entry: stdioEntry() };
-    case "cursor":
-      return { path: ".cursor/mcp.json", key: "mcpServers", entry: stdioEntry() };
-    case "vscode":
-      return {
-        path: ".vscode/mcp.json",
-        key: "servers",
-        entry: { type: "stdio", ...stdioEntry() },
-      };
-    case "codex":
-      return null;
-    default:
-      return null;
+/** Where and how each JSON-config client stores the server. */
+export function jsonClientLayout(client: Exclude<McpClient, "codex">): JsonClientLayout {
+  if (client === "claude") {
+    return { path: ".mcp.json", key: "mcpServers", entry: stdioEntry() };
   }
+  if (client === "cursor") {
+    return { path: ".cursor/mcp.json", key: "mcpServers", entry: stdioEntry() };
+  }
+  return {
+    path: ".vscode/mcp.json",
+    key: "servers",
+    entry: { type: "stdio", ...stdioEntry() },
+  };
 }
 
 /** The `claude mcp add` command, printed instead of writing `.mcp.json`. */
