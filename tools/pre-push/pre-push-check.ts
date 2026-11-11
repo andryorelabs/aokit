@@ -8,6 +8,7 @@ const ticketBranch = /^ao-\d+(?:-[a-z0-9]+)+$/;
 const renovateBranch = /^renovate\/.+$/;
 const worktreeBranch = /^worktree-[a-z0-9]+(?:-[a-z0-9]+)*$/;
 const branchPrefix = "refs/heads/";
+const protectedBranches: ReadonlySet<string> = new Set(["main", "develop"]);
 
 /**
  * Checks one `<local ref> <local sha> <remote ref> <remote sha>` line from the
@@ -22,10 +23,10 @@ export function checkPushLine(line: string): PushVerdict {
     return { ok: true };
   }
   const branch = remoteRef.slice(branchPrefix.length);
-  if (branch === "main") {
+  if (protectedBranches.has(branch)) {
     return {
       ok: false,
-      reason: "pushing to main is not allowed; push a feature branch and open a PR",
+      reason: `pushing to ${branch} is not allowed; push a feature branch and open a PR`,
     };
   }
   if (

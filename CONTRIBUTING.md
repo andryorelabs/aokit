@@ -14,11 +14,11 @@ Terms follow [GLOSSARY.md](GLOSSARY.md). The architecture is in [docs/architectu
 
 ## Branch naming and commit format
 
-Work happens on feature branches, never by pushing directly to `main`. Commits and PR titles use Conventional Commits in English with a bullet-point body. Gitmoji is recommended, not required: commitlint accepts both `feat: ✨ add user authentication` and `feat: add user authentication`.
+Work happens on feature branches, never by pushing directly to `main` or `develop`. Open pull requests against `develop`, the development branch. See [ADR-0030](docs/adr/0030-develop-is-the-trunk.md). Commits and PR titles use Conventional Commits in English with a bullet-point body. Gitmoji is recommended, not required: commitlint accepts both `feat: ✨ add user authentication` and `feat: add user authentication`.
 
 ## Merging
 
-Pull requests are merged via **squash merge only**, keeping a linear history. Your commits within a PR don't need to follow the format above individually, but the final PR title does, since it becomes the squashed commit message.
+Pull requests into `develop` are merged via **squash merge only**, keeping a linear history. The maintainer promotes `develop` to `main` with a pull request merged with a merge commit, and a CLI version is tagged on `main`. See [ADR-0030](docs/adr/0030-develop-is-the-trunk.md). Your commits within a PR don't need to follow the format above individually, but the final PR title does, since it becomes the squashed commit message.
 
 ## CI
 

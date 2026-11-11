@@ -6,7 +6,7 @@ import config from "../../bump.config.ts";
 
 interface ReleaseConfig {
   readonly files: readonly string[];
-  readonly pr: { readonly branch: string; readonly title: string };
+  readonly pr: { readonly branch: string; readonly base: string; readonly title: string };
   readonly execute: (operation: { state: { newVersion: string } }) => void;
 }
 
@@ -51,6 +51,10 @@ describe("release bump config", () => {
       "packages/module/package.json",
     ]);
     expect(releaseConfig().pr.branch).toBe("chore/release");
+  });
+
+  test("opens the release pull request against develop", () => {
+    expect(releaseConfig().pr.base).toBe("develop");
   });
 
   test("execute pins the aokit dependency of create-aokit to the new version", () => {

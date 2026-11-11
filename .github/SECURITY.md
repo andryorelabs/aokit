@@ -24,7 +24,7 @@ This is a solo-maintained project, so the response times below are targets, not 
 
 ## Supported Versions
 
-Only the latest release is supported. There are no maintained release branches: a fix lands on `main` and ships in the next release.
+Only the latest release is supported. There are no maintained release branches: a fix lands on `develop`, is promoted to `main` and ships in the next release (see [ADR-0030](../docs/adr/0030-develop-is-the-trunk.md)).
 
 | Version | Supported |
 | ------- | --------- |

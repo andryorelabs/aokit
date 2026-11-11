@@ -13,6 +13,13 @@ Tracker: `linear`. See [issue-tracker.md](issue-tracker.md) for the
 literal calls `emet` makes to create, read, and transition tickets here, and
 [triage-labels.md](triage-labels.md) for the triage vocabulary.
 
+## Trunk
+
+`repo.trunk` is `develop`: `/emet` wave pull requests target `develop` and
+are squash-merged. A promotion pull request from `develop` to `main`, merged
+with a merge commit, follows separately, and a CLI version is tagged on
+`main`. See [ADR-0030](../adr/0030-develop-is-the-trunk.md).
+
 ## Ticket ids and branches
 
 - Ticket id shape: `^AO-\d+$` (e.g. `AO-1`).

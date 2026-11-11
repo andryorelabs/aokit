@@ -292,9 +292,9 @@ step "Workflow filename: release.yml. Environment name: leave empty. Save."
 pause "Press Enter when @aokit/module is configured."
 
 stage "Repository rulesets"
-say "Applies .github/rulesets/main.json and .github/rulesets/tags.json with gh api."
+say "Applies .github/rulesets/main.json, develop.json and tags.json with gh api."
 if confirm "Create the rulesets on $REPO?"; then
-  for ruleset in main tags; do
+  for ruleset in main develop tags; do
     if gh api "repos/$REPO/rulesets" --jq '.[].name' | grep -qx "$ruleset"; then
       note "ruleset $ruleset already exists, skipping"
     else
