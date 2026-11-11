@@ -137,6 +137,36 @@ describe("renovate.json5", () => {
     expect(isJsonObject(maintenance) && maintenance["enabled"]).toBe(true);
   });
 
+  test("runs on Mondays", async () => {
+    const config = await loadRenovateConfig();
+    const schedule = config["schedule"];
+    expect(isStringArray(schedule) && schedule.join(" ")).toContain("on monday");
+  });
+
+  test("enables the dependency dashboard", async () => {
+    const config = await loadRenovateConfig();
+    expect(config["dependencyDashboard"]).toBe(true);
+  });
+
+  test("labels updates and each label exists in labels.yml", async () => {
+    const config = await loadRenovateConfig();
+    const declared: unknown = Bun.YAML.parse(
+      await Bun.file(join(import.meta.dir, "..", "..", ".github", "labels.yml")).text(),
+    );
+    const declaredNames = Array.isArray(declared)
+      ? declared.map((label: unknown) => (isJsonObject(label) ? label["name"] : undefined))
+      : [];
+    const referenced = [
+      ...(isStringArray(config["labels"]) ? config["labels"] : []),
+      ...packageRulesOf(config).flatMap((rule) =>
+        isStringArray(rule["addLabels"]) ? rule["addLabels"] : [],
+      ),
+    ];
+    expect(referenced).toContain("dependencies");
+    expect(referenced).toContain("github-actions");
+    expect(referenced.filter((label) => !declaredNames.includes(label))).toEqual([]);
+  });
+
   test("has a regex manager for renovate datasource comments", async () => {
     const config = await loadRenovateConfig();
     const managers = config["customManagers"];

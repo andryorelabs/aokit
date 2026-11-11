@@ -1,6 +1,7 @@
-name: Documentation
+name: Documentation bug
 description: Something in the docs, the README or a guide is missing, unclear or wrong.
 title: "docs: "
+labels: ["Type: Docs"]
 body:
   - type: markdown
     attributes:

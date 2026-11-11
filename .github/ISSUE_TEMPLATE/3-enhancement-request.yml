@@ -1,22 +1,23 @@
-name: Feature request
-description: Propose a change to the CLI, the Registry, a Module or generated Project output.
-title: "feat: "
+name: Enhancement request
+description: Improve something that already works, such as a flag, a message, a default or a Module.
+title: "enhance: "
+labels: ["Type: Enhancement"]
 body:
   - type: markdown
     attributes:
       value: |
-        Search the existing issues first to avoid duplicates.
+        Search the existing issues first to avoid duplicates. For something that does not exist yet, use the feature request form.
   - type: textarea
-    id: problem
+    id: current
     attributes:
-      label: Problem
-      description: What are you trying to do, and what gets in the way today?
+      label: Current behavior
+      description: What works today and what could be better.
     validations:
       required: true
   - type: textarea
-    id: proposal
+    id: improvement
     attributes:
-      label: Proposed solution
+      label: Proposed improvement
     validations:
       required: true
   - type: textarea

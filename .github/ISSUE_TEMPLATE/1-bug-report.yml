@@ -1,6 +1,7 @@
 name: Bug report
 description: Something in the CLI, the Registry, a Module or generated Project output does not work as documented.
 title: "bug: "
+labels: ["Type: Bug"]
 body:
   - type: markdown
     attributes:
