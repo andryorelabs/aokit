@@ -14,7 +14,7 @@ permissions:
   contents: read
 
 concurrency:
-  group: docker-${{ github.workflow }}-${{ github.ref }}
+  group: docker-${{ github.workflow }}-${{ github.event.pull_request.number || github.sha }}
   cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 jobs:

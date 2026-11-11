@@ -28,6 +28,11 @@ const readOnlyLevels = new Set(["read", "none"]);
 const installCommand = /\bbun (?:install|i)\b/;
 /** The only `cancel-in-progress` value that cancels superseded runs: true on pull requests, false on `main`. */
 const cancelOnPullRequestOnly = "${{ github.event_name == 'pull_request' }}";
+/**
+ * The group key that keeps runs apart per commit off pull requests. A group shared by every
+ * push to `main` lets a newer run cancel the pending one, even with `cancel-in-progress: false`.
+ */
+const perRunGroupKey = "${{ github.event.pull_request.number || github.sha }}";
 
 /** The `with:` inputs of the shared Bun install cache step every install step must follow. */
 const bunCache = {
@@ -90,6 +95,16 @@ function findConcurrencyProblems(file: string, workflow: Record<string, unknown>
         workflowScope,
         "concurrency",
         "a pull_request workflow must set top-level concurrency with a group",
+      ),
+    ];
+  }
+  if (!group.includes(perRunGroupKey)) {
+    return [
+      describeProblem(
+        file,
+        workflowScope,
+        "concurrency",
+        `group ${group} is shared by every run on main, so a newer run cancels the pending one; end it with ${perRunGroupKey}`,
       ),
     ];
   }
@@ -337,7 +352,7 @@ function findWorkflowProblems(file: string, text: string): string[] {
 const sha = "a".repeat(40);
 
 const fixtureConcurrency = `concurrency:
-  group: fixture-\${{ github.workflow }}-\${{ github.ref }}
+  group: fixture-\${{ github.workflow }}-\${{ github.event.pull_request.number || github.sha }}
   cancel-in-progress: \${{ github.event_name == 'pull_request' }}
 `;
 
@@ -443,10 +458,18 @@ const brokenFixtures: readonly {
   },
   {
     rule: "concurrency",
-    search: "  group: fixture-${{ github.workflow }}-${{ github.ref }}\n",
+    search:
+      "  group: fixture-${{ github.workflow }}-${{ github.event.pull_request.number || github.sha }}\n",
     replacement: "",
     expected:
       "fixture.yml:(workflow) breaks concurrency: a pull_request workflow must set top-level concurrency with a group",
+  },
+  {
+    rule: "concurrency",
+    search: "${{ github.event.pull_request.number || github.sha }}",
+    replacement: "${{ github.ref }}",
+    expected:
+      "fixture.yml:(workflow) breaks concurrency: group fixture-${{ github.workflow }}-${{ github.ref }} is shared by every run on main, so a newer run cancels the pending one; end it with ${{ github.event.pull_request.number || github.sha }}",
   },
   {
     rule: "concurrency",

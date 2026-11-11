@@ -4,7 +4,7 @@ import { resolve } from "node:path";
 
 const repoRoot = resolve(import.meta.dir, "../..");
 
-const staleNamePattern = /\b(forge|andryore-starter|andryore starter)\b/i;
+const staleNamePattern = /(?<![a-z])(forge|andryore-starter|andryore starter)(?![a-z])/i;
 
 const allowedPathPrefixes = ["docs/adr/", "docs/research/"];
 const allowedPaths = new Set(["CHANGELOG.md", "tools/docs/stale-names.test.ts"]);
@@ -71,6 +71,13 @@ describe("stale names", () => {
   test("flags the old product names case-insensitively", () => {
     const problems = findStaleNames([
       { path: "docs/a.md", content: "Forge\nandryore-starter\nAndryOre Starter" },
+    ]);
+    expect(problems).toHaveLength(3);
+  });
+
+  test("flags forge joined to an underscore or a digit", () => {
+    const problems = findStaleNames([
+      { path: "docs/a.md", content: "FORGE_MAX_LIVE_WORKERS\nforge_slots\nforge2" },
     ]);
     expect(problems).toHaveLength(3);
   });
