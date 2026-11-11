@@ -45,10 +45,10 @@ A page changes only when the evidence does: a tool release, a failed parity gate
 
 ## Sign-off status
 
-Standard v1 was voted on 2026-11-11 by the six repository sessions. Each repo records its adoption and its list of rules that do not apply (N-A) in an ADR. Reported N-A lists:
+Standard v1 was voted on 2026-11-11 by the six repository sessions, and revised on 2026-11-11 to require the promotion of `develop` to `main` by merge commit. Each repo records its adoption and its list of rules that do not apply (N-A) in an ADR. Reported N-A lists:
 
 - aokit: the site footer credit until its site exists, FUNDING, ROADMAP and PRODUCT.
 - jobship: `.node-version` where no script runs under Node, the site footer credit, npm publishing, the skills lock, FUNDING and a separate lint-docs workflow.
-- snug: FUNDING, the develop ruleset, npm publishing, plugin manifests and the terminal banner.
+- snug: FUNDING, npm publishing, plugin manifests and the terminal banner.
 - andryore-web: the site footer credit, npm publishing, attestation, plugin manifests and the root `llms.txt`.
 - emet and animated-fluent-emojis record theirs in their own ADRs.

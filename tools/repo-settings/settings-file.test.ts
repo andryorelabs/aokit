@@ -34,6 +34,8 @@ describe("S8: .github/settings.json", () => {
       allow_update_branch: true,
       squash_merge_commit_title: "PR_TITLE",
       squash_merge_commit_message: "PR_BODY",
+      merge_commit_title: "PR_TITLE",
+      merge_commit_message: "PR_BODY",
     });
   });
 
