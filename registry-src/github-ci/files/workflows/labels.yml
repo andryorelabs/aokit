@@ -15,13 +15,13 @@ permissions:
   contents: read
 
 concurrency:
-  group: labels-${{ github.workflow }}-${{ github.ref }}
-  cancel-in-progress: true
+  group: labels-${{ github.workflow }}-${{ github.event.pull_request.number || github.sha }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 jobs:
   sync:
-    name: sync labels
-    runs-on: ubuntu-latest
+    name: Sync labels
+    runs-on: ${{ github.event.pull_request.head.repo.fork && 'ubuntu-latest' || vars.BLACKSMITH_RUNNER || 'ubuntu-latest' }}
     timeout-minutes: 5
     permissions:
       contents: read

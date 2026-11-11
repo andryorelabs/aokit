@@ -3,7 +3,7 @@ import { mkdir, readdir, readFile, rename, writeFile } from "node:fs/promises";
 import { homedir } from "node:os";
 import { dirname, join } from "node:path";
 import { pathToFileURL } from "node:url";
-import { chromium, type Page } from "playwright";
+import { chromium } from "playwright";
 import sharp from "sharp";
 
 import {
@@ -30,7 +30,8 @@ async function renderMark(svg: Uint8Array, size: number): Promise<Uint8Array> {
   );
 }
 
-function specFor(path: string): RasterSpec {
+/** The raster spec for a path under `docs/brand/`; throws when there is none. */
+export function specFor(path: string): RasterSpec {
   const spec = rasterSpecs.find((candidate) => candidate.path === path);
   if (spec === undefined) {
     throw new Error(`No raster spec for ${path}`);
@@ -52,22 +53,18 @@ async function writeValidated(brandDir: string, path: string, bytes: Uint8Array)
 export async function exportMarks(options: { root: string }): Promise<void> {
   const brandDir = join(options.root, "docs", "brand");
   const svg = new Uint8Array(await readFile(join(brandDir, "logo", "mark.svg")));
-  const sizes = [...new Set([...MARK_SIZES, ...ICO_SIZES])];
-  const pngs = new Map(
-    await Promise.all(
-      sizes.map(async (size): Promise<[number, Uint8Array]> => [size, await renderMark(svg, size)]),
-    ),
+  const marks = await Promise.all(
+    MARK_SIZES.map(async (size): Promise<[string, Uint8Array]> => [
+      `logo/png/mark-${size}.png`,
+      await renderMark(svg, size),
+    ]),
   );
-  const pngFor = (size: number): Uint8Array => {
-    const png = pngs.get(size);
-    if (png === undefined) {
-      throw new Error(`Missing render for ${size}px`);
-    }
-    return png;
-  };
+  const icoEntries = await Promise.all(
+    ICO_SIZES.map(async (size) => ({ size, png: await renderMark(svg, size) })),
+  );
   const pending: [string, Uint8Array][] = [
-    ...MARK_SIZES.map((size): [string, Uint8Array] => [`logo/png/mark-${size}.png`, pngFor(size)]),
-    ["logo/png/favicon.ico", encodeIco(ICO_SIZES.map((size) => ({ size, png: pngFor(size) })))],
+    ...marks,
+    ["logo/png/favicon.ico", encodeIco(icoEntries)],
   ];
   for (const [path, bytes] of pending) {
     assertSpec(specFor(path), bytes);
@@ -77,7 +74,44 @@ export async function exportMarks(options: { root: string }): Promise<void> {
 
 const REQUIRED_FONT_FAMILIES = ["Geist", "Geist Mono"] as const;
 
-async function assertFontsLoaded(page: Page, name: string): Promise<void> {
+/** The request surface the cover export reads from a routed request. */
+export interface RouteLike {
+  request(): { url(): string };
+  abort(): Promise<void>;
+}
+
+/** The page surface the cover export uses. */
+export interface PageLike {
+  setViewportSize(size: { width: number; height: number }): Promise<void>;
+  goto(url: string): Promise<unknown>;
+  evaluate(script: string): Promise<unknown>;
+  screenshot(options: { type: "png"; animations: "disabled" }): Promise<Uint8Array>;
+}
+
+/** The browser-context surface the cover export uses. */
+export interface ContextLike {
+  route(
+    matcher: (url: URL) => boolean,
+    handler: (route: RouteLike) => Promise<void>,
+  ): Promise<unknown>;
+  newPage(): Promise<PageLike>;
+}
+
+/** The browser surface the cover export uses. */
+export interface BrowserLike {
+  newContext(options: {
+    deviceScaleFactor: number;
+    offline: boolean;
+    reducedMotion: "reduce";
+  }): Promise<ContextLike>;
+  close(): Promise<void>;
+}
+
+/** Opens a browser for the cover export. */
+export type BrowserLauncher = () => Promise<BrowserLike>;
+
+/** Asserts the required font families finished loading in the page. */
+export async function assertFontsLoaded(page: PageLike, name: string): Promise<void> {
   const result: unknown = await page.evaluate(`(async () => {
     await document.fonts.ready;
     return [...document.fonts]
@@ -97,9 +131,9 @@ async function assertFontsLoaded(page: Page, name: string): Promise<void> {
  * uses the host browser instead of downloading the build Playwright expects.
  * Returns `undefined` when none is cached and Playwright's own default applies.
  */
-async function findCachedChromium(): Promise<string | undefined> {
-  const cache =
-    process.env["PLAYWRIGHT_BROWSERS_PATH"] ?? join(homedir(), ".cache", "ms-playwright");
+export async function findCachedChromium(
+  cache = process.env["PLAYWRIGHT_BROWSERS_PATH"] ?? join(homedir(), ".cache", "ms-playwright"),
+): Promise<string | undefined> {
   const entries = await readdir(cache).catch(() => [] as string[]);
   const builds = entries
     .filter((entry) => /^chromium-\d+$/.test(entry))
@@ -110,8 +144,8 @@ async function findCachedChromium(): Promise<string | undefined> {
 }
 
 /** Renders `og/<name>.html` to a PNG, failing on any request that is not a `file:` URL. */
-async function renderCover(
-  page: Page,
+export async function renderCover(
+  page: PageLike,
   brandDir: string,
   cover: (typeof COVER_SPECS)[number],
   blocked: string[],
@@ -125,11 +159,19 @@ async function renderCover(
   return new Uint8Array(await page.screenshot({ type: "png", animations: "disabled" }));
 }
 
-/** Renders the four cover and social preview PNGs offline with Chromium. */
-export async function exportCovers(options: { root: string }): Promise<void> {
-  const brandDir = join(options.root, "docs", "brand");
+/** Launches Chromium, preferring the host's cached build; the default {@link BrowserLauncher}. */
+export const launchChromium: BrowserLauncher = async () => {
   const executablePath = await findCachedChromium();
-  const browser = await chromium.launch(executablePath === undefined ? {} : { executablePath });
+  return chromium.launch(executablePath === undefined ? {} : { executablePath });
+};
+
+/** Renders the four cover and social preview PNGs offline with Chromium. */
+export async function exportCovers(
+  options: { root: string },
+  launchBrowser: BrowserLauncher = launchChromium,
+): Promise<void> {
+  const brandDir = join(options.root, "docs", "brand");
+  const browser = await launchBrowser();
   try {
     const context = await browser.newContext({
       deviceScaleFactor: 1,
@@ -161,9 +203,12 @@ export async function exportCovers(options: { root: string }): Promise<void> {
 }
 
 /** Regenerates every raster under `<root>/docs/brand/`. */
-export async function exportBrand(options: { root: string }): Promise<void> {
+export async function exportBrand(
+  options: { root: string },
+  launchBrowser: BrowserLauncher = launchChromium,
+): Promise<void> {
   await exportMarks(options);
-  await exportCovers(options);
+  await exportCovers(options, launchBrowser);
 }
 
 if (import.meta.main) {

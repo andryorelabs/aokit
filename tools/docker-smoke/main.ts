@@ -6,9 +6,10 @@ import { parseArgs } from "node:util";
 const workspaceRoot = join(import.meta.dir, "..", "..");
 const containerPort = 3000;
 const readinessAttempts = 30;
+const readinessDelayMs = 1000;
 
 /** Outcome of one command. */
-interface ExecResult {
+export interface ExecResult {
   readonly exitCode: number;
   readonly output: string;
 }
@@ -58,13 +59,16 @@ export function createSucceeded(output: string): boolean {
     return (
       typeof envelope === "object" && envelope !== null && "ok" in envelope && envelope.ok === true
     );
-  } catch (error) {
-    if (error instanceof SyntaxError) return false;
-    throw error;
+  } catch {
+    return false;
   }
 }
 
-async function exec(command: readonly string[], cwd: string): Promise<ExecResult> {
+/** Runs one command in a directory and reports its exit code and combined output. */
+export type Runner = (command: readonly string[], cwd: string) => Promise<ExecResult>;
+
+/** Spawns a real process; the default {@link Runner}. */
+export async function exec(command: readonly string[], cwd: string): Promise<ExecResult> {
   const child = Bun.spawn([...command], {
     cwd,
     env: { ...process.env },
@@ -79,7 +83,8 @@ async function exec(command: readonly string[], cwd: string): Promise<ExecResult
   return { exitCode, output: stderr === "" ? stdout : `${stdout}${stderr}` };
 }
 
-async function listFiles(root: string, relative = ""): Promise<string[]> {
+/** Lists files under a root as relative paths, skipping `node_modules` and `.git`. */
+export async function listFiles(root: string, relative = ""): Promise<string[]> {
   const entries = await readdir(join(root, relative), { withFileTypes: true });
   const nested = await Promise.all(
     entries
@@ -92,9 +97,14 @@ async function listFiles(root: string, relative = ""): Promise<string[]> {
   return nested.flat();
 }
 
-async function mustRun(command: readonly string[], cwd: string, step: string): Promise<string> {
+async function mustRun(
+  runner: Runner,
+  command: readonly string[],
+  cwd: string,
+  step: string,
+): Promise<string> {
   process.stdout.write(`> ${step}\n`);
-  const result = await exec(command, cwd);
+  const result = await runner(command, cwd);
   if (result.exitCode !== 0) {
     const tail = result.output.trim().split("\n").slice(-40).join("\n");
     throw new Error(`${step} failed (${result.exitCode})\n${tail}`);
@@ -102,7 +112,8 @@ async function mustRun(command: readonly string[], cwd: string, step: string): P
   return result.output;
 }
 
-async function answersOnce(port: string): Promise<boolean> {
+/** One `GET /health` against loopback; `false` when the connection fails. */
+export async function answersOnce(port: string): Promise<boolean> {
   try {
     const response = await fetch(`http://127.0.0.1:${port}/health`);
     return response.ok;
@@ -112,16 +123,31 @@ async function answersOnce(port: string): Promise<boolean> {
   }
 }
 
-async function answersOverHttp(port: string, attemptsLeft = readinessAttempts): Promise<boolean> {
+/** Polls `/health` until it answers or the attempts run out. */
+export async function answersOverHttp(
+  port: string,
+  attemptsLeft = readinessAttempts,
+  delayMs = readinessDelayMs,
+): Promise<boolean> {
   if (attemptsLeft === 0) return false;
   if (await answersOnce(port)) return true;
-  await Bun.sleep(1000);
-  return answersOverHttp(port, attemptsLeft - 1);
+  await Bun.sleep(delayMs);
+  return answersOverHttp(port, attemptsLeft - 1, delayMs);
 }
 
-async function smoke(layout: LayoutName): Promise<void> {
+/** Options for one smoke run. */
+export interface SmokeOptions {
+  readonly layout: LayoutName;
+  readonly attempts?: number;
+  readonly delayMs?: number;
+}
+
+/** Scaffolds a Project, builds its image and checks the container answers over HTTP. */
+export async function smoke(options: SmokeOptions, runner: Runner = exec): Promise<void> {
+  const { layout } = options;
   const project = join(await mkdtemp(join(tmpdir(), "aokit-docker-smoke-")), "project");
   const created = await mustRun(
+    runner,
     createArguments(layout, project),
     workspaceRoot,
     `create ${layout}`,
@@ -129,41 +155,64 @@ async function smoke(layout: LayoutName): Promise<void> {
   if (!createSucceeded(created)) throw new Error(`create ${layout} did not report ok:\n${created}`);
   const dockerfile = pickDockerfile(await listFiles(project));
   if (dockerfile === undefined) throw new Error(`no Dockerfile in the ${layout} Project`);
-  await mustRun(["bun", "install"], project, `install ${layout}`);
+  await mustRun(runner, ["bun", "install"], project, `install ${layout}`);
   const tag = imageTag(layout);
   const name = containerName(layout);
-  await mustRun(["docker", "build", "-f", dockerfile, "-t", tag, "."], project, `build ${layout}`);
+  await mustRun(
+    runner,
+    ["docker", "build", "-f", dockerfile, "-t", tag, "."],
+    project,
+    `build ${layout}`,
+  );
   try {
     await mustRun(
+      runner,
       ["docker", "run", "-d", "--name", name, "-p", `127.0.0.1::${containerPort}`, tag],
       project,
       `run ${layout}`,
     );
-    const mapping = await mustRun(["docker", "port", name, `${containerPort}`], project, "port");
+    const mapping = await mustRun(
+      runner,
+      ["docker", "port", name, `${containerPort}`],
+      project,
+      "port",
+    );
     const port = mapping.trim().split("\n")[0]?.split(":").pop() ?? "";
-    if (!(await answersOverHttp(port))) {
-      const logs = await exec(["docker", "logs", name], project);
+    if (!(await answersOverHttp(port, options.attempts, options.delayMs))) {
+      const logs = await runner(["docker", "logs", name], project);
       throw new Error(`container did not answer over HTTP (${layout})\n${logs.output}`);
     }
     process.stdout.write(`PASS ${layout}\n`);
   } finally {
-    await exec(["docker", "rm", "-f", name], project);
+    await runner(["docker", "rm", "-f", name], project);
   }
 }
 
-if (import.meta.main) {
-  const { values } = parseArgs({ options: { layout: { type: "string" } } });
+/** Layout from `--layout`, or `undefined` when missing or unknown. */
+export function parseLayout(argv: readonly string[]): LayoutName | undefined {
+  const { values } = parseArgs({ args: [...argv], options: { layout: { type: "string" } } });
   const layout = values.layout;
-  if (layout !== "single" && layout !== "monorepo") {
+  return layout === "single" || layout === "monorepo" ? layout : undefined;
+}
+
+/** CLI entry: returns the process exit code. */
+export async function main(argv: readonly string[], runner: Runner = exec): Promise<number> {
+  const layout = parseLayout(argv);
+  if (layout === undefined) {
     process.stderr.write("usage: bun tools/docker-smoke/main.ts --layout single|monorepo\n");
-    process.exit(2);
+    return 2;
   }
   try {
-    await smoke(layout);
+    await smoke({ layout }, runner);
+    return 0;
   } catch (error) {
     process.stderr.write(
       `FAIL ${layout}: ${error instanceof Error ? error.message : String(error)}\n`,
     );
-    process.exit(1);
+    return 1;
   }
+}
+
+if (import.meta.main) {
+  process.exit(await main(Bun.argv.slice(2)));
 }

@@ -5,7 +5,6 @@ import {
   byCodepoint,
   type ModuleVersion,
   type OpenRegistryContext,
-  rebuildFix,
   type Registry,
 } from "./common.ts";
 import { checkCliVersion, parseIndex, readCatalog, transportFor } from "./index-file.ts";
@@ -41,16 +40,12 @@ export async function openRegistry(
   }
   const index = parseIndex(transport, indexText);
   checkCliVersion(index, context.cliVersion);
-  const currentPointer = index.releases[index.release];
-  if (currentPointer === undefined) {
-    throw new RegistryError(
-      "REGISTRY_CATALOG_INVALID",
-      `Registry "${index.name}" has no Catalog for its current Release ${index.release}.`,
-      rebuildFix,
-      { registry: index.name },
-    );
-  }
-  const currentCatalog = await readCatalog(transport, index.name, index.release, currentPointer);
+  const currentCatalog = await readCatalog(
+    transport,
+    index.name,
+    index.release,
+    index.releases[index.release]!,
+  );
   const catalogs = new Map<string, Promise<ReleaseCatalog>>([
     [index.release, Promise.resolve(currentCatalog)],
   ]);
