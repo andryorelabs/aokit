@@ -4,8 +4,8 @@ Issues and specs for aokit live in Linear. Every operation goes
 through the `mcp__linear-server__*` MCP tools — there is no CLI equivalent to
 `gh`/`glab` for Linear in this setup.
 
-- Team: `AndryOre` (key `AO`). Project: `AndryOre Starter` (exists — every
-  `Spec:` issue must pass `project: "AndryOre Starter"` explicitly when created:
+- Team: `AndryOre` (key `AO`). Project: `aokit` (exists — every
+  `Spec:` issue must pass `project: "aokit"` explicitly when created:
   an issue with `Auto-close stale issues` enabled and no active cycle/project is
   only exempt from that auto-close while it belongs to one). **Sub-issues do NOT
   reliably inherit the parent's project** (verified in this workspace on other

@@ -9,16 +9,10 @@ const staleNamePattern = /(?<![a-z])(forge|andryore-starter|andryore starter)(?!
 const allowedPathPrefixes = ["docs/adr/", "docs/research/"];
 const allowedPaths = new Set(["CHANGELOG.md", "tools/docs/stale-names.test.ts"]);
 
-const linearProjectLiteral = "AndryOre Starter";
-const linearProjectPath = "docs/agents/issue-tracker.md";
-
 const redirectLiteral = "docs-and-forge";
 const redirectPath = "docs/standards/README.md";
 
-const allowedLiteralsByPath = new Map<string, string>([
-  [linearProjectPath, linearProjectLiteral],
-  [redirectPath, redirectLiteral],
-]);
+const allowedLiteralsByPath = new Map<string, string>([[redirectPath, redirectLiteral]]);
 
 interface TrackedFile {
   path: string;
@@ -99,10 +93,9 @@ describe("stale names", () => {
     expect(findStaleNames(files)).toEqual([]);
   });
 
-  test("allows the Linear project literal only in the issue tracker doc", () => {
-    const content = `Project: \`${linearProjectLiteral}\``;
-    expect(findStaleNames([{ path: linearProjectPath, content }])).toEqual([]);
-    expect(findStaleNames([{ path: "docs/agents/emet.md", content }])).toHaveLength(1);
+  test("flags the old Linear project name in the issue tracker doc", () => {
+    const content = "Project: `AndryOre Starter`";
+    expect(findStaleNames([{ path: "docs/agents/issue-tracker.md", content }])).toHaveLength(1);
   });
 
   test("allows the renamed page literal only in the standards index", () => {
@@ -110,13 +103,6 @@ describe("stale names", () => {
     expect(findStaleNames([{ path: redirectPath, content }])).toEqual([]);
     expect(findStaleNames([{ path: "docs/standards/tooling.md", content }])).toHaveLength(1);
     expect(findStaleNames([{ path: redirectPath, content: "the forge command" }])).toHaveLength(1);
-  });
-
-  test("still flags other stale names in the issue tracker doc", () => {
-    const problems = findStaleNames([
-      { path: linearProjectPath, content: `${linearProjectLiteral} and andryore-starter` },
-    ]);
-    expect(problems).toHaveLength(1);
   });
 
   test("no tracked file outside the allowlist contains a stale name", () => {
