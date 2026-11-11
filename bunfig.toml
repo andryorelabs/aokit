@@ -2,9 +2,4 @@
 coverage = true
 coverageSkipTestFiles = true
 coverageReporter = ["text", "lcov"]
-coveragePathIgnorePatterns = [
-  "**/tmp/aokit-*/**",
-  "**/test/**",
-  "**/fixtures/**",
-  "**/*fixture*.ts",
-]
+coveragePathIgnorePatterns = ["**/aokit-*/**", "**/test/**", "**/fixtures/**", "**/*fixture*.ts"]

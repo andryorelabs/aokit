@@ -11,7 +11,7 @@ Architecture: [Testing standard](../standards/testing.md#coverage-threshold)
 ## Decision
 
 - `bunfig.toml` keeps coverage on and writes `coverage/lcov.info`; it no longer sets `coverageThreshold`.
-- `bun run test` runs `bun test` and then `tools/coverage/check-threshold.ts`. The script computes the "All files" line and function figures from the lcov report and exits 1 when either is below its threshold.
+- `bun run test` runs `tools/coverage/run-tests.ts`, which runs `bun test` with any extra arguments and then, on a full run, `checkCoverageReport` from `tools/coverage/check-threshold.ts`. The check computes the "All files" line and function figures from the lcov report and exits 1 when either is below its threshold. A filtered run (`bun run test <path>`) measures part of the suite and skips the gate.
 - The thresholds stay at 97% lines and 98% functions, as constants in the script. Raising them follows the [testing standard](../standards/testing.md); lowering them to pass is not allowed.
 - Files are never added to `coveragePathIgnorePatterns` to pass the gate. Only test support code and temp registries are excluded.
 
@@ -19,7 +19,7 @@ Architecture: [Testing standard](../standards/testing.md#coverage-threshold)
 
 - A run below the threshold fails the same command that runs the tests, as the standard already promised.
 - A file with low coverage no longer fails the run on its own as long as the mean holds. The coverage manifest still requires every source module to be imported by a test or exempted with a reason.
-- The gate is a script, so the Windows and latest-Bun CI lanes that call `bun test` directly do not run it; the Linux `bun run test` lane is the gate.
+- Every CI lane that runs `bun run test` (all but Windows, which calls `bun test packages tools` directly) enforces the gate, so a coverage drift on one platform fails a required lane.
 
 ## Alternatives considered
 

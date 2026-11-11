@@ -1,7 +1,7 @@
 import { afterEach, describe, expect, test } from "bun:test";
-import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
+import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
-import { join } from "node:path";
+import { join, resolve } from "node:path";
 import {
   checkCoverageReport,
   findThresholdFailures,
@@ -82,6 +82,22 @@ describe("findThresholdFailures", () => {
 
   test("honors custom thresholds", () => {
     expect(findThresholdFailures(at, { lines: 0.99, functions: 0.5 })).toHaveLength(1);
+  });
+});
+
+describe("gate wiring", () => {
+  const repoRoot = resolve(import.meta.dir, "../..");
+
+  test("the test script runs the gate runner", () => {
+    expect(readFileSync(join(repoRoot, "package.json"), "utf8")).toMatch(
+      /"test":\s*"[^"]*tools\/coverage\/run-tests\.ts/,
+    );
+  });
+
+  test("bunfig writes the lcov report the gate reads", () => {
+    expect(readFileSync(join(repoRoot, "bunfig.toml"), "utf8")).toMatch(
+      /coverageReporter\s*=\s*\[[^\]]*"lcov"/,
+    );
   });
 });
 

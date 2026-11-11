@@ -12,7 +12,7 @@
     "format": "oxfmt",
     "format:check": "oxfmt --check",
     "knip": "knip",
-    "test": "bun test && bun tools/coverage/check-threshold.ts",
+    "test": "bun tools/coverage/run-tests.ts",
     "build:package": "bun tools/build-package/main.ts",
     "build:binary": "bun tools/build-binary/main.ts",
     "brand:export": "bun tools/brand/brand-export.ts",
