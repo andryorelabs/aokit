@@ -41,7 +41,7 @@ export function parseLcov(lcov: string): FileCoverage[] {
   for (const rawLine of lcov.split(/\r?\n/)) {
     const line = rawLine.trim();
     if (line.startsWith("SF:")) {
-      current = { path: line.slice(3), lf: 0, lh: 0, fnf: 0, fnh: 0 };
+      current = { path: line.slice(3).replaceAll("\\", "/"), lf: 0, lh: 0, fnf: 0, fnh: 0 };
     } else if (current !== undefined && line.startsWith("LF:")) {
       current.lf = Number(line.slice(3));
     } else if (current !== undefined && line.startsWith("LH:")) {

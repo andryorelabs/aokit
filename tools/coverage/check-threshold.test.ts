@@ -121,7 +121,19 @@ describe("checkCoverageReport", () => {
   test("applies the committed exceptions by default", () => {
     const failures = checkCoverageReport(reportRoot(record("a.ts", 100, 100, 100, 100)));
     expect(failures).toHaveLength(coverageExceptions.length);
-    expect(failures[0]).toContain("missing from the report");
+    for (const failure of failures) expect(failure).toContain("missing from the report");
+  });
+
+  test("matches an exception against a report that uses backslash paths", () => {
+    const covered = Array.from({ length: 49 }, (_, index) =>
+      record(`src\\covered-${index}.ts`, 100, 100, 100, 100),
+    );
+    const lcov = [record("src\\a.ts", 100, 95, 100, 100), ...covered].join("\n");
+    const exceptions = [
+      { file: "src/a.ts", reason: "reached only by spawned processes", lines: 0.95, functions: 1 },
+    ];
+    expect(parseLcov(lcov)[0]?.path).toBe("src/a.ts");
+    expect(checkCoverageReport(reportRoot(lcov), exceptions)).toEqual([]);
   });
 });
 
