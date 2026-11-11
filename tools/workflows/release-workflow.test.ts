@@ -1,6 +1,7 @@
 import { afterEach, describe, expect, test } from "bun:test";
 import {
   chmodSync,
+  cpSync,
   existsSync,
   mkdirSync,
   mkdtempSync,
@@ -9,7 +10,7 @@ import {
   writeFileSync,
 } from "node:fs";
 import { tmpdir } from "node:os";
-import { join } from "node:path";
+import { dirname, join } from "node:path";
 import { loadBumpConfig } from "bumpp";
 import bumppConfig from "../../bump.config.ts";
 import { parseBinaryTarget } from "../build-binary/targets.ts";
@@ -202,9 +203,8 @@ describe("S2: release workflow", () => {
       "id-token": "write",
       attestations: "write",
     });
-    for (const name of ["verify", "binaries"]) {
-      expect(job(name)["permissions"]).toBeUndefined();
-    }
+    expect(job("verify")["permissions"]).toEqual({ contents: "read", checks: "read" });
+    expect(job("binaries")["permissions"]).toBeUndefined();
   });
 
   test("S18: only the publish job runs in the protected npm environment", () => {
@@ -228,7 +228,7 @@ describe("S2: release workflow", () => {
       "(cd packages/create-aokit && bun pm pack",
       '(cd packages/module/dist && bun pm pack --destination "$RUNNER_TEMP/release/module")',
       "bun test packages/aokit/test/dist/package",
-      "bun run release:notes",
+      'bun tools/release/main.ts "$VERSION" "$RUNNER_TEMP/release/release-notes.md"',
     ]) {
       expect(commands).toContain(command);
     }
@@ -742,10 +742,9 @@ describe("S2: one shared version released with bumpp", () => {
     },
   );
 
-  test("bun run release runs bumpp over the three manifests and release:notes runs changelogithub", () => {
+  test("bun run release runs bumpp over the three manifests", () => {
     const scripts = asRecord(readJson("package.json")["scripts"], "scripts");
     expect(scripts["release"]).toBe("bumpp");
-    expect(scripts["release:notes"]).toBe("changelogithub");
     expect(bumppConfig.files).toEqual([
       "packages/aokit/package.json",
       "packages/create-aokit/package.json",
@@ -760,5 +759,303 @@ describe("S2: one shared version released with bumpp", () => {
     expect(loaded.preid).toBe("next");
     expect(loaded.pr).toEqual(bumppConfig.pr);
     expect(typeof loaded.execute).toBe("function");
+  });
+});
+
+const tagOnMainStepName = "Tag is on main";
+const ciPassedStepName = "CI passed for the tagged commit";
+const releaseNotesStepName = "Release notes from CHANGELOG.md";
+const gateTimeout = 30_000;
+
+const gitIdentity = {
+  GIT_CONFIG_GLOBAL: "/dev/null",
+  GIT_CONFIG_SYSTEM: "/dev/null",
+  GIT_AUTHOR_NAME: "release test",
+  GIT_AUTHOR_EMAIL: "release-test@example.invalid",
+  GIT_COMMITTER_NAME: "release test",
+  GIT_COMMITTER_EMAIL: "release-test@example.invalid",
+};
+
+/** Makes a repository whose `origin/main` holds one commit and returns the commit to tag. */
+function taggedCommit(where: "on main" | "off main"): { directory: string; sha: string } {
+  const directory = temporaryDirectory();
+  const offMain = where === "off main" ? "git commit -q --allow-empty -m side" : "";
+  const setup = runBash(
+    `git init -q -b main
+git commit -q --allow-empty -m first
+git update-ref refs/remotes/origin/main HEAD
+${offMain}
+git rev-parse HEAD`,
+    directory,
+    gitIdentity,
+  );
+  expect(setup.exitCode).toBe(0);
+  return { directory, sha: setup.output.trim().split("\n").at(-1) ?? "" };
+}
+
+function runTagOnMainGate(where: "on main" | "off main", refType: "tag" | "branch"): ScriptResult {
+  const { directory, sha } = taggedCommit(where);
+  return runBash(runScript("verify", tagOnMainStepName), directory, {
+    ...gitIdentity,
+    REF_TYPE: refType,
+    REF_NAME: refType === "tag" ? "v0.2.0" : "main",
+    TAG_SHA: sha,
+  });
+}
+
+interface CheckRun {
+  name: string;
+  conclusion: string | null;
+}
+
+interface CiGateResult extends ScriptResult {
+  ghCalls: string[];
+}
+
+/** Runs the CI gate with a fake `gh` that answers `gh api --jq` from the given check runs. */
+function runCiPassedGate(
+  checkRuns: readonly CheckRun[],
+  refType: "tag" | "branch" = "tag",
+): CiGateResult {
+  const directory = temporaryDirectory();
+  const binDirectory = join(directory, "bin");
+  mkdirSync(binDirectory);
+  const callLog = join(directory, "gh-calls");
+  const response = join(directory, "check-runs.json");
+  writeFileSync(callLog, "");
+  writeFileSync(response, JSON.stringify({ total_count: checkRuns.length, check_runs: checkRuns }));
+  const fakeGh = join(binDirectory, "gh");
+  writeFileSync(
+    fakeGh,
+    `#!/usr/bin/env bash
+echo "gh $*" >> "${callLog}"
+while [ "$#" -gt 0 ]; do
+  if [ "$1" = --jq ]; then
+    exec jq -r "$2" "${response}"
+  fi
+  shift
+done
+cat "${response}"
+`,
+  );
+  chmodSync(fakeGh, 0o755);
+  const result = runBash(runScript("verify", ciPassedStepName), directory, {
+    PATH: `${binDirectory}:${process.env["PATH"] ?? ""}`,
+    GH_TOKEN: "test-token",
+    GITHUB_REPOSITORY: "andryorelabs/aokit",
+    REF_TYPE: refType,
+    REF_NAME: refType === "tag" ? "v0.2.0" : "main",
+    TAG_SHA: "0123456789abcdef0123456789abcdef01234567",
+  });
+  return { ...result, ghCalls: readFileSync(callLog, "utf8").split("\n").filter(Boolean) };
+}
+
+interface NotesResult extends ScriptResult {
+  notes: string | undefined;
+}
+
+/** Runs the notes step over a CHANGELOG.md with the given text, using the repository's extractor. */
+function runReleaseNotes(
+  changelogText: string,
+  version: string,
+  refType: "tag" | "branch",
+): NotesResult {
+  const directory = temporaryDirectory();
+  cpSync(join(repositoryRoot, "tools", "release"), join(directory, "tools", "release"), {
+    recursive: true,
+  });
+  writeFileSync(join(directory, "CHANGELOG.md"), changelogText);
+  const runnerTemp = join(directory, "runner-temp");
+  mkdirSync(runnerTemp);
+  const result = runBash(runScript("verify", releaseNotesStepName), directory, {
+    PATH: `${dirname(process.execPath)}:${process.env["PATH"] ?? ""}`,
+    RUNNER_TEMP: runnerTemp,
+    REF_TYPE: refType,
+    VERSION: version,
+  });
+  const notesFile = join(runnerTemp, "release", "release-notes.md");
+  return {
+    ...result,
+    notes: existsSync(notesFile) ? readFileSync(notesFile, "utf8") : undefined,
+  };
+}
+
+const gateChangelog = `# Changelog
+
+## [Unreleased]
+
+## [0.3.0] - 2026-12-01
+
+### Added
+
+## [0.2.0] - 2026-11-11
+
+### Added
+
+- A new command.
+
+[0.2.0]: https://github.com/andryorelabs/aokit/compare/v0.1.0...v0.2.0
+`;
+
+describe("S6: a release is gated on main, green CI and a CHANGELOG section", () => {
+  test("the three gates run in verify before any check, test or build step", () => {
+    const names = steps("verify").map((step) => step["name"]);
+    const firstBuildStep = names.indexOf("Check");
+    expect(firstBuildStep).toBeGreaterThan(0);
+    for (const gate of [tagOnMainStepName, ciPassedStepName, releaseNotesStepName]) {
+      expect(names.indexOf(gate)).toBeGreaterThan(names.indexOf(resolveStepName));
+      expect(names.indexOf(gate)).toBeLessThan(firstBuildStep);
+    }
+    for (const name of ["binaries", "release", "publish"]) {
+      expect([job(name)["needs"]].flat()).toContain("verify");
+    }
+  });
+
+  test("no step runs changelogithub and no manifest names it", () => {
+    expect(readFileSync(releaseWorkflowPath, "utf8")).not.toContain("release:notes");
+    const manifest = readJson("package.json");
+    expect(asRecord(manifest["scripts"], "scripts")["release:notes"]).toBeUndefined();
+    expect(
+      asRecord(manifest["devDependencies"], "devDependencies")["changelogithub"],
+    ).toBeUndefined();
+    expect(readFileSync(join(repositoryRoot, "bun.lock"), "utf8")).not.toContain("changelogithub");
+  });
+
+  describe.skipIf(isWindows)("tag on main", () => {
+    test(
+      "a tag on a commit of main passes",
+      () => {
+        const result = runTagOnMainGate("on main", "tag");
+        expect(result.output).toContain("is on main");
+        expect(result.exitCode).toBe(0);
+      },
+      gateTimeout,
+    );
+
+    test(
+      "a tag on a commit that main does not contain fails",
+      () => {
+        const result = runTagOnMainGate("off main", "tag");
+        expect(result.exitCode).toBe(1);
+        expect(result.output).toContain("::error::tag v0.2.0");
+        expect(result.output).toContain("is not on main");
+      },
+      gateTimeout,
+    );
+
+    test(
+      "a dispatch without a tag skips the gate, even off main",
+      () => {
+        const result = runTagOnMainGate("off main", "branch");
+        expect(result.exitCode).toBe(0);
+        expect(result.output).toContain("No tag");
+      },
+      gateTimeout,
+    );
+  });
+
+  describe.skipIf(isWindows)("CI passed", () => {
+    test(
+      "a green CI passed check on the tagged commit passes",
+      () => {
+        const result = runCiPassedGate([{ name: "CI passed", conclusion: "success" }]);
+        expect(result.exitCode).toBe(0);
+        expect(result.ghCalls).toHaveLength(1);
+        expect(result.ghCalls[0]).toContain(
+          "repos/andryorelabs/aokit/commits/0123456789abcdef0123456789abcdef01234567/check-runs",
+        );
+        expect(result.ghCalls[0]).toContain("check_name=CI passed");
+      },
+      gateTimeout,
+    );
+
+    const notGreen: [string, CheckRun[], string][] = [
+      ["failed", [{ name: "CI passed", conclusion: "failure" }], '"CI passed" is failure'],
+      ["is still running", [{ name: "CI passed", conclusion: null }], '"CI passed" is pending'],
+      ["never ran", [], '"CI passed" is missing'],
+      [
+        "is green in one run and failed in another",
+        [
+          { name: "CI passed", conclusion: "success" },
+          { name: "CI passed", conclusion: "failure" },
+        ],
+        '"CI passed" is failure,success',
+      ],
+    ];
+
+    test.each(notGreen)(
+      "a CI passed check that %s fails",
+      (_label, checkRuns, message) => {
+        const result = runCiPassedGate(checkRuns);
+        expect(result.exitCode).toBe(1);
+        expect(result.output).toContain(`::error::${message}`);
+      },
+      gateTimeout,
+    );
+
+    test(
+      "a dispatch without a tag skips the gate and never calls gh",
+      () => {
+        const result = runCiPassedGate([], "branch");
+        expect(result.exitCode).toBe(0);
+        expect(result.ghCalls).toEqual([]);
+      },
+      gateTimeout,
+    );
+  });
+
+  describe.skipIf(isWindows)("release notes", () => {
+    test(
+      "a tag with a CHANGELOG section gets that section as its notes",
+      () => {
+        const result = runReleaseNotes(gateChangelog, "0.2.0", "tag");
+        expect(result.exitCode).toBe(0);
+        expect(result.notes).toBe("### Added\n\n- A new command.\n");
+      },
+      gateTimeout,
+    );
+
+    test(
+      "a tag with no CHANGELOG section fails and writes no notes",
+      () => {
+        const result = runReleaseNotes(gateChangelog, "0.4.0", "tag");
+        expect(result.exitCode).toBe(1);
+        expect(result.output).toContain("::error::CHANGELOG.md has no section for 0.4.0");
+        expect(result.notes).toBeUndefined();
+      },
+      gateTimeout,
+    );
+
+    test(
+      "a tag with an empty CHANGELOG section fails and writes no notes",
+      () => {
+        const result = runReleaseNotes(gateChangelog, "0.3.0", "tag");
+        expect(result.exitCode).toBe(1);
+        expect(result.output).toContain("::error::CHANGELOG.md section for 0.3.0 is empty");
+        expect(result.notes).toBeUndefined();
+      },
+      gateTimeout,
+    );
+
+    test(
+      "a dispatch without a tag still gets notes when its version has no section",
+      () => {
+        const result = runReleaseNotes(gateChangelog, "0.4.0", "branch");
+        expect(result.exitCode).toBe(0);
+        expect(result.output).toContain("::warning::CHANGELOG.md has no section for 0.4.0");
+        expect(result.notes).toBe("No CHANGELOG.md section for 0.4.0 (dry run without a tag).\n");
+      },
+      gateTimeout,
+    );
+
+    test(
+      "a dispatch without a tag uses the section when its version has one",
+      () => {
+        const result = runReleaseNotes(gateChangelog, "0.2.0", "branch");
+        expect(result.exitCode).toBe(0);
+        expect(result.notes).toBe("### Added\n\n- A new command.\n");
+      },
+      gateTimeout,
+    );
   });
 });
