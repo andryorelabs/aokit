@@ -28,7 +28,7 @@
     },
     "packages/aokit": {
       "name": "aokit",
-      "version": "0.1.0",
+      "version": "0.2.0",
       "bin": {
         "aokit": "./bin/aokit.js",
       },
@@ -53,17 +53,17 @@
     },
     "packages/create-aokit": {
       "name": "create-aokit",
-      "version": "0.1.0",
+      "version": "0.2.0",
       "bin": {
         "create-aokit": "./dist/main.js",
       },
       "dependencies": {
-        "aokit": "0.1.0",
+        "aokit": "0.2.0",
       },
     },
     "packages/module": {
       "name": "@aokit/module",
-      "version": "0.1.0",
+      "version": "0.2.0",
       "dependencies": {
         "zod": "^4.6.7",
       },
