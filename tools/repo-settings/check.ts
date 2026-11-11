@@ -15,20 +15,36 @@ function errorMessage(error: unknown): string {
   return error instanceof Error ? error.message : String(error);
 }
 
+const DEFAULT_TIMEOUT_MS = 30_000;
+
+/** The most rulesets GitHub returns in one page. */
+const RULESETS_PAGE_SIZE = 100;
+
 /**
  * Returns a runner that spawns `command`. A command that cannot be started throws a
- * `LiveSettingsError` that says to install the GitHub CLI.
+ * `LiveSettingsError` that says to install the GitHub CLI, and one that runs longer than
+ * `timeoutMs` is stopped and throws a `LiveSettingsError` too.
  */
-export function createGhRunner(command = "gh"): GhRunner {
+export function createGhRunner(command = "gh", timeoutMs = DEFAULT_TIMEOUT_MS): GhRunner {
   return (args) => {
     try {
-      const result = Bun.spawnSync([command, ...args], { stdout: "pipe", stderr: "pipe" });
+      const result = Bun.spawnSync([command, ...args], {
+        stdout: "pipe",
+        stderr: "pipe",
+        timeout: timeoutMs,
+      });
+      if (result.exitedDueToTimeout === true) {
+        throw new LiveSettingsError(
+          `${command} ${args.join(" ")} did not finish within ${timeoutMs} ms. Check the network and run the check again.`,
+        );
+      }
       return {
         exitCode: result.exitCode,
         stdout: result.stdout.toString(),
         stderr: result.stderr.toString(),
       };
     } catch (error) {
+      if (error instanceof LiveSettingsError) throw error;
       throw new LiveSettingsError(
         `could not run ${command}. Install the GitHub CLI (https://cli.github.com) and put it on PATH. (${errorMessage(error)})`,
         { cause: error },
@@ -179,8 +195,16 @@ function findRulesetDrift(
   repoRoot: string,
   files: readonly string[],
 ): Drift[] {
-  const liveRulesets = getJson(runGh, `repos/${repository}/rulesets`);
+  const liveRulesets = getJson(
+    runGh,
+    `repos/${repository}/rulesets?per_page=${RULESETS_PAGE_SIZE}`,
+  );
   const liveList = Array.isArray(liveRulesets) ? liveRulesets.filter(isRecord) : [];
+  if (liveList.length >= RULESETS_PAGE_SIZE) {
+    throw new LiveSettingsError(
+      `${repository} has ${RULESETS_PAGE_SIZE} or more rulesets, so the list may be incomplete.`,
+    );
+  }
   return files.flatMap((file) => {
     const expected = readJsonFile(join(repoRoot, ".github", "rulesets", file));
     const name = isRecord(expected) ? expected["name"] : undefined;
