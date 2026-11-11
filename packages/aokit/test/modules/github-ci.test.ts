@@ -110,6 +110,7 @@ describe("github-ci", () => {
       "--offline --include-fragments=anchor-only --no-progress '**/*.md'",
     );
     expect(field(field(lychee, "with"), "fail")).toBe(true);
+    expect(field(field(lychee, "with"), "failIfEmpty")).toBe(false);
   });
 
   test("lints the pull request's commits only when the Project has a commitlint configuration", async () => {

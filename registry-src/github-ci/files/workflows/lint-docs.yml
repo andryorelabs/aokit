@@ -25,3 +25,4 @@ jobs:
         with:
           args: --offline --include-fragments=anchor-only --no-progress '**/*.md'
           fail: true
+          failIfEmpty: false
