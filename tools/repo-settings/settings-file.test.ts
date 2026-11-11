@@ -20,10 +20,14 @@ describe("S8: .github/settings.json", () => {
     expect(Object.keys(isRecord(settings) ? settings : {})).toEqual(["repository", "security"]);
   });
 
-  test("A1 to A3: squash only, with branch cleanup, auto-merge, update branch and PR title and body", () => {
+  test("S2: merge commits are allowed, because a promotion of develop to main merges with one", () => {
+    expect(repository["allow_merge_commit"]).toBe(true);
+  });
+
+  test("A1 to A3: squash and merge commits, no rebase, with branch cleanup, auto-merge, update branch and PR title and body", () => {
     expect(repository).toMatchObject({
       allow_squash_merge: true,
-      allow_merge_commit: false,
+      allow_merge_commit: true,
       allow_rebase_merge: false,
       delete_branch_on_merge: true,
       allow_auto_merge: true,

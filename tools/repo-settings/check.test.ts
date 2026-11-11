@@ -6,7 +6,11 @@ import { isRecord } from "./compare.ts";
 
 const repoRoot = join(import.meta.dir, "..", "..");
 const repository = "andryorelabs/aokit";
-const rulesetIds: Readonly<Record<string, number>> = { main: 26780591, tags: 26780594 };
+const rulesetIds: Readonly<Record<string, number>> = {
+  develop: 26780599,
+  main: 26780591,
+  tags: 26780594,
+};
 
 function readJson(...segments: string[]): Record<string, unknown> {
   const value: unknown = JSON.parse(readFileSync(join(repoRoot, ...segments), "utf8"));
@@ -103,7 +107,7 @@ describe("S8: repo-settings:check", () => {
   test("live settings equal to the files exit 0, whatever order topics and rules come in", () => {
     const result = check(liveResponsesFromFiles());
     expect(result.lines).toEqual([
-      "Live settings of andryorelabs/aokit match .github/settings.json and .github/rulesets (main.json, tags.json).",
+      "Live settings of andryorelabs/aokit match .github/settings.json and .github/rulesets (develop.json, main.json, tags.json).",
     ]);
     expect(result.exitCode).toBe(0);
   });
@@ -115,6 +119,7 @@ describe("S8: repo-settings:check", () => {
       "repos/andryorelabs/aokit/vulnerability-alerts",
       "repos/andryorelabs/aokit/private-vulnerability-reporting",
       "repos/andryorelabs/aokit/rulesets?per_page=100",
+      "repos/andryorelabs/aokit/rulesets/26780599",
       "repos/andryorelabs/aokit/rulesets/26780591",
       "repos/andryorelabs/aokit/rulesets/26780594",
     ]);
@@ -215,10 +220,13 @@ describe("S8: repo-settings:check", () => {
     const result = check(responses);
     expect(result.exitCode).toBe(1);
     expect(result.lines).toEqual([
+      "Drift: rulesets/develop.json",
+      '  expected: "a live ruleset named develop"',
+      "  live:     undefined",
       "Drift: rulesets/tags.json",
       '  expected: "a live ruleset named tags"',
       "  live:     undefined",
-      "1 live setting of andryorelabs/aokit differs from the files.",
+      "2 live settings of andryorelabs/aokit differ from the files.",
     ]);
   });
 

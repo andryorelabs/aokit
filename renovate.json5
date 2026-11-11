@@ -1,6 +1,7 @@
 {
   $schema: "https://docs.renovatebot.com/renovate-schema.json",
   extends: ["config:best-practices"],
+  baseBranches: ["develop"],
   schedule: ["before 6am on monday"],
   timezone: "UTC",
   dependencyDashboard: true,

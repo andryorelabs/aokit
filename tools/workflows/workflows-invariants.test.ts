@@ -11,6 +11,7 @@ type WorkflowRule =
   | "permissions"
   | "no-pull-request-target"
   | "concurrency"
+  | "push-branches"
   | "no-expression-in-run"
   | "pinned-actions"
   | "node-version-file"
@@ -33,6 +34,8 @@ const cancelOnPullRequestOnly = "${{ github.event_name == 'pull_request' }}";
  * push to `main` lets a newer run cancel the pending one, even with `cancel-in-progress: false`.
  */
 const perRunGroupKey = "${{ github.event.pull_request.number || github.sha }}";
+/** The one workflow that runs on a push to `main` and not to `develop`. */
+const defaultBranchOnlyWorkflow = "scorecard.yml";
 
 /** The `with:` inputs of the shared Bun install cache step every install step must follow. */
 const bunCache = {
@@ -120,6 +123,44 @@ function findConcurrencyProblems(file: string, workflow: Record<string, unknown>
   ];
 }
 
+function listPushBranches(workflow: Record<string, unknown>): unknown[] {
+  const on = workflow["on"];
+  const push = isRecord(on) ? on["push"] : undefined;
+  const branches = isRecord(push) ? push["branches"] : undefined;
+  if (typeof branches === "string") return [branches];
+  return Array.isArray(branches) ? branches : [];
+}
+
+/**
+ * `develop` is the trunk and `main` holds promoted history, so a workflow that runs on a push to
+ * `main` also runs on a push to `develop`. The Scorecard workflow is the exception: it stays on
+ * the default branch.
+ */
+function findPushBranchProblems(file: string, workflow: Record<string, unknown>): string[] {
+  const branches = listPushBranches(workflow);
+  const listsDevelop = branches.includes("develop");
+  if (file === defaultBranchOnlyWorkflow) {
+    if (!listsDevelop) return [];
+    return [
+      describeProblem(
+        file,
+        workflowScope,
+        "push-branches",
+        "push.branches lists develop, but the Scorecard reads the default branch only",
+      ),
+    ];
+  }
+  if (!branches.includes("main") || listsDevelop) return [];
+  return [
+    describeProblem(
+      file,
+      workflowScope,
+      "push-branches",
+      "push.branches lists main without develop; a push to develop must run it too",
+    ),
+  ];
+}
+
 function findWorkflowLevelProblems(file: string, workflow: Record<string, unknown>): string[] {
   const problems: string[] = [];
   const permissions = workflow["permissions"];
@@ -160,6 +201,7 @@ function findWorkflowLevelProblems(file: string, workflow: Record<string, unknow
     );
   }
   problems.push(...findConcurrencyProblems(file, workflow));
+  problems.push(...findPushBranchProblems(file, workflow));
   return problems;
 }
 
@@ -501,6 +543,20 @@ const brokenFixtures: readonly {
       "fixture.yml:build breaks concurrency: cancel-in-progress is true, which cancels runs on main; use ${{ github.event_name == 'pull_request' }}",
   },
   {
+    rule: "push-branches",
+    search: "on:\n  pull_request:\n",
+    replacement: "on:\n  push:\n    branches: [main]\n  pull_request:\n",
+    expected:
+      "fixture.yml:(workflow) breaks push-branches: push.branches lists main without develop; a push to develop must run it too",
+  },
+  {
+    rule: "push-branches",
+    search: "on:\n  pull_request:\n",
+    replacement: "on:\n  push:\n    branches: main\n  pull_request:\n",
+    expected:
+      "fixture.yml:(workflow) breaks push-branches: push.branches lists main without develop; a push to develop must run it too",
+  },
+  {
     rule: "no-expression-in-run",
     search: 'run: echo "$REF"',
     replacement: 'run: echo "${{ github.ref }}"',
@@ -575,6 +631,57 @@ describe("S8: workflow hardening invariants", () => {
       ]);
     },
   );
+
+  test("S3: a workflow that runs on a push to main and to develop passes", () => {
+    const text = breakFixture(
+      "on:\n  pull_request:\n",
+      "on:\n  push:\n    branches: [main, develop]\n  pull_request:\n",
+    );
+    expect(findWorkflowProblems("fixture.yml", text)).toEqual([]);
+  });
+
+  test("S3: scorecard.yml stays on main, and listing develop there fails", () => {
+    const onMain = breakFixture(
+      "on:\n  pull_request:\n",
+      "on:\n  push:\n    branches: [main]\n  pull_request:\n",
+    );
+    expect(findWorkflowProblems("scorecard.yml", onMain)).toEqual([]);
+    const onDevelop = breakFixture(
+      "on:\n  pull_request:\n",
+      "on:\n  push:\n    branches: [main, develop]\n  pull_request:\n",
+    );
+    expect(findWorkflowProblems("scorecard.yml", onDevelop)).toEqual([
+      "scorecard.yml:(workflow) breaks push-branches: push.branches lists develop, but the Scorecard reads the default branch only",
+    ]);
+  });
+
+  test("S3: every workflow with a branch push trigger runs on main and develop, except scorecard.yml", () => {
+    const pushBranches = Object.fromEntries(
+      readdirSync(workflowsDirectory)
+        .filter((name) => /\.ya?ml$/.test(name))
+        .toSorted()
+        .flatMap((name): [string, unknown[]][] => {
+          const workflow: unknown = Bun.YAML.parse(
+            readFileSync(join(workflowsDirectory, name), "utf8"),
+          );
+          const branches = isRecord(workflow) ? listPushBranches(workflow) : [];
+          return branches.length === 0 ? [] : [[name, branches]];
+        }),
+    );
+    expect(pushBranches).toEqual({
+      "ci.yml": ["main", "develop"],
+      "codeql.yml": ["main", "develop"],
+      "determinism.yml": ["main", "develop"],
+      "distribution.yml": ["main", "develop"],
+      "docker.yml": ["main", "develop"],
+      "labels.yml": ["main", "develop"],
+      "lint-docs.yml": ["main", "develop"],
+      "lint-workflows.yml": ["main", "develop"],
+      "real-build.yml": ["main", "develop"],
+      "scorecard.yml": ["main"],
+      "upgrade.yml": ["main", "develop"],
+    });
+  });
 
   test("pull_request_target is caught in list form", () => {
     const text = breakFixture("on:\n  pull_request:\n", "on: [push, pull_request_target]\n");
