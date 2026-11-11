@@ -5,6 +5,8 @@ import { join } from "node:path";
 const repoRoot = join(import.meta.dir, "..", "..");
 const workflowsDirectory = join(repoRoot, ".github", "workflows");
 const rulesetsDirectory = join(repoRoot, ".github", "rulesets");
+/** The workflow files the `github-ci` Module writes into a generated Project. */
+const moduleWorkflowsDirectory = join(repoRoot, "registry-src", "github-ci", "files", "workflows");
 const aggregateJobName = "CI passed";
 const githubActionsIntegrationId = 15368;
 const repositoryAdminRoleId = 5;
@@ -47,7 +49,7 @@ function listMatrixCombinations(job: Record<string, unknown>): Record<string, un
  * expanded per matrix combination, or the job id when there is none. A name with any other
  * expression is left out, since its value is only known at run time.
  */
-function listCheckNames(text: string): string[] {
+export function listCheckNames(text: string): string[] {
   return Object.entries(parseJobs(text)).flatMap(([id, job]) => {
     if (!isRecord(job)) return [];
     const name = job["name"];
@@ -619,5 +621,38 @@ describe("S9: labels", () => {
     expect(triageLabels).toHaveLength(5);
     const names = new Set(labels.map((label) => (isRecord(label) ? label["name"] : undefined)));
     expect(triageLabels.filter((label) => names.has(label))).toEqual([]);
+  });
+});
+
+function listModuleCheckNames(file: string): string[] {
+  return listCheckNames(readFileSync(join(moduleWorkflowsDirectory, file), "utf8"));
+}
+
+const moduleCheckNames: readonly { file: string; expected: string[] }[] = [
+  { file: "ci.yml", expected: ["check", "Commitlint", aggregateJobName] },
+  { file: "labels.yml", expected: ["Sync labels"] },
+  { file: "lint-docs.yml", expected: ["Check markdown links"] },
+  { file: "lint-pr.yml", expected: ["Validate PR title"] },
+  { file: "lint-workflows.yml", expected: ["actionlint + zizmor"] },
+];
+
+describe("github-ci Module check names", () => {
+  test("the Module's workflows report the check names the standard rulesets require", () => {
+    const checkNames = readdirSync(moduleWorkflowsDirectory)
+      .filter((name) => /\.ya?ml$/.test(name))
+      .flatMap((name) => listModuleCheckNames(name));
+    for (const required of [
+      aggregateJobName,
+      "Commitlint",
+      "Validate PR title",
+      "Check markdown links",
+    ]) {
+      expect(checkNames).toContain(required);
+    }
+    expect(checkNames).not.toContain("semantic PR title");
+  });
+
+  test.each(moduleCheckNames)("$file reports exactly $expected", ({ file, expected }) => {
+    expect(listModuleCheckNames(file)).toEqual(expected);
   });
 });

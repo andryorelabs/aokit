@@ -8,13 +8,13 @@ permissions:
   contents: read
 
 concurrency:
-  group: lint-pr-${{ github.workflow }}-${{ github.ref }}
-  cancel-in-progress: true
+  group: lint-pr-${{ github.workflow }}-${{ github.event.pull_request.number || github.sha }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 jobs:
   semantic-title:
-    name: semantic PR title
-    runs-on: ubuntu-latest
+    name: Validate PR title
+    runs-on: ${{ github.event.pull_request.head.repo.fork && 'ubuntu-latest' || vars.BLACKSMITH_RUNNER || 'ubuntu-latest' }}
     timeout-minutes: 5
     permissions:
       contents: read
