@@ -16,6 +16,9 @@ import { openGit } from "../../src/git/index.ts";
 import { runGitChecked } from "../../src/git/run.ts";
 import { parseLockfile } from "../../src/lockfile/index.ts";
 
+/** Runs only where the filesystem reports POSIX errors and honours permission bits. */
+const posixTest = process.platform === "win32" ? test.skip : test;
+
 const lockfileFixture = join(
   import.meta.dir,
   "..",
@@ -146,18 +149,24 @@ test("removing a path that is now a directory fails and rolls back", async () =>
   expect(await readFile(join(project, "a.txt"), "utf8")).toBe("old\n");
 });
 
-test("a stash cannot be created for a path git or the filesystem refuses to inspect", async () => {
-  const failure = await createStash(project, undefined, ["a".repeat(300)]).catch(
-    (error: unknown) => error,
-  );
+posixTest(
+  "a stash cannot be created for a path git or the filesystem refuses to inspect",
+  async () => {
+    const failure = await createStash(project, undefined, ["a".repeat(300)]).catch(
+      (error: unknown) => error,
+    );
 
-  expect(failure).toBeInstanceOf(Error);
-});
+    expect(failure).toBeInstanceOf(Error);
+  },
+);
 
-test("looking for leftover stashes fails when the stash location is not a directory", async () => {
-  await writeFile(join(project, ".aokit"), "not a directory");
+posixTest(
+  "looking for leftover stashes fails when the stash location is not a directory",
+  async () => {
+    await writeFile(join(project, ".aokit"), "not a directory");
 
-  const failure = await findLeftoverStash(project).catch((error: unknown) => error);
+    const failure = await findLeftoverStash(project).catch((error: unknown) => error);
 
-  expect(failure).toBeInstanceOf(Error);
-});
+    expect(failure).toBeInstanceOf(Error);
+  },
+);

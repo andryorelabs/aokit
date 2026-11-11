@@ -4,6 +4,9 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { abortUpdate, readUpdateMarker } from "../../src/update/state.ts";
 
+/** Runs only where the filesystem reports POSIX errors and honours permission bits. */
+const posixTest = process.platform === "win32" ? test.skip : test;
+
 let root: string;
 
 beforeEach(() => {
@@ -40,7 +43,7 @@ describe("update state I/O failures", () => {
     expect(failure).toMatchObject({ code: "EISDIR" });
   });
 
-  test("a state directory that cannot be removed fails the abort", async () => {
+  posixTest("a state directory that cannot be removed fails the abort", async () => {
     const target = join(root, "elsewhere");
     mkdirSync(target);
     symlinkSync(target, join(root, ".aokit"));

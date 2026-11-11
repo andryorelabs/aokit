@@ -111,6 +111,7 @@ async function resealModule(
     }),
   );
   const paths = (await Array.fromAsync(new Bun.Glob("**/*").scan({ cwd: directory, dot: true })))
+    .map((path) => path.replaceAll("\\", "/"))
     .filter((path) => path !== "module.json")
     .toSorted();
   const files = new Map(
