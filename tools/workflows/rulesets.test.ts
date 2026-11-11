@@ -64,7 +64,13 @@ function listCheckNames(text: string): string[] {
 }
 
 /** The gating workflows whose every check `main` must require besides `CI passed`. */
-const gatingWorkflowFiles = ["determinism.yml", "distribution.yml", "codeql.yml", "lint-docs.yml"];
+const gatingWorkflowFiles = [
+  "lint-pr.yml",
+  "determinism.yml",
+  "distribution.yml",
+  "codeql.yml",
+  "lint-docs.yml",
+];
 
 function readWorkflows(): { file: string; text: string }[] {
   return readdirSync(workflowsDirectory)
@@ -210,6 +216,29 @@ describe("S9: rulesets", () => {
     ]);
   });
 
+  test.each(["validate PR title", "Validate PR Title", "check markdown links"])(
+    "a required check named %p, differing only in case from a job name, fails",
+    (context) => {
+      const ruleset = {
+        rules: [
+          {
+            type: "required_status_checks",
+            parameters: { required_status_checks: [{ context }] },
+          },
+        ],
+      };
+      expect(findRulesetProblems("main.json", ruleset, checkNames)).toEqual([
+        `main.json requires check "${context}" but no workflow job is named that`,
+      ]);
+    },
+  );
+
+  test("the workflows report the required names Validate PR title and Check markdown links", () => {
+    expect(checkNames.has("Validate PR title")).toBe(true);
+    expect(checkNames.has("Check markdown links")).toBe(true);
+    expect(checkNames.has(aggregateJobName)).toBe(true);
+  });
+
   test("a matrix job name expands to one check per matrix combination", () => {
     const text = [
       "jobs:",
@@ -242,11 +271,12 @@ describe("S9: rulesets", () => {
     ]);
   });
 
-  test("S17: main requires CI passed and every determinism, distribution, CodeQL and lint-docs check", () => {
+  test("S17: main requires CI passed and every lint-pr, determinism, distribution, CodeQL and lint-docs check", () => {
     const gatingChecks = gatingWorkflowFiles.flatMap((file) =>
       listCheckNames(readFileSync(join(workflowsDirectory, file), "utf8")),
     );
     expect(gatingChecks).toEqual([
+      "Validate PR title",
       "digest (ubuntu-latest)",
       "digest (macos-latest)",
       "compare digests",
@@ -255,7 +285,7 @@ describe("S9: rulesets", () => {
       "package and binary (aokit-darwin-arm64)",
       "analyze (javascript-typescript)",
       "analyze (actions)",
-      "docs links",
+      "Check markdown links",
     ]);
     expect(listRequiredChecks(mainRuleset)).toEqual([aggregateJobName, ...gatingChecks]);
   });

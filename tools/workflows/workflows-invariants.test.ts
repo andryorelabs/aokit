@@ -10,6 +10,7 @@ type WorkflowRule =
   | "persist-credentials"
   | "permissions"
   | "no-pull-request-target"
+  | "concurrency"
   | "no-expression-in-run"
   | "pinned-actions"
   | "node-version-file"
@@ -25,6 +26,8 @@ const jobKeyLine = /^ {2}([A-Za-z0-9_-]+):/;
 const topLevelLine = /^\S/;
 const readOnlyLevels = new Set(["read", "none"]);
 const installCommand = /\bbun (?:install|i)\b/;
+/** The only `cancel-in-progress` value that cancels superseded runs: true on pull requests, false on `main`. */
+const cancelOnPullRequestOnly = "${{ github.event_name == 'pull_request' }}";
 
 /** The `with:` inputs of the shared Bun install cache step every install step must follow. */
 const bunCache = {
@@ -55,6 +58,51 @@ function listTriggers(on: unknown): string[] {
     return on.filter((trigger): trigger is string => typeof trigger === "string");
   if (isRecord(on)) return Object.keys(on);
   return [];
+}
+
+/** Flags a `concurrency` block, of a workflow or a job, that can cancel a run on `main`. */
+function findCancellationProblems(file: string, scope: string, concurrency: unknown): string[] {
+  if (!isRecord(concurrency)) return [];
+  const cancel = concurrency["cancel-in-progress"];
+  if (cancel === undefined || cancel === false || cancel === cancelOnPullRequestOnly) return [];
+  const value = typeof cancel === "string" ? cancel : JSON.stringify(cancel);
+  return [
+    describeProblem(
+      file,
+      scope,
+      "concurrency",
+      `cancel-in-progress is ${value}, which cancels runs on main; use ${cancelOnPullRequestOnly}`,
+    ),
+  ];
+}
+
+/** A `pull_request` workflow groups its runs and cancels the superseded ones on pull requests only. */
+function findConcurrencyProblems(file: string, workflow: Record<string, unknown>): string[] {
+  const concurrency = workflow["concurrency"];
+  const cancellationProblems = findCancellationProblems(file, workflowScope, concurrency);
+  if (cancellationProblems.length > 0 || !listTriggers(workflow["on"]).includes("pull_request"))
+    return cancellationProblems;
+  const group = isRecord(concurrency) ? concurrency["group"] : undefined;
+  if (typeof group !== "string" || group === "") {
+    return [
+      describeProblem(
+        file,
+        workflowScope,
+        "concurrency",
+        "a pull_request workflow must set top-level concurrency with a group",
+      ),
+    ];
+  }
+  if (isRecord(concurrency) && concurrency["cancel-in-progress"] === cancelOnPullRequestOnly)
+    return [];
+  return [
+    describeProblem(
+      file,
+      workflowScope,
+      "concurrency",
+      `a pull_request workflow must cancel superseded runs with cancel-in-progress: ${cancelOnPullRequestOnly}`,
+    ),
+  ];
 }
 
 function findWorkflowLevelProblems(file: string, workflow: Record<string, unknown>): string[] {
@@ -96,6 +144,7 @@ function findWorkflowLevelProblems(file: string, workflow: Record<string, unknow
       ),
     );
   }
+  problems.push(...findConcurrencyProblems(file, workflow));
   return problems;
 }
 
@@ -185,6 +234,7 @@ function findJobProblems(
   if (!callsReusableWorkflow && definition["timeout-minutes"] === undefined) {
     problems.push(describeProblem(file, job, "timeout-minutes", "job sets no timeout-minutes"));
   }
+  problems.push(...findCancellationProblems(file, job, definition["concurrency"]));
   const steps = Array.isArray(definition["steps"]) ? definition["steps"] : [];
   steps.forEach((step: unknown, index) => {
     if (!isRecord(step)) return;
@@ -286,6 +336,11 @@ function findWorkflowProblems(file: string, text: string): string[] {
 
 const sha = "a".repeat(40);
 
+const fixtureConcurrency = `concurrency:
+  group: fixture-\${{ github.workflow }}-\${{ github.ref }}
+  cancel-in-progress: \${{ github.event_name == 'pull_request' }}
+`;
+
 const fixtureCacheStep = `      - uses: actions/cache@${sha} # v6.1.0
         with:
           path: ${bunCache.path}
@@ -301,6 +356,7 @@ on:
 permissions:
   contents: read
 
+${fixtureConcurrency}
 jobs:
   build:
     name: build
@@ -359,15 +415,15 @@ const brokenFixtures: readonly {
   },
   {
     rule: "permissions",
-    search: "  contents: read\n\njobs:",
-    replacement: "  contents: write\n\njobs:",
+    search: "  contents: read\n\nconcurrency:",
+    replacement: "  contents: write\n\nconcurrency:",
     expected:
       "fixture.yml:(workflow) breaks permissions: top-level permissions grants contents: write; grant writes per job",
   },
   {
     rule: "permissions",
-    search: "permissions:\n  contents: read\n\njobs:",
-    replacement: "permissions: write-all\n\njobs:",
+    search: "permissions:\n  contents: read\n\nconcurrency:",
+    replacement: "permissions: write-all\n\nconcurrency:",
     expected:
       "fixture.yml:(workflow) breaks permissions: top-level permissions must be a map of read or none scopes",
   },
@@ -377,6 +433,49 @@ const brokenFixtures: readonly {
     replacement: "on:\n  pull_request_target:\n",
     expected:
       "fixture.yml:(workflow) breaks no-pull-request-target: pull_request_target is a trigger",
+  },
+  {
+    rule: "concurrency",
+    search: `${fixtureConcurrency}\n`,
+    replacement: "",
+    expected:
+      "fixture.yml:(workflow) breaks concurrency: a pull_request workflow must set top-level concurrency with a group",
+  },
+  {
+    rule: "concurrency",
+    search: "  group: fixture-${{ github.workflow }}-${{ github.ref }}\n",
+    replacement: "",
+    expected:
+      "fixture.yml:(workflow) breaks concurrency: a pull_request workflow must set top-level concurrency with a group",
+  },
+  {
+    rule: "concurrency",
+    search: "cancel-in-progress: ${{ github.event_name == 'pull_request' }}",
+    replacement: "cancel-in-progress: true",
+    expected:
+      "fixture.yml:(workflow) breaks concurrency: cancel-in-progress is true, which cancels runs on main; use ${{ github.event_name == 'pull_request' }}",
+  },
+  {
+    rule: "concurrency",
+    search: "cancel-in-progress: ${{ github.event_name == 'pull_request' }}",
+    replacement: "cancel-in-progress: ${{ github.ref != 'refs/heads/main' }}",
+    expected:
+      "fixture.yml:(workflow) breaks concurrency: cancel-in-progress is ${{ github.ref != 'refs/heads/main' }}, which cancels runs on main; use ${{ github.event_name == 'pull_request' }}",
+  },
+  {
+    rule: "concurrency",
+    search: "cancel-in-progress: ${{ github.event_name == 'pull_request' }}",
+    replacement: "cancel-in-progress: false",
+    expected:
+      "fixture.yml:(workflow) breaks concurrency: a pull_request workflow must cancel superseded runs with cancel-in-progress: ${{ github.event_name == 'pull_request' }}",
+  },
+  {
+    rule: "concurrency",
+    search: "    timeout-minutes: 10\n",
+    replacement:
+      "    timeout-minutes: 10\n    concurrency:\n      group: build\n      cancel-in-progress: true\n",
+    expected:
+      "fixture.yml:build breaks concurrency: cancel-in-progress is true, which cancels runs on main; use ${{ github.event_name == 'pull_request' }}",
   },
   {
     rule: "no-expression-in-run",
@@ -463,8 +562,8 @@ describe("S8: workflow hardening invariants", () => {
 
   test("an empty top-level permissions map passes", () => {
     const text = breakFixture(
-      "permissions:\n  contents: read\n\njobs:",
-      "permissions: {}\n\njobs:",
+      "permissions:\n  contents: read\n\nconcurrency:",
+      "permissions: {}\n\nconcurrency:",
     );
     expect(findWorkflowProblems("fixture.yml", text)).toEqual([]);
   });
@@ -541,6 +640,24 @@ jobs:
       expect(releaseWorkflow).toContain(search);
       return releaseWorkflow.replace(search, replacement);
     }
+
+    test("fails when it cancels in-progress runs", () => {
+      const text = breakRelease(
+        "\njobs:",
+        "\nconcurrency:\n  group: release\n  cancel-in-progress: true\n\njobs:",
+      );
+      expect(findWorkflowProblems("release.yml", text)).toEqual([
+        "release.yml:(workflow) breaks concurrency: cancel-in-progress is true, which cancels runs on main; use ${{ github.event_name == 'pull_request' }}",
+      ]);
+    });
+
+    test("may queue runs with cancel-in-progress: false", () => {
+      const text = breakRelease(
+        "\njobs:",
+        "\nconcurrency:\n  group: release\n  cancel-in-progress: false\n\njobs:",
+      );
+      expect(findWorkflowProblems("release.yml", text)).toEqual([]);
+    });
 
     test("installs without a cache step and with setup caches off", () => {
       expect(findWorkflowProblems("release.yml", releaseWorkflow)).toEqual([]);
