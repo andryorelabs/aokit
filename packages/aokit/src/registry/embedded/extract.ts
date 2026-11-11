@@ -19,10 +19,17 @@ export interface EmbeddedRegistry {
 type CacheEnvironment = Readonly<Record<string, string | undefined>>;
 
 let registeredRegistry: EmbeddedRegistry | undefined;
+let pendingExtraction: Promise<void> | undefined;
 
 /** Called once by the binary entry before the CLI loads; the source and the npm package never call it. */
 export function registerEmbeddedRegistry(registry: EmbeddedRegistry): void {
   registeredRegistry = registry;
+}
+
+/** Forgets the registered Registry and any extraction in flight, so a test can start from the state of the source and the npm package. */
+export function resetEmbeddedRegistry(): void {
+  registeredRegistry = undefined;
+  pendingExtraction = undefined;
 }
 
 /** Whether this process is the binary, which embeds the Registry instead of reading the repository. */
@@ -130,8 +137,6 @@ export async function extractRegistryOrFail(
     );
   }
 }
-
-let pendingExtraction: Promise<void> | undefined;
 
 /**
  * Extracts the embedded Registry into the cache directory once per process; a no-op when this
