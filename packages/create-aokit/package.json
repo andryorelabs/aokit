@@ -1,6 +1,6 @@
 {
   "name": "create-aokit",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "Scaffold a new aokit project with bun create aokit.",
   "keywords": [
     "aokit",
@@ -29,7 +29,7 @@
     "access": "public"
   },
   "dependencies": {
-    "aokit": "0.1.0"
+    "aokit": "0.2.0"
   },
   "engines": {
     "bun": ">=1.4.4"
