@@ -292,9 +292,9 @@ step "Workflow filename: release.yml. Environment name: leave empty. Save."
 pause "Press Enter when @aokit/module is configured."
 
 stage "Repository rulesets"
-say "Applies .github/rulesets/main.json and .github/rulesets/tags.json with gh api."
+say "Applies .github/rulesets/main.json, develop.json and tags.json with gh api."
 if confirm "Create the rulesets on $REPO?"; then
-  for ruleset in main tags; do
+  for ruleset in main develop tags; do
     if gh api "repos/$REPO/rulesets" --jq '.[].name' | grep -qx "$ruleset"; then
       note "ruleset $ruleset already exists, skipping"
     else
@@ -350,7 +350,8 @@ fi
 
 stage "Verify a release"
 say "0.1.0-next.0 is already on npm, so the first tag must carry a new version."
-say "Run bun run release to bump (for example to 0.1.0-next.1), then push the tag it creates."
+say "Run bun run release to bump (for example to 0.1.0-next.1); it opens the release pull request against develop."
+say "Merge it, promote develop to main, then push the signed tag on the promotion merge commit."
 say "The Release workflow then publishes with provenance; a tag equal to an existing version fails with E403."
 say "Check the binaries with: sha256sum -c SHA256SUMS --ignore-missing"
 say "and: gh attestation verify aokit-linux-x64 --repo $REPO"

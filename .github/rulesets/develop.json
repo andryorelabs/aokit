@@ -1,0 +1,90 @@
+{
+  "name": "develop",
+  "target": "branch",
+  "enforcement": "active",
+  "conditions": {
+    "ref_name": {
+      "include": ["refs/heads/develop"],
+      "exclude": []
+    }
+  },
+  "bypass_actors": [],
+  "rules": [
+    {
+      "type": "deletion"
+    },
+    {
+      "type": "non_fast_forward"
+    },
+    {
+      "type": "required_linear_history"
+    },
+    {
+      "type": "required_signatures"
+    },
+    {
+      "type": "pull_request",
+      "parameters": {
+        "allowed_merge_methods": ["squash"],
+        "dismiss_stale_reviews_on_push": false,
+        "require_code_owner_review": false,
+        "require_last_push_approval": false,
+        "required_approving_review_count": 0,
+        "required_review_thread_resolution": true
+      }
+    },
+    {
+      "type": "required_status_checks",
+      "parameters": {
+        "do_not_enforce_on_create": false,
+        "strict_required_status_checks_policy": true,
+        "required_status_checks": [
+          {
+            "context": "CI passed",
+            "integration_id": 15368
+          },
+          {
+            "context": "Validate PR title",
+            "integration_id": 15368
+          },
+          {
+            "context": "digest (ubuntu-latest)",
+            "integration_id": 15368
+          },
+          {
+            "context": "digest (macos-latest)",
+            "integration_id": 15368
+          },
+          {
+            "context": "compare digests",
+            "integration_id": 15368
+          },
+          {
+            "context": "package and binary (linux-x64)",
+            "integration_id": 15368
+          },
+          {
+            "context": "package and binary (aokit-linux-arm64)",
+            "integration_id": 15368
+          },
+          {
+            "context": "package and binary (aokit-darwin-arm64)",
+            "integration_id": 15368
+          },
+          {
+            "context": "analyze (javascript-typescript)",
+            "integration_id": 15368
+          },
+          {
+            "context": "analyze (actions)",
+            "integration_id": 15368
+          },
+          {
+            "context": "Check markdown links",
+            "integration_id": 15368
+          }
+        ]
+      }
+    }
+  ]
+}

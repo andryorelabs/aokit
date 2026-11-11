@@ -32,7 +32,7 @@ Husky installs three hooks on `bun install`.
 
 - `pre-commit` runs lint-staged on the staged files.
 - `commit-msg` runs commitlint on the message.
-- `pre-push` refuses `main` and any branch that does not match `<type>/<kebab-slug>`, `ao-<n>-<slug>`, `worktree-<slug>` or `renovate/*`, then runs `bun run typecheck` and `bun run format:check`.
+- `pre-push` refuses `main`, `develop` and any branch that does not match `<type>/<kebab-slug>`, `ao-<n>-<slug>`, `worktree-<slug>` or `renovate/*`, then runs `bun run typecheck` and `bun run format:check`.
 
 ## Standards
 
@@ -42,11 +42,12 @@ Rules for tooling, TypeScript, dependencies, docs and tests are in [docs/standar
 
 GitHub settings live as code, as rules A1 to A8 of [repo settings](standards/repo-settings.md) require.
 
-| File                         | What it holds                                                                                                                                                          |
-| ---------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `.github/settings.json`      | `repository`: merge options, features, description, homepage and topics. `security`: secret scanning, push protection, Dependabot and private vulnerability reporting. |
-| `.github/rulesets/main.json` | The ruleset for `main`.                                                                                                                                                |
-| `.github/rulesets/tags.json` | The ruleset for tags.                                                                                                                                                  |
+| File                            | What it holds                                                                                                                                                          |
+| ------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `.github/settings.json`         | `repository`: merge options, features, description, homepage and topics. `security`: secret scanning, push protection, Dependabot and private vulnerability reporting. |
+| `.github/rulesets/main.json`    | The ruleset for `main`.                                                                                                                                                |
+| `.github/rulesets/develop.json` | The ruleset for `develop`.                                                                                                                                             |
+| `.github/rulesets/tags.json`    | The ruleset for tags.                                                                                                                                                  |
 
 ### Check for drift
 
@@ -58,7 +59,7 @@ The script reads the live repository with `gh api` GET requests and compares it 
 
 ### Apply the files
 
-Applying is a manual step for a repository admin, after the change to the files merges into `main`. Run the commands from the root, then run the check.
+Applying is a manual step for a repository admin, after the change to the files merges into `develop` and is promoted to `main`. Run the commands from the root, then run the check.
 
 Repository options and topics:
 
@@ -88,9 +89,18 @@ Rulesets, one `PUT` per file with the id of the live ruleset of the same name:
 ```sh
 gh api repos/andryorelabs/aokit/rulesets --jq '.[] | "\(.id) \(.name)"'
 gh api -X PUT repos/andryorelabs/aokit/rulesets/<main id> --input .github/rulesets/main.json
+gh api -X PUT repos/andryorelabs/aokit/rulesets/<develop id> --input .github/rulesets/develop.json
 gh api -X PUT repos/andryorelabs/aokit/rulesets/<tags id> --input .github/rulesets/tags.json
 ```
 
 Create a ruleset that does not exist yet with `gh api -X POST repos/andryorelabs/aokit/rulesets --input <file>`.
 
-`main` requires signed commits. GitHub signs the squash commit of a merged pull request, so merging needs no local signing key.
+`develop` and `main` require signed commits. GitHub signs the squash commit and the merge commit of a merged pull request, so merging needs no local signing key.
+
+`develop` is the trunk: pull requests target it and are squash-merged. A promotion pull request from `develop` to `main` is merged with a merge commit, and a CLI version is tagged on the promotion merge commit on `main`. See [ADR-0030](adr/0030-develop-is-the-trunk.md).
+
+A CLI version ships in three steps:
+
+1. `bun run release` opens the release pull request against `develop`. It creates no tag.
+2. A promotion brings `develop` into `main`. The commit message check does not run on a promotion, because its commits are the squash commits already on `develop`.
+3. The maintainer pushes the signed tag `v<version>` on the promotion merge commit. A tag on a commit that `main` does not contain fails the release workflow at "Tag is on main".

@@ -40,8 +40,9 @@ Decisions live in [docs/adr/](docs/adr/README.md). Read those touching your area
 
 ## Branch and commit conventions
 
-- Feature branches always; never push to `main`. A pre-push hook refuses `main` and branch names that are not `<type>/<kebab-slug>`, `ao-<n>-<slug>`, `worktree-<slug>` or `renovate/*`, then runs `bun run typecheck` and `bun run format:check`.
-- PRs squash into `main`. Worker branches are `ao-<n>-<slug>`.
+- Feature branches always; never push to `main` or `develop`. A pre-push hook refuses both and branch names that are not `<type>/<kebab-slug>`, `ao-<n>-<slug>`, `worktree-<slug>` or `renovate/*`, then runs `bun run typecheck` and `bun run format:check`.
+- `develop` is the trunk: PRs target `develop` and squash into it. A promotion PR from `develop` to `main` is merged with a merge commit, and a CLI version is tagged on `main`. See [ADR-0030](docs/adr/0030-develop-is-the-trunk.md).
+- Worker branches are `ao-<n>-<slug>`.
 - Commits are gitmoji + conventional, in English, with a bullet body: `feat: ✨ add user authentication`.
 - A ticket's commit body ends with `Refs: AO-<n>`.
 - PR titles use the same conventional types as commitlint.

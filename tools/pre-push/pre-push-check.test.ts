@@ -37,7 +37,16 @@ describe("checkPushLine", () => {
     }
   });
 
-  test.each(["Bad_Name", "feat/Bad", "feature/x", "ao-x", "ao-12", "develop", "feat/"])(
+  test("refuses develop with a one-line reason that names it", () => {
+    const verdict = checkPushLine(push("develop"));
+    expect(verdict.ok).toBe(false);
+    if (!verdict.ok) {
+      expect(verdict.reason).toContain("develop");
+      expect(verdict.reason).not.toContain("\n");
+    }
+  });
+
+  test.each(["Bad_Name", "feat/Bad", "feature/x", "ao-x", "ao-12", "feat/"])(
     "refuses %s",
     (branch) => {
       const verdict = checkPushLine(push(branch));
@@ -55,6 +64,7 @@ describe("checkPushLine", () => {
   test("skips branch deletions, including main", () => {
     expect(checkPushLine(`(delete) ${zero} refs/heads/Bad_Name ${sha}`)).toEqual({ ok: true });
     expect(checkPushLine(`(delete) ${zero} refs/heads/main ${sha}`)).toEqual({ ok: true });
+    expect(checkPushLine(`(delete) ${zero} refs/heads/develop ${sha}`)).toEqual({ ok: true });
   });
 
   test("skips malformed lines", () => {
@@ -136,6 +146,13 @@ describe("script process", () => {
     const result = await runScript(`${push("main")}\n`);
     expect(result.code).not.toBe(0);
     expect(result.stderr.trim().split("\n")).toHaveLength(1);
+  });
+
+  test("exits non-zero with one reason line for develop", async () => {
+    const result = await runScript(`${push("develop")}\n`);
+    expect(result.code).not.toBe(0);
+    expect(result.stderr.trim().split("\n")).toHaveLength(1);
+    expect(result.stderr).toContain("develop");
   });
 
   test("exits non-zero for foo", async () => {
