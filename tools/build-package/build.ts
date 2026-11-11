@@ -8,7 +8,7 @@ const shebang = "#!/usr/bin/env bun\n";
 const runDeclarationsPath = join(import.meta.dir, "assets", "run.d.ts");
 
 async function bundleEntry(packageDir: string, entry: string, outputName: string): Promise<void> {
-  const result = await Bun.build({
+  await Bun.build({
     entrypoints: [join(packageDir, "src", "cli", entry)],
     outdir: join(packageDir, "dist"),
     naming: outputName,
@@ -18,9 +18,6 @@ async function bundleEntry(packageDir: string, entry: string, outputName: string
     define: { AOKIT_BUNDLED_REGISTRY_RELATIVE: JSON.stringify("../registry") },
     plugins: [oxfmtStubPlugin()],
   });
-  if (!result.success) {
-    throw new AggregateError(result.logs, `bun build of ${entry} failed`);
-  }
 }
 
 async function ensureShebang(bundlePath: string, line: string): Promise<void> {
@@ -47,7 +44,7 @@ export async function buildPackage(packageDir: string, registryDir: string): Pro
 /** Builds `dist/main.js`, the Node bin of the create-aokit package at `packageDir`. */
 async function buildCreateAokit(packageDir: string): Promise<void> {
   await rm(join(packageDir, "dist"), { recursive: true, force: true });
-  const result = await Bun.build({
+  await Bun.build({
     entrypoints: [join(packageDir, "src", "main.ts")],
     outdir: join(packageDir, "dist"),
     naming: "main.js",
@@ -55,9 +52,6 @@ async function buildCreateAokit(packageDir: string): Promise<void> {
     format: "esm",
     external: ["aokit", "aokit/*"],
   });
-  if (!result.success) {
-    throw new AggregateError(result.logs, "bun build of create-aokit failed");
-  }
   await ensureShebang(join(packageDir, "dist", "main.js"), "#!/usr/bin/env node\n");
 }
 
