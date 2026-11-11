@@ -78,6 +78,7 @@ Every Markdown file under `docs/` has a row here; a test fails when one is missi
 | [adr/0027-module-sdk-is-published.md](adr/0027-module-sdk-is-published.md)                                                               | 0027. The Module SDK is published                                                                     |
 | [adr/0028-coverage-gate-on-the-all-files-figure.md](adr/0028-coverage-gate-on-the-all-files-figure.md)                                   | 0028. The coverage gate checks the All files figure                                                   |
 | [adr/0029-adopt-cross-repo-standard-v1.md](adr/0029-adopt-cross-repo-standard-v1.md)                                                     | 0029. aokit adopts the cross-repo standard v1                                                         |
+| [adr/0030-develop-is-the-trunk.md](adr/0030-develop-is-the-trunk.md)                                                                     | 0030. develop is the trunk                                                                            |
 
 ## Brand
 

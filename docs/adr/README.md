@@ -35,6 +35,7 @@ Decisions that are hard to reverse, surprising without context, and the result o
 | 0027 | [The Module SDK is published](0027-module-sdk-is-published.md)                                                                                         | Accepted | S6 (Public-use spec)                |
 | 0028 | [The coverage gate checks the All files figure](0028-coverage-gate-on-the-all-files-figure.md)                                                         | Accepted | S22 (Readiness spec)                |
 | 0029 | [aokit adopts the cross-repo standard v1](0029-adopt-cross-repo-standard-v1.md)                                                                        | Accepted | S1 to S8 (Standard v1 spec)         |
+| 0030 | [develop is the trunk](0030-develop-is-the-trunk.md)                                                                                                   | Accepted | S1 to S6 (Develop trunk spec)       |
 
 ## Format
 
