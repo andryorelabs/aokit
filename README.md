@@ -15,17 +15,11 @@
 [![License: MIT](https://img.shields.io/github/license/andryorelabs/aokit)](LICENSE)
 [![OpenSSF Scorecard](https://api.scorecard.dev/projects/github.com/andryorelabs/aokit/badge)](https://scorecard.dev/viewer/?uri=github.com/andryorelabs/aokit)
 
+[Documentation](docs/README.md) · [Changelog](CHANGELOG.md) · [Contributing](CONTRIBUTING.md) · [Security](.github/SECURITY.md) · [Support](.github/SUPPORT.md)
+
 aokit is a Bun-only CLI that creates TypeScript projects from composable Modules and keeps them up to date. A Lockfile stores a hash for every generated file, so an update merges with your edits and never overwrites them.
 
 > **Alpha.** aokit is pre-1.0. In 0.x a minor version may include breaking changes and a patch never does. See [Stability](docs/stability.md) and the [changelog](CHANGELOG.md).
-
-## Supported platforms
-
-The CLI runs on Bun 1.4.4 or newer, and the standalone binaries need no Bun. All of these are tested end to end:
-
-- Linux x64 and arm64
-- macOS arm64 and x64
-- Windows x64
 
 ## Quickstart
 
@@ -46,7 +40,7 @@ bunx create-aokit my-app --layout single --modules next,tailwind4,oxc --yes
 
 For a walkthrough, read [Getting started](docs/guide/getting-started.md). To extend aokit, read [Writing a Module](docs/guide/writing-modules.md) and [Hosting a Registry](docs/guide/hosting-a-registry.md).
 
-## What you get
+## How it works
 
 - **Pick Modules, get a project.** `aokit create` generates a TypeScript project from Modules such as next, vite-react, astro, hono, prisma, better-auth, tailwind4, shadcn, oxc, docker and coolify. The full list is in the [Module catalog](docs/architecture/module-catalog.md).
 - **Updates keep your edits.** The Lockfile records a hash for every file, and `aokit update` merges changes with what you wrote.
@@ -56,7 +50,13 @@ For a walkthrough, read [Getting started](docs/guide/getting-started.md). To ext
 - **Works inside coding agents.** `aokit mcp init` registers the aokit MCP server in Claude, Cursor, VS Code or Codex.
 - **No telemetry.** The CLI, the MCP server and generated projects send no usage data.
 
-The design is in [`docs/`](docs/): start with the [architecture overview](docs/architecture/overview.md) and the [glossary](GLOSSARY.md).
+## Supported platforms
+
+The CLI runs on Bun 1.4.4 or newer, and the standalone binaries need no Bun. All of these are tested end to end:
+
+- Linux x64 and arm64
+- macOS arm64 and x64
+- Windows x64
 
 ## Install the binary
 
@@ -113,15 +113,25 @@ bun install --frozen-lockfile
 bun run check   # TypeScript 7 type check, oxlint --type-aware, oxfmt --check, knip
 bun run test    # bun test
 bun run lint    # oxlint --type-aware
-bun run format  # oxfmt
+bun run format:write  # oxfmt
 ```
 
 Tooling follows [`docs/standards`](docs/standards/README.md): Oxfmt and Oxlint (exact `oxc` pin group), TypeScript 6 for API consumers plus the exact `typescript7` alias for type checking, husky with lint-staged and commitlint (conventional commits, gitmoji optional), and knip. Source comments are TSDoc blocks only, enforced by the `local/no-non-doc-comments` Oxlint jsPlugin in [`tools/oxlint`](tools/oxlint/local-plugin.ts).
+
+## Documentation
+
+- [Getting started](docs/guide/getting-started.md), [Writing a Module](docs/guide/writing-modules.md) and [Hosting a Registry](docs/guide/hosting-a-registry.md).
+- [CLI reference](docs/reference/cli.md) and [troubleshooting](docs/troubleshooting.md).
+- The design: the [architecture overview](docs/architecture/overview.md), the [decision records](docs/adr/README.md) and the [glossary](GLOSSARY.md).
+- [Stability](docs/stability.md), [security](docs/security.md) and the [standards](docs/standards/README.md) this repository follows.
+- The full index is in [`docs/`](docs/README.md).
 
 ## Contributing
 
 Agents start at [AGENTS.md](AGENTS.md). Contributors read [CONTRIBUTING.md](CONTRIBUTING.md), [GOVERNANCE.md](GOVERNANCE.md), [CODE_OF_CONDUCT.md](CODE_OF_CONDUCT.md), [SUPPORT.md](.github/SUPPORT.md) and the [blame ignore list](.git-blame-ignore-revs).
 
-## Licence
+## License
 
 [MIT](LICENSE)
+
+Built by [AndryOre](https://andryore.dev)

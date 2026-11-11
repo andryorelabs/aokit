@@ -23,6 +23,10 @@ A threshold is never lowered to make a gate pass, and a file is never added to `
 
 An exemption records why a module has no direct test, such as a process entry point that only spawned-CLI tests reach. It is a last resort; prefer writing the test.
 
+## Gate rule
+
+- **E3** (must) Coverage has a rising gate, and a coverage manifest covers every source module of every package. Reason: a gain cannot erode, and no module hides from the gate.
+
 ## Related
 
 - [Tooling](tooling.md) covers the lint and format gates that run alongside tests in `bun run check`.

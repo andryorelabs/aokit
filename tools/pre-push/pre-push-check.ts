@@ -6,6 +6,7 @@ const conventionalBranch =
   /^(?:feat|fix|docs|style|refactor|perf|test|build|ci|chore|revert)\/[a-z0-9]+(?:-[a-z0-9]+)*$/;
 const ticketBranch = /^ao-\d+(?:-[a-z0-9]+)+$/;
 const renovateBranch = /^renovate\/.+$/;
+const worktreeBranch = /^worktree-[a-z0-9]+(?:-[a-z0-9]+)*$/;
 const branchPrefix = "refs/heads/";
 
 /**
@@ -27,12 +28,17 @@ export function checkPushLine(line: string): PushVerdict {
       reason: "pushing to main is not allowed; push a feature branch and open a PR",
     };
   }
-  if (conventionalBranch.test(branch) || ticketBranch.test(branch) || renovateBranch.test(branch)) {
+  if (
+    conventionalBranch.test(branch) ||
+    ticketBranch.test(branch) ||
+    renovateBranch.test(branch) ||
+    worktreeBranch.test(branch)
+  ) {
     return { ok: true };
   }
   return {
     ok: false,
-    reason: `branch "${branch}" must match <type>/<kebab-slug>, ao-<n>-<slug> or renovate/*`,
+    reason: `branch "${branch}" must match <type>/<kebab-slug>, ao-<n>-<slug>, worktree-<slug> or renovate/*`,
   };
 }
 

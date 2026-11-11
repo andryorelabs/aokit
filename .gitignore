@@ -17,3 +17,7 @@ node_modules/
 # Taste Skill: skills are restored from skills-lock.json (`bunx skills experimental_install`).
 /.claude/skills/
 .taste-skill/
+
+.claude/worktrees/
+.env
+.env.keys
