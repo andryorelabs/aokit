@@ -4,6 +4,8 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { buildPackages } from "./build.ts";
 
+const posixTest = process.platform === "win32" ? test.skip : test;
+
 const realRoot = join(import.meta.dir, "..", "..");
 const sandboxes: string[] = [];
 
@@ -53,22 +55,26 @@ async function stageRepository(): Promise<string> {
   return root;
 }
 
-test("buildPackages builds the three packages and copies LICENSE and README into each", async () => {
-  const root = await stageRepository();
-  await buildPackages(root);
-  const createBin = await readFile(
-    join(root, "packages", "create-aokit", "dist", "main.js"),
-    "utf8",
-  );
-  expect(createBin.startsWith("#!/usr/bin/env node\n")).toBe(true);
-  const documents = ["aokit", "create-aokit"].flatMap((packageName) =>
-    ["LICENSE", "README.md"].map((name) => join(root, "packages", packageName, name)),
-  );
-  const stats = await Promise.all(documents.map((path) => stat(path)));
-  expect(stats.every((entry) => entry.isFile())).toBe(true);
-  expect((await stat(join(root, "packages", "aokit", "dist", "cli.js"))).isFile()).toBe(true);
-  expect((await stat(join(root, "packages", "module", "dist", "index.js"))).isFile()).toBe(true);
-}, 120_000);
+posixTest(
+  "buildPackages builds the three packages and copies LICENSE and README into each",
+  async () => {
+    const root = await stageRepository();
+    await buildPackages(root);
+    const createBin = await readFile(
+      join(root, "packages", "create-aokit", "dist", "main.js"),
+      "utf8",
+    );
+    expect(createBin.startsWith("#!/usr/bin/env node\n")).toBe(true);
+    const documents = ["aokit", "create-aokit"].flatMap((packageName) =>
+      ["LICENSE", "README.md"].map((name) => join(root, "packages", packageName, name)),
+    );
+    const stats = await Promise.all(documents.map((path) => stat(path)));
+    expect(stats.every((entry) => entry.isFile())).toBe(true);
+    expect((await stat(join(root, "packages", "aokit", "dist", "cli.js"))).isFile()).toBe(true);
+    expect((await stat(join(root, "packages", "module", "dist", "index.js"))).isFile()).toBe(true);
+  },
+  120_000,
+);
 
 test("buildPackages reports a bundling failure", async () => {
   const root = await stageRepository();

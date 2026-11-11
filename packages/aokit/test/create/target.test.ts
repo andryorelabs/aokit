@@ -37,7 +37,9 @@ test("checkTarget rejects a non-empty directory with a suggestion", async () => 
   expect(String(failure)).toContain("not empty");
 });
 
-test("checkTarget rethrows errors other than a missing path", async () => {
+const posixTest = process.platform === "win32" ? test.skip : test;
+
+posixTest("checkTarget rethrows errors other than a missing path", async () => {
   const file = join(root, "file");
   writeFileSync(file, "x");
   const failure = await checkTarget(join(file, "child")).catch((error: unknown) => error);

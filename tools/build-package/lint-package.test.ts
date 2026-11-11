@@ -4,6 +4,8 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { lintPackage, packedPathsOf } from "./lint.ts";
 
+const posixTest = process.platform === "win32" ? test.skip : test;
+
 const roots: string[] = [];
 
 afterAll(async () => {
@@ -45,12 +47,12 @@ test("packedPathsOf fails when the package cannot be packed", async () => {
   expect(failure).toBeInstanceOf(Error);
 });
 
-test("lintPackage passes when the tools pass and every required entry is packed", async () => {
+posixTest("lintPackage passes when the tools pass and every required entry is packed", async () => {
   const { repoRoot, packageDir } = await stage(0);
   await lintPackage(repoRoot, packageDir, ["package.json", "index.js"]);
 });
 
-test("lintPackage fails and names the entries missing from the tarball", async () => {
+posixTest("lintPackage fails and names the entries missing from the tarball", async () => {
   const { repoRoot, packageDir } = await stage(0);
   const failure = await lintPackage(repoRoot, packageDir, ["dist/"]).catch(
     (error: unknown) => error,
@@ -58,7 +60,7 @@ test("lintPackage fails and names the entries missing from the tarball", async (
   expect(String(failure)).toContain("tarball lacks: dist/");
 });
 
-test("lintPackage fails when a lint tool exits non-zero", async () => {
+posixTest("lintPackage fails when a lint tool exits non-zero", async () => {
   const { repoRoot, packageDir } = await stage(1);
   const failure = await lintPackage(repoRoot, packageDir, []).catch((error: unknown) => error);
   expect(String(failure)).toMatch(/publint.*failed/s);
