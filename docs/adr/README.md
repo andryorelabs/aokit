@@ -33,6 +33,7 @@ Decisions that are hard to reverse, surprising without context, and the result o
 | 0025 | [Manifest env schemas feed env.server and env.client](0025-manifest-env-schemas-feed-t3-env.md)                                                        | Accepted | S6 (Module expansion spec)          |
 | 0026 | [Registry Releases are dated, CLI versions are semver](0026-registry-releases-are-dated-cli-versions-are-semver.md)                                    | Accepted | S1, S2 (Release spec)               |
 | 0027 | [The Module SDK is published](0027-module-sdk-is-published.md)                                                                                         | Accepted | S6 (Public-use spec)                |
+| 0028 | [The coverage gate checks the All files figure](0028-coverage-gate-on-the-all-files-figure.md)                                                         | Accepted | S22 (Readiness spec)                |
 
 ## Format
 

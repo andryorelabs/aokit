@@ -4,14 +4,14 @@ Tests run with `bun test`, through `bun run test`. Coverage is on by default and
 
 ## Coverage threshold
 
-`bunfig.toml` enables coverage, sets `coverageSkipTestFiles` so test files do not count toward their own score, and sets `coverageThreshold` for lines and functions. The values are the measured coverage rounded down to two decimals.
+`bunfig.toml` enables coverage, sets `coverageSkipTestFiles` so test files do not count toward their own score, and writes an lcov report next to the text table. `bun run test` then runs `tools/coverage/check-threshold.ts`, which fails the command when the "All files" line or function coverage is below `LINE_THRESHOLD` or `FUNCTION_THRESHOLD`. The figure is the mean of the per-file percentages, the same number as the "All files" row of the table. See [ADR 0028](../adr/0028-coverage-gate-on-the-all-files-figure.md).
 
 The policy has two halves:
 
 - Add tests instead of lowering the threshold.
 - Raise the threshold when coverage rises, so the gain cannot silently erode.
 
-A threshold is never lowered to make a gate pass. Bun reports coverage per run; measure with `bun test --coverage` before changing the value.
+A threshold is never lowered to make a gate pass, and a file is never added to `coveragePathIgnorePatterns` to hide it. Measure with `bun run test` before changing the value.
 
 ## Coverage manifest
 
