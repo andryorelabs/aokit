@@ -67,18 +67,3 @@
 - name: help wanted
   color: "008672"
   description: Extra attention or outside help is welcome
-- name: needs-triage
-  color: fbca04
-  description: Freshly captured, not yet reviewed or spec'd
-- name: needs-info
-  color: d876e3
-  description: Waiting on more information before it can proceed
-- name: ready-for-agent
-  color: 0e8a16
-  description: Spec'd and unblocked, eligible for automatic agent dispatch
-- name: ready-for-human
-  color: 1d76db
-  description: Needs a human decision or judgment call before continuing
-- name: wontfix
-  color: ffffff
-  description: Reviewed and deliberately not going to be worked on

@@ -403,9 +403,9 @@ describe("S9: labels", () => {
     expect(new Set(names).size).toBe(names.length);
   });
 
-  test("the five triage labels are present", () => {
+  test("the five triage labels live in Linear and are absent from the GitHub labels", () => {
     expect(triageLabels).toHaveLength(5);
     const names = new Set(labels.map((label) => (isRecord(label) ? label["name"] : undefined)));
-    expect(triageLabels.filter((label) => !names.has(label))).toEqual([]);
+    expect(triageLabels.filter((label) => names.has(label))).toEqual([]);
   });
 });
