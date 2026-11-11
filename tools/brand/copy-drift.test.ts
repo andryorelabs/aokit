@@ -126,10 +126,20 @@ describe("README shape", () => {
       "[![Release]",
       "[![License",
       "[![OpenSSF",
+      "[Documentation](docs/README.md) ·",
     ];
     const positions = order.map((marker) => readme.indexOf(marker));
     expect(positions.every((position) => position >= 0)).toBe(true);
     expect(positions.toSorted((a, b) => a - b)).toEqual(positions);
+  });
+
+  test("keeps the required sections in order", () => {
+    const required = ["Quickstart", "How it works", "Documentation", "Contributing", "License"];
+    const headings = readme
+      .split("\n")
+      .filter((line) => line.startsWith("## "))
+      .map((line) => line.slice(3));
+    expect(headings.filter((heading) => required.includes(heading))).toEqual(required);
   });
 
   test("has a License heading and ends with the credit line", () => {

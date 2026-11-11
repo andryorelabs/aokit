@@ -40,7 +40,7 @@ bunx create-aokit my-app --layout single --modules next,tailwind4,oxc --yes
 
 For a walkthrough, read [Getting started](docs/guide/getting-started.md). To extend aokit, read [Writing a Module](docs/guide/writing-modules.md) and [Hosting a Registry](docs/guide/hosting-a-registry.md).
 
-## What you get
+## How it works
 
 - **Pick Modules, get a project.** `aokit create` generates a TypeScript project from Modules such as next, vite-react, astro, hono, prisma, better-auth, tailwind4, shadcn, oxc, docker and coolify. The full list is in the [Module catalog](docs/architecture/module-catalog.md).
 - **Updates keep your edits.** The Lockfile records a hash for every file, and `aokit update` merges changes with what you wrote.
@@ -49,8 +49,6 @@ For a walkthrough, read [Getting started](docs/guide/getting-started.md). To ext
 - **Bun only.** aokit supports Bun and no other package manager.
 - **Works inside coding agents.** `aokit mcp init` registers the aokit MCP server in Claude, Cursor, VS Code or Codex.
 - **No telemetry.** The CLI, the MCP server and generated projects send no usage data.
-
-The design is in [`docs/`](docs/): start with the [architecture overview](docs/architecture/overview.md) and the [glossary](GLOSSARY.md).
 
 ## Supported platforms
 
@@ -119,6 +117,14 @@ bun run format:write  # oxfmt
 ```
 
 Tooling follows [`docs/standards`](docs/standards/README.md): Oxfmt and Oxlint (exact `oxc` pin group), TypeScript 6 for API consumers plus the exact `typescript7` alias for type checking, husky with lint-staged and commitlint (conventional commits, gitmoji optional), and knip. Source comments are TSDoc blocks only, enforced by the `local/no-non-doc-comments` Oxlint jsPlugin in [`tools/oxlint`](tools/oxlint/local-plugin.ts).
+
+## Documentation
+
+- [Getting started](docs/guide/getting-started.md), [Writing a Module](docs/guide/writing-modules.md) and [Hosting a Registry](docs/guide/hosting-a-registry.md).
+- [CLI reference](docs/reference/cli.md) and [troubleshooting](docs/troubleshooting.md).
+- The design: the [architecture overview](docs/architecture/overview.md), the [decision records](docs/adr/README.md) and the [glossary](GLOSSARY.md).
+- [Stability](docs/stability.md), [security](docs/security.md) and the [standards](docs/standards/README.md) this repository follows.
+- The full index is in [`docs/`](docs/README.md).
 
 ## Contributing
 

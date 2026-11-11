@@ -2,16 +2,16 @@
 
 The `renovate` Module ships this policy. It implements the default dependency policy: ranges plus a lockfile, with exact pins only for Toolchain pin groups. Related: [typescript](typescript.md), [tooling](tooling.md), index in [standards](README.md).
 
-The policy is implemented in [`renovate.json5`](../../renovate.json5) and checked by `tools/renovate/renovate-config.test.ts`. Versions in workflows are bumped through `# renovate: datasource=<ds> depName=<name>` comments placed on the line above a `VERSION: x.y.z` entry. The comment form only exists in YAML, so tool pins that live in TypeScript under `tools/` (for example the lychee version in `tools/lint-docs/args.ts`, which carries a sha256 table) are bumped by hand together with their checksums.
+The policy is implemented in [`renovate.json5`](../../renovate.json5) and checked by `tools/renovate/renovate-config.test.ts`. Versions in workflows are bumped through `# renovate: datasource=<ds> depName=<name>` comments placed on the line above a `VERSION: x.y.z` entry. The comment form only exists in YAML, so tool pins that live in TypeScript under `tools/` (for example the lychee version in `tools/lint-docs/args.ts`, which carries a sha256 table) are bumped by hand together with their checksums. That is an open gap against rule F5 below, which asks for every tool pin to be Renovate-managed.
 
 ## Defaults
 
-| Setting             | Value                                                     | Reason                                                                                                    |
-| ------------------- | --------------------------------------------------------- | --------------------------------------------------------------------------------------------------------- |
-| `rangeStrategy`     | `bump`                                                    | Ranges in `package.json` move with the lockfile, so the declared range always reflects what is installed. |
-| `minimumReleaseAge` | `3 days` by default; `7 days` for groups that break often | Gives the registry time to yank bad or compromised releases before they land.                             |
-| Lockfile            | Bun lockfile committed                                    | Reproducible installs; Renovate updates both.                                                             |
-| Schedule            | Monday                                                    | One predictable batch of updates per week.                                                                |
+| Setting             | Value                                                | Reason                                                                                                    |
+| ------------------- | ---------------------------------------------------- | --------------------------------------------------------------------------------------------------------- |
+| `rangeStrategy`     | `bump`                                               | Ranges in `package.json` move with the lockfile, so the declared range always reflects what is installed. |
+| `minimumReleaseAge` | `3 days` by default; `7 days` for automerged updates | Gives the registry time to yank bad or compromised releases before they land.                             |
+| Lockfile            | Bun lockfile committed                               | Reproducible installs; Renovate updates both.                                                             |
+| Schedule            | Monday                                               | One predictable batch of updates per week.                                                                |
 
 All active reference repositories already use `bump` with a release age and automerge; none pins every dependency.
 
