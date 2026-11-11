@@ -8,7 +8,7 @@
 - Node/TypeScript package `aokit-workspace`, package manager: bun
 - TypeScript (tsconfig.json present)
 - Dependencies: @arethetypeswrong/cli, @commitlint/cli, @commitlint/config-conventional, @commitlint/types, @oxlint/plugins, @types/bun, bumpp, changelogithub, husky, knip, lint-staged, oxfmt, oxlint, oxlint-tsgolint, playwright, ...
-- Scripts: `brand:export`, `build:binary`, `build:package`, `check`, `format`, `format:check`, `knip`, `lint`, `lint:docs`, `lint:package`, `prepare`, `registry:build`, `release`, `release:notes`, `test`, `typecheck`
+- Scripts: `brand:export`, `build:binary`, `build:package`, `check`, `ci:local`, `fix`, `format:check`, `format:write`, `knip`, `lint`, `lint:commits`, `lint:docs`, `lint:package`, `prepare`, `registry:build`, `release`, `release:notes`, `test`, `typecheck`
 
 ## Structure
 

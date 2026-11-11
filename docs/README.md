@@ -4,10 +4,11 @@ Every Markdown file under `docs/` has a row here; a test fails when one is missi
 
 ## Overview
 
-| Doc                             | Title     |
-| ------------------------------- | --------- |
-| [stability.md](stability.md)    | Stability |
-| [CHANGELOG.md](../CHANGELOG.md) | Changelog |
+| Doc                              | Title       |
+| -------------------------------- | ----------- |
+| [development.md](development.md) | Development |
+| [stability.md](stability.md)     | Stability   |
+| [CHANGELOG.md](../CHANGELOG.md)  | Changelog   |
 
 ## Guides
 

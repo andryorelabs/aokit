@@ -18,7 +18,9 @@ Read `package.json` first, then run scripts from the repo root with `bun run <sc
 
 - `bun run check`: typecheck, lint, format check, knip.
 - `bun run test`: all tests.
-- `bun run format`: format with Oxfmt.
+- `bun run format:write`: format with Oxfmt.
+- `bun run fix`: format and apply Oxlint fixes.
+- `bun run ci:local`: frozen install, `check`, `lint:docs`, `test` and `lint:commits`, as CI runs them.
 - `bun run lint:docs` and `bun run lint:package`: docs link check and package lint.
 - build: do not run `build:package` or `build:binary` unless explicitly asked.
 
@@ -38,7 +40,7 @@ Decisions live in [docs/adr/](docs/adr/README.md). Read those touching your area
 
 ## Branch and commit conventions
 
-- Feature branches always; never push to `main`. A pre-push hook refuses `main` and branch names that are not `<type>/<kebab-slug>`, `ao-<n>-<slug>` or `renovate/*`, then runs `bun run typecheck` and `bun run format:check`.
+- Feature branches always; never push to `main`. A pre-push hook refuses `main` and branch names that are not `<type>/<kebab-slug>`, `ao-<n>-<slug>`, `worktree-<slug>` or `renovate/*`, then runs `bun run typecheck` and `bun run format:check`.
 - PRs squash into `main`. Worker branches are `ao-<n>-<slug>`.
 - Commits are gitmoji + conventional, in English, with a bullet body: `feat: ✨ add user authentication`.
 - A ticket's commit body ends with `Refs: AO-<n>`.

@@ -5,7 +5,7 @@
       "Bash(bun run check)",
       "Bash(bun run test)",
       "Bash(bun run test *)",
-      "Bash(bun run format)",
+      "Bash(bun run format:write)",
       "Bash(gh pr view *)",
       "Bash(gh pr list *)",
       "Bash(gh pr diff *)",
