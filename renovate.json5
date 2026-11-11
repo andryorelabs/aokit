@@ -1,6 +1,11 @@
 {
   $schema: "https://docs.renovatebot.com/renovate-schema.json",
   extends: ["config:best-practices"],
+  schedule: ["before 6am on monday"],
+  timezone: "UTC",
+  dependencyDashboard: true,
+  dependencyDashboardTitle: "Dependency dashboard",
+  labels: ["dependencies"],
   rangeStrategy: "bump",
   minimumReleaseAge: "3 days",
   osvVulnerabilityAlerts: true,
@@ -29,6 +34,7 @@
     {
       description: "Automerge patch and minor GitHub Actions updates",
       matchManagers: ["github-actions"],
+      addLabels: ["github-actions"],
       matchUpdateTypes: ["patch", "minor"],
       automerge: true,
       minimumReleaseAge: "7 days",

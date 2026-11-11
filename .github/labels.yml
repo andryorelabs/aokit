@@ -1,15 +1,60 @@
-- name: bug
+- name: "Type: Bug"
   color: d73a4a
   description: Something does not work as documented
-- name: enhancement
+- name: "Type: Feature"
   color: a2eeef
-  description: A new feature or an improvement
-- name: documentation
+  description: A new capability
+- name: "Type: Enhancement"
+  color: 84b6eb
+  description: An improvement to an existing capability
+- name: "Type: Docs"
   color: 0075ca
   description: Docs, ADRs or guides
+- name: "Type: Security"
+  color: b60205
+  description: A security fix or hardening
+- name: "Priority: Critical"
+  color: b60205
+  description: Drop everything
+- name: "Priority: High"
+  color: d93f0b
+  description: Next in line
+- name: "Priority: Medium"
+  color: fbca04
+  description: Planned, not urgent
+- name: "Priority: Low"
+  color: 0e8a16
+  description: Nice to have
+- name: "Status: Needs Info"
+  color: d876e3
+  description: Waiting on more information before it can proceed
+- name: "Status: Blocked"
+  color: "000000"
+  description: Blocked by another change or an outside decision
+- name: "Status: In Progress"
+  color: 1d76db
+  description: Someone is working on it
+- name: "Area: cli"
+  color: c5def5
+  description: The aokit CLI and core
+- name: "Area: module"
+  color: c5def5
+  description: The Module manifest contract
+- name: "Area: registry"
+  color: c5def5
+  description: The Registry and first-party Modules
+- name: "Area: ci"
+  color: c5def5
+  description: Workflows, releases and repository settings
+- name: "Area: docs"
+  color: c5def5
+  description: Documentation and standards
 - name: dependencies
   color: 0366d6
   description: Dependency updates
+- name: github-actions
+  color: "000000"
+  description: GitHub Actions updates
 - name: security
   color: b60205
   description: A security fix or hardening
