@@ -40,4 +40,4 @@ The emet configuration names the tracker: Linear (team AO) or GitHub issues. The
 
 ## Trunk branch
 
-The trunk branch is a per-repo setting, not a standard: some repositories use `main`, others use `develop` with promotion to `main`. aokit asks for it at `create`, records it in the generated emet configuration, and never assumes one.
+Andry's repositories use `develop` as the trunk, promoted to `main` as [rule A1](repo-settings.md#merging) requires. A generated Project chooses its own trunk: aokit asks for it at `create`, records it in the generated emet configuration, and never assumes one.

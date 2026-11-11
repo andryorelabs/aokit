@@ -1,6 +1,7 @@
 # 0030. develop is the trunk
 
 Status: Accepted (2026-11-11)
+Revised: 2026-11-11 — standard v1 now requires the promotion by merge commit with a fixed title and no sync step
 Spec: S1 to S6 (Develop trunk spec)
 Architecture: [Repo settings](../standards/repo-settings.md)
 
@@ -12,6 +13,8 @@ All work landed on `main`, which is also the branch a CLI version is tagged on. 
 
 - `develop` is the development branch and the `/emet` trunk. Feature branches, `/emet` wave pull requests and Renovate pull requests target `develop` and are squash-merged, so `develop` stays linear.
 - A promotion is a pull request from `develop` to `main`, merged with a merge commit. `main` holds promoted history only.
+- The promotion pull request is titled `chore: 🔀 promote develop to main`.
+- There is no sync step: nothing merges `main` back into `develop`.
 - A CLI version is still tagged on `main`: the bump pull request lands on `develop`, a promotion follows, and the tag is cut on the promotion merge commit. The release workflow still requires the tagged commit to be on `main` with "CI passed" green.
 - `main` stays the default branch, so installs and the README read promoted history.
 - Rulesets live as code in `.github/rulesets/`: `develop` (squash only, linear history, required checks with the up to date policy, signed commits), `main` (merge commits only, required checks, signed commits) and `tags`. `main` drops linear history and the up to date policy, because a merge commit on `main` is never on `develop`.

@@ -1,6 +1,7 @@
 # 0029. aokit adopts the cross-repo standard v1
 
 Status: Accepted (2026-11-11)
+Revised: 2026-11-11 — the branch model is a must: `develop` is promoted to `main` by merge commit
 Spec: S1 to S8 (Standard v1 spec)
 Architecture: [Standards](../standards/README.md)
 
