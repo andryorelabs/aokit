@@ -15,7 +15,7 @@ Each rule is marked **must** or **should**, gives one sentence, then the reason.
 - **A4** (must) Rulesets live as code in `.github/rulesets/{main,develop,tags}.json`, live settings equal the JSON, a test checks that every required check name is a job name, and a `repo-settings:check` script diffs live settings against the files. Reason: a ruleset edited in the web UI drifts silently.
   - `develop`: no deletion, no force push, linear history, pull request required, squash only, thread resolution, required checks "CI passed" and "Validate PR title", no bypass; strict required checks are a should.
   - `main`: no deletion, no force push, pull request required, merge commit only, thread resolution, required checks "CI passed" and "Validate PR title", no bypass, and neither linear history nor the strict policy, because a promotion merge commit is never on `develop`.
-  - Tags `refs/tags/v*`: no deletion, no update, no force push.
+  - Tags: `refs/tags/v*` at least, with no deletion and no update; a ruleset may cover every tag and let only repository admins create one, as aokit's does.
   - The repo's own session applies settings and records the step in `docs/development.md`; the script only reads.
 - **A5** (should) `develop` and `main` require signed commits, and "Check markdown links" is a required check where `lint-docs` is its own workflow. Reason: signatures prove authorship and a broken link must block a merge.
 
