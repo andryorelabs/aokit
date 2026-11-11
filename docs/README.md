@@ -76,6 +76,7 @@ Every Markdown file under `docs/` has a row here; a test fails when one is missi
 | [adr/0026-registry-releases-are-dated-cli-versions-are-semver.md](adr/0026-registry-releases-are-dated-cli-versions-are-semver.md)       | 0026. Registry Releases are dated, CLI versions are semver                                            |
 | [adr/0027-module-sdk-is-published.md](adr/0027-module-sdk-is-published.md)                                                               | 0027. The Module SDK is published                                                                     |
 | [adr/0028-coverage-gate-on-the-all-files-figure.md](adr/0028-coverage-gate-on-the-all-files-figure.md)                                   | 0028. The coverage gate checks the All files figure                                                   |
+| [adr/0029-adopt-cross-repo-standard-v1.md](adr/0029-adopt-cross-repo-standard-v1.md)                                                     | 0029. aokit adopts the cross-repo standard v1                                                         |
 
 ## Brand
 
