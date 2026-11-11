@@ -163,10 +163,6 @@ function trustQuestion(registry: TrustedRegistryInput): string {
   ].join("\n");
 }
 
-function rejectPrompt(): Promise<string> {
-  return Promise.resolve("no");
-}
-
 function parseAnswer(answer: string): "yes" | "always" | "no" {
   const normalized = answer.trim().toLowerCase();
   if (normalized === "y" || normalized === "yes") {
@@ -235,17 +231,17 @@ export async function ensureTrusted(
       via: nonPromptReason(registry, options, userConfig, nameContested),
     };
   });
-  const firstUntrusted = pending.find((entry) => entry.via === undefined);
-  if (firstUntrusted !== undefined && (!options.interactive || options.prompt === undefined)) {
-    throw untrusted(firstUntrusted.registry, firstUntrusted.nameContested, userConfigPath(env));
-  }
+  const prompt = options.interactive ? options.prompt : undefined;
   const decisions: TrustDecision[] = [];
-  const prompt = options.prompt;
   for (const entry of pending) {
-    const via =
-      entry.via ??
+    let via = entry.via;
+    if (via === undefined) {
+      if (prompt === undefined) {
+        throw untrusted(entry.registry, entry.nameContested, userConfigPath(env));
+      }
       // oxlint-disable-next-line eslint/no-await-in-loop -- one trust prompt at a time, in order
-      (await askForTrust(entry.registry, entry.nameContested, prompt ?? rejectPrompt, env));
+      via = await askForTrust(entry.registry, entry.nameContested, prompt, env);
+    }
     decisions.push({
       registry: entry.registry.name,
       source: formatRegistrySource(entry.registry.source),
