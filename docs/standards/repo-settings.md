@@ -6,18 +6,18 @@ Each rule is marked **must** or **should**, gives one sentence, then the reason.
 
 ## Merging
 
-- **A1** (must) Only squash merging is on at repo level, rebase is off, and a repo that promotes `develop` to `main` by merge commit keeps merge commits. Reason: one commit per change keeps trunk history linear and readable.
+- **A1** (must) Work lands on `develop` by squash merge so `develop` is linear, a promotion is a pull request from `develop` to `main` merged with a merge commit and titled `chore: 🔀 promote develop to main`, there is no sync step, `main` is the default branch and the only branch that deploys and carries tags, and squash and merge commits are on at repo level while rebase is off. Reason: one commit per change keeps `develop` linear and readable, and every repository follows one branch model.
 - **A2** (must) Delete branch on merge, auto-merge and update branch are on, and `pr.autoMerge` is explicit in `emet.config.json`. Reason: stale branches vanish and the emet configuration never guesses.
-- **A3** (must) The squash commit title is `PR_TITLE` and the message is `PR_BODY`. Reason: the validated pull request title becomes the commit subject.
+- **A3** (must) The squash commit title is `PR_TITLE` and the message is `PR_BODY`, and the merge commit settings sit next to them: `allow_merge_commit: true`, `merge_commit_title: PR_TITLE`, `merge_commit_message: PR_BODY`. Reason: the validated pull request title becomes the commit subject for both merge methods.
 
 ## Rulesets
 
-- **A4** (must) Rulesets live as code in `.github/rulesets/{main,develop?,tags}.json`, live settings equal the JSON, a test checks that every required check name is a job name, and a `repo-settings:check` script diffs live settings against the files. Reason: a ruleset edited in the web UI drifts silently.
-  - Trunk rules: no deletion, no force push, linear history, pull request required, squash only, thread resolution, required checks "CI passed" and "Validate PR title", no bypass.
-  - Tags `refs/tags/v*`: no deletion, no update, no force push.
-  - Strict required checks are a should.
+- **A4** (must) Rulesets live as code in `.github/rulesets/{main,develop,tags}.json`, live settings equal the JSON, a test checks that every required check name is a job name, and a `repo-settings:check` script diffs live settings against the files. Reason: a ruleset edited in the web UI drifts silently.
+  - `develop`: no deletion, no force push, linear history, pull request required, squash only, thread resolution, required checks "CI passed" and "Validate PR title", no bypass; strict required checks are a should.
+  - `main`: no deletion, no force push, pull request required, merge commit only, thread resolution, required checks "CI passed" and "Validate PR title", no bypass, and neither linear history nor the strict policy, because a promotion merge commit is never on `develop`.
+  - Tags: `refs/tags/v*` at least, with no deletion and no update; a ruleset may cover every tag and let only repository admins create one, as aokit's does.
   - The repo's own session applies settings and records the step in `docs/development.md`; the script only reads.
-- **A5** (should) Trunks require signed commits, and "Check markdown links" is a required check where `lint-docs` is its own workflow. Reason: signatures prove authorship and a broken link must block a merge.
+- **A5** (should) `develop` and `main` require signed commits, and "Check markdown links" is a required check where `lint-docs` is its own workflow. Reason: signatures prove authorship and a broken link must block a merge.
 
 ## Security
 
