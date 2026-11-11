@@ -16,12 +16,17 @@ function push(branch: string): string {
 }
 
 describe("checkPushLine", () => {
-  test.each(["feat/x", "ao-12-fix-thing", "renovate/foo", "fix/some-long-slug-2", "renovate/a/b"])(
-    "passes %s",
-    (branch) => {
-      expect(checkPushLine(push(branch))).toEqual({ ok: true });
-    },
-  );
+  test.each([
+    "feat/x",
+    "ao-12-fix-thing",
+    "renovate/foo",
+    "fix/some-long-slug-2",
+    "renovate/a/b",
+    "worktree-x",
+    "worktree-agent-ad05954707ed122ab",
+  ])("passes %s", (branch) => {
+    expect(checkPushLine(push(branch))).toEqual({ ok: true });
+  });
 
   test("refuses main with a one-line reason", () => {
     const verdict = checkPushLine(push("main"));
@@ -131,6 +136,10 @@ describe("script process", () => {
     const result = await runScript(`${push("main")}\n`);
     expect(result.code).not.toBe(0);
     expect(result.stderr.trim().split("\n")).toHaveLength(1);
+  });
+
+  test("exits non-zero for foo", async () => {
+    expect((await runScript(`${push("foo")}\n`)).code).not.toBe(0);
   });
 
   test("exits non-zero for Bad_Name", async () => {

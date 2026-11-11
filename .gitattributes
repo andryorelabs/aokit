@@ -1,0 +1,5 @@
+* text=auto eol=lf
+
+registry/** linguist-generated=true
+bun.lock linguist-generated=true
+packages/aokit/registry/** linguist-generated=true
