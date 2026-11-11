@@ -37,10 +37,7 @@ export const itemChangedFix =
 type TemplateEnvironment = Readonly<Record<string, string | undefined>>;
 
 /** Every `${VAR}` reads as set, so a Namespace resolves without expanding or checking anything. */
-const permissiveEnvironment: TemplateEnvironment = new Proxy(
-  {},
-  { get: () => "", has: () => true },
-);
+const permissiveEnvironment: TemplateEnvironment = new Proxy({}, { get: () => "" });
 
 /** How one shadcn item is fetched: the transport that serves it and the path it is read at. */
 export interface ItemLocation {
@@ -352,7 +349,7 @@ export function syntheticIndex(
           manifest: shadcnIndexFile,
           integrity: module.integrity,
           schemaVersion: module.manifest.schemaVersion,
-          provides: module.manifest.provides.map((provided) => provided.capability),
+          provides: [],
           files: Object.fromEntries(
             [...module.files].map(([path, text]) => [path, computeIntegrity(text)]),
           ),
