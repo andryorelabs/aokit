@@ -1,0 +1,25 @@
+{
+  "repository": {
+    "description": "Bun-only CLI that creates TypeScript projects from composable Modules and keeps them updatable: a Lockfile with per-file hashes lets updates merge with your edits.",
+    "homepage": "https://github.com/andryorelabs/aokit#readme",
+    "topics": ["cli", "bun", "typescript", "scaffolding", "project-generator", "codegen", "mcp"],
+    "has_wiki": false,
+    "has_projects": false,
+    "has_discussions": false,
+    "allow_squash_merge": true,
+    "allow_merge_commit": false,
+    "allow_rebase_merge": false,
+    "allow_auto_merge": true,
+    "allow_update_branch": true,
+    "delete_branch_on_merge": true,
+    "squash_merge_commit_title": "PR_TITLE",
+    "squash_merge_commit_message": "PR_BODY"
+  },
+  "security": {
+    "secret_scanning": true,
+    "secret_scanning_push_protection": true,
+    "dependabot_alerts": true,
+    "dependabot_security_updates": true,
+    "private_vulnerability_reporting": true
+  }
+}

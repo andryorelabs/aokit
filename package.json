@@ -22,6 +22,7 @@
     "lint:package": "bun tools/build-package/lint-main.ts",
     "lint:docs": "bun tools/lint-docs/main.ts",
     "lint:commits": "commitlint --last",
+    "repo-settings:check": "bun tools/repo-settings/main.ts",
     "ci:local": "bun install --frozen-lockfile && bun run check && bun run lint:docs && bun run test && bun run lint:commits",
     "release": "bumpp"
   },

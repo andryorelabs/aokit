@@ -313,6 +313,21 @@ describe("S9: rulesets", () => {
     }
   });
 
+  test("S8: main requires thread resolution, strict required checks and signed commits", () => {
+    const pullRequest = findRule(mainRuleset, "pull_request");
+    expect(
+      isRecord(pullRequest?.["parameters"]) &&
+        pullRequest["parameters"]["required_review_thread_resolution"],
+    ).toBe(true);
+    const statusChecks = findRule(mainRuleset, "required_status_checks");
+    expect(
+      isRecord(statusChecks?.["parameters"]) &&
+        statusChecks["parameters"]["strict_required_status_checks_policy"],
+    ).toBe(true);
+    expect(findRule(mainRuleset, "required_signatures")).toEqual({ type: "required_signatures" });
+    expect(isRecord(mainRuleset) && mainRuleset["bypass_actors"]).toEqual([]);
+  });
+
   test("tags cannot be updated or deleted", () => {
     expect(isRecord(tagsRuleset) && tagsRuleset["target"]).toBe("tag");
     expect(findRule(tagsRuleset, "update")).toBeDefined();
