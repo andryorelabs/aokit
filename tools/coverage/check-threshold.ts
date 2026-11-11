@@ -1,15 +1,16 @@
 import { existsSync, readFileSync } from "node:fs";
 import { resolve } from "node:path";
+import { type CoverageException, coverageExceptions } from "./coverage-exceptions";
 
 /**
  * Minimum "All files" line coverage, as a fraction. Raise it when coverage rises, never lower it.
  */
-export const LINE_THRESHOLD = 0.97;
+export const LINE_THRESHOLD = 0.997;
 
 /**
  * Minimum "All files" function coverage, as a fraction. Raise it when coverage rises, never lower it.
  */
-export const FUNCTION_THRESHOLD = 0.98;
+export const FUNCTION_THRESHOLD = 0.999;
 
 /**
  * Coverage of one source file, as reported by an lcov record.
@@ -87,7 +88,66 @@ export function summarize(files: readonly FileCoverage[]): CoverageSummary {
 }
 
 /**
- * Lists one message per metric that is below its threshold; empty when the gate passes.
+ * Per-file floor for lines, as a fraction.
+ */
+export const FILE_LINE_FLOOR = 0.97;
+
+/**
+ * Per-file floor for functions, as a fraction.
+ */
+export const FILE_FUNCTION_FLOOR = 0.98;
+
+function describeFile(file: FileCoverage): string {
+  const lines = percent(fraction(file.linesHit, file.linesFound));
+  const functions = percent(fraction(file.functionsHit, file.functionsFound));
+  return `${lines} lines and ${functions} functions`;
+}
+
+function findFileFailures(
+  files: readonly FileCoverage[],
+  exceptions: readonly CoverageException[],
+): string[] {
+  const failures: string[] = [];
+  const excepted = new Map(exceptions.map((exception) => [exception.file, exception]));
+  for (const file of files) {
+    const lines = fraction(file.linesHit, file.linesFound);
+    const functions = fraction(file.functionsHit, file.functionsFound);
+    const underFloor = lines < FILE_LINE_FLOOR || functions < FILE_FUNCTION_FLOOR;
+    const exception = excepted.get(file.path);
+    if (exception === undefined) {
+      if (underFloor) {
+        failures.push(
+          `${file.path} has ${describeFile(file)}, below the ${percent(FILE_LINE_FLOOR)} lines and ${percent(FILE_FUNCTION_FLOOR)} functions floor, and has no coverage exception.`,
+        );
+      }
+    } else if (!underFloor) {
+      failures.push(
+        `Coverage exception for ${file.path} is stale: the file now has ${describeFile(file)}. Remove the exception.`,
+      );
+    } else if (lines < exception.lines || functions < exception.functions) {
+      failures.push(
+        `${file.path} has ${describeFile(file)}, below its exception floor of ${percent(exception.lines)} lines and ${percent(exception.functions)} functions.`,
+      );
+    }
+  }
+  const reported = new Set(files.map((file) => file.path));
+  for (const exception of exceptions) {
+    if (!reported.has(exception.file)) {
+      failures.push(
+        `Coverage exception for ${exception.file} names a file missing from the report.`,
+      );
+    }
+    if (exception.reason.trim() === "") {
+      failures.push(`Coverage exception for ${exception.file} has an empty reason.`);
+    }
+  }
+  return failures;
+}
+
+/**
+ * Lists one message per failed check: an "All files" metric under its threshold, a file under the per-file floor
+ * without an exception, and an exception that is stale, missing from the report, unexplained or under its own floor.
+ * Empty when the gate passes. Per-file checks run on the files and exceptions passed in.
  */
 export function findThresholdFailures(
   summary: CoverageSummary,
@@ -95,6 +155,8 @@ export function findThresholdFailures(
     lines: LINE_THRESHOLD,
     functions: FUNCTION_THRESHOLD,
   },
+  files: readonly FileCoverage[] = [],
+  exceptions: readonly CoverageException[] = [],
 ): string[] {
   const failures: string[] = [];
   if (summary.files === 0) {
@@ -111,22 +173,26 @@ export function findThresholdFailures(
       `Function coverage ${percent(summary.functions)} is below the ${percent(thresholds.functions)} threshold.`,
     );
   }
+  failures.push(...findFileFailures(files, exceptions));
   return failures;
 }
 
 /**
  * Reads `coverage/lcov.info` under `repoRoot` and returns the gate failures, or a single message when the report is missing.
  */
-export function checkCoverageReport(repoRoot: string): string[] {
+export function checkCoverageReport(
+  repoRoot: string,
+  exceptions: readonly CoverageException[] = coverageExceptions,
+): string[] {
   const reportPath = resolve(repoRoot, "coverage/lcov.info");
   if (!existsSync(reportPath)) {
     return [`No coverage report at ${reportPath}; run bun test with coverage enabled first.`];
   }
-  return findThresholdFailures(summarize(parseLcov(readFileSync(reportPath, "utf8"))));
-}
-
-if (import.meta.main) {
-  const failures = checkCoverageReport(resolve(import.meta.dir, "../.."));
-  for (const failure of failures) console.error(failure);
-  process.exit(failures.length === 0 ? 0 : 1);
+  const files = parseLcov(readFileSync(reportPath, "utf8"));
+  return findThresholdFailures(
+    summarize(files),
+    { lines: LINE_THRESHOLD, functions: FUNCTION_THRESHOLD },
+    files,
+    exceptions,
+  );
 }
