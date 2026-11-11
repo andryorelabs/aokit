@@ -75,6 +75,7 @@ Every Markdown file under `docs/` has a row here; a test fails when one is missi
 | [adr/0025-manifest-env-schemas-feed-t3-env.md](adr/0025-manifest-env-schemas-feed-t3-env.md)                                             | 0025. Manifest env schemas feed env.server and env.client                                             |
 | [adr/0026-registry-releases-are-dated-cli-versions-are-semver.md](adr/0026-registry-releases-are-dated-cli-versions-are-semver.md)       | 0026. Registry Releases are dated, CLI versions are semver                                            |
 | [adr/0027-module-sdk-is-published.md](adr/0027-module-sdk-is-published.md)                                                               | 0027. The Module SDK is published                                                                     |
+| [adr/0028-coverage-gate-on-the-all-files-figure.md](adr/0028-coverage-gate-on-the-all-files-figure.md)                                   | 0028. The coverage gate checks the All files figure                                                   |
 
 ## Brand
 

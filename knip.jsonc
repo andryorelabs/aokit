@@ -28,6 +28,8 @@
       "entry": [
         // Test files are run by `bun test`, nothing imports them.
         "test/**/*.test.ts",
+        // A test next to its module is run by `bun test` too, and `test` now goes through tools/coverage/run-tests.ts, which knip does not read as a test runner.
+        "src/**/*.test.ts",
         // The CLI entry point is named by the build scripts, not imported.
         "src/cli/main.ts",
       ],
