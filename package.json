@@ -23,8 +23,7 @@
     "lint:docs": "bun tools/lint-docs/main.ts",
     "lint:commits": "commitlint --last",
     "ci:local": "bun install --frozen-lockfile && bun run check && bun run lint:docs && bun run test && bun run lint:commits",
-    "release": "bumpp",
-    "release:notes": "changelogithub"
+    "release": "bumpp"
   },
   "devDependencies": {
     "@arethetypeswrong/cli": "^0.18.5",
@@ -34,7 +33,6 @@
     "@oxlint/plugins": "1.90.0",
     "@types/bun": "^1.4.4",
     "bumpp": "^12.3.0",
-    "changelogithub": "^15.0.5",
     "husky": "^9.1.7",
     "knip": "^6.44.1",
     "lint-staged": "^17.6.0",

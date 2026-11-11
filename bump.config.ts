@@ -23,7 +23,9 @@ function pinCreateAokitDependency(newVersion: string): void {
 /**
  * `bun run release`: bumps `aokit`, `create-aokit` and `@aokit/module` to one shared version on a release branch
  * and opens a pull request. The `v<version>` tag that triggers `.github/workflows/release.yml` is
- * pushed on the merged commit of `main`.
+ * pushed on the merged commit of `main`. That workflow fails unless `CHANGELOG.md` has a non-empty
+ * `## [<version>]` section, so the release pull request also moves the `[Unreleased]` entries into
+ * it.
  */
 export default defineConfig({
   files: [aokitManifest, createAokitManifest, moduleManifest],

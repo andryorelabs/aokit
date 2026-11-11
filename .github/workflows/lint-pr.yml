@@ -8,12 +8,12 @@ permissions:
   contents: read
 
 concurrency:
-  group: lint-pr-${{ github.workflow }}-${{ github.ref }}
-  cancel-in-progress: true
+  group: lint-pr-${{ github.workflow }}-${{ github.event.pull_request.number || github.sha }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 jobs:
   semantic-title:
-    name: semantic PR title
+    name: Validate PR title
     runs-on: ubuntu-latest
     timeout-minutes: 5
     permissions:

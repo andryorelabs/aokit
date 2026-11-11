@@ -10,8 +10,8 @@ permissions:
   contents: read
 
 concurrency:
-  group: real-build-${{ github.workflow }}-${{ github.ref }}
-  cancel-in-progress: true
+  group: real-build-${{ github.workflow }}-${{ github.event.pull_request.number || github.sha }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 jobs:
   plan:

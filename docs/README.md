@@ -121,10 +121,10 @@ Every Markdown file under `docs/` has a row here; a test fails when one is missi
 
 ## Agent docs
 
-| Doc                                                | Title                                               |
-| -------------------------------------------------- | --------------------------------------------------- |
-| [agents/codebase.md](agents/codebase.md)           | Codebase map                                        |
-| [agents/domain.md](agents/domain.md)               | Domain docs                                         |
-| [agents/emet.md](agents/emet.md)                   | `/forge` operational specifics for andryore-starter |
-| [agents/issue-tracker.md](agents/issue-tracker.md) | Issue tracker: Linear                               |
-| [agents/triage-labels.md](agents/triage-labels.md) | Triage labels                                       |
+| Doc                                                | Title                                  |
+| -------------------------------------------------- | -------------------------------------- |
+| [agents/codebase.md](agents/codebase.md)           | Codebase map                           |
+| [agents/domain.md](agents/domain.md)               | Domain docs                            |
+| [agents/emet.md](agents/emet.md)                   | `emet` operational specifics for aokit |
+| [agents/issue-tracker.md](agents/issue-tracker.md) | Issue tracker: Linear                  |
+| [agents/triage-labels.md](agents/triage-labels.md) | Triage labels                          |

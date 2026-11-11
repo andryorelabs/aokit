@@ -22,6 +22,9 @@ jobs:
     name: build and test
     runs-on: ubuntu-latest
     timeout-minutes: 30
+    permissions:
+      contents: read
+      checks: read
     outputs:
       version: ${{ steps.release.outputs.version }}
       dist-tag: ${{ steps.release.outputs.dist-tag }}
@@ -86,6 +89,53 @@ jobs:
           } >> "$GITHUB_OUTPUT"
           echo "@aokit/module, aokit and create-aokit $version, dist-tag $dist_tag, dry-run $dry_run"
 
+      - name: Tag is on main
+        env:
+          REF_TYPE: ${{ github.ref_type }}
+          REF_NAME: ${{ github.ref_name }}
+          TAG_SHA: ${{ github.sha }}
+        run: |
+          if [ "$REF_TYPE" != tag ]; then
+            echo "No tag: a dry run from $REF_NAME is not checked against main."
+            exit 0
+          fi
+          if ! git merge-base --is-ancestor "$TAG_SHA" refs/remotes/origin/main; then
+            echo "::error::tag $REF_NAME ($TAG_SHA) is not on main; a release is tagged on a commit of main"
+            exit 1
+          fi
+          echo "tag $REF_NAME ($TAG_SHA) is on main"
+
+      - name: CI passed for the tagged commit
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REF_TYPE: ${{ github.ref_type }}
+          REF_NAME: ${{ github.ref_name }}
+          TAG_SHA: ${{ github.sha }}
+        run: |
+          if [ "$REF_TYPE" != tag ]; then
+            echo "No tag: a dry run from $REF_NAME does not need a green CI."
+            exit 0
+          fi
+          conclusions="$(gh api --method GET "repos/$GITHUB_REPOSITORY/commits/$TAG_SHA/check-runs" \
+            -f "check_name=CI passed" -f filter=latest \
+            --jq '.check_runs | map(.conclusion // "pending") | unique | join(",")')"
+          if [ "$conclusions" != success ]; then
+            echo "::error::\"CI passed\" is ${conclusions:-missing} for $TAG_SHA; tag $REF_NAME is released once it is green"
+            exit 1
+          fi
+          echo "\"CI passed\" is green for $TAG_SHA"
+
+      - name: Release notes from CHANGELOG.md
+        env:
+          REF_TYPE: ${{ github.ref_type }}
+          VERSION: ${{ steps.release.outputs.version }}
+        run: |
+          if [ "$REF_TYPE" = tag ]; then
+            bun tools/release/main.ts "$VERSION" "$RUNNER_TEMP/release/release-notes.md"
+          else
+            bun tools/release/main.ts "$VERSION" "$RUNNER_TEMP/release/release-notes.md" --allow-missing
+          fi
+
       - name: Check
         run: bun run check
 
@@ -111,11 +161,6 @@ jobs:
         run: |
           AOKIT_DIST_TARBALLS="$(printf '%s,' "$RUNNER_TEMP"/release/tarballs/*.tgz)" \
             bun test packages/aokit/test/dist/package
-
-      - name: Release notes
-        env:
-          GITHUB_TOKEN: ${{ github.token }}
-        run: bun run release:notes --output "$RUNNER_TEMP/release/release-notes.md"
 
       - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:

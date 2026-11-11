@@ -9,12 +9,12 @@ permissions:
   contents: read
 
 concurrency:
-  group: lint-docs-${{ github.workflow }}-${{ github.ref }}
-  cancel-in-progress: true
+  group: lint-docs-${{ github.workflow }}-${{ github.event.pull_request.number || github.sha }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 jobs:
   links:
-    name: docs links
+    name: Check markdown links
     runs-on: ubuntu-latest
     timeout-minutes: 10
     steps:
