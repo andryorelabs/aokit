@@ -3,6 +3,16 @@ import { readdirSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 
 const workflowsDirectory = join(import.meta.dir, "..", "..", ".github", "workflows");
+/** The workflow files the `github-ci` Module writes into a generated Project. */
+const moduleWorkflowsDirectory = join(
+  import.meta.dir,
+  "..",
+  "..",
+  "registry-src",
+  "github-ci",
+  "files",
+  "workflows",
+);
 
 const routedExpression =
   "${{ github.event.pull_request.head.repo.fork && 'ubuntu-latest' || vars.BLACKSMITH_RUNNER || 'ubuntu-latest' }}";
@@ -15,6 +25,20 @@ export const routedJobs: readonly string[] = [
   "ci.yml:test",
   "ci.yml:commitlint",
   "determinism.yml:compare",
+];
+
+/**
+ * The routed jobs of the `github-ci` Module: every job on the pull request path. `codeql.yml` and
+ * `scorecard.yml` stay on a literal label.
+ */
+const moduleRoutedJobs: readonly string[] = [
+  "ci.yml:check",
+  "ci.yml:commitlint",
+  "ci.yml:ci-passed",
+  "labels.yml:sync",
+  "lint-docs.yml:links",
+  "lint-pr.yml:semantic-title",
+  "lint-workflows.yml:lint",
 ];
 
 const jobLine = /^ {2}([A-Za-z0-9_-]+):\s*$/;
@@ -116,8 +140,15 @@ function findJobProblem(id: string, job: WorkflowJob, routed: boolean): string |
     : `${id} is routed and must use the BLACKSMITH_RUNNER expression`;
 }
 
-/** Returns `<file>:<job>` descriptions of every job whose `runs-on` breaks the CI runner routing rules. */
-export function findRunnerRoutingProblems(file: string, text: string): string[] {
+/**
+ * Returns `<file>:<job>` descriptions of every job whose `runs-on` breaks the CI runner routing
+ * rules. `routed` lists the jobs that must use the routing expression; it defaults to the repo's.
+ */
+export function findRunnerRoutingProblems(
+  file: string,
+  text: string,
+  routed: readonly string[] = routedJobs,
+): string[] {
   const problems: string[] = [];
   const parsedWorkflow: unknown = Bun.YAML.parse(text);
   const jobs = parseJobs(text);
@@ -125,10 +156,10 @@ export function findRunnerRoutingProblems(file: string, text: string): string[] 
     job.matrixRunners = listMatrixValues(parsedWorkflow, job.name, "runner");
     job.matrixOses = listMatrixValues(parsedWorkflow, job.name, "os");
     const id = `${file}:${job.name}`;
-    const problem = findJobProblem(id, job, routedJobs.includes(id));
+    const problem = findJobProblem(id, job, routed.includes(id));
     if (problem !== undefined) problems.push(problem);
   }
-  for (const id of routedJobs.filter((entry) => entry.startsWith(`${file}:`))) {
+  for (const id of routed.filter((entry) => entry.startsWith(`${file}:`))) {
     if (!jobs.some((job) => `${file}:${job.name}` === id))
       problems.push(`${id} is listed in routedJobs but missing`);
   }
@@ -393,5 +424,42 @@ describe("CI runner routing", () => {
     expect(
       findRunnerRoutingProblems("determinism.yml", workflow("renamed", "ubuntu-latest")),
     ).toEqual(["determinism.yml:compare is listed in routedJobs but missing"]);
+  });
+});
+
+describe("github-ci Module runner routing", () => {
+  const files = readdirSync(moduleWorkflowsDirectory)
+    .filter((name) => /\.ya?ml$/.test(name))
+    .toSorted();
+  const readModuleWorkflow = (name: string): string =>
+    readFileSync(join(moduleWorkflowsDirectory, name), "utf8");
+
+  test("every job on the pull request path uses the BLACKSMITH_RUNNER expression", () => {
+    expect(files.length).toBeGreaterThan(0);
+    expect(
+      files.flatMap((name) =>
+        findRunnerRoutingProblems(name, readModuleWorkflow(name), moduleRoutedJobs),
+      ),
+    ).toEqual([]);
+  });
+
+  test("every job is routed except those of codeql.yml and scorecard.yml", () => {
+    const jobs = files.flatMap((name) => {
+      const parsedJobs = field(Bun.YAML.parse(readModuleWorkflow(name)), "jobs");
+      return isRecord(parsedJobs) ? Object.keys(parsedJobs).map((job) => `${name}:${job}`) : [];
+    });
+    expect(jobs.toSorted()).toEqual(
+      [...moduleRoutedJobs, "codeql.yml:analyze", "scorecard.yml:analysis"].toSorted(),
+    );
+  });
+
+  test("a Module job on a literal ubuntu-latest fails and names file and job", () => {
+    const broken = readModuleWorkflow("lint-docs.yml").replace(
+      /^ {4}runs-on: .*$/m,
+      "    runs-on: ubuntu-latest",
+    );
+    expect(findRunnerRoutingProblems("lint-docs.yml", broken, moduleRoutedJobs)).toEqual([
+      "lint-docs.yml:links is routed and must use the BLACKSMITH_RUNNER expression",
+    ]);
   });
 });

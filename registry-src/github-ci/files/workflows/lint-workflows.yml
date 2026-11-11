@@ -12,13 +12,13 @@ permissions:
   contents: read
 
 concurrency:
-  group: lint-workflows-${{ github.workflow }}-${{ github.ref }}
-  cancel-in-progress: true
+  group: lint-workflows-${{ github.workflow }}-${{ github.event.pull_request.number || github.sha }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 jobs:
-  actionlint:
-    name: actionlint
-    runs-on: ubuntu-latest
+  lint:
+    name: actionlint + zizmor
+    runs-on: ${{ github.event.pull_request.head.repo.fork && 'ubuntu-latest' || vars.BLACKSMITH_RUNNER || 'ubuntu-latest' }}
     timeout-minutes: 10
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -38,15 +38,6 @@ jobs:
 
       - name: Run actionlint
         run: '"${RUNNER_TEMP}/actionlint" -color'
-
-  zizmor:
-    name: zizmor
-    runs-on: ubuntu-latest
-    timeout-minutes: 10
-    steps:
-      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-        with:
-          persist-credentials: false
 
       - name: Install zizmor
         env:
