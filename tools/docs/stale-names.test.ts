@@ -12,6 +12,14 @@ const allowedPaths = new Set(["CHANGELOG.md", "tools/docs/stale-names.test.ts"])
 const linearProjectLiteral = "AndryOre Starter";
 const linearProjectPath = "docs/agents/issue-tracker.md";
 
+const redirectLiteral = "docs-and-forge";
+const redirectPath = "docs/standards/README.md";
+
+const allowedLiteralsByPath = new Map<string, string>([
+  [linearProjectPath, linearProjectLiteral],
+  [redirectPath, redirectLiteral],
+]);
+
 interface TrackedFile {
   path: string;
   content: string;
@@ -25,10 +33,10 @@ function findStaleNames(files: readonly TrackedFile[]): string[] {
   const problems: string[] = [];
   for (const file of files) {
     if (isAllowedPath(file.path)) continue;
+    const allowedLiteral = allowedLiteralsByPath.get(file.path);
     const lines = file.content.split("\n");
     for (const [index, line] of lines.entries()) {
-      const scanned =
-        file.path === linearProjectPath ? line.replaceAll(linearProjectLiteral, "") : line;
+      const scanned = allowedLiteral === undefined ? line : line.replaceAll(allowedLiteral, "");
       if (staleNamePattern.test(scanned)) {
         problems.push(`${file.path}:${index + 1}: stale name outside the allowlist`);
       }
@@ -88,6 +96,13 @@ describe("stale names", () => {
     const content = `Project: \`${linearProjectLiteral}\``;
     expect(findStaleNames([{ path: linearProjectPath, content }])).toEqual([]);
     expect(findStaleNames([{ path: "docs/agents/emet.md", content }])).toHaveLength(1);
+  });
+
+  test("allows the renamed page literal only in the standards index", () => {
+    const content = `| \`${redirectLiteral}\` | [docs-and-emet](docs-and-emet.md) |`;
+    expect(findStaleNames([{ path: redirectPath, content }])).toEqual([]);
+    expect(findStaleNames([{ path: "docs/standards/tooling.md", content }])).toHaveLength(1);
+    expect(findStaleNames([{ path: redirectPath, content: "the forge command" }])).toHaveLength(1);
   });
 
   test("still flags other stale names in the issue tracker doc", () => {
