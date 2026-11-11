@@ -241,6 +241,18 @@ function opOverriders(modules: readonly EngineModule[]): Map<string, string> {
   return overriders;
 }
 
+function vfsView(vfs: Vfs, afterWrite: (normalizedPath: string) => void): OpVfs {
+  return {
+    has: (path) => vfs.has(path),
+    paths: () => vfs.paths(),
+    read: (path) => vfs.read(path),
+    write: (path, content, writeOptions) => {
+      vfs.write(path, content, writeOptions);
+      afterWrite(normalizeProjectPath(path));
+    },
+  };
+}
+
 function collide(path: string, existing: Producer, incoming: Producer): never {
   if (existing.overrides && incoming.overrides) {
     throw new EngineError(
@@ -312,15 +324,7 @@ export async function buildPlan(options: BuildPlanOptions): Promise<BuiltPlan> {
     joinTargetPath(directoryOf(target), relativePath);
 
   writeAgentFiles(
-    {
-      has: (path) => work.has(path),
-      paths: () => work.paths(),
-      read: (path) => work.read(path),
-      write: (path, content, writeOptions) => {
-        work.write(path, content, writeOptions);
-        log.add(normalizeProjectPath(path), coreOwner, { kind: "op", op: "agent-files" });
-      },
-    },
+    vfsView(work, (path) => log.add(path, coreOwner, { kind: "op", op: "agent-files" })),
     layout,
   );
 
@@ -465,15 +469,8 @@ export async function buildPlan(options: BuildPlanOptions): Promise<BuiltPlan> {
   sharedEdits.flush();
 
   const deps: Record<string, { entry: Omit<PlanDependency, "owners">; owners: Set<string> }> = {};
-  const dataVfs = (module: string, op: string): OpVfs => ({
-    has: (path) => work.has(path),
-    paths: () => work.paths(),
-    read: (path) => work.read(path),
-    write: (path, content, writeOptions) => {
-      work.write(path, content, writeOptions);
-      log.add(normalizeProjectPath(path), module, { kind: "op", op });
-    },
-  });
+  const dataVfs = (module: string, op: string): OpVfs =>
+    vfsView(work, (path) => log.add(path, module, { kind: "op", op }));
   for (const { manifest } of modules) {
     const recorded = applyDeps({
       vfs: dataVfs(manifest.name, "deps"),
@@ -491,14 +488,7 @@ export async function buildPlan(options: BuildPlanOptions): Promise<BuiltPlan> {
     applyEnv({ vfs: dataVfs(manifest.name, "env"), env: manifest.env, resolvePath });
   }
   wireWorkspaces(
-    {
-      has: (path) => work.has(path),
-      paths: () => work.paths(),
-      read: (path) => work.read(path),
-      write: (path, content, writeOptions) => {
-        work.write(path, content, writeOptions);
-      },
-    },
+    vfsView(work, () => undefined),
     layout,
   );
 
