@@ -327,7 +327,9 @@ describe("CI runner routing", () => {
     expect(field(field(jobs, "check"), "needs")).toBeUndefined();
     expect(field(field(jobs, "test"), "needs")).toBeUndefined();
     const commitlint = field(jobs, "commitlint");
-    expect(field(commitlint, "if")).toBe("github.event_name == 'pull_request'");
+    expect(field(commitlint, "if")).toBe(
+      "github.event_name == 'pull_request' && !(github.base_ref == 'main' && github.head_ref == 'develop')",
+    );
     const checkoutInputs = field(jobSteps(jobs, "commitlint")[0], "with");
     expect(field(checkoutInputs, "fetch-depth")).toBe(0);
     expect(field(checkoutInputs, "filter")).toBe("blob:none");
@@ -340,6 +342,16 @@ describe("CI runner routing", () => {
     const gate = field(jobs, "ci-passed");
     expect(field(gate, "if")).toBe("always()");
     expect(field(gate, "needs")).toEqual(["check", "test", "commitlint"]);
+  });
+
+  test("a promotion skips commitlint and ci-passed accepts the skipped result", () => {
+    const text = readFileSync(join(workflowsDirectory, "ci.yml"), "utf8");
+    const jobs = field(Bun.YAML.parse(text), "jobs");
+    const condition = String(field(field(jobs, "commitlint"), "if"));
+    expect(condition).toContain("!(github.base_ref == 'main' && github.head_ref == 'develop')");
+    expect(stepRuns(jobs, "ci-passed").join("\n")).toContain(
+      'case "$COMMITLINT_RESULT" in success | skipped) ;; *) exit 1 ;; esac',
+    );
   });
 
   /** Skipped on Windows: the ci-passed script runs on ubuntu-latest and needs a POSIX `sh`. */

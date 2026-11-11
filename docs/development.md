@@ -98,3 +98,9 @@ Create a ruleset that does not exist yet with `gh api -X POST repos/andryorelabs
 `develop` and `main` require signed commits. GitHub signs the squash commit and the merge commit of a merged pull request, so merging needs no local signing key.
 
 `develop` is the trunk: pull requests target it and are squash-merged. A promotion pull request from `develop` to `main` is merged with a merge commit, and a CLI version is tagged on the promotion merge commit on `main`. See [ADR-0030](adr/0030-develop-is-the-trunk.md).
+
+A CLI version ships in three steps:
+
+1. `bun run release` opens the release pull request against `develop`. It creates no tag.
+2. A promotion brings `develop` into `main`. The commit message check does not run on a promotion, because its commits are the squash commits already on `develop`.
+3. The maintainer pushes the signed tag `v<version>` on the promotion merge commit. A tag on a commit that `main` does not contain fails the release workflow at "Tag is on main".

@@ -350,7 +350,8 @@ fi
 
 stage "Verify a release"
 say "0.1.0-next.0 is already on npm, so the first tag must carry a new version."
-say "Run bun run release to bump (for example to 0.1.0-next.1), then push the tag it creates."
+say "Run bun run release to bump (for example to 0.1.0-next.1); it opens the release pull request against develop."
+say "Merge it, promote develop to main, then push the signed tag on the promotion merge commit."
 say "The Release workflow then publishes with provenance; a tag equal to an existing version fails with E403."
 say "Check the binaries with: sha256sum -c SHA256SUMS --ignore-missing"
 say "and: gh attestation verify aokit-linux-x64 --repo $REPO"
