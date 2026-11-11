@@ -40,8 +40,17 @@ The aokit repo configures Oxlint in `oxlint.config.ts` (`defineConfig`) and Knip
 - **TypeScript:** `tsconfig.base.json` sets `erasableSyntaxOnly`, so enums, namespaces and parameter properties are rejected.
 - **Blame:** `.git-blame-ignore-revs` lists the lint-debt squash commits; enable it with `git config blame.ignoreRevsFile .git-blame-ignore-revs`.
 
+## Scripts and configuration rules
+
+- **E1** (must) Root scripts are `check` (typecheck, lint, `format:check` and knip at minimum, offline-safe), `test` (with the coverage gate; `test:coverage` in browser mode), `fix`, `format:check`, `format:write`, `lint:docs`, `lint:commits` and `ci:local`, and CI and hooks call these scripts. Reason: every repo runs the same commands.
+- **E5** (should) A repo configures Oxlint in `oxlint.config.ts`, Knip in `knip.jsonc` with a reason on each entry, and commitlint in `commitlint.config.ts`. Reason: typed, commented config is checked by the compiler.
+- **E6** (must) Oxc is pinned exactly and equal across repos, every lint disable carries a reason, and TSDoc-only comments are enforced by lint. Reason: one Oxc version reports the same violations everywhere.
+- **E7** (should) The default gitmoji per type is feat ✨, fix 🐛, docs 📝, refactor ♻️, perf ⚡️, test ✅, build 📦, ci 👷, chore 🔧, deps ⬆️, release 🔖 and revert ⏪. Reason: the same type reads the same in every history.
+- **E8** (must) Oxfmt keeps its defaults for every style option, the only allowed keys are `ignorePatterns`, `sortImports`, `sortTailwindcss`, `sortPackageJson` and `astro`, and the import group order should match across repos. Reason: formatting is never a per-repo debate.
+
 ## Git hooks and commit messages
 
+- **E4** (must) `husky` runs `lint-staged` in pre-commit and `commitlint` in commit-msg; pre-push refuses trunk branches and names outside `<type>/<slug>`, `<prefix>-<n>-<slug>`, `renovate/*` and `worktree-*`, then runs the typecheck or more, and CI runs commitlint. Reason: a bad branch or message is stopped before it reaches the remote.
 - `husky` runs the hooks, `lint-staged` runs Oxfmt and Oxlint on staged files, `commitlint` checks the commit message.
 - Commit messages are conventional commits. **Gitmoji is a convention, not enforced:** the common format is `type: <gitmoji> description`, but commitlint does not require the emoji. A repository may add enforcement.
 - Hooks never run the full test suite; CI does.

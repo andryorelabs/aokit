@@ -11,9 +11,13 @@ The policy is implemented in [`renovate.json5`](../../renovate.json5) and checke
 | `rangeStrategy`     | `bump`                                                    | Ranges in `package.json` move with the lockfile, so the declared range always reflects what is installed. |
 | `minimumReleaseAge` | `3 days` by default; `7 days` for groups that break often | Gives the registry time to yank bad or compromised releases before they land.                             |
 | Lockfile            | Bun lockfile committed                                    | Reproducible installs; Renovate updates both.                                                             |
-| Schedule            | Per repo                                                  | Not part of the standard.                                                                                 |
+| Schedule            | Monday                                                    | One predictable batch of updates per week.                                                                |
 
 All active reference repositories already use `bump` with a release age and automerge; none pins every dependency.
+
+## Rules
+
+- **F5** (must) Renovate follows the best-practices preset with `bump`, a 3-day release age (7 days for automerge), a Monday schedule and the dependency dashboard; the labels it applies exist in `labels.yml`, pin groups are never automerged, a test covers the config, and tool pins are Renovate-managed. Reason: updates arrive in one reviewable batch and the toolchain moves only by hand.
 
 ## Automerge
 
