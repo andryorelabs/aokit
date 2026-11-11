@@ -89,7 +89,7 @@ export const testFileGlobs = ["**/*.test.ts", "**/*.test.tsx", "**/test/**/*.ts"
  */
 export const ignoredPaths = [
   ".claude/**",
-  ".forge/**",
+  ".emet/**",
   "registry/**",
   "**/node_modules/**",
   "coverage/**",
