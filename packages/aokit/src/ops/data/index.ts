@@ -63,27 +63,22 @@ function mergeAtPointer(
       context.module,
     );
   }
-  const segments = pointerSegments(pointer);
-  if (segments.length === 0) {
-    return mergeJsonc(text, toObject(context, value, where));
-  }
-  const patch = segments.toReversed().reduce<JsoncValue>((inner, key) => ({ [key]: inner }), value);
-  return mergeJsonc(text, toObject(context, patch, where));
+  return mergeJsonc(text, nestAt(pointerSegments(pointer), value));
 }
 
-function toObject(
-  context: OpContext,
-  value: unknown,
-  where: string,
-): { [key: string]: JsoncValue } {
-  if (typeof value === "object" && value !== null && !Array.isArray(value)) {
-    return Object.fromEntries(Object.entries(value));
-  }
-  throw new DataOpError(
-    "ops.json-pointer-type",
-    `Module "${context.module}" cannot merge a non-object value at the root of ${where}.`,
-    context.module,
-  );
+function nestAt(segments: readonly string[], value: JsoncValue): { [key: string]: JsoncValue } {
+  const patch: { [key: string]: JsoncValue } = {};
+  let cursor = patch;
+  segments.forEach((segment, index) => {
+    if (index === segments.length - 1) {
+      cursor[segment] = value;
+      return;
+    }
+    const next: { [key: string]: JsoncValue } = {};
+    cursor[segment] = next;
+    cursor = next;
+  });
+  return patch;
 }
 
 function mismatch(context: OpContext, expected: string, received: string): never {
@@ -117,9 +112,9 @@ export const dataOpHandlers: OpHandlers = {
       mismatch(context, "mergeJson", op.op);
     }
     editFile(context, op, (text, pointer) =>
-      pointer === undefined
-        ? mergeJsonc(text, toObject(context, op.value, "the file"))
-        : mergeAtPointer(context, op, text, pointer),
+      "extensionPoint" in op
+        ? mergeAtPointer(context, op, text, pointer ?? "")
+        : mergeJsonc(text, op.value),
     );
   },
   mergeYaml(context, op) {
