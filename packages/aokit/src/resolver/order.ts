@@ -50,32 +50,13 @@ export function orderTopologically(
 
 function findCycle(remaining: ReadonlySet<string>, dependencies: Dependencies): readonly string[] {
   const path: string[] = [];
-  const onPath = new Set<string>();
-  const visit = (name: string): readonly string[] | undefined => {
-    if (onPath.has(name)) {
-      return [...path.slice(path.indexOf(name)), name];
-    }
+  let name = [...remaining].toSorted(compareCodepoints)[0] ?? "";
+  while (!path.includes(name)) {
     path.push(name);
-    onPath.add(name);
-    const next = [...(dependencies.get(name) ?? [])]
-      .filter((entry) => remaining.has(entry))
-      .toSorted(compareCodepoints);
-    for (const entry of next) {
-      const found = visit(entry);
-      if (found !== undefined) {
-        return found;
-      }
-    }
-    path.pop();
-    onPath.delete(name);
-    return undefined;
-  };
-  const sortedRemaining = [...remaining].toSorted(compareCodepoints);
-  for (const name of sortedRemaining) {
-    const found = visit(name);
-    if (found !== undefined) {
-      return found;
-    }
+    name =
+      [...(dependencies.get(name) ?? [])]
+        .filter((entry) => remaining.has(entry))
+        .toSorted(compareCodepoints)[0] ?? name;
   }
-  return sortedRemaining;
+  return [...path.slice(path.indexOf(name)), name];
 }

@@ -3,6 +3,16 @@ import { readdirSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 
 const workflowsDirectory = join(import.meta.dir, "..", "..", ".github", "workflows");
+/** The workflow files the `github-ci` Module writes into a generated Project. */
+const moduleWorkflowsDirectory = join(
+  import.meta.dir,
+  "..",
+  "..",
+  "registry-src",
+  "github-ci",
+  "files",
+  "workflows",
+);
 
 /** The S8 hardening rules; every problem names exactly one of them. */
 type WorkflowRule =
@@ -376,7 +386,7 @@ function findPinningProblems(file: string, text: string): string[] {
 }
 
 /** Returns one `<file>:<job> breaks <rule>: <detail>` line per S8 rule a workflow breaks. */
-function findWorkflowProblems(file: string, text: string): string[] {
+export function findWorkflowProblems(file: string, text: string): string[] {
   const workflow: unknown = Bun.YAML.parse(text);
   if (!isRecord(workflow)) throw new Error(`${file} is not a YAML mapping`);
   const jobs = isRecord(workflow["jobs"]) ? workflow["jobs"] : {};
@@ -389,6 +399,23 @@ function findWorkflowProblems(file: string, text: string): string[] {
     ...jobProblems,
     ...findPinningProblems(file, text),
   ];
+}
+
+/**
+ * The rules a `github-ci` Module workflow must follow: every rule except `push-branches`, because
+ * a generated Project chooses its own trunk.
+ */
+function findModuleWorkflowProblems(file: string, text: string): string[] {
+  return findWorkflowProblems(file, text).filter(
+    (problem) => !problem.includes(" breaks push-branches: "),
+  );
+}
+
+function readModuleWorkflows(): { name: string; text: string }[] {
+  return readdirSync(moduleWorkflowsDirectory)
+    .filter((name) => /\.ya?ml$/.test(name))
+    .toSorted()
+    .map((name) => ({ name, text: readFileSync(join(moduleWorkflowsDirectory, name), "utf8") }));
 }
 
 const sha = "a".repeat(40);
@@ -826,5 +853,66 @@ jobs:
     expect(findWorkflowProblems("fixture.yml", text)).toEqual([
       "fixture.yml:build breaks pinned-actions: actions/checkout@v7 is not pinned to a 40-character SHA",
     ]);
+  });
+});
+
+describe("github-ci Module workflow invariants", () => {
+  test("every workflow the Module writes follows every rule except push-branches", () => {
+    const workflows = readModuleWorkflows();
+    expect(workflows.map(({ name }) => name)).toEqual([
+      "ci.yml",
+      "codeql.yml",
+      "labels.yml",
+      "lint-docs.yml",
+      "lint-pr.yml",
+      "lint-workflows.yml",
+      "scorecard.yml",
+    ]);
+    expect(workflows.flatMap(({ name, text }) => findModuleWorkflowProblems(name, text))).toEqual(
+      [],
+    );
+  });
+
+  test("a template that sets cancel-in-progress: true fails naming its file", () => {
+    for (const { name, text } of readModuleWorkflows()) {
+      const broken = text.replace(/cancel-in-progress: .*/, "cancel-in-progress: true");
+      expect(broken).not.toBe(text);
+      expect(findModuleWorkflowProblems(name, broken)).toEqual([
+        `${name}:(workflow) breaks concurrency: cancel-in-progress is true, which cancels runs on main; use ${cancelOnPullRequestOnly}`,
+      ]);
+    }
+  });
+
+  test("scorecard.yml never cancels a run", () => {
+    const scorecard: unknown = Bun.YAML.parse(
+      readFileSync(join(moduleWorkflowsDirectory, "scorecard.yml"), "utf8"),
+    );
+    const concurrency = isRecord(scorecard) ? scorecard["concurrency"] : undefined;
+    expect(isRecord(concurrency) ? concurrency["cancel-in-progress"] : undefined).toBe(false);
+  });
+
+  test("a push to main only is reported for the repo and not for the Module", () => {
+    const text = readFileSync(join(moduleWorkflowsDirectory, "ci.yml"), "utf8");
+    expect(findWorkflowProblems("ci.yml", text)).toEqual([
+      "ci.yml:(workflow) breaks push-branches: push.branches lists main without develop; a push to develop must run it too",
+    ]);
+    expect(findModuleWorkflowProblems("ci.yml", text)).toEqual([]);
+  });
+
+  test("push triggers stay on main", () => {
+    const pushBranches = Object.fromEntries(
+      readModuleWorkflows().flatMap(({ name, text }): [string, unknown[]][] => {
+        const workflow: unknown = Bun.YAML.parse(text);
+        const branches = isRecord(workflow) ? listPushBranches(workflow) : [];
+        return branches.length === 0 ? [] : [[name, branches]];
+      }),
+    );
+    expect(pushBranches).toEqual({
+      "ci.yml": ["main"],
+      "codeql.yml": ["main"],
+      "labels.yml": ["main"],
+      "lint-workflows.yml": ["main"],
+      "scorecard.yml": ["main"],
+    });
   });
 });

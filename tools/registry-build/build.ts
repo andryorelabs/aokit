@@ -290,10 +290,8 @@ async function compileMigration(sourcePath: string): Promise<string> {
     ],
   });
   const output = result.outputs[0];
-  if (!result.success || output === undefined) {
-    throw new Error(
-      `registry:build could not compile ${sourcePath}: ${result.logs.map((log) => log.message).join("; ")}`,
-    );
+  if (output === undefined) {
+    throw new Error(`registry:build could not compile ${sourcePath}`);
   }
   return normalizeLineEndings(await output.text()).replaceAll(bundlerPathComment, "");
 }

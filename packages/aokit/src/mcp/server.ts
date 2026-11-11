@@ -23,7 +23,7 @@ function createCallQueue(): {
   return {
     run(task) {
       const next = tail.then(task, task);
-      tail = next.catch(() => undefined);
+      tail = Promise.allSettled([next]);
       return next;
     },
     async idle() {
