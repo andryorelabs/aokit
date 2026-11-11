@@ -1,5 +1,11 @@
 import { createHash } from "node:crypto";
-import { type FileContent, type Ownership, type Vfs, compareByCodepoint } from "./vfs.ts";
+import {
+  type FileContent,
+  type Ownership,
+  type Vfs,
+  type VfsFile,
+  compareByCodepoint,
+} from "./vfs.ts";
 
 /** What in a Module caused a change. */
 export type ProvenanceEntry =
@@ -59,17 +65,21 @@ function digest(content: FileContent): string {
   return createHash("sha256").update(toBytes(content)).digest("hex");
 }
 
+/** Every file of a VFS with its path, in sorted path order. */
+function filesOf(vfs: Vfs): readonly (readonly [string, VfsFile])[] {
+  return vfs.paths().flatMap((path) => {
+    const file = vfs.get(path);
+    return file === undefined ? [] : [[path, file] as const];
+  });
+}
+
 /**
  * sha256 over sorted paths and LF-normalized content. Files marked volatile contribute their path
  * only.
  */
 export function hashVfs(vfs: Vfs): string {
   const hash = createHash("sha256");
-  for (const path of vfs.paths()) {
-    const file = vfs.get(path);
-    if (file === undefined) {
-      continue;
-    }
+  for (const [path, file] of filesOf(vfs)) {
     hash.update(`${path}\0`);
     if (file.volatile) {
       hash.update("volatile\0");
@@ -95,17 +105,13 @@ export function diffVfs(
   provenanceOf: ProvenanceLookup,
 ): readonly PlanChange[] {
   const changes: PlanChange[] = [];
-  const created: string[] = [];
+  const created: (readonly [string, VfsFile])[] = [];
   const deleted: string[] = [];
 
-  for (const path of next.paths()) {
-    const file = next.get(path);
+  for (const [path, file] of filesOf(next)) {
     const before = base.get(path);
-    if (file === undefined) {
-      continue;
-    }
     if (before === undefined) {
-      created.push(path);
+      created.push([path, file]);
     } else if (!contentEquals(before.content, file.content)) {
       changes.push({
         type: "update",
@@ -133,11 +139,7 @@ export function diffVfs(
     }
   }
   const renamedSources = new Set<string>();
-  for (const path of created) {
-    const file = next.get(path);
-    if (file === undefined) {
-      continue;
-    }
+  for (const [path, file] of created) {
     const source = deletedByDigest.get(digest(file.content))?.shift();
     if (source !== undefined) {
       renamedSources.add(source);
