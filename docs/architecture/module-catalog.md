@@ -125,7 +125,7 @@ Notes:
 - `vitest` and `bun-test` both provide `test-runner` with Cardinality one: a Project picks exactly one, and no Module may require a specific one. Modules that need to run tests require the Capability.
 - `turborepo` is only meaningful in a `monorepo` Layout. It does not require it ([Capabilities](capabilities.md#deriving-compatibility)); the user's Layout choice decides whether its Targets exist, and the Layout rules in [Layouts](layouts.md) govern what happens in `single`. The dependency Catalog is not a Module; it comes from the Release Catalog ([ADR 0024](../adr/0024-pending-modules-catalog-fragments-and-release-cuts.md)).
 - `renovate` ships the configuration described in [renovate](../standards/renovate.md), including the Toolchain pin groups.
-- `adr-docs` backs the conventions in [docs and forge](../standards/docs-and-forge.md).
+- `adr-docs` backs the conventions in [docs and emet](../standards/docs-and-emet.md).
 
 ## Added in Release 2026.12.1
 

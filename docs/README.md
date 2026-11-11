@@ -92,14 +92,19 @@ Every Markdown file under `docs/` has a row here; a test fails when one is missi
 
 ## Standards
 
-| Doc                                                        | Title          |
-| ---------------------------------------------------------- | -------------- |
-| [standards/README.md](standards/README.md)                 | Standards      |
-| [standards/docs-and-forge.md](standards/docs-and-forge.md) | Docs and forge |
-| [standards/renovate.md](standards/renovate.md)             | Renovate       |
-| [standards/testing.md](standards/testing.md)               | Testing        |
-| [standards/tooling.md](standards/tooling.md)               | Tooling        |
-| [standards/typescript.md](standards/typescript.md)         | TypeScript     |
+| Doc                                                                    | Title                |
+| ---------------------------------------------------------------------- | -------------------- |
+| [standards/README.md](standards/README.md)                             | Standards            |
+| [standards/agent-tooling.md](standards/agent-tooling.md)               | Agent tooling        |
+| [standards/brand.md](standards/brand.md)                               | Brand                |
+| [standards/ci-cd.md](standards/ci-cd.md)                               | CI and CD            |
+| [standards/community-and-readme.md](standards/community-and-readme.md) | Community and README |
+| [standards/docs-and-emet.md](standards/docs-and-emet.md)               | Docs and emet        |
+| [standards/renovate.md](standards/renovate.md)                         | Renovate             |
+| [standards/repo-settings.md](standards/repo-settings.md)               | Repo settings        |
+| [standards/testing.md](standards/testing.md)                           | Testing              |
+| [standards/tooling.md](standards/tooling.md)                           | Tooling              |
+| [standards/typescript.md](standards/typescript.md)                     | TypeScript           |
 
 ## Research
 

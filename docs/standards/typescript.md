@@ -42,3 +42,5 @@ TypeScript 7 has no classic JavaScript API. Tooling that uses the API (typescrip
 ## Strictness
 
 All Projects use strict TypeScript. The shared base config lives in the `config` Target, and each Project extends it. Settings are tightened, never loosened, to pass a check.
+
+- **E2** (must) The tsconfig baseline is aokit's base flags, and TypeScript 6 is used only where a tool imports the TypeScript API. Reason: every repo is checked by the same compiler rules, and only API consumers need 6.
