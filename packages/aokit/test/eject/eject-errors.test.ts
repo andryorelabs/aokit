@@ -4,13 +4,16 @@ import { runCommand } from "../../src/cli/command.ts";
 import { ejectCommand } from "../../src/cli/commands/eject.ts";
 import { commitAll, context, createProject, newWorkspace } from "../restore/helpers.ts";
 
+/** Runs only where the filesystem reports POSIX errors and honours permission bits. */
+const posixTest = process.platform === "win32" ? test.skip : test;
+
 const workspace = newWorkspace();
 
 afterAll(async () => {
   await rm(workspace, { recursive: true, force: true });
 });
 
-test("eject reports a failure to write the Lockfile", async () => {
+posixTest("eject reports a failure to write the Lockfile", async () => {
   const directory = await createProject(workspace);
   await commitAll(directory);
   await chmod(directory, 0o555);

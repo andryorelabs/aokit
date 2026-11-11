@@ -4,6 +4,9 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { readLockfileSource } from "../../src/create/from.ts";
 
+/** Runs only where the filesystem reports POSIX errors and honours permission bits. */
+const posixTest = process.platform === "win32" ? test.skip : test;
+
 const root = mkdtempSync(join(tmpdir(), "aokit-from-errors-"));
 
 afterAll(() => {
@@ -21,7 +24,7 @@ test("a --from path that does not exist is an invalid input naming the path", as
   expect(failure).toHaveProperty("message", `\`--from ${missing}\` does not exist`);
 });
 
-test("a --from path that cannot be inspected keeps its own error", async () => {
+posixTest("a --from path that cannot be inspected keeps its own error", async () => {
   const file = join(root, "plain.txt");
   writeFileSync(file, "x");
   const failure = await readLockfileSource(join(file, "aokit.lock.json")).catch(
