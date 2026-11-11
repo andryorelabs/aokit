@@ -15,17 +15,11 @@
 [![License: MIT](https://img.shields.io/github/license/andryorelabs/aokit)](LICENSE)
 [![OpenSSF Scorecard](https://api.scorecard.dev/projects/github.com/andryorelabs/aokit/badge)](https://scorecard.dev/viewer/?uri=github.com/andryorelabs/aokit)
 
+[Documentation](docs/README.md) · [Changelog](CHANGELOG.md) · [Contributing](CONTRIBUTING.md) · [Security](.github/SECURITY.md) · [Support](.github/SUPPORT.md)
+
 aokit is a Bun-only CLI that creates TypeScript projects from composable Modules and keeps them up to date. A Lockfile stores a hash for every generated file, so an update merges with your edits and never overwrites them.
 
 > **Alpha.** aokit is pre-1.0. In 0.x a minor version may include breaking changes and a patch never does. See [Stability](docs/stability.md) and the [changelog](CHANGELOG.md).
-
-## Supported platforms
-
-The CLI runs on Bun 1.4.4 or newer, and the standalone binaries need no Bun. All of these are tested end to end:
-
-- Linux x64 and arm64
-- macOS arm64 and x64
-- Windows x64
 
 ## Quickstart
 
@@ -57,6 +51,14 @@ For a walkthrough, read [Getting started](docs/guide/getting-started.md). To ext
 - **No telemetry.** The CLI, the MCP server and generated projects send no usage data.
 
 The design is in [`docs/`](docs/): start with the [architecture overview](docs/architecture/overview.md) and the [glossary](GLOSSARY.md).
+
+## Supported platforms
+
+The CLI runs on Bun 1.4.4 or newer, and the standalone binaries need no Bun. All of these are tested end to end:
+
+- Linux x64 and arm64
+- macOS arm64 and x64
+- Windows x64
 
 ## Install the binary
 
@@ -122,6 +124,8 @@ Tooling follows [`docs/standards`](docs/standards/README.md): Oxfmt and Oxlint (
 
 Agents start at [AGENTS.md](AGENTS.md). Contributors read [CONTRIBUTING.md](CONTRIBUTING.md), [GOVERNANCE.md](GOVERNANCE.md), [CODE_OF_CONDUCT.md](CODE_OF_CONDUCT.md), [SUPPORT.md](.github/SUPPORT.md) and the [blame ignore list](.git-blame-ignore-revs).
 
-## Licence
+## License
 
 [MIT](LICENSE)
+
+Built by [AndryOre](https://andryore.dev)

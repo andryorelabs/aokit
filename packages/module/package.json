@@ -11,7 +11,7 @@
   "homepage": "https://github.com/andryorelabs/aokit#readme",
   "bugs": "https://github.com/andryorelabs/aokit/issues",
   "license": "MIT",
-  "author": "Andry Orellana",
+  "author": "Andry Orellana <hello@andryore.dev>",
   "repository": {
     "type": "git",
     "url": "git+https://github.com/andryorelabs/aokit.git",
