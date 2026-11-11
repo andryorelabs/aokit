@@ -45,7 +45,7 @@ function liveResponsesFromFiles(): Record<string, GhResult> {
     }),
     [`repos/${repository}/vulnerability-alerts`]: ok(undefined),
     [`repos/${repository}/private-vulnerability-reporting`]: ok({ enabled: true }),
-    [`repos/${repository}/rulesets`]: ok(
+    [`repos/${repository}/rulesets?per_page=100`]: ok(
       Object.entries(rulesetIds).map(([name, id]) => ({ id, name, enforcement: "active" })),
     ),
   };
@@ -114,7 +114,7 @@ describe("S8: repo-settings:check", () => {
       "repos/andryorelabs/aokit",
       "repos/andryorelabs/aokit/vulnerability-alerts",
       "repos/andryorelabs/aokit/private-vulnerability-reporting",
-      "repos/andryorelabs/aokit/rulesets",
+      "repos/andryorelabs/aokit/rulesets?per_page=100",
       "repos/andryorelabs/aokit/rulesets/26780591",
       "repos/andryorelabs/aokit/rulesets/26780594",
     ]);
@@ -209,7 +209,9 @@ describe("S8: repo-settings:check", () => {
 
   test("a ruleset file with no live ruleset of that name is drift", () => {
     const responses = liveResponsesFromFiles();
-    responses[`repos/${repository}/rulesets`] = ok([{ id: rulesetIds["main"], name: "main" }]);
+    responses[`repos/${repository}/rulesets?per_page=100`] = ok([
+      { id: rulesetIds["main"], name: "main" },
+    ]);
     const result = check(responses);
     expect(result.exitCode).toBe(1);
     expect(result.lines).toEqual([
@@ -270,11 +272,15 @@ describe("S8: repo-settings:check", () => {
 
   test("a response that is not JSON fails the check", () => {
     const responses = liveResponsesFromFiles();
-    responses[`repos/${repository}/rulesets`] = { exitCode: 0, stdout: "<html>", stderr: "" };
+    responses[`repos/${repository}/rulesets?per_page=100`] = {
+      exitCode: 0,
+      stdout: "<html>",
+      stderr: "",
+    };
     const result = check(responses);
     expect(result.exitCode).toBe(1);
     expect(result.lines).toEqual([
-      "repo-settings:check could not read the live settings: gh api repos/andryorelabs/aokit/rulesets did not return JSON.",
+      "repo-settings:check could not read the live settings: gh api repos/andryorelabs/aokit/rulesets?per_page=100 did not return JSON.",
     ]);
   });
 
@@ -291,6 +297,31 @@ describe("S8: repo-settings:check", () => {
     expect(lines[0]).toStartWith(
       "repo-settings:check could not read the live settings: could not run gh-binary-that-is-not-installed. Install the GitHub CLI (https://cli.github.com) and put it on PATH.",
     );
+  });
+
+  test("a gh that does not answer in time fails the check instead of hanging", () => {
+    const lines: string[] = [];
+    const exitCode = runCheck({
+      repoRoot,
+      repository,
+      runGh: () => createGhRunner(process.execPath, 200)(["-e", "await Bun.sleep(60_000)"]),
+      print: (line) => lines.push(line),
+    });
+    expect(exitCode).toBe(1);
+    expect(lines).toHaveLength(1);
+    expect(lines[0]).toContain("did not finish within 200 ms");
+  });
+
+  test("a full page of rulesets fails the check, because the list may be incomplete", () => {
+    const responses = liveResponsesFromFiles();
+    responses[`repos/${repository}/rulesets?per_page=100`] = ok(
+      Array.from({ length: 100 }, (_, index) => ({ id: index + 1, name: `ruleset-${index}` })),
+    );
+    const result = check(responses);
+    expect(result.exitCode).toBe(1);
+    expect(result.lines).toEqual([
+      "repo-settings:check could not read the live settings: andryorelabs/aokit has 100 or more rulesets, so the list may be incomplete.",
+    ]);
   });
 
   test("the gh runner returns the exit code and output of the command it runs", () => {
