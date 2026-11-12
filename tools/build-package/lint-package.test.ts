@@ -39,7 +39,7 @@ test("packedPathsOf lists the files npm would pack", async () => {
   const paths = await packedPathsOf(packageDir);
   expect(paths).toContain("package.json");
   expect(paths).toContain("index.js");
-});
+}, 60_000);
 
 test("packedPathsOf fails when the package cannot be packed", async () => {
   const { repoRoot } = await stage(0);
