@@ -88,7 +88,7 @@ export interface OpenRegistryContext {
   userConfig?: UserConfig;
   /**
    * The environment `${VAR}` placeholders expand from and the user config is found by;
-   * `process.env` by default.
+   * the live process environment by default.
    */
   env?: Readonly<Record<string, string | undefined>>;
   /** The Project directory whose `.env` underlies `env` for Namespace placeholders; none by default. */

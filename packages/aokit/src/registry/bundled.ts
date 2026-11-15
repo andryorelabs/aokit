@@ -1,12 +1,13 @@
 import { join } from "node:path";
 
+import { processEnvironment } from "../env.ts";
 import { embeddedRegistryTarget, hasEmbeddedRegistry } from "./embedded/extract.ts";
 
 declare const AOKIT_BUNDLED_REGISTRY_RELATIVE: string | undefined;
 
 function resolveBundledRegistryPath(): string {
   if (hasEmbeddedRegistry()) {
-    return embeddedRegistryTarget(process.env);
+    return embeddedRegistryTarget(processEnvironment());
   }
   if (typeof AOKIT_BUNDLED_REGISTRY_RELATIVE === "string") {
     return join(import.meta.dir, AOKIT_BUNDLED_REGISTRY_RELATIVE);
