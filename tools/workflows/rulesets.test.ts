@@ -50,19 +50,40 @@ function listMatrixCombinations(job: Record<string, unknown>): Record<string, un
  * expression is left out, since its value is only known at run time.
  */
 export function listCheckNames(text: string): string[] {
-  return Object.entries(parseJobs(text)).flatMap(([id, job]) => {
-    if (!isRecord(job)) return [];
-    const name = job["name"];
-    if (name === undefined) return [id];
-    if (typeof name !== "string") return [];
-    const expanded = listMatrixCombinations(job).map((combination) =>
-      name.replaceAll(/\$\{\{\s*matrix\.([\w-]+)\s*\}\}/g, (expression, key: string) => {
-        const value = combination[key];
-        return typeof value === "string" ? value : expression;
-      }),
-    );
-    return Array.from(new Set(expanded.filter((checkName) => !checkName.includes("${{"))));
-  });
+  return Object.entries(parseJobs(text)).flatMap(([id, job]) => listJobCheckNames(id, job));
+}
+
+/** The check names one job reports, as `listCheckNames` expands them. */
+function listJobCheckNames(id: string, job: unknown): string[] {
+  if (!isRecord(job)) return [];
+  const name = job["name"];
+  if (name === undefined) return [id];
+  if (typeof name !== "string") return [];
+  const expanded = listMatrixCombinations(job).map((combination) =>
+    name.replaceAll(/\$\{\{\s*matrix\.([\w-]+)\s*\}\}/g, (expression, key: string) => {
+      const value = combination[key];
+      return typeof value === "string" ? value : expression;
+    }),
+  );
+  return Array.from(new Set(expanded.filter((checkName) => !checkName.includes("${{"))));
+}
+
+/** The check names the CodeQL workflow's `analyze` job reports, one per analyzed language. */
+function listAnalyzeCheckNames(): string[] {
+  const jobs = parseJobs(readFileSync(join(workflowsDirectory, "codeql.yml"), "utf8"));
+  return listJobCheckNames("analyze", jobs["analyze"]);
+}
+
+/** Returns one line per check in `checks` that `ruleset` does not require. */
+function findMissingRequiredChecks(
+  file: string,
+  ruleset: unknown,
+  checks: readonly string[],
+): string[] {
+  const required = new Set(listRequiredChecks(ruleset));
+  return checks
+    .filter((check) => !required.has(check))
+    .map((check) => `${file} does not require check "${check}"`);
 }
 
 /** The gating workflows whose every check `develop` and `main` must require besides `CI passed`. */
@@ -418,6 +439,33 @@ describe("S9: rulesets", () => {
     ]);
     expect(listRequiredChecks(ruleset)).toEqual([aggregateJobName, ...gatingChecks]);
   });
+
+  test("V29: the CodeQL analyze job reports one analyze check per language, each a real job name", () => {
+    const analyzeChecks = listAnalyzeCheckNames();
+    expect(analyzeChecks).toEqual(["analyze (javascript-typescript)", "analyze (actions)"]);
+    for (const check of analyzeChecks) expect(checkNames.has(check)).toBe(true);
+  });
+
+  test.each(branchRulesets)(
+    "V29: $file requires every CodeQL analyze check",
+    ({ file, ruleset }) => {
+      expect(findMissingRequiredChecks(file, ruleset, listAnalyzeCheckNames())).toEqual([]);
+    },
+  );
+
+  test.each(branchRulesets)(
+    "V29: $file without an analyze check fails, naming the ruleset and the check",
+    ({ file, ruleset }) => {
+      const withoutAnalyze = withRuleParameters(ruleset, "required_status_checks", {
+        required_status_checks: listRequiredChecks(ruleset)
+          .filter((context) => context !== "analyze (actions)")
+          .map((context) => ({ context, integration_id: githubActionsIntegrationId })),
+      });
+      expect(findMissingRequiredChecks(file, withoutAnalyze, listAnalyzeCheckNames())).toEqual([
+        `${file} does not require check "analyze (actions)"`,
+      ]);
+    },
+  );
 
   test.each(branchRulesets)(
     "every required check in $file comes from GitHub Actions",
