@@ -11,6 +11,7 @@ await lintPackage(repoRoot, join(repoRoot, "packages", "module", "dist"), [
   "package.json",
   "README.md",
   "LICENSE",
+  "llms.txt",
   "index.js",
   "index.d.ts",
 ]);
