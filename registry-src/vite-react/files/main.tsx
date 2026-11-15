@@ -1,5 +1,6 @@
 import { StrictMode, createElement } from "react";
 import { createRoot } from "react-dom/client";
+
 import { providers } from "./providers";
 import { routes } from "./router";
 
