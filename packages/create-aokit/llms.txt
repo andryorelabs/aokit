@@ -1,0 +1,13 @@
+# create-aokit
+
+> create-aokit scaffolds a new aokit Project. Run it with `bunx create-aokit` or `bun create aokit`; it hands off to the aokit CLI.
+
+## Use
+
+- [Getting started](https://github.com/andryorelabs/aokit/blob/main/docs/guide/getting-started.md): create your first Project.
+- [CLI reference](https://github.com/andryorelabs/aokit/blob/main/docs/reference/cli.md): the flags and exit codes of the create flow.
+- [Troubleshooting](https://github.com/andryorelabs/aokit/blob/main/docs/troubleshooting.md): symptom, cause and fix for the common failures.
+
+## Optional
+
+- [All aokit packages](https://github.com/andryorelabs/aokit/blob/main/llms.txt): the root index.

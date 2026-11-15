@@ -1,0 +1,19 @@
+# aokit
+
+> aokit is a Bun-only CLI that creates and evolves TypeScript Projects from composable Modules served by Registries. It keeps a Lockfile with per-file hashes so updates merge with your edits instead of overwriting them.
+
+## Use
+
+- [Getting started](https://github.com/andryorelabs/aokit/blob/main/docs/guide/getting-started.md): install the CLI and create your first Project.
+- [CLI reference](https://github.com/andryorelabs/aokit/blob/main/docs/reference/cli.md): every command, its flags, the exit codes, the error codes and the `AOKIT_*` environment variables.
+- [Troubleshooting](https://github.com/andryorelabs/aokit/blob/main/docs/troubleshooting.md): symptom, cause and fix for the common failures.
+
+## Concepts
+
+- [Architecture overview](https://github.com/andryorelabs/aokit/blob/main/docs/architecture/overview.md): the components and how they fit together.
+- [Lifecycle](https://github.com/andryorelabs/aokit/blob/main/docs/architecture/lifecycle.md): create, add, update, remove and the merge procedure.
+- [Security model](https://github.com/andryorelabs/aokit/blob/main/docs/security.md): Registry integrity, the trust gate and known limits.
+
+## Optional
+
+- [All aokit packages](https://github.com/andryorelabs/aokit/blob/main/llms.txt): the root index.

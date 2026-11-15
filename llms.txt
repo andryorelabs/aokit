@@ -4,9 +4,9 @@
 
 ## Packages
 
-- [aokit](https://www.npmjs.com/package/aokit): the CLI and the core. Run it with `bunx aokit` or install the standalone binary from a GitHub Release.
-- [create-aokit](https://www.npmjs.com/package/create-aokit): scaffolds a new Project with `bunx create-aokit` or `bun create aokit`.
-- [@aokit/module](https://www.npmjs.com/package/@aokit/module): the Module manifest contract for Module authors.
+- [aokit](https://www.npmjs.com/package/aokit): the CLI and the core. Run it with `bunx aokit` or install the standalone binary from a GitHub Release. [llms.txt](https://github.com/andryorelabs/aokit/blob/main/packages/aokit/llms.txt)
+- [create-aokit](https://www.npmjs.com/package/create-aokit): scaffolds a new Project with `bunx create-aokit` or `bun create aokit`. [llms.txt](https://github.com/andryorelabs/aokit/blob/main/packages/create-aokit/llms.txt)
+- [@aokit/module](https://www.npmjs.com/package/@aokit/module): the Module manifest contract for Module authors. [llms.txt](https://github.com/andryorelabs/aokit/blob/main/packages/module/llms.txt)
 
 ## Reference
 
