@@ -23,7 +23,7 @@ function isAllowedPath(path: string): boolean {
   return allowedPaths.has(path) || allowedPathPrefixes.some((prefix) => path.startsWith(prefix));
 }
 
-function findStaleNames(files: readonly TrackedFile[]): string[] {
+export function findStaleNames(files: readonly TrackedFile[]): string[] {
   const problems: string[] = [];
   for (const file of files) {
     if (isAllowedPath(file.path)) continue;
@@ -39,7 +39,7 @@ function findStaleNames(files: readonly TrackedFile[]): string[] {
   return problems;
 }
 
-function readTrackedFiles(root: string): TrackedFile[] {
+export function readTrackedFiles(root: string): TrackedFile[] {
   const listing = Bun.spawnSync(["git", "ls-files", "-z"], { cwd: root });
   if (listing.exitCode !== 0) {
     throw new Error(`git ls-files failed: ${listing.stderr.toString()}`);

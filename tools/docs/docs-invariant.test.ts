@@ -29,7 +29,7 @@ function adrFileNames(root: string): string[] {
   return readdirSync(join(root, "docs/adr")).filter((name) => /^\d{4}-.+\.md$/.test(name));
 }
 
-function checkAdrIndex(root: string): string[] {
+export function checkAdrIndex(root: string): string[] {
   const adrDirectory = join(root, "docs/adr");
   const index = readFileSync(join(adrDirectory, "README.md"), "utf8");
   const listed = [...index.matchAll(/\]\((\d{4}-[^)#\s]+\.md)\)/g)].map((match) => match[1] ?? "");
@@ -113,7 +113,7 @@ function checkAdrIndexStatus(root: string): string[] {
   return problems;
 }
 
-function checkDocsIndex(root: string): string[] {
+export function checkDocsIndex(root: string): string[] {
   const docsDirectory = join(root, "docs");
   const indexPath = join(docsDirectory, "README.md");
   if (!existsSync(indexPath)) return ["docs/README.md does not exist"];
@@ -149,6 +149,33 @@ function checkAdrStructure(root: string): string[] {
       if (!lines.some((line) => line.trimEnd() === `## ${section}`)) {
         problems.push(`docs/adr/${name} is missing the "## ${section}" section`);
       }
+    }
+  }
+  return problems;
+}
+
+const revisedLinePattern = /^Revised: \d{4}-\d{2}-\d{2}(?: — |, )\S/;
+const revisionNotePattern = /^[-*]?\s*Revised \d{4}-\d{2}-\d{2}/;
+
+function checkAdrRevised(root: string): string[] {
+  const problems: string[] = [];
+  for (const name of adrFileNames(root).toSorted()) {
+    const lines = readFileSync(join(root, "docs/adr", name), "utf8").split("\n");
+    const firstSection = lines.findIndex((line) => line.startsWith("## "));
+    const header = firstSection === -1 ? lines : lines.slice(0, firstSection);
+    const revisedLines = header.filter((line) => /^Revised\b/.test(line));
+    for (const line of revisedLines) {
+      if (!revisedLinePattern.test(line)) {
+        problems.push(
+          `docs/adr/${name} has a malformed Revised line "${line}", expected "Revised: YYYY-MM-DD — reason"`,
+        );
+      }
+    }
+    const statusLine = lines.find((line) => line.startsWith("Status:")) ?? "";
+    const claimsRevision =
+      /revised/i.test(statusLine) || lines.some((line) => revisionNotePattern.test(line));
+    if (claimsRevision && revisedLines.length === 0) {
+      problems.push(`docs/adr/${name} notes a revision but has no "Revised:" header line`);
     }
   }
   return problems;
@@ -246,6 +273,17 @@ describe("docs invariants on the repository", () => {
     expect(checkAdrStructure(repoRoot)).toEqual([]);
   });
 
+  test("every Revised line is well formed and present when an ADR was revised", () => {
+    expect(checkAdrRevised(repoRoot)).toEqual([]);
+  });
+
+  test("the ADR template exists, is indexed and passes the ADR checks", () => {
+    expect(adrFileNames(repoRoot)).toContain("0000-template.md");
+    expect(checkAdrIndex(repoRoot)).toEqual([]);
+    expect(checkAdrStructure(repoRoot)).toEqual([]);
+    expect(checkAdrIndexStatus(repoRoot)).toEqual([]);
+  });
+
   test("Supersedes and Amends relations are recorded on both ADRs", () => {
     expect(checkAdrRelations(repoRoot)).toEqual([]);
   });
@@ -289,6 +327,31 @@ describe("docs invariants reject violations", () => {
     expect(checkAdrStructure(root)).toEqual([
       'docs/adr/0001-a.md is missing the "Spec:" line',
       'docs/adr/0001-a.md is missing the "## Alternatives considered" section',
+    ]);
+  });
+
+  test("malformed Revised line names the ADR and the line", () => {
+    const root = writeTree({
+      "docs/adr/0001-a.md": validAdr.replace("Spec: S1", "Revised: yesterday\nSpec: S1"),
+      "docs/adr/0002-b.md": validAdr.replace("Spec: S1", "Revised: 2026-11-15 — fine\nSpec: S1"),
+      "docs/adr/0003-c.md": validAdr.replace("Spec: S1", "Revised: 2026-11-15, fine\nSpec: S1"),
+    });
+    expect(checkAdrRevised(root)).toEqual([
+      'docs/adr/0001-a.md has a malformed Revised line "Revised: yesterday", expected "Revised: YYYY-MM-DD — reason"',
+    ]);
+  });
+
+  test("a revision note without a Revised line names the ADR", () => {
+    const root = writeTree({
+      "docs/adr/0001-a.md": validAdr.replace(
+        "## Consequences",
+        "- Revised 2026-11-15: x\n## Consequences",
+      ),
+      "docs/adr/0002-b.md": validAdr.replace("Accepted", "Accepted (revised)"),
+    });
+    expect(checkAdrRevised(root)).toEqual([
+      'docs/adr/0001-a.md notes a revision but has no "Revised:" header line',
+      'docs/adr/0002-b.md notes a revision but has no "Revised:" header line',
     ]);
   });
 
