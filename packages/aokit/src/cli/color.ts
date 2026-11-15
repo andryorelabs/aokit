@@ -1,3 +1,5 @@
+import { readForceColor, readIsDumbTerminal, readNoColor } from "../env.ts";
+
 interface ColorEnvironment {
   env: Readonly<Record<string, string | undefined>>;
   isTTY: boolean;
@@ -10,13 +12,13 @@ interface ColorEnvironment {
  * never over `NO_COLOR`.
  */
 export function isColorEnabled({ env, isTTY, noColorFlag }: ColorEnvironment): boolean {
-  if (noColorFlag || (env.NO_COLOR ?? "") !== "") {
+  if (noColorFlag || readNoColor(env)) {
     return false;
   }
-  if ((env.FORCE_COLOR ?? "") !== "" && env.FORCE_COLOR !== "0") {
+  if (readForceColor(env)) {
     return true;
   }
-  if (env.TERM === "dumb") {
+  if (readIsDumbTerminal(env)) {
     return false;
   }
   return isTTY;
