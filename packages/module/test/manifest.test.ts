@@ -2,7 +2,7 @@ import { expect, test } from "bun:test";
 import { mkdtemp, readFile, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { z } from "zod";
+
 import {
   catalogSchema,
   compileModule,
@@ -10,6 +10,8 @@ import {
   opSchema,
   parseManifest,
 } from "@aokit/module";
+import { z } from "zod";
+
 import oxcModule from "./fixtures/oxc.module";
 
 const oxcWorkedExample = {

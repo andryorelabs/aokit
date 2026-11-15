@@ -1,5 +1,6 @@
-import { z } from "zod";
 import { catalogSchema } from "@aokit/module";
+import { z } from "zod";
+
 import { meetsMinCliVersion, minCliVersionFix } from "../../cli/min-cli-version.ts";
 import { ensureEmbeddedRegistry } from "../embedded/extract.ts";
 import { RegistryError } from "../errors.ts";

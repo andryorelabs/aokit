@@ -10,17 +10,19 @@ import {
 } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
+
 import { parseManifest } from "@aokit/module";
 import { z } from "zod";
+
 import { runCli, type CliIo } from "../../src/cli/adapter.ts";
 import { runCommand } from "../../src/cli/command.ts";
 import { createCommand } from "../../src/cli/commands/create.ts";
 import { exposedCommands } from "../../src/cli/commands/registry.ts";
+import { cliVersion } from "../../src/cli/version.ts";
 import { parseAnswers, completeAnswers } from "../../src/project/answers.ts";
 import { reproduceCommand } from "../../src/project/reproduce.ts";
-import { cliVersion } from "../../src/cli/version.ts";
-import { parseJsonRecord, parseJsonText, parseLockfileJson } from "../helpers/registry-json.ts";
 import { aokitCommand, spawnAokit as spawnAokitProcess } from "../helpers/aokit-process.ts";
+import { parseJsonRecord, parseJsonText, parseLockfileJson } from "../helpers/registry-json.ts";
 
 /** These tests put a `#!/bin/sh` shim named `bun` on a `:`-joined PATH and send POSIX signals, neither of which exists on Windows. */
 const posixShellTest = process.platform === "win32" ? test.skip : test;

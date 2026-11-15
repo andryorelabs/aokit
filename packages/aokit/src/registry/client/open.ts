@@ -15,8 +15,8 @@ import {
   transportFor,
 } from "./index-file.ts";
 import { loadModuleVersion } from "./module-version.ts";
-import { openShadcnRegistry } from "./shadcn.ts";
 import { shadcnIndexFile } from "./shadcn-items.ts";
+import { openShadcnRegistry } from "./shadcn.ts";
 
 /**
  * Opens a Registry from any source behind one lazy interface. A URL source serving no `index.json`

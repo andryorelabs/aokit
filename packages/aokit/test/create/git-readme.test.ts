@@ -10,14 +10,16 @@ import {
 } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
+
+import { parseManifest } from "@aokit/module";
+
 import { runCli, type CliIo } from "../../src/cli/adapter.ts";
 import { exposedCommands } from "../../src/cli/commands/registry.ts";
 import { cliVersion } from "../../src/cli/version.ts";
+import { initialCommitMessage } from "../../src/create/git.ts";
+import { renderProjectReadme, withProjectReadme } from "../../src/create/readme.ts";
 import { Vfs } from "../../src/engine/index.ts";
 import { hashVfs, type Plan } from "../../src/engine/plan.ts";
-import { initialCommitMessage } from "../../src/create/git.ts";
-import { parseManifest } from "@aokit/module";
-import { renderProjectReadme, withProjectReadme } from "../../src/create/readme.ts";
 import { parseJsonRecord } from "../helpers/registry-json.ts";
 
 const posixShellTest = process.platform === "win32" ? test.skip : test;

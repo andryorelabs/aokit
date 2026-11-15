@@ -2,6 +2,7 @@ import { afterEach, expect, test } from "bun:test";
 import { mkdir, mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
+
 import { buildRegistry } from "./build.ts";
 import { diffDirectories } from "./diff.ts";
 import { addMigrationToFixtureSource, writeRegistrySourceFixture } from "./fixture.ts";

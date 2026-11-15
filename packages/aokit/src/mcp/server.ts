@@ -1,5 +1,7 @@
 import { McpServer, type StandardSchemaWithJSON } from "@modelcontextprotocol/server";
 import { StdioServerTransport } from "@modelcontextprotocol/server/stdio";
+import type { z } from "zod";
+
 import type { CommandContext } from "../cli/command.ts";
 import { exposedCommands } from "../cli/commands/registry.ts";
 import {
@@ -9,7 +11,6 @@ import {
   type Envelope,
 } from "../cli/envelope.ts";
 import { cliVersion } from "../cli/version.ts";
-import type { z } from "zod";
 import { createPlanSession } from "./plan-id.ts";
 import { toToolResult } from "./result.ts";
 import { mcpTools } from "./tools/index.ts";

@@ -1,5 +1,7 @@
 import { describe, expect, test } from "bun:test";
+
 import { z } from "zod";
+
 import { runCli } from "../../src/cli/adapter.ts";
 import { defineCommand } from "../../src/cli/command.ts";
 

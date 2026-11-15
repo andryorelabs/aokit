@@ -1,5 +1,5 @@
-import type { ConflictWrite } from "../apply/index.ts";
 import { conflictFile } from "../apply/conflicts.ts";
+import type { ConflictWrite } from "../apply/index.ts";
 import { hashVfs, type Plan, type PlanChange } from "../engine/plan.ts";
 import { compareByCodepoint, type FileContent, Vfs } from "../engine/vfs.ts";
 import type { Lockfile } from "../lockfile/schema.ts";

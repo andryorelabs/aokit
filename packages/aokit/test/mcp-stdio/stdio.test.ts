@@ -2,6 +2,7 @@ import { afterAll, expect, test } from "bun:test";
 import { existsSync, mkdtempSync, readdirSync, realpathSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
+
 import {
   Client,
   isJSONRPCNotification,
@@ -11,6 +12,7 @@ import {
   type Transport,
 } from "@modelcontextprotocol/client";
 import { z } from "zod";
+
 import { aokitCommand } from "../helpers/aokit-process.ts";
 
 const workspace = realpathSync(mkdtempSync(join(tmpdir(), "aokit-mcp-stdio-")));

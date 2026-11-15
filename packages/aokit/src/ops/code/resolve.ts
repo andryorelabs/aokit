@@ -1,5 +1,7 @@
 import { posix } from "node:path";
+
 import type { Op } from "@aokit/module";
+
 import type { EditBatch } from "../../edit/batch.ts";
 import { EditError } from "../../edit/errors.ts";
 import { type LocatedAnchor, type ParsedSource, parseSource } from "../../edit/locate.ts";

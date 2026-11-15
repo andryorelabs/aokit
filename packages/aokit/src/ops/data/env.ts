@@ -1,4 +1,5 @@
 import type { ModuleManifest, Op } from "@aokit/module";
+
 import type { DeclaredExtensionPoint, OpVfs } from "../../engine/ops.ts";
 import { addEnv } from "../../patchers/env/index.ts";
 import { readText, writeIfChanged } from "./files.ts";

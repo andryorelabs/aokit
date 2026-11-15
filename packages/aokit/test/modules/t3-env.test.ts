@@ -1,10 +1,12 @@
 import { expect, test } from "bun:test";
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
+
 import { parseManifest } from "@aokit/module";
 import { z } from "zod";
-import { type EngineContext, type EngineModule, buildPlan } from "../../src/engine/index.ts";
+
 import t3Env from "../../../../registry-src/t3-env/module.ts";
+import { type EngineContext, type EngineModule, buildPlan } from "../../src/engine/index.ts";
 import { buildSelection, draftCatalog } from "./support/index.ts";
 
 const context: EngineContext = { now: new Date(0), random: () => 0.5, env: {} };

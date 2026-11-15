@@ -1,4 +1,5 @@
 import { expect, test } from "bun:test";
+
 import { parseBinaryTarget } from "./targets.ts";
 
 test("a target with an unknown operating system or a wrong prefix is rejected", () => {

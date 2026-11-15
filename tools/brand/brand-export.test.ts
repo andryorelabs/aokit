@@ -1,10 +1,9 @@
 import { describe, expect, test } from "bun:test";
-import { mkdtemp, readFile, cp, rm } from "node:fs/promises";
 import { readFileSync } from "node:fs";
+import { mkdtemp, readFile, cp, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 
-import { exportMarks } from "./brand-export.ts";
 import {
   assertSpec,
   encodeIco,
@@ -14,6 +13,7 @@ import {
   rasterSpecs,
   type RasterSpec,
 } from "./brand-export-spec.ts";
+import { exportMarks } from "./brand-export.ts";
 
 const BRAND_DIR = new URL("../../docs/brand/", import.meta.url);
 const TRUECOLOUR_ALPHA = 6;

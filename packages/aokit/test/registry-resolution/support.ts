@@ -1,14 +1,15 @@
 import { cp, mkdtemp, readdir, readFile, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join, relative } from "node:path";
+
 import { runCommand } from "../../src/cli/command.ts";
+import type { CommandContext } from "../../src/cli/command.ts";
 import { createCommand } from "../../src/cli/commands/create.ts";
 import { cliVersion } from "../../src/cli/version.ts";
-import type { CommandContext } from "../../src/cli/command.ts";
-import type { Integrity } from "../../src/registry/integrity.ts";
 import type { Lockfile } from "../../src/lockfile/schema.ts";
-import { readProjectLockfile } from "../helpers/registry-json.ts";
 import { bundledRegistryPath } from "../../src/registry/bundled.ts";
+import type { Integrity } from "../../src/registry/integrity.ts";
+import { readProjectLockfile } from "../helpers/registry-json.ts";
 import {
   editJson,
   type ServedRegistry,

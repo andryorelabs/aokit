@@ -1,9 +1,11 @@
 import { posix } from "node:path";
+
 import type { Catalog, ModuleManifest } from "@aokit/module";
+
 import { createEditSession } from "../edit/session.ts";
 import { codeOpHandlers } from "../ops/code/index.ts";
-import { applyDeps, applyEnv, dataOpHandlers, wireWorkspaces } from "../ops/data/index.ts";
 import { envSchemaOps } from "../ops/data/env.ts";
+import { applyDeps, applyEnv, dataOpHandlers, wireWorkspaces } from "../ops/data/index.ts";
 import { coreOwner, writeAgentFiles } from "./agent-files.ts";
 import { EngineError } from "./errors.ts";
 import {

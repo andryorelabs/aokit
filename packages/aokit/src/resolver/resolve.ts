@@ -1,4 +1,5 @@
 import type { ModuleManifest } from "@aokit/module";
+
 import { compareCodepoints, orderTopologically } from "./order.ts";
 import { suggestModuleName } from "./suggest.ts";
 import type {

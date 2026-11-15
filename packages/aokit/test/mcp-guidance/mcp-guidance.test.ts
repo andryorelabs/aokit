@@ -1,15 +1,17 @@
 import { describe, expect, test } from "bun:test";
+
 import { z } from "zod";
+
+import { runCommand } from "../../src/cli/command.ts";
 import { createCommand } from "../../src/cli/commands/create.ts";
 import { exposedCommands } from "../../src/cli/commands/registry.ts";
 import { errorCodeExitCodes } from "../../src/cli/exit-codes.ts";
-import { cliOnlyFields } from "../../src/mcp/explicit-input.ts";
-import { callTool, connectClient } from "../mcp/helpers.ts";
 import { cliVersion } from "../../src/cli/version.ts";
-import { runCommand } from "../../src/cli/command.ts";
-import { openDefaultRegistry } from "../../src/mcp/tools/schema.ts";
-import { guidanceTopics, renderGuidance } from "../../src/mcp/guidance/index.ts";
 import { renderHeader } from "../../src/engine/agent-files.ts";
+import { cliOnlyFields } from "../../src/mcp/explicit-input.ts";
+import { guidanceTopics, renderGuidance } from "../../src/mcp/guidance/index.ts";
+import { openDefaultRegistry } from "../../src/mcp/tools/schema.ts";
+import { callTool, connectClient } from "../mcp/helpers.ts";
 
 const topics = ["overview", "workflow", "modules", "layouts", "errors"] as const;
 

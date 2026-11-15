@@ -1,5 +1,5 @@
-import type { OpVfs } from "../../engine/ops.ts";
 import { layoutTables } from "../../engine/layout.ts";
+import type { OpVfs } from "../../engine/ops.ts";
 import { mergePackageJson } from "../../patchers/package-json/index.ts";
 import { readText, writeIfChanged } from "./files.ts";
 

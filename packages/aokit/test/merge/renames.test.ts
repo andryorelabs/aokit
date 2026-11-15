@@ -1,4 +1,5 @@
 import { describe, expect, test } from "bun:test";
+
 import type { FileContent } from "../../src/engine/vfs.ts";
 import { composeRenames, mergeProject } from "../../src/merge/index.ts";
 import { createMerger } from "../../src/merger/index.ts";

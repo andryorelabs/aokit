@@ -2,6 +2,7 @@ import { afterEach, expect, test } from "bun:test";
 import { mkdir, mkdtemp, rm, symlink, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
+
 import { classifyDrift } from "../../src/drift/classify.ts";
 import { hashFileBytes } from "../../src/drift/hash.ts";
 import type { Lockfile } from "../../src/lockfile/schema.ts";

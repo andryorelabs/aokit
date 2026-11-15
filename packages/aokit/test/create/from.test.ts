@@ -3,8 +3,8 @@ import { mkdtempSync, readFileSync, rmSync } from "node:fs";
 import { readdir } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join, sep } from "node:path";
+
 import { runCommand } from "../../src/cli/command.ts";
-import { parseLockfileJson } from "../helpers/registry-json.ts";
 import { createCommand } from "../../src/cli/commands/create.ts";
 import { cliVersion } from "../../src/cli/version.ts";
 import {
@@ -13,6 +13,7 @@ import {
   createProject as createFixtureProject,
   temporaryDirectory,
 } from "../diff/support.ts";
+import { parseLockfileJson } from "../helpers/registry-json.ts";
 
 const root = mkdtempSync(join(tmpdir(), "aokit-from-"));
 const context = { version: cliVersion, env: {}, commands: [] };

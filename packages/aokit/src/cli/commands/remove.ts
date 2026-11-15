@@ -1,18 +1,20 @@
 import { join, resolve as resolvePath } from "node:path";
+
 import type { ModuleManifest } from "@aokit/module";
 import { z } from "zod";
+
 import { lockfileName } from "../../apply/index.ts";
 import { lockfileDriftOf } from "../../drift/drift-of.ts";
 import type { PlanChange } from "../../engine/plan.ts";
+import { runLifecycle } from "../../lifecycle/index.ts";
 import { LockfileError, readLockfile } from "../../lockfile/index.ts";
 import type { Lockfile } from "../../lockfile/schema.ts";
-import { runLifecycle } from "../../lifecycle/index.ts";
 import { renderFromLockfile } from "../../pipeline/index.ts";
+import { fromResolveError, toAokitError } from "../../project/errors.ts";
+import { openProjectRegistry } from "../../project/registry.ts";
 import { bundledRegistryPath } from "../../registry/bundled.ts";
 import type { LocalRegistry } from "../../registry/index.ts";
 import { resolve as resolveModules } from "../../resolver/resolve.ts";
-import { fromResolveError, toAokitError } from "../../project/errors.ts";
-import { openProjectRegistry } from "../../project/registry.ts";
 import { defineCommand } from "../command.ts";
 import { AokitError } from "../envelope.ts";
 import { lockfileMissingError } from "../errors.ts";

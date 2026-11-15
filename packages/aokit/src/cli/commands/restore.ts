@@ -1,14 +1,15 @@
 import { readFile } from "node:fs/promises";
 import { join, resolve as resolvePath } from "node:path";
+
 import { z } from "zod";
+
 import { apply, lockfileName } from "../../apply/index.ts";
+import type { Plan, PlanChange } from "../../engine/plan.ts";
 import { Vfs, normalizeProjectPath } from "../../engine/vfs.ts";
 import type { FileContent } from "../../engine/vfs.ts";
-import type { Plan, PlanChange } from "../../engine/plan.ts";
 import { assertCleanTree } from "../../git/index.ts";
 import { LockfileError, readLockfile } from "../../lockfile/index.ts";
 import type { Lockfile } from "../../lockfile/schema.ts";
-import { renderFromLockfile } from "../../pipeline/index.ts";
 import {
   RegionSyntaxError,
   isRegionFile,
@@ -16,13 +17,14 @@ import {
   removeRegion,
   spliceRegions,
 } from "../../patchers/markdown/regions.ts";
+import { renderFromLockfile } from "../../pipeline/index.ts";
 import { unifiedDiff } from "../../project/diff.ts";
 import { toAokitError } from "../../project/errors.ts";
+import { bundledRegistryPath } from "../../registry/bundled.ts";
 import { defineCommand } from "../command.ts";
 import { AokitError } from "../envelope.ts";
 import { lockfileMissingError } from "../errors.ts";
 import { aokitMeta } from "../meta.ts";
-import { bundledRegistryPath } from "../../registry/bundled.ts";
 
 /** A Lockfile entry of the Project's file, with the Lockfile that holds it. */
 export interface LockedFile {

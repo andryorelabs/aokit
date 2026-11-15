@@ -1,4 +1,5 @@
 import { generateCode, parseModule } from "magicast";
+
 import { EditError } from "./errors.ts";
 
 /** The plain-object view of the first argument of `defineConfig({...})`. */

@@ -1,5 +1,6 @@
 import { stableStringify } from "@aokit/module";
 import { z } from "zod";
+
 import { lockfileSchema } from "./schema.ts";
 
 /**

@@ -1,4 +1,5 @@
 import { describe, expect, test } from "bun:test";
+
 import { runCli } from "../../src/cli/adapter.ts";
 import { exposedCommands } from "../../src/cli/commands/registry.ts";
 

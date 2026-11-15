@@ -1,4 +1,5 @@
 import { describe, expect, test } from "bun:test";
+
 import { compareSettings } from "./compare.ts";
 
 describe("compareSettings", () => {

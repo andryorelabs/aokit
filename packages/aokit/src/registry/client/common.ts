@@ -1,4 +1,5 @@
 import type { ModuleManifest } from "@aokit/module";
+
 import type { UserConfig } from "../../config/user-config.ts";
 import { RegistryError } from "../errors.ts";
 import type { GitLsRemote } from "../github.ts";

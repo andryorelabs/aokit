@@ -3,6 +3,7 @@ import * as fsPromises from "node:fs/promises";
 import { mkdir, mkdtemp, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
+
 import { createRegistryCache } from "../../src/registry/cache.ts";
 
 const integrity = `sha256-${"b".repeat(64)}` as const;

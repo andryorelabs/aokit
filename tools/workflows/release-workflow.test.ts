@@ -11,7 +11,9 @@ import {
 } from "node:fs";
 import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
+
 import { loadBumpConfig } from "bumpp";
+
 import bumppConfig from "../../bump.config.ts";
 import { parseBinaryTarget } from "../build-binary/targets.ts";
 

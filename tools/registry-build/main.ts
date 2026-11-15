@@ -1,5 +1,6 @@
 import { join, resolve } from "node:path";
 import { parseArgs } from "node:util";
+
 import { buildRegistry } from "./build.ts";
 
 const repoRoot = join(import.meta.dir, "..", "..");

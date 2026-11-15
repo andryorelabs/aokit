@@ -1,4 +1,5 @@
 import { expect, spyOn, test } from "bun:test";
+
 import { installSignalHandlers } from "../../src/cli/shutdown.ts";
 
 test("without an exit option the default exits the process with 130", async () => {

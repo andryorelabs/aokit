@@ -1,6 +1,7 @@
 import { mkdir, writeFile } from "node:fs/promises";
 import { dirname, resolve } from "node:path";
 import { pathToFileURL } from "node:url";
+
 import { type ModuleManifest, parseManifest } from "./manifest.ts";
 
 /**

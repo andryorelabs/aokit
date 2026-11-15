@@ -1,4 +1,5 @@
 import { expect, test } from "bun:test";
+
 import { addCssVariables } from "../../src/patchers/postcss/index.ts";
 
 const source = `@import "tailwindcss";

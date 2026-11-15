@@ -1,13 +1,14 @@
 import { afterEach, describe, expect, test } from "bun:test";
 import { mkdir, readFile, stat, writeFile } from "node:fs/promises";
 import { join } from "node:path";
+
 import { buildRegistry } from "../../../../tools/registry-build/build.ts";
 import { writeRegistrySourceFixture } from "../../../../tools/registry-build/fixture.ts";
 import { runCommand } from "../../src/cli/command.ts";
 import { updateCommand } from "../../src/cli/commands/update.ts";
+import { openGit } from "../../src/git/index.ts";
 import { buildUpdatePlan } from "../../src/update/run.ts";
 import { abortUpdate, readUpdateMarker } from "../../src/update/state.ts";
-import { openGit } from "../../src/git/index.ts";
 import {
   cleanTemporaryDirectories,
   commandContext,

@@ -1,5 +1,6 @@
 import { expect, test } from "bun:test";
 import { join } from "node:path";
+
 import { runCli, type CliIo } from "../../src/cli/adapter.ts";
 import { bannerAnsi, bannerPlain, renderBanner } from "../../src/cli/banner.ts";
 import { exposedCommands, hiddenCommands } from "../../src/cli/commands/registry.ts";

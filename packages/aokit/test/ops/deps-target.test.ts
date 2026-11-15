@@ -1,7 +1,9 @@
 import { expect, test } from "bun:test";
+
 import { type ModuleManifestInput } from "@aokit/module";
-import type { LayoutName } from "../../src/engine/layout.ts";
+
 import { type EngineContext, type EngineModule, buildPlan } from "../../src/engine/index.ts";
+import type { LayoutName } from "../../src/engine/layout.ts";
 import { fixtureManifest } from "../helpers/fixture-manifest.ts";
 
 const context: EngineContext = { now: new Date(0), random: () => 0.5, env: {} };

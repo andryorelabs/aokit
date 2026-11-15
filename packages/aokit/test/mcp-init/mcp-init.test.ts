@@ -1,13 +1,15 @@
-import { z } from "zod";
-import { parse } from "jsonc-parser";
 import { afterEach, beforeEach, expect, test } from "bun:test";
 import { mkdir, mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
+
+import { parse } from "jsonc-parser";
+import { z } from "zod";
+
 import { runCli, type CliIo } from "../../src/cli/adapter.ts";
 import { runCommand } from "../../src/cli/command.ts";
-import { exposedCommands } from "../../src/cli/commands/registry.ts";
 import { mcpInitCommand } from "../../src/cli/commands/mcp-init.ts";
+import { exposedCommands } from "../../src/cli/commands/registry.ts";
 import { exitCodeForErrorCode } from "../../src/cli/exit-codes.ts";
 import { commandNamesFrom, jsonAt, keysAt, parseJson } from "../helpers/cli-json.ts";
 

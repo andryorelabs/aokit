@@ -1,5 +1,6 @@
 import { createHash } from "node:crypto";
 import { posix } from "node:path";
+
 import {
   type ModuleManifest,
   type ModuleManifestInput,
@@ -7,6 +8,7 @@ import {
   parseManifest,
   stableStringify,
 } from "@aokit/module";
+
 import { AokitError } from "../../cli/envelope.ts";
 import { RegistryError } from "../errors.ts";
 import { computeModuleIntegrity, type Integrity } from "../integrity.ts";

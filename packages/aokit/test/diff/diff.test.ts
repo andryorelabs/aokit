@@ -1,8 +1,10 @@
 import { afterEach, describe, expect, test } from "bun:test";
-import { join } from "node:path";
 import { appendFile, writeFile } from "node:fs/promises";
+import { join } from "node:path";
+
 import { runCommand } from "../../src/cli/command.ts";
 import { diffCommand } from "../../src/cli/commands/diff.ts";
+import { objectAt } from "../helpers/update-json.ts";
 import {
   builtRegistry,
   cleanTemporaryDirectories,
@@ -11,7 +13,6 @@ import {
   editLockfileJson,
   temporaryDirectory,
 } from "./support.ts";
-import { objectAt } from "../helpers/update-json.ts";
 
 afterEach(cleanTemporaryDirectories);
 

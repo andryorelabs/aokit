@@ -2,17 +2,19 @@ import { afterAll, beforeAll, describe, expect, test } from "bun:test";
 import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join, relative } from "node:path";
+
+import { z } from "zod";
+
+import { stashRoot as stashRootOf } from "../../src/apply/stash.ts";
 import { runCommand, type CommandContext } from "../../src/cli/command.ts";
 import { createCommand } from "../../src/cli/commands/create.ts";
 import { doctorCommand } from "../../src/cli/commands/doctor.ts";
 import { exposedCommands } from "../../src/cli/commands/registry.ts";
 import { exitCodeForEnvelope } from "../../src/cli/envelope.ts";
 import { cliVersion } from "../../src/cli/version.ts";
-import { stashRoot as stashRootOf } from "../../src/apply/stash.ts";
 import { openGit } from "../../src/git/index.ts";
-import { abortUpdate, writeUpdateMarker } from "../../src/update/state.ts";
 import { runGitChecked } from "../../src/git/run.ts";
-import { z } from "zod";
+import { abortUpdate, writeUpdateMarker } from "../../src/update/state.ts";
 import {
   type JsonObject,
   isJsonObject,

@@ -1,7 +1,10 @@
-import { z } from "zod";
 import { afterAll, beforeAll, describe, expect, test } from "bun:test";
 import { readFileSync, rmSync, symlinkSync, writeFileSync } from "node:fs";
 import { basename, join } from "node:path";
+
+import { z } from "zod";
+
+import { callTool, createInput, entriesOf, planChangeCount } from "../mcp/helpers.ts";
 import {
   builtFixtureRegistry,
   editJson,
@@ -9,7 +12,6 @@ import {
   serveRegistry,
   type ServedRegistry,
 } from "../registry-remote/served-registry.ts";
-import { callTool, createInput, entriesOf, planChangeCount } from "../mcp/helpers.ts";
 import { addInput, committedProject, connectClient, git, newWorkspace } from "./helpers.ts";
 
 const workspace = newWorkspace();

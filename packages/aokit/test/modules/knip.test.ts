@@ -1,13 +1,15 @@
 import { describe, expect, test } from "bun:test";
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
+
 import { parseManifest } from "@aokit/module";
 import { z } from "zod";
-import { draftCatalog } from "./support/index.ts";
-import type { EngineModule, Vfs } from "../../src/engine/index.ts";
-import { buildProject, type PipelineInput } from "../../src/pipeline/index.ts";
+
 import knip from "../../../../registry-src/knip/module.ts";
 import oxc from "../../../../registry-src/oxc/module.ts";
+import type { EngineModule, Vfs } from "../../src/engine/index.ts";
+import { buildProject, type PipelineInput } from "../../src/pipeline/index.ts";
+import { draftCatalog } from "./support/index.ts";
 
 const sourceRoot = join(import.meta.dir, "..", "..", "..", "..", "registry-src");
 const catalog = draftCatalog();

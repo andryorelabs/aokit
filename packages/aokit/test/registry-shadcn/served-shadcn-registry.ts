@@ -1,6 +1,7 @@
 import { mkdtemp, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
+
 import { type ServedRegistry, serveRegistry } from "../registry-remote/served-registry.ts";
 
 /** One item of the fixture shadcn Registry, as its `<name>.json` serves it. */

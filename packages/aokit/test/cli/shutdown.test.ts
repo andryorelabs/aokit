@@ -1,4 +1,5 @@
 import { expect, spyOn, test } from "bun:test";
+
 import { installSignalHandlers, registerShutdownHook } from "../../src/cli/shutdown.ts";
 
 test("a second signal during cleanup exits immediately with 130", async () => {

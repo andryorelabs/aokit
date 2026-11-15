@@ -1,6 +1,7 @@
-import { createHash } from "node:crypto";
 import { expect, test } from "bun:test";
+import { createHash } from "node:crypto";
 import { writeFile } from "node:fs/promises";
+
 import { buildProject } from "../../src/pipeline/index.ts";
 import { input } from "./fixtures.ts";
 

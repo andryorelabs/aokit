@@ -1,6 +1,7 @@
 import type { Catalog, ModuleManifest } from "@aokit/module";
 import { format } from "oxfmt";
 import oxfmtManifest from "oxfmt/package.json" with { type: "json" };
+
 import type { Formatter, Vfs } from "../engine/index.ts";
 import { optionsFor, readProjectConfigs } from "./config.ts";
 import { FormatError } from "./errors.ts";

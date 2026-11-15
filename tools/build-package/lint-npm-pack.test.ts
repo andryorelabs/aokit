@@ -1,4 +1,5 @@
 import { afterEach, expect, spyOn, test } from "bun:test";
+
 import { packedPathsOf, packedSizeOf } from "./lint.ts";
 
 async function failureOf(attempt: Promise<unknown>): Promise<string> {

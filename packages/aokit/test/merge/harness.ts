@@ -1,7 +1,8 @@
 import { createHash } from "node:crypto";
-import { Vfs, type FileContent } from "../../src/engine/vfs.ts";
+
 import type { Plan } from "../../src/engine/plan.ts";
 import { hashVfs } from "../../src/engine/plan.ts";
+import { Vfs, type FileContent } from "../../src/engine/vfs.ts";
 import type { Lockfile } from "../../src/lockfile/schema.ts";
 import type { DriftOf } from "../../src/merge/index.ts";
 import type { BuiltProject } from "../../src/pipeline/build.ts";

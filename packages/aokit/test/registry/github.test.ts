@@ -1,6 +1,7 @@
 import { expect, test } from "bun:test";
-import { join } from "node:path";
 import { tmpdir } from "node:os";
+import { join } from "node:path";
+
 import { AokitError } from "../../src/cli/envelope.ts";
 import { gitLsRemote } from "../../src/registry/github.ts";
 

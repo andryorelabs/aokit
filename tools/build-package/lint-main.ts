@@ -1,4 +1,5 @@
 import { join } from "node:path";
+
 import { lintPackage } from "./lint.ts";
 
 const repoRoot = join(import.meta.dir, "..", "..");

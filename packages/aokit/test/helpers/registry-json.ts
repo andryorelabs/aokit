@@ -1,6 +1,8 @@
 import { readFile, writeFile } from "node:fs/promises";
 import { join } from "node:path";
+
 import { z } from "zod";
+
 import { lockfileSchema, type Lockfile } from "../../src/lockfile/schema.ts";
 
 const jsonRecordSchema = z.record(z.string(), z.unknown());

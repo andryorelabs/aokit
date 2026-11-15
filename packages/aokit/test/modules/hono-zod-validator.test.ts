@@ -1,6 +1,8 @@
 import { describe, expect, test } from "bun:test";
-import { z } from "zod";
+
 import { parseManifest } from "@aokit/module";
+import { z } from "zod";
+
 import honoZodValidatorSource from "../../../../registry-src/hono-zod-validator/module.ts";
 import { buildSelection } from "./support/index.ts";
 

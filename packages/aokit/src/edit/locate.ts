@@ -1,5 +1,6 @@
 import { parseSync } from "oxc-parser";
 import type { Node, ParseResult } from "oxc-parser";
+
 import { EditError } from "./errors.ts";
 
 /** A half-open `[start, end)` range of UTF-16 offsets into the original source. */

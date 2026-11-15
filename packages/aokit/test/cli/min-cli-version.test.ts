@@ -1,4 +1,5 @@
 import { expect, test } from "bun:test";
+
 import { meetsMinCliVersion } from "../../src/cli/min-cli-version.ts";
 
 test.each([

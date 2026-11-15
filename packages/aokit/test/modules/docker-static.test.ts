@@ -1,5 +1,7 @@
 import { describe, expect, test } from "bun:test";
+
 import { parseManifest } from "@aokit/module";
+
 import dockerStaticSource from "../../../../registry-src/docker-static/module.ts";
 import { buildSelection } from "./support/index.ts";
 

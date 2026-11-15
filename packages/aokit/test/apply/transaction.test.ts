@@ -2,6 +2,7 @@ import { afterEach, beforeEach, expect, test } from "bun:test";
 import { mkdir, mkdtemp, readFile, readdir, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
+
 import {
   ApplyError,
   apply,
@@ -11,9 +12,9 @@ import {
   writeConflicts,
   type ConflictWrite,
 } from "../../src/apply/index.ts";
+import { stashRoot } from "../../src/apply/stash.ts";
 import { Vfs } from "../../src/engine/index.ts";
 import { diffVfs, hashVfs, type Plan } from "../../src/engine/plan.ts";
-import { stashRoot } from "../../src/apply/stash.ts";
 import { openGit } from "../../src/git/index.ts";
 import { runGitChecked } from "../../src/git/run.ts";
 import { parseLockfile, serializeLockfile } from "../../src/lockfile/index.ts";

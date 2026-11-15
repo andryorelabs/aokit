@@ -1,8 +1,10 @@
 import { describe, expect, test } from "bun:test";
 import { readFile } from "node:fs/promises";
 import { join } from "node:path";
+
 import { catalogSchema, parseManifest } from "@aokit/module";
 import { z } from "zod";
+
 import { Vfs } from "../../src/engine/index.ts";
 import {
   FormatError,

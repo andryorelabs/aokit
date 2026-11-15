@@ -1,4 +1,5 @@
 import { expect, test } from "bun:test";
+
 import { RegistryError } from "../../src/registry/errors.ts";
 import { adaptShadcnItem } from "../../src/registry/shadcn/adapt.ts";
 import { shadcnItemSchema } from "../../src/registry/shadcn/schema.ts";

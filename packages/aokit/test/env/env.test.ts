@@ -1,6 +1,8 @@
 import { describe, expect, test } from "bun:test";
-import { Glob } from "bun";
 import { join, relative } from "node:path";
+
+import { Glob } from "bun";
+
 import {
   ENVIRONMENT_VARIABLE_NAMES,
   clearNativeLibraryPath,

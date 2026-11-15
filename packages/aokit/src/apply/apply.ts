@@ -1,3 +1,4 @@
+import { randomBytes } from "node:crypto";
 import {
   chmod,
   mkdir,
@@ -9,15 +10,15 @@ import {
   unlink,
   writeFile,
 } from "node:fs/promises";
-import { randomBytes } from "node:crypto";
 import { basename, dirname, join, resolve } from "node:path";
+
 import { registerShutdownHook } from "../cli/shutdown.ts";
 import type { Plan, PlanChange } from "../engine/plan.ts";
 import type { FileContent } from "../engine/vfs.ts";
-import { serializeLockfile } from "../lockfile/serialize.ts";
-import type { Lockfile } from "../lockfile/schema.ts";
-import { parseLockfile } from "../lockfile/read.ts";
 import type { Git } from "../git/git.ts";
+import { parseLockfile } from "../lockfile/read.ts";
+import type { Lockfile } from "../lockfile/schema.ts";
+import { serializeLockfile } from "../lockfile/serialize.ts";
 import { conflictFile, writeConflicts, type ConflictWrite } from "./conflicts.ts";
 import { ApplyError } from "./errors.ts";
 import { inSequence } from "./sequence.ts";

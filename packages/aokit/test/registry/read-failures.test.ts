@@ -2,21 +2,23 @@ import { afterEach, describe, expect, test } from "bun:test";
 import { mkdir, mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
+
 import { z } from "zod";
+
 import { buildRegistry } from "../../../../tools/registry-build/build.ts";
 import {
   addMigrationToFixtureSource,
   writeRegistrySourceFixture,
 } from "../../../../tools/registry-build/fixture.ts";
-import { parseJsonRecord } from "../helpers/registry-json.ts";
 import { currentReleasePointer, parseIndex } from "../../src/registry/client/index-file.ts";
-import { localTransport } from "../../src/registry/remote.ts";
 import {
   computeIntegrity,
   computeModuleIntegrity,
   readLocalRegistry,
   RegistryError,
 } from "../../src/registry/index.ts";
+import { localTransport } from "../../src/registry/remote.ts";
+import { parseJsonRecord } from "../helpers/registry-json.ts";
 
 const options = { cliVersion: "0.1.0" };
 const temporaryDirectories: string[] = [];

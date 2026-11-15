@@ -2,9 +2,11 @@ import { describe, expect, spyOn, test } from "bun:test";
 import { cp, mkdir, mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
+
 import { chromium } from "playwright";
 import sharp from "sharp";
 
+import { COVER_SPECS, readPngSize } from "./brand-export-spec.ts";
 import {
   assertFontsLoaded,
   exportBrand,
@@ -18,7 +20,6 @@ import {
   type PageLike,
   type RouteLike,
 } from "./brand-export.ts";
-import { COVER_SPECS, readPngSize } from "./brand-export-spec.ts";
 
 interface FakeOptions {
   readonly fonts?: unknown;

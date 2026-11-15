@@ -1,4 +1,5 @@
 import { catalogSchema } from "@aokit/module";
+
 import type { EngineContext, EngineModule, Vfs } from "../../src/engine/index.ts";
 import type { Lockfile } from "../../src/lockfile/schema.ts";
 import type { PipelineInput, RegistryInfo } from "../../src/pipeline/index.ts";

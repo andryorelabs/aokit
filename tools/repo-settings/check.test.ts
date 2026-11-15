@@ -1,6 +1,7 @@
 import { describe, expect, test } from "bun:test";
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
+
 import { createGhRunner, runCheck, type GhResult, type GhRunner } from "./check.ts";
 import { isRecord } from "./compare.ts";
 

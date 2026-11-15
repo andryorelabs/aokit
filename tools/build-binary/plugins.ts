@@ -1,5 +1,6 @@
 import { createHash } from "node:crypto";
 import { join } from "node:path";
+
 import type { BunPlugin } from "bun";
 
 /** Resolves `aokit-native:parser` and `aokit-native:oxfmt` to the target's `.node` files, embedded as assets. */

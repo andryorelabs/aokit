@@ -1,11 +1,13 @@
 import { describe, expect, test } from "bun:test";
+
+import { catalogSchema } from "@aokit/module";
 import { format } from "oxfmt";
 import oxfmtManifest from "oxfmt/package.json" with { type: "json" };
+
 import { Vfs } from "../../src/engine/index.ts";
 import { matchesIgnore } from "../../src/format/config.ts";
-import { oxfmtExtensions, oxfmtFilenames, oxfmtSupports } from "../../src/format/supported.ts";
 import { createOxfmtFormatter } from "../../src/format/index.ts";
-import { catalogSchema } from "@aokit/module";
+import { oxfmtExtensions, oxfmtFilenames, oxfmtSupports } from "../../src/format/supported.ts";
 
 const pinnedOxfmtVersion = "0.75.0";
 const upgradeHint = `Oxfmt changed from ${pinnedOxfmtVersion} to ${oxfmtManifest.version}: re-audit src/format/supported.ts against the new version and update this test's pin.`;

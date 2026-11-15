@@ -1,7 +1,5 @@
 import type { ModuleManifest } from "@aokit/module";
-import { computeIntegrity, type Integrity } from "../../registry/integrity.ts";
-import { adaptShadcnItem } from "../../registry/shadcn/adapt.ts";
-import { type ShadcnItem, shadcnItemSchema } from "../../registry/shadcn/schema.ts";
+
 import {
   type ModuleVersion,
   parseRegistrySource,
@@ -10,6 +8,9 @@ import {
   RegistryError,
   type RegistrySource,
 } from "../../registry/index.ts";
+import { computeIntegrity, type Integrity } from "../../registry/integrity.ts";
+import { adaptShadcnItem } from "../../registry/shadcn/adapt.ts";
+import { type ShadcnItem, shadcnItemSchema } from "../../registry/shadcn/schema.ts";
 import { sourceIdentity } from "../../trust/identity.ts";
 
 /** How one `registryDependencies` entry addresses the item it names. */

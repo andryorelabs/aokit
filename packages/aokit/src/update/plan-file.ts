@@ -1,12 +1,14 @@
 import { createHash } from "node:crypto";
 import { readFile, rm } from "node:fs/promises";
 import { isAbsolute, join } from "node:path";
+
 import { stableStringify } from "@aokit/module";
 import { z } from "zod";
+
 import { conflictFile, type ConflictWrite } from "../apply/conflicts.ts";
 import { AokitError } from "../cli/envelope.ts";
-import { Vfs, type FileContent } from "../engine/vfs.ts";
 import type { Plan, PlanChange } from "../engine/plan.ts";
+import { Vfs, type FileContent } from "../engine/vfs.ts";
 import type { Git } from "../git/git.ts";
 import type { KeptDependency } from "../lifecycle/keep-deps.ts";
 import { lockfileSchema, type Lockfile } from "../lockfile/schema.ts";

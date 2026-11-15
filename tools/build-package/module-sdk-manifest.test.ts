@@ -1,4 +1,5 @@
 import { expect, test } from "bun:test";
+
 import { publishManifestOf } from "./module-sdk.ts";
 
 test("a publishConfig.exports target outside dist/ is rejected", () => {

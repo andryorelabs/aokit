@@ -1,6 +1,8 @@
 import { resolve as resolvePath } from "node:path";
+
 import type { ModuleManifest } from "@aokit/module";
 import { z } from "zod";
+
 import { lockfileDriftOf } from "../../drift/drift-of.ts";
 import type { AnswerValue } from "../../engine/interpolate.ts";
 import type { PlanChange } from "../../engine/plan.ts";

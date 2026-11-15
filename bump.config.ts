@@ -1,6 +1,8 @@
 import { execFileSync } from "node:child_process";
 import { readFileSync, writeFileSync } from "node:fs";
+
 import { defineConfig } from "bumpp";
+
 import { promoteUnreleased } from "./tools/release/promote-unreleased.ts";
 
 const aokitManifest = "packages/aokit/package.json";

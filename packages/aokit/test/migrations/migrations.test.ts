@@ -1,11 +1,12 @@
 import { afterEach, describe, expect, test } from "bun:test";
 import { mkdir, writeFile } from "node:fs/promises";
 import { join } from "node:path";
+
 import { AokitError } from "../../src/cli/envelope.ts";
+import { cliVersion } from "../../src/cli/version.ts";
 import { Vfs } from "../../src/engine/vfs.ts";
 import { runMigrations, selectMigrations } from "../../src/migrations/index.ts";
 import { readLocalRegistry, type LocalRegistry } from "../../src/registry/index.ts";
-import { cliVersion } from "../../src/cli/version.ts";
 import { builtRegistry, cleanTemporaryDirectories } from "../diff/support.ts";
 
 afterEach(cleanTemporaryDirectories);

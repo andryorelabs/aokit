@@ -1,8 +1,10 @@
 import { expect, test } from "bun:test";
 import { mkdtemp, readFile, readdir, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
-import { z } from "zod";
 import { join } from "node:path";
+
+import { z } from "zod";
+
 import {
   LockfileError,
   lockfileJsonSchemaText,

@@ -1,14 +1,16 @@
 import { afterAll, describe, expect, test } from "bun:test";
 import { rmSync } from "node:fs";
-import { runCli, type CliIo } from "../../src/cli/adapter.ts";
-import { groupByCapability, listModules } from "../../src/cli/commands/list.ts";
-import { openRegistry } from "../../src/registry/index.ts";
-import { exposedCommands, hiddenCommands } from "../../src/cli/commands/registry.ts";
 import { mkdir, rm, writeFile } from "node:fs/promises";
 import { join } from "node:path";
+
+import { z } from "zod";
+
 import { buildRegistry } from "../../../../tools/registry-build/build.ts";
 import { writeRegistrySourceFixture } from "../../../../tools/registry-build/fixture.ts";
-import { z } from "zod";
+import { runCli, type CliIo } from "../../src/cli/adapter.ts";
+import { groupByCapability, listModules } from "../../src/cli/commands/list.ts";
+import { exposedCommands, hiddenCommands } from "../../src/cli/commands/registry.ts";
+import { openRegistry } from "../../src/registry/index.ts";
 import { parseJson } from "../helpers/cli-json.ts";
 import { newWorkspace } from "../mcp/helpers.ts";
 

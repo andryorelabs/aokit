@@ -1,5 +1,7 @@
 import { expect, test } from "bun:test";
+
 import { parseManifest } from "@aokit/module";
+
 import { coreOwner, renderHeader, writeAgentFiles } from "../../src/engine/agent-files.ts";
 import { type EngineContext, Vfs, buildPlan } from "../../src/engine/index.ts";
 import { parseRegions } from "../../src/patchers/markdown/regions.ts";
