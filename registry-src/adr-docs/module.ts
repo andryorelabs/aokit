@@ -21,14 +21,6 @@ export default defineModule({
       ownership: "managed",
     },
   ],
-  migrations: [
-    {
-      from: ">=1.0.0 <1.1.0",
-      to: "1.1.0",
-      stage: "after",
-      script: "migrations/adr-skill-rename.after.js",
-    },
-  ],
   ops: [
     {
       op: "appendRegion",

@@ -40,7 +40,9 @@ function findChangelogProblems(text: string): string[] {
   if (versions[0] !== "Unreleased") problems.push("[Unreleased] is not the first section");
   const oldest = versions.at(-1);
   for (const name of versions) {
-    const definition = lines.find((line) => line.startsWith(`[${name}]: `));
+    const definitions = lines.filter((line) => line.startsWith(`[${name}]: `));
+    if (definitions.length > 1) problems.push(`version ${name} has more than one link definition`);
+    const definition = definitions[0];
     const needsCompare = name !== oldest;
     if (definition === undefined) {
       problems.push(`version ${name} has no link definition`);
@@ -102,6 +104,13 @@ describe("CHANGELOG.md format", () => {
     expect(findChangelogProblems(broken)).toEqual(["version 0.2.0 has no link definition"]);
     const notCompare = sample.replace("compare/v0.1.0...v0.2.0", "releases/tag/v0.2.0");
     expect(findChangelogProblems(notCompare)).toEqual(["version 0.2.0 lacks a compare link"]);
+  });
+
+  test("a duplicated link definition fails", () => {
+    const duplicated = `${sample}[Unreleased]: ${repositoryUrl}/compare/v0.2.0...HEAD\n`;
+    expect(findChangelogProblems(duplicated)).toEqual([
+      "version Unreleased has more than one link definition",
+    ]);
   });
 
   test("a group other than Added, Changed or Fixed fails", () => {

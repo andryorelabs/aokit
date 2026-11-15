@@ -12,7 +12,7 @@
       "source": "registry-src",
       "sourceType": "local",
       "skillPath": ".claude/skills/cut-release/SKILL.md",
-      "computedHash": "9763d127f65a6d088b9eac9fc34e7af1389192f85fff02bc9ab347bbb59524fa",
+      "computedHash": "7c3be9d0b08fc08e20d38a7855f0392d92776fc6199fb7540cd42ba7bbcb016e",
       "installMode": "copy"
     },
     "design-taste-frontend": {

@@ -1,3 +1,5 @@
+import { existsSync, readFileSync } from "node:fs";
+import { join } from "node:path";
 import { describe, expect, test } from "bun:test";
 import { buildSelection } from "./support/index.ts";
 
@@ -22,4 +24,19 @@ describe("adr-docs", () => {
       expect(String(built.plan.vfs.read("AGENTS.md"))).toContain("## adr-docs");
     },
   );
+});
+
+describe("adr-docs rename from 1.0.x", () => {
+  const moduleDirectory = join(import.meta.dir, "..", "..", "..", "..", "registry-src", "adr-docs");
+
+  test("renames the old skill path through renames.json", () => {
+    const renames: unknown = JSON.parse(
+      readFileSync(join(moduleDirectory, "renames.json"), "utf8"),
+    );
+    expect(renames).toEqual({ ".claude/skills/adr/SKILL.md": ".claude/skills/add-adr/SKILL.md" });
+  });
+
+  test("ships no migration that could delete an edited skill", () => {
+    expect(existsSync(join(moduleDirectory, "migrations"))).toBe(false);
+  });
 });
