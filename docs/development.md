@@ -14,7 +14,7 @@ Run every script from the root with `bun run <script>`.
 
 | Script                | What it does                                                                                          |
 | --------------------- | ----------------------------------------------------------------------------------------------------- |
-| `check`               | Typecheck, lint, format check and knip.                                                               |
+| `check`               | Typecheck, lint, format check, knip and `check:package` (build, package lint and size budget).        |
 | `test`                | All tests, with the coverage gate.                                                                    |
 | `fix`                 | Alias of `lint:fix`.                                                                                  |
 | `lint:fix`            | Formats with Oxfmt, then applies Oxlint fixes.                                                        |

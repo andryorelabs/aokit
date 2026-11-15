@@ -29,7 +29,7 @@ Run it in a temporary directory and delete it afterwards.
 
 ## One-time owner setup
 
-The owner-only wizard `tools/release/human-steps.sh` does the setup that a tag cannot. Run it from the root. It needs `gh` (signed in), `npm` and `bun`, and has 11 stages. Re-running is safe, because it remembers saved values and skips rulesets that exist.
+The owner-only wizard `tools/release/human-steps.sh` does the setup that a tag cannot. Run it from the root. It needs `gh` (signed in), `npm` and `bun`, and has 11 stages. Each publishing stage asks for confirmation first, and the ruleset stage skips rulesets that exist. Do not re-run a publishing stage for a version that is already on npm: it fails with E403.
 
 1. First publish of `0.1.0-next.0` with a granular npm token: builds the package, publishes `aokit` then `create-aokit` under the dist-tag `next`, then asks you to revoke the token.
 2. Trusted publishers on npmjs.com: for `aokit` and `create-aokit`, set Trusted Publisher to GitHub Actions for this repository, workflow `release.yml`, environment empty.

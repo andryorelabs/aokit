@@ -1,14 +1,13 @@
 import { describe, expect, test } from "bun:test";
 import { existsSync, readdirSync, readFileSync } from "node:fs";
 import { join, resolve } from "node:path";
+import { ENVIRONMENT_VARIABLE_NAMES } from "../../packages/aokit/src/env.ts";
 
 const repoRoot = resolve(import.meta.dir, "../..");
 
 const envAccessPattern = /\b(?:env|process\.env)(?:\.|\[\s*")([A-Z][A-Z0-9_]*)\b/g;
 const directoryRulePattern = /\b(?:xdgVariable|windowsVariable):\s*"([A-Z][A-Z0-9_]*)"/g;
 const aokitNamePattern = /\bAOKIT_[A-Z0-9_]+\b/g;
-const agentListPattern = /agentVariables\s*=\s*\[([^\]]*)\]/g;
-const quotedNamePattern = /"([A-Z][A-Z0-9_]*)"/g;
 
 function listSourceFiles(directory: string): string[] {
   if (!existsSync(directory)) return [];
@@ -31,12 +30,6 @@ function namesIn(text: string, pattern: RegExp): string[] {
   return [...text.matchAll(pattern)].map((match) => match[1] ?? match[0]);
 }
 
-function agentListNames(text: string): string[] {
-  return [...text.matchAll(agentListPattern)].flatMap((match) =>
-    namesIn(match[1] ?? "", quotedNamePattern),
-  );
-}
-
 /** Every environment variable name the package sources read. */
 function environmentVariablesRead(files: readonly string[]): Map<string, string> {
   const found = new Map<string, string>();
@@ -46,7 +39,6 @@ function environmentVariablesRead(files: readonly string[]): Map<string, string>
       ...namesIn(text, envAccessPattern),
       ...namesIn(text, directoryRulePattern),
       ...namesIn(text, aokitNamePattern),
-      ...agentListNames(text),
     ];
     for (const name of names) {
       if (!found.has(name)) found.set(name, file.slice(repoRoot.length + 1));
@@ -74,6 +66,13 @@ describe("docs/configuration.md", () => {
     expect(read.has("AOKIT_AGENT")).toBe(true);
     expect(read.has("XDG_CACHE_HOME")).toBe(true);
     expect(missingFromDocument(read, document)).toEqual([]);
+  });
+
+  test("documents every name the environment module exports", () => {
+    const exported = new Map(
+      ENVIRONMENT_VARIABLE_NAMES.map((name) => [name, "packages/aokit/src/env.ts"]),
+    );
+    expect(missingFromDocument(exported, document)).toEqual([]);
   });
 
   test("flags a variable that has no row", () => {
