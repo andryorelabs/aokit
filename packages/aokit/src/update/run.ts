@@ -9,6 +9,7 @@ import { lockfileDriftOf } from "../drift/drift-of.ts";
 import { layoutTables, type Target } from "../engine/layout.ts";
 import type { Plan } from "../engine/plan.ts";
 import type { Vfs } from "../engine/vfs.ts";
+import { processEnvironment } from "../env.ts";
 import { openGit } from "../git/index.ts";
 import { runLifecycle, type LifecycleResult } from "../lifecycle/index.ts";
 import { keepProjectDeps, type KeptDependency } from "../lifecycle/keep-deps.ts";
@@ -636,7 +637,8 @@ export async function applyUpdatePlan(input: UpdateInput): Promise<UpdateResult>
   }
   await deletePlanFile(input.dir, git);
   const shouldInstall = input.install && changesPackageJson(saved.plan);
-  if (shouldInstall) await (input.installer ?? ((dir) => runInstall(dir, process.env)))(input.dir);
+  if (shouldInstall)
+    await (input.installer ?? ((dir) => runInstall(dir, processEnvironment())))(input.dir);
   return {
     ...base,
     diff: undefined,
