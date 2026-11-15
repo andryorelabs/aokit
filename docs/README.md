@@ -102,6 +102,7 @@ Every Markdown file under `docs/` has a row here; a test fails when one is missi
 | [standards/ci-cd.md](standards/ci-cd.md)                               | CI and CD            |
 | [standards/community-and-readme.md](standards/community-and-readme.md) | Community and README |
 | [standards/docs-and-emet.md](standards/docs-and-emet.md)               | Docs and emet        |
+| [standards/product-types.md](standards/product-types.md)               | Product types        |
 | [standards/renovate.md](standards/renovate.md)                         | Renovate             |
 | [standards/repo-settings.md](standards/repo-settings.md)               | Repo settings        |
 | [standards/testing.md](standards/testing.md)                           | Testing              |

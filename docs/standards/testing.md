@@ -38,8 +38,12 @@ An exemption records why a module has no direct test, such as a process entry po
 
 ## Gate rule
 
-- **E3** (must) Coverage has a rising gate, and a coverage manifest covers every source module of every package. Reason: a gain cannot erode, and no module hides from the gate.
-- **E4** (must) Every file meets 97% lines and 98% functions unless it is a listed coverage exception with a reason and its own floor. Reason: the mean cannot hide a low file.
+Rules from standard v2 carry their V number and project types, defined in the [legend](README.md#levels-and-project-types). The v1 rule E4 was numbered twice (here and in [tooling](tooling.md)); this one is renumbered E9.
+
+- **E3** (V25, must, all) Coverage has a raise-only gate (a per-file coverage floor, such as the Vitest `perFile` option, plus a threshold that may only rise), and a coverage manifest or an equivalent check covers every source module of every package, whatever the test runner. Reason: a gain cannot erode, and no module hides from the gate.
+- **E9** (V25, must, all) Every file meets the per-file floor (aokit: 97% lines and 98% functions) unless it is a listed coverage exception with a reason and its own floor, whatever the test runner. Reason: the mean cannot hide a low file.
+- **E19** (V26, should, mono) Coverage floors are per workspace, in one JSON file. Reason: a workspace's floor is data, and one workspace cannot hide behind another.
+- **E20** (V27, should, E2E) CI summarises tests that passed only on retry (flaky tests). Reason: a flaky test is visible before it becomes a failure.
 
 ## Related
 
