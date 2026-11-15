@@ -40,7 +40,7 @@ The aokit repo configures Oxlint in `oxlint.config.ts` (`defineConfig`) and Knip
 - **Local rules** live in `tools/oxlint/local-plugin.ts` with a test per rule, and load as the `local` jsPlugin.
 - **Knip:** `knip.jsonc` carries a reason on every entry, ignore and `ignoreDependencies` line.
 - **TypeScript:** `tsconfig.base.json` sets `erasableSyntaxOnly`, so enums, namespaces and parameter properties are rejected.
-- **Blame:** `.git-blame-ignore-revs` lists the lint-debt squash commits; enable it with `git config blame.ignoreRevsFile .git-blame-ignore-revs`.
+- **Blame:** `.git-blame-ignore-revs` lists the lint-debt squash commits and the import-sort reformat; enable it with `git config blame.ignoreRevsFile .git-blame-ignore-revs`.
 
 ## Scripts and configuration rules
 
