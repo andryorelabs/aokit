@@ -16,6 +16,7 @@ Cross-repo standards that aokit's first-party Modules encode and that Andry's ow
 | [brand](brand.md)                               | Brand kit, names, credit and site hosts.                                                                                      |
 | [agent-tooling](agent-tooling.md)               | `emet.config.json`, committed Claude settings, skills lock, ignored agent paths.                                              |
 | [testing](testing.md)                           | Coverage threshold policy and the coverage manifest.                                                                          |
+| [product-types](product-types.md)               | CLI, plugin, site and bilingual rules.                                                                                        |
 
 The standards map to Modules in the [module catalog](../architecture/module-catalog.md): `oxc`, `eslint` companion, `commitlint` + `husky` + `lint-staged`, `knip`, `playwright` + `axe`, `renovate` and `adr-docs`. Terms follow [GLOSSARY.md](../../GLOSSARY.md).
 
@@ -43,12 +44,59 @@ A page changes only when the evidence does: a tool release, a failed parity gate
 | ---------------- | --------------------------------- |
 | `docs-and-forge` | [docs-and-emet](docs-and-emet.md) |
 
+## Levels and project types
+
+Standard v2 adds the rules V01 to V44. Each page states a v2 rule as `**<ID>** (V<nn>, <level>, <types>)`, so every V number appears once, in the page that owns it, under an ID that continues that page's letter series (A to H, and I for the new product types page). A rule marked with two levels, such as "must rel, should all", is a must for the first type and a should for the rest.
+
+| Word        | Meaning                                              |
+| ----------- | ---------------------------------------------------- |
+| all         | every repository                                     |
+| rel         | a repository that publishes releases                 |
+| bin         | a repository that ships compiled binaries            |
+| lib         | a repository that publishes a package                |
+| CLI, plugin | a command line tool, a Claude Code plugin            |
+| site        | a product site (UI: a project with a user interface) |
+| mono        | a monorepo with several workspaces                   |
+| TS          | a TypeScript repository                              |
+| bilingual   | a repository with more than one language             |
+| E2E         | a repository with an end-to-end suite                |
+
+### Rule index
+
+| V   | ID  | Page                                            | V   | ID     | Page                              |
+| --- | --- | ----------------------------------------------- | --- | ------ | --------------------------------- |
+| V01 | D6  | [docs-and-emet](docs-and-emet.md)               | V23 | E17    | [tooling](tooling.md)             |
+| V02 | D7  | [docs-and-emet](docs-and-emet.md)               | V24 | E18    | [tooling](tooling.md)             |
+| V03 | D8  | [docs-and-emet](docs-and-emet.md)               | V25 | E3, E9 | [testing](testing.md)             |
+| V04 | D9  | [docs-and-emet](docs-and-emet.md)               | V26 | E19    | [testing](testing.md)             |
+| V05 | D10 | [docs-and-emet](docs-and-emet.md)               | V27 | E20    | [testing](testing.md)             |
+| V06 | D11 | [docs-and-emet](docs-and-emet.md)               | V28 | F6     | [ci-cd](ci-cd.md)                 |
+| V07 | D12 | [docs-and-emet](docs-and-emet.md)               | V29 | F7     | [ci-cd](ci-cd.md)                 |
+| V08 | B8  | [community-and-readme](community-and-readme.md) | V30 | F8     | [ci-cd](ci-cd.md)                 |
+| V09 | B9  | [community-and-readme](community-and-readme.md) | V31 | F9     | [ci-cd](ci-cd.md)                 |
+| V10 | B10 | [community-and-readme](community-and-readme.md) | V32 | F10    | [ci-cd](ci-cd.md)                 |
+| V11 | D13 | [docs-and-emet](docs-and-emet.md)               | V33 | F11    | [ci-cd](ci-cd.md)                 |
+| V12 | A11 | [repo-settings](repo-settings.md)               | V34 | F12    | [ci-cd](ci-cd.md)                 |
+| V13 | A12 | [repo-settings](repo-settings.md)               | V35 | F13    | [ci-cd](ci-cd.md)                 |
+| V14 | B11 | [community-and-readme](community-and-readme.md) | V36 | F14    | [ci-cd](ci-cd.md)                 |
+| V15 | B12 | [community-and-readme](community-and-readme.md) | V37 | F15    | [ci-cd](ci-cd.md)                 |
+| V16 | E10 | [tooling](tooling.md)                           | V38 | F16    | [ci-cd](ci-cd.md)                 |
+| V17 | E11 | [tooling](tooling.md)                           | V39 | I1, I2 | [product-types](product-types.md) |
+| V18 | E12 | [tooling](tooling.md)                           | V40 | I3     | [product-types](product-types.md) |
+| V19 | E13 | [tooling](tooling.md)                           | V41 | I4     | [product-types](product-types.md) |
+| V20 | E14 | [tooling](tooling.md)                           | V42 | I5     | [product-types](product-types.md) |
+| V21 | E15 | [tooling](tooling.md)                           | V43 | H5     | [agent-tooling](agent-tooling.md) |
+| V22 | E16 | [tooling](tooling.md)                           | V44 | H6     | [agent-tooling](agent-tooling.md) |
+
+V45 listed defects in the v1 text; they are fixed in place (the README sign-off, G3, H1, and the aokit-only markers).
+
 ## Sign-off status
 
-Standard v1 was voted on 2026-11-11 by the six repository sessions, and revised on 2026-11-11 to require the promotion of `develop` to `main` by merge commit. Each repo records its adoption and its list of rules that do not apply (N-A) in an ADR. Reported N-A lists:
+Standard v1 was voted on 2026-11-11 by the six repository sessions, and revised on 2026-11-11 to require the promotion of `develop` to `main` by merge commit. Standard v2 was agreed on 2026-11-15 by the same sessions. Each repo records its adoption and its list of rules that do not apply (N-A) in an ADR; the lists live only there, so they cannot drift from this page.
 
-- aokit: the site footer credit until its site exists, FUNDING, ROADMAP and PRODUCT.
-- jobship: `.node-version` where no script runs under Node, the site footer credit, npm publishing, the skills lock, FUNDING and a separate lint-docs workflow.
-- snug: FUNDING, npm publishing, plugin manifests and the terminal banner.
-- andryore-web: the site footer credit, npm publishing, attestation, plugin manifests and the root `llms.txt`.
-- emet and animated-fluent-emojis record theirs in their own ADRs.
+- [aokit: ADR 0029](../adr/0029-adopt-cross-repo-standard-v1.md)
+- [emet](https://github.com/andryorelabs/emet/tree/main/docs/adr)
+- [jobship](https://github.com/andryorelabs/jobship/tree/main/docs/adr)
+- [snug](https://github.com/andryorelabs/snug/tree/main/docs/adr)
+- [animated-fluent-emojis](https://github.com/andryorelabs/animated-fluent-emojis/tree/main/docs/adr)
+- [andryore-web](https://github.com/andryorelabs/andryore-web/tree/main/docs/adr)

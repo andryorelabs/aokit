@@ -2,7 +2,7 @@
 
 GitHub settings, rulesets, security features, metadata, labels and URLs for every AndryOre repository. Index: [standards](README.md). Terms follow [GLOSSARY.md](../../GLOSSARY.md).
 
-Each rule is marked **must** or **should**, gives one sentence, then the reason. Settings live as code, so drift is visible.
+Each rule is marked **must** or **should**, gives one sentence, then the reason. Rules from standard v2 carry their V number and project types, defined in the [legend](README.md#levels-and-project-types). Settings live as code, so drift is visible.
 
 ## Merging
 
@@ -18,10 +18,11 @@ Each rule is marked **must** or **should**, gives one sentence, then the reason.
   - Tags: `refs/tags/v*` at least, with no deletion and no update; a ruleset may cover every tag and let only repository admins create one, as aokit's does.
   - The repo's own session applies settings and records the step in `docs/development.md`; the script only reads.
 - **A5** (should) `develop` and `main` require signed commits, and "Check markdown links" is a required check where `lint-docs` is its own workflow. Reason: signatures prove authorship and a broken link must block a merge.
+- **A11** (V12, must, all) The settings file is named `.github/repo-settings.json`, with `.github/rulesets/README.md` beside the rulesets, and `repo-settings:check` covers merge titles, description, homepage, topics, default branch, wiki, projects and discussions, private vulnerability reporting, Dependabot alerts and security updates, a read-only `GITHUB_TOKEN` default, fork-PR approval and CodeQL setup. Reason: one name and one check make a setting changed by hand visible.
 
 ## Security
 
-- **A6** (must) Secret scanning, push protection, Dependabot alerts, Dependabot security updates and private vulnerability reporting are on, and Renovate is the version updater. Reason: leaks and known-vulnerable dependencies are caught before release without a second updater.
+- **A6** (must) Secret scanning, push protection, Dependabot alerts, Dependabot security updates and private vulnerability reporting are on, and Renovate is the version updater. Reason: leaks and known-vulnerable dependencies are caught before release.
 
 ## Metadata
 
@@ -31,6 +32,15 @@ Each rule is marked **must** or **should**, gives one sentence, then the reason.
 ## Labels
 
 - **A9** (must) `.github/labels.yml` is the only label source, is synced to the repo, contains every label Renovate and the issue forms reference, and uses Type, Status, Priority and Area; repos tracked on GitHub add `status:*` and triage labels. Reason: a label used but not declared silently fails to apply.
+- **A12** (V13, must, all) `.github/labels.yml` holds one exact label set:
+  - `Type: Bug`, `Type: Feature`, `Type: Enhancement`, `Type: Docs`, `Type: Security`;
+  - `Status: Needs Info`, `Status: Needs Decision`, `Status: Blocked`, `Status: In Progress`;
+  - `Priority: Critical`, `Priority: High`, `Priority: Medium`, `Priority: Low`;
+  - `Resolution: Duplicate`, `Resolution: Won't Fix`, `Resolution: Invalid`;
+  - `Area: <per repo>`;
+  - `dependencies`, `github-actions`, `security`, `breaking-change`, `good first issue`, `help wanted`.
+
+  GitHub-tracked repos add triage and `status:*` labels (A9). Reason: one label vocabulary across every repo.
 
 ## URLs
 
