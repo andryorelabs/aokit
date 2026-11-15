@@ -22,7 +22,8 @@
     "create-aokit": "./dist/main.js"
   },
   "files": [
-    "dist"
+    "dist",
+    "llms.txt"
   ],
   "type": "module",
   "publishConfig": {

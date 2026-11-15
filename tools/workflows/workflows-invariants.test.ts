@@ -28,7 +28,8 @@ type WorkflowRule =
   | "bun-cache"
   | "no-cache-on-release"
   | "workflow-dispatch"
-  | "harden-runner";
+  | "harden-runner"
+  | "steps-call-scripts";
 
 /** The job slot used for problems that belong to the whole workflow rather than one job. */
 const workflowScope = "(workflow)";
@@ -53,11 +54,15 @@ const dispatchWorkflows: ReadonlySet<string> = new Set(["ci.yml", "codeql.yml", 
 /** The action every job starts with, so its network and process activity is audited (V43). */
 const hardenRunnerAction = "step-security/harden-runner@";
 const egressPolicies: ReadonlySet<unknown> = new Set(["audit", "block"]);
-/** The rules aokit's own workflows follow and a generated Project's workflows need not. */
+/**
+ * The rules aokit's own workflows follow and a generated Project's workflows need not.
+ * `steps-call-scripts` stays repo-only because a generated Project defines its own scripts.
+ */
 const repoOnlyRules: readonly WorkflowRule[] = [
   "push-branches",
   "workflow-dispatch",
   "harden-runner",
+  "steps-call-scripts",
 ];
 
 /** The `with:` inputs of the shared Bun install cache step every install step must follow. */
@@ -361,6 +366,7 @@ function findJobProblems(
   steps.forEach((step: unknown, index) => {
     if (!isRecord(step)) return;
     problems.push(...findStepProblems(file, job, step, index));
+    problems.push(...findStepScriptProblems(file, job, step, index));
     if (isRelease) problems.push(...findReleaseCacheProblems(file, job, step, index));
   });
   if (!isRelease) problems.push(...findBunCacheProblems(file, job, steps));
@@ -397,6 +403,350 @@ function findBunCacheProblems(file: string, job: string, steps: readonly unknown
     );
   });
   return problems;
+}
+
+/** A command a CI step may run although it is not a script call, with the reason it may. */
+export interface ScriptExemption {
+  /** Matches the whole command text, from its first word after any `VAR=value` prefix. */
+  readonly command: RegExp;
+  readonly reason: string;
+}
+
+/**
+ * The commands `steps-call-scripts` admits besides a script call. Each entry is as narrow as the
+ * workflows allow and carries its own reason; an entry no repo step uses fails the suite.
+ */
+export const stepsCallScriptsExemptions: readonly ScriptExemption[] = [
+  {
+    command: /^(?:echo|printf|exit|cd|read|local|return|break|shopt|true|\[)(?:\s|$)/,
+    reason: "shell builtins: output, tests and control flow inside a step, not a tool",
+  },
+  {
+    command: /^(?:cat|cp|diff|head|ls|mkdir|mktemp|sleep|sort|tr|wc)(?:\s|$)/,
+    reason:
+      "coreutils and diffutils present on every runner image, used to move, print and compare step files",
+  },
+  {
+    command: /^(?:awk -v bytes=|sed 's\/\^\/\* \/')/,
+    reason: "one-expression text formatting: the binary size in MiB and the allowed signers file",
+  },
+  {
+    command: /^sha256sum /,
+    reason:
+      "coreutils checksums of the release binaries and the actionlint download; release-workflow.test.ts runs the Write SHA256SUMS step body in bash",
+  },
+  {
+    command: /^jq -r \.(?:version|dependencies\.aokit) packages\/[\w-]+\/package\.json$/,
+    reason:
+      "reads the package versions in release.yml's Resolve step; release-workflow.test.ts runs that step body in bash, so it stays inline",
+  },
+  {
+    command: /^bun (?:install|i)(?:\s|$)/,
+    reason: "installs the dependencies every script needs, so no script can run before it",
+  },
+  {
+    command: /^bun test \S/,
+    reason:
+      "runs one test path or subset; the test script always runs the whole suite under the coverage gate",
+  },
+  {
+    command: /^bun pm pack --destination /,
+    reason: "packs one workspace package from its own directory into the release tarballs",
+  },
+  {
+    command: /^bunx "(?:aokit|create-aokit)@\$VERSION" /,
+    reason: "smoke-runs the version just published to npm, which no local script reaches",
+  },
+  {
+    command: /^git config --global core\.autocrlf false$/,
+    reason: "keeps LF line endings on Windows; it runs before checkout, so no script exists yet",
+  },
+  {
+    command:
+      /^git (?:merge-base --is-ancestor |fetch --quiet --no-tags |cat-file -t |rev-parse "refs\/tags\/|-c gpg\.ssh\.allowedSignersFile=)/,
+    reason:
+      "the release tag gate (on main, annotated, signed) stays inline in release.yml, where release-gates.test.ts asserts it runs before any build",
+  },
+  {
+    command: /^gh api (?:"users\/\$ACTOR\/(?:ssh_signing_keys|gpg_keys)"|--method GET "repos\/)/,
+    reason:
+      "reads the tagger's signing keys and the tagged commit's CI result with the job token, inside the inline release gates",
+  },
+  {
+    command: /^gh release (?:create|upload) "v\$VERSION" /,
+    reason:
+      "creates the GitHub Release and attaches its assets; release-workflow.test.ts runs these step bodies in bash",
+  },
+  {
+    command: /^gpg --batch --quiet --import$/,
+    reason: "imports the tagger's GPG keys so git verify-tag can check the release tag",
+  },
+  {
+    command: /^npm (?:--version$|view "|publish "\$tarball")/,
+    reason: "npm trusted publishing with provenance needs the npm CLI, which bun does not replace",
+  },
+  {
+    command: /^curl --fail .*\/rhysd\/actionlint\/releases\/download\//,
+    reason: "downloads the pinned actionlint release; the next command checks its SHA-256",
+  },
+  {
+    command: /^tar --extract .* actionlint$/,
+    reason: "unpacks the checksum-verified actionlint binary into the runner temp directory",
+  },
+  {
+    command: /^"\$\{RUNNER_TEMP\}\/actionlint" /,
+    reason:
+      "runs actionlint, a Go binary the step before installs; it is not a package a script could call",
+  },
+  {
+    command: /^pipx install "zizmor==\$\{ZIZMOR_VERSION\}"$/,
+    reason: "zizmor ships on PyPI only, at the version Renovate pins in the step env",
+  },
+  {
+    command: /^zizmor /,
+    reason:
+      "runs zizmor, a Python tool the step before installs; it is not a package a script could call",
+  },
+];
+
+/** A script call: a `package.json` script through `bun run`, or a repo script under `tools/`. */
+const scriptCall = /^bun (?:run (?:--[\w-]+ )*[\w:-]+|tools\/[\w./-]+\.ts)(?:\s|$)/;
+const bunRunScriptName = /^bun run (?:--[\w-]+ )*([\w:-]+)(?:\s|$)/;
+const commandSeparator = /[|;&()\n]/;
+/** Words that open, continue or close a compound command; the command starts after them. */
+const reservedWords: ReadonlySet<string> = new Set([
+  "if",
+  "then",
+  "else",
+  "elif",
+  "fi",
+  "do",
+  "done",
+  "while",
+  "until",
+  "esac",
+  "{",
+  "}",
+  "!",
+  "time",
+]);
+/** Words whose clause holds no command: `for x in list` and `case word in`. */
+const clauseWords: ReadonlySet<string> = new Set(["for", "case", "select"]);
+const assignmentWord = /^[A-Za-z_]\w*(?:\[[^\]]*\])?\+?=/;
+const redirectionOperator = /^\d*(?:<<<|<<-?|>>|<>|>&|<&|>\||<|>)$/;
+const attachedRedirection = /^\d*(?:<<<|<<-?|>>|<>|>&|<&|>\||<|>)\S/;
+const heredocStart = /(?<!<)<<-?\s*(['"]?)([A-Za-z_]\w*)\1/;
+const casePatterns = /(\bin\b|;;)(\s*)([^;()\n]*\))/g;
+const arrayAssignmentStart = /[A-Za-z_]\w*\+?=\(/g;
+const functionDefinition = /(?:^|[\n;&|{}])\s*([A-Za-z_][\w-]*)\s*\(\s*\)/g;
+
+interface MaskedScript {
+  /** The scanned text, same length, with quoted text, substitutions and comments masked. */
+  readonly masked: string;
+  /** The text inside each top-level `$( )`, scanned on its own afterwards. */
+  readonly substitutions: readonly string[];
+  /** The index the scan stopped at: the closing `)` of a substitution, or the end of the text. */
+  readonly end: number;
+}
+
+/** Drops heredoc bodies, which are data and may hold anything that looks like a command. */
+function removeHeredocBodies(script: string): string {
+  const kept: string[] = [];
+  let terminator: string | undefined;
+  for (const line of script.split("\n")) {
+    if (terminator !== undefined) {
+      if (line.trim() === terminator) terminator = undefined;
+      continue;
+    }
+    kept.push(line);
+    terminator = heredocStart.exec(line)?.[2];
+  }
+  return kept.join("\n");
+}
+
+/** `width` copies of `character`: the mask for that many characters of a scanned script. */
+function maskSpan(width: number, character = "x"): string {
+  return character.repeat(width);
+}
+
+/**
+ * Scans `text` from `start`, masking quoted text, `${ }` expansions, comments and `$( )`
+ * substitutions with `x` so separators inside them do not split commands. With
+ * `insideSubstitution`, the scan stops at the `)` that closes the substitution.
+ */
+function maskShell(text: string, start: number, insideSubstitution: boolean): MaskedScript {
+  let masked = "";
+  const substitutions: string[] = [];
+  let quote: "'" | '"' | undefined;
+  let depth = 0;
+  let index = start;
+  while (index < text.length) {
+    const character = text[index] ?? "";
+    const next = text[index + 1] ?? "";
+    let width = 1;
+    let replacement: string | undefined = "x";
+    if (quote === "'") {
+      if (character === "'") quote = undefined;
+    } else if (character === "\\") {
+      width = Math.min(2, text.length - index);
+    } else if (character === "$" && next === "(") {
+      const inner = maskShell(text, index + 2, true);
+      substitutions.push(text.slice(index + 2, inner.end));
+      width = Math.min(inner.end + 1, text.length) - index;
+    } else if (character === "$" && next === "{") {
+      const close = text.indexOf("}", index);
+      width = (close === -1 ? text.length : close + 1) - index;
+    } else if (quote === '"') {
+      if (character === '"') quote = undefined;
+    } else if (character === "'" || character === '"') {
+      quote = character;
+    } else if (character === "#" && (index === start || /\s/.test(text[index - 1] ?? ""))) {
+      const newline = text.indexOf("\n", index);
+      width = (newline === -1 ? text.length : newline) - index;
+      replacement = " ";
+    } else if (character === ")" && insideSubstitution && depth === 0) {
+      return { masked, substitutions, end: index };
+    } else {
+      if (character === "(") depth += 1;
+      if (character === ")") depth -= 1;
+      replacement = undefined;
+    }
+    masked += replacement === undefined ? character : maskSpan(width, replacement);
+    index += width;
+  }
+  return { masked, substitutions, end: index };
+}
+
+/** Blanks `case` patterns such as `success | skipped)`, whose `|` and `)` are not separators. */
+function maskCasePatterns(masked: string): string {
+  return masked.replace(
+    casePatterns,
+    (_match, keyword: string, space: string, patterns: string) =>
+      `${keyword}${space}${maskSpan(patterns.length, " ")}`,
+  );
+}
+
+/** Masks the list of an array assignment such as `flags=(--repo x)`, so it reads as one word. */
+function maskArrayAssignments(masked: string): string {
+  let result = masked;
+  for (const match of masked.matchAll(arrayAssignmentStart)) {
+    const open = match.index + match[0].length - 1;
+    const close = result.indexOf(")", open);
+    const stop = close === -1 ? result.length : close + 1;
+    result = `${result.slice(0, open)}${maskSpan(stop - open)}${result.slice(stop)}`;
+  }
+  return result;
+}
+
+/** The command in `script[start..end]`: from its first word after reserved words, assignments and redirections. */
+function commandIn(
+  script: string,
+  masked: string,
+  span: { start: number; end: number },
+  functions: ReadonlySet<string>,
+): string | undefined {
+  const segment = masked.slice(span.start, span.end);
+  const words = [...segment.matchAll(/\S+/g)];
+  let position = 0;
+  while (position < words.length) {
+    const word = words[position]?.[0] ?? "";
+    if (clauseWords.has(word)) return undefined;
+    if (redirectionOperator.test(word)) {
+      position += 2;
+    } else if (
+      reservedWords.has(word) ||
+      assignmentWord.test(word) ||
+      attachedRedirection.test(word)
+    ) {
+      position += 1;
+    } else {
+      break;
+    }
+  }
+  const head = words[position];
+  if (head === undefined) return undefined;
+  const headStart = span.start + head.index;
+  if (functions.has(script.slice(headStart, headStart + head[0].length))) return undefined;
+  const length = masked.slice(headStart, span.end).trimEnd().length;
+  return script.slice(headStart, headStart + length);
+}
+
+/** Lists the commands of a shell script whose heredoc bodies are gone and lines are joined. */
+function listScriptCommands(script: string): string[] {
+  const { masked: quoted, substitutions } = maskShell(script, 0, false);
+  const masked = maskArrayAssignments(maskCasePatterns(quoted));
+  const functions = new Set(
+    [...masked.matchAll(functionDefinition)].map((match) => match[1] ?? ""),
+  );
+  const commands: string[] = [];
+  let start = 0;
+  for (let index = 0; index <= masked.length; index += 1) {
+    if (index < masked.length && !commandSeparator.test(masked[index] ?? "")) continue;
+    const command = commandIn(script, masked, { start, end: index }, functions);
+    if (command !== undefined) commands.push(command);
+    start = index + 1;
+  }
+  return [...commands, ...substitutions.flatMap(listScriptCommands)];
+}
+
+/**
+ * Lists every command a `run:` script executes, each from its first word: commands joined by
+ * `&&`, `||`, `|` and `;`, inside `if`, loops and groups, and inside `$( )` substitutions.
+ * Heredoc bodies, `case` patterns, array lists and calls to functions the script defines are not
+ * commands. A shell parser in miniature: enough for the workflows this repo writes.
+ */
+export function listStepCommands(run: string): string[] {
+  const script = removeHeredocBodies(run.replaceAll("\r\n", "\n")).replaceAll("\\\n", "  ");
+  return listScriptCommands(script);
+}
+
+/** The `scripts` keys of the root `package.json`: the only names `bun run` may call in a step. */
+const rootPackageScripts: ReadonlySet<string> = (() => {
+  const manifest: unknown = JSON.parse(
+    readFileSync(join(import.meta.dir, "..", "..", "package.json"), "utf8"),
+  );
+  const scripts = isRecord(manifest) && isRecord(manifest.scripts) ? manifest.scripts : {};
+  return new Set(Object.keys(scripts));
+})();
+
+/**
+ * True for a repo script under `tools/` or a `bun run <name>` whose name is a `package.json`
+ * script: `bun run` also executes `node_modules/.bin` binaries, which is a raw tool call.
+ */
+function isKnownScriptCall(command: string, knownScripts: ReadonlySet<string>): boolean {
+  if (!scriptCall.test(command)) return false;
+  const name = bunRunScriptName.exec(command)?.[1];
+  return name === undefined || knownScripts.has(name);
+}
+
+/**
+ * The `steps-call-scripts` rule (V32): a step calls `bun run <script>` or a repo script under
+ * `tools/`, never a raw tool such as `bunx commitlint`, unless {@link stepsCallScriptsExemptions}
+ * admits the command with a reason.
+ */
+export function findStepScriptProblems(
+  file: string,
+  job: string,
+  step: Record<string, unknown>,
+  index: number,
+  knownScripts: ReadonlySet<string> = rootPackageScripts,
+): string[] {
+  const run = step.run;
+  if (typeof run !== "string") return [];
+  return listStepCommands(run)
+    .filter(
+      (command) =>
+        !isKnownScriptCall(command, knownScripts) &&
+        !stepsCallScriptsExemptions.some((exemption) => exemption.command.test(command)),
+    )
+    .map((command) =>
+      describeProblem(
+        file,
+        job,
+        "steps-call-scripts",
+        `step ${stepLabel(step, index)} runs \`${command}\` directly; call bun run <script>, or exempt the command with a reason`,
+      ),
+    );
 }
 
 /** Scans the raw text because the version comment after a `uses:` is lost when the YAML is parsed. */
@@ -730,6 +1080,13 @@ const brokenFixtures: readonly {
     search: `          restore-keys: ${bunCache.restoreKeys}\n`,
     replacement: "",
     expected: `fixture.yml:build breaks bun-cache: install step "Install" is not preceded by ${bunCacheDescription}`,
+  },
+  {
+    rule: "steps-call-scripts",
+    search: 'run: echo "$REF"',
+    replacement: 'run: bunx commitlint --from "$REF" --to HEAD',
+    expected:
+      'fixture.yml:build breaks steps-call-scripts: step "Print ref" runs `bunx commitlint --from "$REF" --to HEAD` directly; call bun run <script>, or exempt the command with a reason',
   },
 ];
 
@@ -1141,6 +1498,154 @@ ${fixtureHardenStep}
     expect(findWorkflowProblems("fixture.yml", text)).toEqual([
       "fixture.yml:build breaks pinned-actions: actions/checkout@v7 is not pinned to a 40-character SHA",
     ]);
+  });
+});
+
+function readRepoWorkflows(): { name: string; text: string }[] {
+  return readdirSync(workflowsDirectory)
+    .filter((name) => /\.ya?ml$/.test(name))
+    .toSorted()
+    .map((name) => ({ name, text: readFileSync(join(workflowsDirectory, name), "utf8") }));
+}
+
+function listRepoStepCommands(): string[] {
+  return readRepoWorkflows().flatMap(({ text }) => {
+    const workflow: unknown = Bun.YAML.parse(text);
+    const jobs = isRecord(workflow) && isRecord(workflow.jobs) ? Object.values(workflow.jobs) : [];
+    return jobs.flatMap((job) => {
+      const steps = isRecord(job) && Array.isArray(job.steps) ? (job.steps as unknown[]) : [];
+      return steps.flatMap((step) =>
+        isRecord(step) && typeof step.run === "string" ? listStepCommands(step.run) : [],
+      );
+    });
+  });
+}
+
+describe("S5: CI steps call bun run <script>", () => {
+  test("WHEN a step runs bunx commitlint directly THEN the rule fails naming the step", () => {
+    const step = {
+      name: "Validate commit messages",
+      run: 'bunx commitlint --from "$BASE_SHA" --to "$HEAD_SHA" --verbose',
+    };
+    expect(findStepScriptProblems("ci.yml", "commitlint", step, 5)).toEqual([
+      'ci.yml:commitlint breaks steps-call-scripts: step "Validate commit messages" runs `bunx commitlint --from "$BASE_SHA" --to "$HEAD_SHA" --verbose` directly; call bun run <script>, or exempt the command with a reason',
+    ]);
+  });
+
+  test("bun run <script> and a repo script under tools/ pass", () => {
+    const step = {
+      run: 'bun run lint:commits --from "$BASE_SHA" --to "$HEAD_SHA"\nbun run build:binary -- --target "$TARGET"\nbun tools/upgrade-job/main.ts',
+    };
+    expect(findStepScriptProblems("ci.yml", "check", step, 0)).toEqual([]);
+  });
+
+  test("bun run of a node_modules binary that is not a package.json script fails", () => {
+    const step = { name: "Lint", run: 'bun run commitlint --from "$BASE_SHA" --to "$HEAD_SHA"' };
+    expect(findStepScriptProblems("ci.yml", "commitlint", step, 0)).toEqual([
+      'ci.yml:commitlint breaks steps-call-scripts: step "Lint" runs `bun run commitlint --from "$BASE_SHA" --to "$HEAD_SHA"` directly; call bun run <script>, or exempt the command with a reason',
+    ]);
+  });
+
+  test("a raw tool hidden in a command substitution fails", () => {
+    const step = { name: "Resolve", run: 'version="$(npx semver 1.0.0)"\necho "$version"' };
+    expect(findStepScriptProblems("release.yml", "verify", step, 0)).toEqual([
+      'release.yml:verify breaks steps-call-scripts: step "Resolve" runs `npx semver 1.0.0` directly; call bun run <script>, or exempt the command with a reason',
+    ]);
+  });
+
+  test.each([
+    ["a plain command", 'bunx commitlint --from "$A"', ['bunx commitlint --from "$A"']],
+    [
+      "a command substitution in an assignment",
+      'version="$(jq -r .version a.json)"',
+      ["jq -r .version a.json"],
+    ],
+    [
+      "an env prefix, a continuation and a substitution",
+      'TARBALLS="$(printf \'%s,\' "$T"/*.tgz)" \\\n  bun test packages/x',
+      ["bun test packages/x", "printf '%s,' \"$T\"/*.tgz"],
+    ],
+    [
+      "a heredoc body",
+      'cat >> "$F" <<NOTES\nsha256sum -c x\nbunx foo\nNOTES\necho done',
+      ['cat >> "$F" <<NOTES', "echo done"],
+    ],
+    ["case patterns", 'case "$R" in success | skipped) ;; *) exit 1 ;; esac', ["exit 1"]],
+    [
+      "multi-line case patterns",
+      'case "${v%%+*}" in\n  *-*) tag=next ;;\n  *) tag=latest ;;\nesac',
+      [],
+    ],
+    ["array assignments", 'flags=(--repo "$R" --title x)\nflags+=(--prerelease)', []],
+    [
+      "a function the step defines",
+      'publish() {\n  local name="$1"\n  npm publish "$name"\n}\npublish a',
+      ['local name="$1"', 'npm publish "$name"'],
+    ],
+    [
+      "if, negation and separators inside quotes",
+      'if ! git merge-base --is-ancestor a b; then\n  echo "x (y); z | w"\nfi',
+      ["git merge-base --is-ancestor a b", 'echo "x (y); z | w"'],
+    ],
+    ["a redirected group", '{\n  echo "a=b"\n} >> "$GITHUB_OUTPUT"', ['echo "a=b"']],
+    [
+      "a subshell",
+      '(cd packages/aokit && bun pm pack --destination "$D")',
+      ["cd packages/aokit", 'bun pm pack --destination "$D"'],
+    ],
+    ["a for loop", 'for p in a b; do\n  npm view "$p" || true\ndone', ['npm view "$p"', "true"]],
+    ["a parameter expansion", 'workspace="${GITHUB_WORKSPACE//\\\\//}"', []],
+    ["a comment", "# bunx commitlint\necho hi # bunx later", ["echo hi"]],
+    ["a here-string", 'read -ra items <<< "$list"', ['read -ra items <<< "$list"']],
+    ["a leading redirection", "2>/dev/null LC_ALL=C sort -k 2 > out", ["sort -k 2 > out"]],
+    ["CRLF line endings", "echo a\r\nbunx foo\r\n", ["echo a", "bunx foo"]],
+  ])("listStepCommands reads %s", (_label, run, expected) => {
+    expect(listStepCommands(run)).toEqual(expected);
+  });
+
+  test("every exemption carries its own reason", () => {
+    const reasons = stepsCallScriptsExemptions.map(({ reason }) => reason.trim());
+    expect(reasons.filter((reason) => reason.length < 20)).toEqual([]);
+    expect(new Set(reasons).size).toBe(reasons.length);
+  });
+
+  test("no exemption is blanket: none admits an unknown tool, bunx commitlint or bun x", () => {
+    const outsiders = [
+      "bunx commitlint --from a --to b",
+      "bun x --no-install commitlint --edit x",
+      "npx prettier --check .",
+      "some-tool --flag",
+      "",
+    ];
+    const admitted = stepsCallScriptsExemptions.flatMap(({ command }) =>
+      outsiders.filter((outsider) => command.test(outsider)).map(String),
+    );
+    expect(admitted).toEqual([]);
+  });
+
+  test("every exemption is still used by a repo workflow step", () => {
+    const commands = listRepoStepCommands();
+    const unused = stepsCallScriptsExemptions
+      .filter(({ command }) => !commands.some((text) => command.test(text)))
+      .map(({ command }) => String(command));
+    expect(unused).toEqual([]);
+  });
+
+  test("ci.yml validates commit messages with bun run lint:commits", () => {
+    const ci: unknown = Bun.YAML.parse(readFileSync(join(workflowsDirectory, "ci.yml"), "utf8"));
+    const jobs = isRecord(ci) && isRecord(ci.jobs) ? ci.jobs : {};
+    const commitlint = isRecord(jobs.commitlint) ? jobs.commitlint : {};
+    const steps = Array.isArray(commitlint.steps) ? (commitlint.steps as unknown[]) : [];
+    const validate = steps.find(
+      (step) => isRecord(step) && step.name === "Validate commit messages",
+    );
+    expect(isRecord(validate) ? validate.run : undefined).toBe(
+      'bun run lint:commits --from "$BASE_SHA" --to "$HEAD_SHA"',
+    );
+  });
+
+  test("the rule is repo-only, so a Module workflow may still call a raw tool", () => {
+    expect(repoOnlyRules).toContain("steps-call-scripts");
   });
 });
 

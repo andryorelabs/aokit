@@ -1,0 +1,16 @@
+# @aokit/module
+
+> @aokit/module is the Module manifest contract for aokit Module authors. It exports the types and schema a Module manifest must satisfy.
+
+## API
+
+- [Writing Modules](https://github.com/andryorelabs/aokit/blob/main/docs/guide/writing-modules.md): the manifest contract and how to author a Module.
+
+## Related
+
+- [Hosting a Registry](https://github.com/andryorelabs/aokit/blob/main/docs/guide/hosting-a-registry.md): publish Modules for others to install.
+- [Registry protocol and trust model](https://github.com/andryorelabs/aokit/blob/main/docs/architecture/registry.md): how Registries are read, verified and trusted.
+
+## Optional
+
+- [All aokit packages](https://github.com/andryorelabs/aokit/blob/main/llms.txt): the root index.

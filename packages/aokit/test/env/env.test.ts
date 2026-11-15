@@ -34,13 +34,6 @@ const pendingMigration: ReadonlySet<string> = new Set([
   "git/run.ts",
   "lifecycle/run.ts",
   "mcp/server.ts",
-  "project/registry/context.ts",
-  "project/registry/open-source.ts",
-  "registry/bundled.ts",
-  "registry/cache.ts",
-  "registry/client/index-file.ts",
-  "registry/client/shadcn-items.ts",
-  "registry/client/shadcn.ts",
   "update/run.ts",
 ]);
 

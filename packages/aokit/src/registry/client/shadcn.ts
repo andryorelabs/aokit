@@ -1,4 +1,5 @@
 import { loadUserConfig } from "../../config/user-config.ts";
+import { processEnvironment } from "../../env.ts";
 import { createRegistryCache } from "../cache.ts";
 import { RegistryError } from "../errors.ts";
 import type { Integrity } from "../integrity.ts";
@@ -69,7 +70,8 @@ async function openShadcnOrigin(
     };
   }
   const { namespace } = source;
-  const userConfig = context.userConfig ?? (await loadUserConfig(context.env ?? process.env));
+  const userConfig =
+    context.userConfig ?? (await loadUserConfig(context.env ?? processEnvironment()));
   const declaration = declareNamespace(namespace, source.url, userConfig);
   const env = await namespaceEnvironment(context);
   return {

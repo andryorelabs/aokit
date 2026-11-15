@@ -14,4 +14,8 @@ describe("husky hooks", () => {
   test("commit-msg runs commitlint on the message file", () => {
     expect(hook("commit-msg").trim()).toBe('bun x --no-install commitlint --edit "$1"');
   });
+
+  test("pre-push runs the repo pre-push script with git's arguments", () => {
+    expect(hook("pre-push").trim()).toBe('bun tools/pre-push/main.ts "$@"');
+  });
 });

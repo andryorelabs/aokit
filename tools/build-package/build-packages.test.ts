@@ -30,6 +30,10 @@ async function stageRepository(): Promise<string> {
     recursive: true,
   });
   await cp(
+    join(realRoot, "packages", "module", "llms.txt"),
+    join(root, "packages", "module", "llms.txt"),
+  );
+  await cp(
     join(realRoot, "packages", "module", "package.json"),
     join(root, "packages", "module", "package.json"),
   );

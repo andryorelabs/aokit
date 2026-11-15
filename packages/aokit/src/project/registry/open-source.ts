@@ -1,5 +1,6 @@
 import { join } from "node:path";
 
+import { processEnvironment } from "../../env.ts";
 import {
   githubRawBaseUrl,
   gitLsRemote,
@@ -78,7 +79,7 @@ export async function openSource(
     return openGithubSource(source, options, cache, extras);
   }
   const { adapters } = options;
-  const documents = join(xdgCacheDir(adapters?.env ?? process.env), "registry-index");
+  const documents = join(xdgCacheDir(adapters?.env ?? processEnvironment()), "registry-index");
   const index = { kept: false };
   const captured: string[] = [];
   const synthesizeIndex =
@@ -166,7 +167,7 @@ async function openNonGithub(
   extras: OpenSourceExtras,
 ): Promise<Registry> {
   const { adapters } = options;
-  const documents = join(xdgCacheDir(adapters?.env ?? process.env), "registry-index");
+  const documents = join(xdgCacheDir(adapters?.env ?? processEnvironment()), "registry-index");
   const index = { kept: false };
   const registry = await openRegistry(source, {
     cliVersion: options.cliVersion,

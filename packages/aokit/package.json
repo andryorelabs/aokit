@@ -27,7 +27,8 @@
   "files": [
     "bin",
     "dist",
-    "registry"
+    "registry",
+    "llms.txt"
   ],
   "type": "module",
   "exports": {

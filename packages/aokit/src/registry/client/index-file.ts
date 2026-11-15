@@ -2,6 +2,7 @@ import { catalogSchema } from "@aokit/module";
 import { z } from "zod";
 
 import { meetsMinCliVersion, minCliVersionFix } from "../../cli/min-cli-version.ts";
+import { processEnvironment } from "../../env.ts";
 import { ensureEmbeddedRegistry } from "../embedded/extract.ts";
 import { RegistryError } from "../errors.ts";
 import {
@@ -70,7 +71,7 @@ export async function transportFor(
       source: pinnedGithubSource(pin),
     };
   }
-  if (source.kind === "bundled") await ensureEmbeddedRegistry(process.env);
+  if (source.kind === "bundled") await ensureEmbeddedRegistry(processEnvironment());
   return { transport: localTransport(source.path), source };
 }
 
