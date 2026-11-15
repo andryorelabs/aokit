@@ -1,3 +1,4 @@
+import { processEnvironment } from "../../env.ts";
 import { refreshLatestVersion } from "./index.ts";
 
 /** The only argument of the hidden process that refreshes the cached latest CLI version. */
@@ -14,7 +15,7 @@ export function spawnDetachedRefresh(): void {
       stdin: "ignore",
       stdout: "ignore",
       stderr: "ignore",
-      env: process.env,
+      env: processEnvironment(),
     });
     child.unref();
   } catch {
@@ -24,5 +25,5 @@ export function spawnDetachedRefresh(): void {
 
 /** Entry of the detached process: refreshes the cache from the npm registry. */
 export async function runDetachedRefresh(): Promise<void> {
-  await refreshLatestVersion({ env: process.env, now: Date.now, fetch });
+  await refreshLatestVersion({ env: processEnvironment(), now: Date.now, fetch });
 }

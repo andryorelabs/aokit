@@ -3,6 +3,8 @@
 import { spawn } from "node:child_process";
 import { fileURLToPath } from "node:url";
 
+import { childEnvironment } from "./env.ts";
+
 const aokitCliPath = fileURLToPath(new URL("./cli.js", import.meta.resolve("aokit/cli")));
 
 /**
@@ -13,7 +15,7 @@ const forwardedSignals = ["SIGTERM", "SIGHUP"] as const;
 
 const child = spawn("bun", [aokitCliPath, "create", ...process.argv.slice(2)], {
   stdio: "inherit",
-  env: { ...process.env, AOKIT_NO_UPDATE_NOTIFIER: "1" },
+  env: childEnvironment(),
 });
 
 let spawnFailed = false;

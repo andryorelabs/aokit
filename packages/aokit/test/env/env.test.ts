@@ -3,6 +3,7 @@ import { join, relative } from "node:path";
 
 import { Glob } from "bun";
 
+import { childEnvironment } from "../../../create-aokit/src/env.ts";
 import {
   ENVIRONMENT_VARIABLE_NAMES,
   clearNativeLibraryPath,
@@ -19,29 +20,15 @@ import {
   setNativeLibraryPath,
 } from "../../src/env.ts";
 
-const sourceRoot = join(import.meta.dir, "..", "..", "src");
-const environmentModule = "env.ts";
+const packagesRoot = join(import.meta.dir, "..", "..", "..");
+const environmentModule = /(?:^|\/)env\.ts$/;
 const environmentReader = /\b(?:process|Bun)\.env\b/;
-
-/**
- * Readers not yet migrated to `src/env.ts`; each is owned by a later ticket and must be removed
- * from this list when it migrates. A new file never belongs here.
- */
-const pendingMigration: ReadonlySet<string> = new Set([
-  "cli/run.ts",
-  "cli/update-notice/spawn.ts",
-  "config/user-config.ts",
-  "git/run.ts",
-  "lifecycle/run.ts",
-  "mcp/server.ts",
-  "update/run.ts",
-]);
 
 async function filesReadingTheEnvironment(): Promise<string[]> {
   const offenders: string[] = [];
-  for await (const path of new Glob("**/*.ts").scan({ cwd: sourceRoot, absolute: true })) {
-    const name = relative(sourceRoot, path).replaceAll("\\", "/");
-    if (name === environmentModule) continue;
+  for await (const path of new Glob("*/src/**/*.ts").scan({ cwd: packagesRoot, absolute: true })) {
+    const name = relative(packagesRoot, path).replaceAll("\\", "/");
+    if (environmentModule.test(name)) continue;
     const text = await Bun.file(path).text();
     const readsCode = text
       .split("\n")
@@ -52,20 +39,12 @@ async function filesReadingTheEnvironment(): Promise<string[]> {
 }
 
 describe("environment module", () => {
-  test("no source file outside src/env.ts reads the process environment", async () => {
-    const offenders = (await filesReadingTheEnvironment()).filter(
-      (name) => !pendingMigration.has(name),
-    );
+  test("no source file outside an env module reads the process environment", async () => {
+    const offenders = await filesReadingTheEnvironment();
     expect(
       offenders,
-      `read process.env or Bun.env outside src/env.ts: ${offenders.join(", ")}`,
+      `read process.env or Bun.env outside an env module: ${offenders.join(", ")}`,
     ).toEqual([]);
-  });
-
-  test("the pending list holds only files that still read the environment", async () => {
-    const offenders = new Set(await filesReadingTheEnvironment());
-    const stale = [...pendingMigration].filter((name) => !offenders.has(name));
-    expect(stale, `migrated files still listed as pending: ${stale.join(", ")}`).toEqual([]);
   });
 
   test("the names list has no duplicates", () => {
@@ -115,6 +94,12 @@ describe("environment readers", () => {
 
   test("processEnvironment is the live process environment", () => {
     expect(processEnvironment()).toBe(process.env);
+  });
+
+  test("the create-aokit child environment keeps the process environment and disables the notice", () => {
+    const environment = childEnvironment();
+    expect(environment.AOKIT_NO_UPDATE_NOTIFIER).toBe("1");
+    expect(environment.PATH).toBe(process.env.PATH);
   });
 
   test("the native library path is set and cleared", () => {

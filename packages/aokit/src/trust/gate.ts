@@ -47,7 +47,7 @@ interface EnsureTrustedOptions {
   readonly prompt?: TrustPrompt;
   /** The user config allowlist; read from {@link env} when absent. */
   readonly userConfig?: UserConfig;
-  /** The environment the user config path is derived from; `process.env` by default. */
+  /** The environment the user config path is derived from; the live process environment by default. */
   readonly env?: TrustEnvironment;
 }
 
