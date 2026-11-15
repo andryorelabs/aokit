@@ -74,7 +74,12 @@ test("an unknown migration key fails", () => {
 
 test("defineMigration returns the script unchanged", () => {
   const script = defineMigration(({ answers }) => ({ ...answers, router: "x" }));
-  const vfs = { read: () => undefined, write: () => {}, delete: () => {}, list: () => [] };
+  const vfs = {
+    read: () => undefined,
+    write: () => undefined,
+    delete: () => undefined,
+    list: () => [],
+  };
   const input = {
     vfs,
     answers: { appRouter: "x" },

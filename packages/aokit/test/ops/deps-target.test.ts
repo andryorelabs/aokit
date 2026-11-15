@@ -39,7 +39,7 @@ function parsed(plan: Awaited<ReturnType<typeof build>>, path: string): Record<s
 
 test("monorepo places each dependency in the package.json of its own Target", async () => {
   const plan = await build("monorepo");
-  expect(parsed(plan, "apps/web/package.json")["dependencies"]).toEqual({
+  expect(parsed(plan, "apps/web/package.json").dependencies).toEqual({
     "better-auth": "^1.0.0",
     shared: "^3.0.0",
   });
@@ -73,6 +73,6 @@ test("a catalog dependency on a workspace Target is written as catalog: and list
     context,
     catalog: { dependencies: { zod: "^4.0.0" }, pinGroups: {} },
   });
-  expect(parsed(plan, "packages/db/package.json")["dependencies"]).toEqual({ zod: "catalog:" });
-  expect(parsed(plan, "package.json")["catalog"]).toEqual({ zod: "^4.0.0" });
+  expect(parsed(plan, "packages/db/package.json").dependencies).toEqual({ zod: "catalog:" });
+  expect(parsed(plan, "package.json").catalog).toEqual({ zod: "^4.0.0" });
 });

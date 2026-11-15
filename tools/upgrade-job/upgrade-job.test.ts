@@ -88,8 +88,8 @@ describe("release pairs and historical indexes", () => {
     expect(Object.keys(earlier.releases)).toEqual(["2026.11.0"]);
     expect(earlier.modules["vite-react"]?.latest).toBe("1.0.0");
     expect(Object.keys(earlier.modules["vite-react"]?.versions ?? {})).toEqual(["1.0.0"]);
-    expect(earlier.modules["oxc"]?.latest).toBe("1.0.0");
-    expect(earlier.modules["hono"]?.latest).toBe("1.0.0");
+    expect(earlier.modules.oxc?.latest).toBe("1.0.0");
+    expect(earlier.modules.hono?.latest).toBe("1.0.0");
   });
 
   test("the last pair of three Releases is the newest N-1 to N", () => {
@@ -113,10 +113,10 @@ describe("release pairs and historical indexes", () => {
     const atMiddle = indexAtRelease(index, "2026.11.1", { hono: "1.0.0", oxc: "1.1.0" });
     expect(Object.keys(atMiddle.releases)).toEqual(["2026.11.0", "2026.11.1"]);
     expect(atMiddle.release).toBe("2026.11.1");
-    expect(atMiddle.modules["hono"]?.latest).toBe("1.0.0");
-    expect(Object.keys(atMiddle.modules["hono"]?.versions ?? {})).toEqual(["1.0.0"]);
-    expect(atMiddle.modules["oxc"]?.latest).toBe("1.1.0");
-    expect(atMiddle.modules["fresh"]).toBeUndefined();
+    expect(atMiddle.modules.hono?.latest).toBe("1.0.0");
+    expect(Object.keys(atMiddle.modules.hono?.versions ?? {})).toEqual(["1.0.0"]);
+    expect(atMiddle.modules.oxc?.latest).toBe("1.1.0");
+    expect(atMiddle.modules.fresh).toBeUndefined();
   });
 
   test("with three Releases in the index the job plans exactly the last pair", async () => {

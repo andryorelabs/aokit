@@ -1,11 +1,12 @@
 import eslintComments from "@eslint-community/eslint-plugin-eslint-comments/configs";
 import { defineConfig } from "eslint/config";
-import astro from "eslint-plugin-astro";
-import jsdoc from "eslint-plugin-jsdoc";
+import { configs as astroConfigs } from "eslint-plugin-astro";
+import { configs as jsdocConfigs } from "eslint-plugin-jsdoc";
 import unicorn from "eslint-plugin-unicorn";
 import tseslint from "typescript-eslint";
 
 // aokit:begin eslint:configs
+/** @type {import("eslint").Linter.Config[]} */
 const contributedConfigs = [];
 // aokit:end eslint:configs
 
@@ -22,7 +23,7 @@ export default defineConfig(
       },
     },
   },
-  astro.configs.recommended,
+  astroConfigs.recommended,
   unicorn.configs.recommended,
   {
     rules: {
@@ -32,7 +33,7 @@ export default defineConfig(
       "unicorn/prefer-query-selector": "off",
     },
   },
-  jsdoc.configs["flat/recommended-typescript"],
+  jsdocConfigs["flat/recommended-typescript"],
   eslintComments.recommended,
   ...contributedConfigs,
 );

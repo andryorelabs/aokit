@@ -185,7 +185,7 @@ describe("aokit update --plan / --apply / --abort", () => {
         valueAt(change, "type") !== "delete" && valueAt(change, "content", "encoding") === "utf8",
     );
     expect(target).toBeDefined();
-    objectAt(target, "content")["data"] = "written from the saved Plan\n";
+    objectAt(target, "content").data = "written from the saved Plan\n";
     await writeFile(planPath, JSON.stringify(saved));
     const applied = await run({ directory, apply: true, yes: true, install: false });
     expect(applied.ok).toBe(true);

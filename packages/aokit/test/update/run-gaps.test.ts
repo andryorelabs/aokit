@@ -190,14 +190,14 @@ describe("saved Plan", () => {
     await mkdir(bin);
     await writeFile(join(bin, "bun"), "#!/bin/sh\necho installed > install-marker\n", "utf8");
     await chmod(join(bin, "bun"), 0o755);
-    const originalPath = process.env["PATH"];
-    process.env["PATH"] = `${bin}:${originalPath ?? ""}`;
+    const originalPath = process.env.PATH;
+    process.env.PATH = `${bin}:${originalPath ?? ""}`;
     try {
       const result = await applyUpdatePlan(inputFor(dir, { yes: true, install: true }));
       expect(result.installed).toBe(true);
     } finally {
-      if (originalPath === undefined) delete process.env["PATH"];
-      else process.env["PATH"] = originalPath;
+      if (originalPath === undefined) delete process.env.PATH;
+      else process.env.PATH = originalPath;
     }
     expect((await readFile(join(dir, "install-marker"), "utf8")).trim()).toBe("installed");
   });

@@ -9,7 +9,9 @@ const addImport: OpHandler = (context, op) => {
     return;
   }
   const site = locateSite(context, op, ["array", "object", "import-list"]);
-  commitEdits(context, site, (batch) => addImportEdits(batch, site, context.module, op));
+  commitEdits(context, site, (batch) => {
+    addImportEdits(batch, site, context.module, op);
+  });
 };
 
 const addToArray: OpHandler = (context, op) => {
@@ -20,9 +22,9 @@ const addToArray: OpHandler = (context, op) => {
   if (hasEntryText(site, op.element, queuedEntries(batchOf(context, site), site))) {
     return;
   }
-  commitEdits(context, site, (batch) =>
-    appendEntry(batch, site, context.module, "array", op.element),
-  );
+  commitEdits(context, site, (batch) => {
+    appendEntry(batch, site, context.module, "array", op.element);
+  });
 };
 
 const registerAt: OpHandler = (context, op) => {
@@ -53,9 +55,9 @@ const registerAt: OpHandler = (context, op) => {
         context.module,
       );
     }
-    commitEdits(context, site, (batch) =>
-      appendEntry(batch, site, context.module, "object", entry),
-    );
+    commitEdits(context, site, (batch) => {
+      appendEntry(batch, site, context.module, "object", entry);
+    });
     return;
   }
   if (op.key !== undefined) {
@@ -68,9 +70,9 @@ const registerAt: OpHandler = (context, op) => {
   if (hasEntryText(site, op.expression, queuedEntries(batchOf(context, site), site))) {
     return;
   }
-  commitEdits(context, site, (batch) =>
-    appendEntry(batch, site, context.module, "array", op.expression),
-  );
+  commitEdits(context, site, (batch) => {
+    appendEntry(batch, site, context.module, "array", op.expression);
+  });
 };
 
 /** Handlers for the code Ops `addImport`, `addToArray` and `registerAt`. */

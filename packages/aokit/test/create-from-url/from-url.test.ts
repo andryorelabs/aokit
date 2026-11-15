@@ -31,7 +31,7 @@ function setOfficialRegistry(
   lockfile: Lockfile,
   fields: { source: string; trusted?: boolean },
 ): void {
-  const official = lockfile.registries["official"];
+  const official = lockfile.registries.official;
   if (official === undefined) throw new Error("the Project has no official Registry");
   official.source = fields.source;
   if (fields.trusted !== undefined) official.trusted = fields.trusted;
@@ -178,7 +178,7 @@ test("--trust lets a served Lockfile replay and records trusted: true", async ()
     trust: [registryServer.url],
     adapters: { env },
   });
-  expect(rendered.lockfile.registries["official"]).toMatchObject({
+  expect(rendered.lockfile.registries.official).toMatchObject({
     source: registryServer.url,
     trusted: true,
   });

@@ -75,7 +75,7 @@ test("a Module that is not in the Lockfile is NOT_IN_LOCKFILE", async () => {
 test("a locked version the Registry no longer holds is MODULE_VERSION_UNAVAILABLE", async () => {
   const directory = await createProject();
   await editLockfile(directory, (lockfile) => {
-    objectAt(lockfile, "modules", "knip")["version"] = "999.0.0";
+    objectAt(lockfile, "modules", "knip").version = "999.0.0";
   });
   const envelope = await remove(directory, "knip");
   expect(envelope).toMatchObject({ ok: false, error: { code: "MODULE_VERSION_UNAVAILABLE" } });

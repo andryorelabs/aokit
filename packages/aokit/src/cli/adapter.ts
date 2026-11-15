@@ -282,9 +282,7 @@ function usageFailure(rawMessage: string): Envelope {
   });
 }
 
-interface ProcedureTree {
-  [segment: string]: unknown;
-}
+type ProcedureTree = Record<string, unknown>;
 
 const branches = new WeakSet<object>();
 
@@ -448,7 +446,9 @@ function notifyAboutUpdate(
     now: options.now ?? Date.now,
     fetch: options.fetch ?? fetch,
     ...(options.fetch === undefined ? { refresh: spawnDetachedRefresh } : {}),
-    stderr: (text) => options.io.stderr(text),
+    stderr: (text) => {
+      options.io.stderr(text);
+    },
   });
 }
 

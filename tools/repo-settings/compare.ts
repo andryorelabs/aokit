@@ -1,5 +1,9 @@
 /** One live setting that differs from the files. */
-export type Drift = { setting: string; expected: unknown; live: unknown };
+export interface Drift {
+  setting: string;
+  expected: unknown;
+  live: unknown;
+}
 
 export function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null && !Array.isArray(value);

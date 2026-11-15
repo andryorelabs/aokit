@@ -53,7 +53,7 @@ test("a Registry whose source cannot be parsed is reported as a Registry problem
   const directory = await createProject();
   rewriteLockfile(directory, (lockfile) => {
     const registries = objectAt(lockfile, "registries");
-    objectAt(lockfile, "registries", firstKey(registries))["source"] = "github:not-a-source";
+    objectAt(lockfile, "registries", firstKey(registries)).source = "github:not-a-source";
   });
   const found = await problems(directory);
   expect(found.some((problem) => problem.kind === "registry")).toBe(true);
@@ -65,7 +65,7 @@ test("a Module version the Registry does not publish is reported", async () => {
   rewriteLockfile(directory, (lockfile) => {
     const modules = objectAt(lockfile, "modules");
     name = firstKey(modules);
-    objectAt(lockfile, "modules", name)["version"] = "99.0.0";
+    objectAt(lockfile, "modules", name).version = "99.0.0";
   });
   const found = await problems(directory);
   const missing = found.find((problem) => problem.message.includes(`${name}@99.0.0`));

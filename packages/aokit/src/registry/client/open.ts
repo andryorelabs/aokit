@@ -7,7 +7,13 @@ import {
   type OpenRegistryContext,
   type Registry,
 } from "./common.ts";
-import { checkCliVersion, parseIndex, readCatalog, transportFor } from "./index-file.ts";
+import {
+  checkCliVersion,
+  currentReleasePointer,
+  parseIndex,
+  readCatalog,
+  transportFor,
+} from "./index-file.ts";
 import { loadModuleVersion } from "./module-version.ts";
 import { openShadcnRegistry } from "./shadcn.ts";
 import { shadcnIndexFile } from "./shadcn-items.ts";
@@ -44,7 +50,7 @@ export async function openRegistry(
     transport,
     index.name,
     index.release,
-    index.releases[index.release]!,
+    currentReleasePointer(index),
   );
   const catalogs = new Map<string, Promise<ReleaseCatalog>>([
     [index.release, Promise.resolve(currentCatalog)],

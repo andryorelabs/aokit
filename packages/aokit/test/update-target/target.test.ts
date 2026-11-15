@@ -158,7 +158,7 @@ test("a Lockfile at the target Release and versions is up to date", async () => 
 test("a locked Module absent from the Registry is MODULE_VERSION_UNAVAILABLE naming remove", async () => {
   const { registryPath, lockfile } = await twoReleaseProject();
   const registry = await readLocalRegistry(registryPath, { cliVersion });
-  const oxc = lockfile.modules["oxc"];
+  const oxc = lockfile.modules.oxc;
   if (oxc === undefined) throw new Error("oxc missing");
   const withGone: Lockfile = { ...lockfile, modules: { ...lockfile.modules, gone: oxc } };
   const error = await failure(() => resolveUpdateTarget(withGone, registry));
@@ -177,7 +177,7 @@ test("renderFromLockfile renders the target Release Catalog and versions", async
     release: target.release,
     versionOverride: target.versions,
   });
-  expect(rendered.lockfile.modules["oxc"]?.version).toBe("1.1.0");
+  expect(rendered.lockfile.modules.oxc?.version).toBe("1.1.0");
   const registryEntry = Object.values(rendered.lockfile.registries)[0];
   expect(registryEntry?.release).toBe("2026.11.1");
   expect(JSON.stringify(rendered.lockfile.deps)).toContain("1.91.0");

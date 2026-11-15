@@ -15,15 +15,15 @@ afterAll(async () => {
 async function downgradeToV1(directory: string): Promise<void> {
   const path = join(directory, "aokit.lock.json");
   const lock = parseJsonObject(await readFile(path, "utf8"));
-  lock["lockfileVersion"] = 1;
+  lock.lockfileVersion = 1;
   for (const entry of Object.values(objectAt(lock, "modules"))) {
-    if (isJsonObject(entry)) delete entry["selected"];
+    if (isJsonObject(entry)) delete entry.selected;
   }
   for (const entry of Object.values(objectAt(lock, "deps"))) {
-    if (isJsonObject(entry)) delete entry["owners"];
+    if (isJsonObject(entry)) delete entry.owners;
   }
   const agentFiles = ["AGENTS.md", "CLAUDE.md"];
-  for (const agentFile of agentFiles) delete objectAt(lock, "files")[agentFile];
+  for (const agentFile of agentFiles) Reflect.deleteProperty(objectAt(lock, "files"), agentFile);
   await Promise.all(agentFiles.map((agentFile) => rm(join(directory, agentFile), { force: true })));
   await writeFile(path, `${JSON.stringify(lock, null, 2)}\n`);
 }
@@ -42,7 +42,7 @@ test("add on a v1 Lockfile writes v2 with exact dep owners", async () => {
   const raw = parseJsonObject(await readFile(join(directory, "aokit.lock.json"), "utf8"));
   expect(valueAt(raw, "lockfileVersion")).toBe(2);
   const lockfile = await readLock(directory);
-  expect(lockfile.deps["knip"]?.owners).toEqual(["knip"]);
-  expect(lockfile.deps["oxlint"]?.owners).toEqual(["oxc"]);
-  expect(lockfile.deps["oxfmt"]?.owners).toEqual(["oxc"]);
+  expect(lockfile.deps.knip?.owners).toEqual(["knip"]);
+  expect(lockfile.deps.oxlint?.owners).toEqual(["oxc"]);
+  expect(lockfile.deps.oxfmt?.owners).toEqual(["oxc"]);
 });

@@ -93,8 +93,8 @@ describe("release bump config", () => {
       join(workspace, "packages", "create-aokit", "package.json"),
       JSON.stringify({ name: "create-aokit" }),
     );
-    expect(() => releaseConfig().execute({ state: { newVersion: "1.2.3" } })).toThrow(
-      /no "aokit" dependency/,
-    );
+    expect(() => {
+      releaseConfig().execute({ state: { newVersion: "1.2.3" } });
+    }).toThrow(/no "aokit" dependency/);
   });
 });

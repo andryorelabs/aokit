@@ -9,6 +9,7 @@ The notes of each [GitHub Release](https://github.com/andryorelabs/aokit/release
 ### Changed
 
 - Release notes come from this file instead of being generated from commit messages.
+- `MigrationFn` in `@aokit/module` now returns `Record<string, unknown> | undefined` instead of `| void`; a migration declared with an explicit `: void` return type must return `undefined`.
 
 ## [0.2.0] - 2026-11-11
 

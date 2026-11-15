@@ -28,7 +28,7 @@ function moduleOf(
   };
 }
 
-const handler: OpHandler = () => {};
+const handler: OpHandler = () => undefined;
 
 const writer: OpHandler = ({ vfs, module }) => {
   vfs.write("marker.txt", module);

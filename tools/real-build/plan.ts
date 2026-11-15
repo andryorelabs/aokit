@@ -150,7 +150,7 @@ function isRecord(value: unknown): value is Record<string, unknown> {
 }
 
 function scriptsOf(manifest: unknown): Record<string, unknown> {
-  return isRecord(manifest) && isRecord(manifest["scripts"]) ? manifest["scripts"] : {};
+  return isRecord(manifest) && isRecord(manifest.scripts) ? manifest.scripts : {};
 }
 
 function declaresDependency(manifest: unknown, name: string): boolean {
@@ -203,7 +203,7 @@ export function planSteps(
   }
 
   for (const directory of [...packageDirectories].toSorted(byCodepoint)) {
-    const build = scriptsOf(packageManifests[posix.join(directory, "package.json")])["build"];
+    const build = scriptsOf(packageManifests[posix.join(directory, "package.json")]).build;
     if (typeof build === "string") {
       steps.push({
         name: `build ${directory === "" ? "." : directory}`,
@@ -249,7 +249,7 @@ export function planSteps(
   for (const directory of [...packageDirectories].toSorted(byCodepoint)) {
     const scripts = scriptsOf(packageManifests[posix.join(directory, "package.json")]);
     const label = directory === "" ? "." : directory;
-    if (typeof scripts["size"] === "string" && typeof scripts["build:lib"] === "string") {
+    if (typeof scripts.size === "string" && typeof scripts["build:lib"] === "string") {
       steps.push({
         name: `build:lib ${label}`,
         cwd: directory,

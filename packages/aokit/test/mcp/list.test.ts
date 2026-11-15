@@ -44,14 +44,14 @@ describe("list tool", () => {
     const client = await connectClient();
     const result = await callTool(client, "list", { registry: null, trust: null });
     expect(result.ok).toBe(true);
-    expect(result.data?.["modules"]).toHaveLength(52);
+    expect(result.data?.modules).toHaveLength(52);
   });
 
   test("returns the descriptions of a given Registry", async () => {
     const client = await connectClient();
     const registry = await describedRegistry();
     const result = await callTool(client, "list", { registry, trust: null });
-    expect(result.data?.["modules"]).toEqual([
+    expect(result.data?.modules).toEqual([
       {
         name: "described",
         version: "1.0.0",

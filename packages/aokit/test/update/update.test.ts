@@ -210,7 +210,7 @@ export default defineMigration(({ answers }) => {
 `,
     });
     await editLockfileJson(directory, (lockfile) => {
-      objectAt(lockfile, "modules", "oxc")["answers"] = { appRouter: "tanstack" };
+      objectAt(lockfile, "modules", "oxc").answers = { appRouter: "tanstack" };
     });
     await commitAll(directory);
     const envelope = await run({ directory, yes: true, install: false });

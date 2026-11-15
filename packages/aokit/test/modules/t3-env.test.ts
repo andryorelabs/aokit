@@ -49,7 +49,7 @@ test.each([
   expect(text).toContain("const client = {};");
   const parsed = packageSchema.parse(JSON.parse(String(built.plan.vfs.read(manifest))));
   expect(parsed.dependencies["@t3-oss/env-core"]).toBe("^0.13.11");
-  expect(parsed.dependencies["zod"]).toBe("^4.6.7");
+  expect(parsed.dependencies.zod).toBe("^4.6.7");
 });
 
 test("t3-env appends its agents Region", async () => {

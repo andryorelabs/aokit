@@ -3,7 +3,11 @@ import { join } from "node:path";
 import { compareSettings, isRecord, type Drift } from "./compare.ts";
 
 /** The outcome of one `gh` invocation. */
-export type GhResult = { exitCode: number; stdout: string; stderr: string };
+export interface GhResult {
+  exitCode: number;
+  stdout: string;
+  stderr: string;
+}
 
 /** Runs `gh` with the given arguments. Tests inject one that answers from memory. */
 export type GhRunner = (args: readonly string[]) => GhResult;
@@ -85,7 +89,7 @@ function readDependabotAlerts(runGh: GhRunner, repository: string): boolean {
 
 function readStatus(securityAndAnalysis: unknown, feature: string): boolean | undefined {
   const entry = isRecord(securityAndAnalysis) ? securityAndAnalysis[feature] : undefined;
-  const status = isRecord(entry) ? entry["status"] : undefined;
+  const status = isRecord(entry) ? entry.status : undefined;
   if (status === "enabled") return true;
   return status === "disabled" ? false : undefined;
 }
@@ -97,7 +101,7 @@ function sortStrings(value: unknown): unknown {
 /** Topics have no order on GitHub, so both sides are sorted before they are compared. */
 function withSortedTopics(repositorySettings: unknown): unknown {
   if (!isRecord(repositorySettings)) return repositorySettings;
-  return { ...repositorySettings, topics: sortStrings(repositorySettings["topics"]) };
+  return { ...repositorySettings, topics: sortStrings(repositorySettings.topics) };
 }
 
 function readField(response: unknown, field: string): unknown {
@@ -153,14 +157,14 @@ function readLiveSettings(runGh: GhRunner, repository: string): unknown {
 }
 
 function compareContexts(left: unknown, right: unknown): number {
-  const leftContext = isRecord(left) ? String(left["context"]) : "";
-  const rightContext = isRecord(right) ? String(right["context"]) : "";
+  const leftContext = isRecord(left) ? String(left.context) : "";
+  const rightContext = isRecord(right) ? String(right.context) : "";
   return leftContext.localeCompare(rightContext);
 }
 
 function normalizeParameters(parameters: unknown): unknown {
   if (!isRecord(parameters)) return {};
-  const checks = parameters["required_status_checks"];
+  const checks = parameters.required_status_checks;
   if (!Array.isArray(checks)) return parameters;
   return { ...parameters, required_status_checks: checks.toSorted(compareContexts) };
 }
@@ -171,11 +175,11 @@ function normalizeParameters(parameters: unknown): unknown {
  */
 function normalizeRuleset(ruleset: unknown): Record<string, unknown> {
   const source = isRecord(ruleset) ? ruleset : {};
-  const rules = Array.isArray(source["rules"]) ? source["rules"].filter(isRecord) : [];
+  const rules = Array.isArray(source.rules) ? source.rules.filter(isRecord) : [];
   return {
     ...source,
     rules: Object.fromEntries(
-      rules.map((rule) => [String(rule["type"]), normalizeParameters(rule["parameters"])]),
+      rules.map((rule) => [String(rule.type), normalizeParameters(rule.parameters)]),
     ),
   };
 }
@@ -183,8 +187,8 @@ function normalizeRuleset(ruleset: unknown): Record<string, unknown> {
 function compareRuleset(expectedRuleset: unknown, liveRuleset: unknown): Drift[] {
   const expected = normalizeRuleset(expectedRuleset);
   const live = normalizeRuleset(liveRuleset);
-  const expectedRules = isRecord(expected["rules"]) ? expected["rules"] : {};
-  const liveRules = isRecord(live["rules"]) ? live["rules"] : {};
+  const expectedRules = isRecord(expected.rules) ? expected.rules : {};
+  const liveRules = isRecord(live.rules) ? live.rules : {};
   const liveOnly = Object.entries(liveRules)
     .filter(([type]) => !(type in expectedRules))
     .map(([type, parameters]) => ({
@@ -207,7 +211,7 @@ function readJsonFile(path: string): unknown {
 function readExpectedSettings(repoRoot: string): unknown {
   const settings = readJsonFile(join(repoRoot, ".github", "repo-settings.json"));
   if (!isRecord(settings)) return settings;
-  return { ...settings, repository: withSortedTopics(settings["repository"]) };
+  return { ...settings, repository: withSortedTopics(settings.repository) };
 }
 
 function listRulesetFiles(repoRoot: string): string[] {
@@ -234,15 +238,15 @@ function findRulesetDrift(
   }
   return files.flatMap((file) => {
     const expected = readJsonFile(join(repoRoot, ".github", "rulesets", file));
-    const name = isRecord(expected) ? expected["name"] : undefined;
-    const summary = liveList.find((ruleset) => ruleset["name"] === name);
+    const name = isRecord(expected) ? expected.name : undefined;
+    const summary = liveList.find((ruleset) => ruleset.name === name);
     const prefix = `rulesets/${file}`;
     if (summary === undefined) {
       return [
         { setting: prefix, expected: `a live ruleset named ${String(name)}`, live: undefined },
       ];
     }
-    const live = getJson(runGh, `repos/${repository}/rulesets/${String(summary["id"])}`);
+    const live = getJson(runGh, `repos/${repository}/rulesets/${String(summary.id)}`);
     return compareRuleset(expected, live).map((drift) => prefixed(prefix, drift));
   });
 }
@@ -260,12 +264,12 @@ function formatDrift(drift: Drift): string[] {
 }
 
 /** What `runCheck` needs: where the files are, which repository to read and how to reach it. */
-export type CheckOptions = {
+export interface CheckOptions {
   repoRoot: string;
   repository: string;
   runGh: GhRunner;
   print: (line: string) => void;
-};
+}
 
 /**
  * Compares `.github/repo-settings.json` and every `.github/rulesets/*.json` with the live repository

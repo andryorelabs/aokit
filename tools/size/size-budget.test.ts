@@ -106,9 +106,9 @@ function scriptsOf(): Record<string, string> {
 describe("gate wiring", () => {
   test("check runs check:package, which lints the package and runs the size gate", () => {
     const scripts = scriptsOf();
-    expect(scripts["check"]).toContain("bun run check:package");
+    expect(scripts.check).toContain("bun run check:package");
     expect(scripts["check:package"]).toContain("bun run lint:package");
     expect(scripts["check:package"]).toContain("bun run size");
-    expect(scripts["size"]).toContain("tools/size/main.ts");
+    expect(scripts.size).toContain("tools/size/main.ts");
   });
 });

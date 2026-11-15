@@ -46,9 +46,9 @@ export function wireWorkspaces(vfs: OpVfs, layout: "single" | "monorepo"): void 
   const rootText = readText(vfs, "package.json");
   const parsed: unknown = rootText.trim() === "" ? {} : JSON.parse(rootText);
   const root: Record<string, unknown> = isRecord(parsed) ? parsed : {};
-  const existing = Array.isArray(root["workspaces"])
-    ? root["workspaces"].filter((entry): entry is string => typeof entry === "string")
+  const existing = Array.isArray(root.workspaces)
+    ? root.workspaces.filter((entry): entry is string => typeof entry === "string")
     : [];
-  root["workspaces"] = [...new Set([...existing, ...directories])].toSorted(compareCodepoint);
+  root.workspaces = [...new Set([...existing, ...directories])].toSorted(compareCodepoint);
   writeIfChanged(vfs, "package.json", `${JSON.stringify(root, null, 2)}\n`);
 }

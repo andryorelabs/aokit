@@ -87,5 +87,5 @@ export function runGates(
  * process was killed by a signal, which must never let the push through.
  */
 export function gateExitCode(exitCode: number | null): number {
-  return exitCode === null ? 1 : exitCode;
+  return exitCode ?? 1;
 }

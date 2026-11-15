@@ -6,8 +6,8 @@ import { z } from "zod";
 import { aokitCommand, spawnAokit } from "../../helpers/aokit-process.ts";
 import { differingPaths, treeDigests } from "./tree-digest.ts";
 
-const binaryPath = process.env["AOKIT_BIN"] ?? "";
-const tarballPaths = (process.env["AOKIT_DIST_TARBALLS"] ?? "").split(",").filter(Boolean);
+const binaryPath = process.env.AOKIT_BIN ?? "";
+const tarballPaths = (process.env.AOKIT_DIST_TARBALLS ?? "").split(",").filter(Boolean);
 const describeWithBinary = binaryPath === "" ? describe.skip : describe;
 const describeWithBoth = binaryPath === "" || tarballPaths.length === 0 ? describe.skip : describe;
 
@@ -262,7 +262,7 @@ describeWithTarballs("create-aokit from the packed tarballs", () => {
     );
     const repository = await readReleaseOf(join(repositoryRoot, "registry", "index.json"));
     expect(repository).toBe("2026.12.1");
-    expect(lockfile.registries["official"]?.release).toBe("2026.12.1");
+    expect(lockfile.registries.official?.release).toBe("2026.12.1");
   });
 
   test("S11: a Project that create-aokit creates and installs builds with bun run build", async () => {

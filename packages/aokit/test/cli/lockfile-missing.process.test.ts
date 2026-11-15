@@ -13,7 +13,7 @@ afterAll(async () => {
   await rm(workspace, { recursive: true, force: true });
 });
 
-const commands: ReadonlyArray<readonly [string, (directory: string) => string[]]> = [
+const commands: readonly (readonly [string, (directory: string) => string[]])[] = [
   ["add", (directory) => ["add", "oxc", "--directory", directory]],
   ["remove", (directory) => ["remove", "oxc", "--directory", directory]],
   ["doctor", (directory) => ["doctor", directory]],

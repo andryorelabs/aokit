@@ -51,9 +51,9 @@ for (const layout of ["single", "monorepo"] as const) {
     });
     expect(exitCodeForEnvelope(added)).toBe(0);
     const lockfile = await readLockfileJson(project);
-    const adapted = Object.keys(lockfile["modules"]).filter((name) => name.startsWith("@"));
+    const adapted = Object.keys(lockfile.modules).filter((name) => name.startsWith("@"));
     expect(adapted).toHaveLength(3);
-    const files = Object.keys(lockfile["files"]);
+    const files = Object.keys(lockfile.files);
     expect(files.some((path) => path.endsWith("ui/button.tsx"))).toBe(true);
     expect(files.some((path) => path.endsWith("lib/utils.ts"))).toBe(true);
     expect(files.some((path) => path.endsWith("ui/card.tsx"))).toBe(true);

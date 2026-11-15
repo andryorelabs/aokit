@@ -172,6 +172,23 @@ export function checkCliVersion(index: RegistryIndex, cliVersion: string): void 
   }
 }
 
+/**
+ * The Catalog pointer of the index's current release. The index schema already requires it, so
+ * a missing pointer means the index object was built without that schema.
+ */
+export function currentReleasePointer(index: RegistryIndex): RegistryIndex["releases"][string] {
+  const pointer = index.releases[index.release];
+  if (pointer === undefined) {
+    throw new RegistryError(
+      "REGISTRY_INDEX_INVALID",
+      `Registry "${index.name}" names release ${index.release}, which its index does not list.`,
+      rebuildFix,
+      { registry: index.name, expected: index.release },
+    );
+  }
+  return pointer;
+}
+
 export async function readCatalog(
   transport: RegistryTransport,
   registryName: string,

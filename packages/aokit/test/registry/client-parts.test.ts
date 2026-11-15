@@ -70,7 +70,9 @@ async function caughtCode(run: () => unknown): Promise<string | undefined> {
 describe("common", () => {
   test("allInOrder rethrows the earliest rejection in input order", async () => {
     const late = new Promise<number>((_, reject) => {
-      setTimeout(() => reject(new Error("first")), 5);
+      setTimeout(() => {
+        reject(new Error("first"));
+      }, 5);
     });
     const failure = await allInOrder([late, Promise.reject(new Error("second"))]).catch(
       (error: unknown) => error,
@@ -87,9 +89,9 @@ describe("common", () => {
   });
 
   test("verifyIntegrity refuses a mismatch", async () => {
-    const code = await caughtCode(() =>
-      verifyIntegrity(computeIntegrity("a"), computeIntegrity("b"), "subject", { registry: "r" }),
-    );
+    const code = await caughtCode(() => {
+      verifyIntegrity(computeIntegrity("a"), computeIntegrity("b"), "subject", { registry: "r" });
+    });
     expect(code).toBe("REGISTRY_INTEGRITY_MISMATCH");
   });
 });
@@ -106,7 +108,11 @@ describe("index file", () => {
       { cliVersion },
     );
     const index = parseIndex(transport, await transport.read("index.json"));
-    expect(await caughtCode(() => checkCliVersion(index, "0.0.1"))).toBe("REGISTRY_CLI_TOO_OLD");
+    expect(
+      await caughtCode(() => {
+        checkCliVersion(index, "0.0.1");
+      }),
+    ).toBe("REGISTRY_CLI_TOO_OLD");
     const pointer = index.releases[index.release];
     if (pointer === undefined) throw new Error("the built Registry has no current Catalog");
     const catalog = await readCatalog(transport, index.name, index.release, pointer);

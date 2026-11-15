@@ -82,7 +82,9 @@ describe("Release 2026.11.1", () => {
         const content = vfs.read(path);
         return typeof content === "string" ? content : undefined;
       },
-      write: (path: string, content: string) => vfs.write(path, content),
+      write: (path: string, content: string) => {
+        vfs.write(path, content);
+      },
       delete: (path: string) => vfs.delete(path),
       list: (prefix = "") => vfs.paths().filter((path) => path.startsWith(prefix)),
     };
@@ -107,15 +109,15 @@ describe("Release 2026.12.0", () => {
     const previous = readJson(join(sourceRoot, "catalog", "2026.11.2.json"));
     const next = readJson(join(sourceRoot, "catalog", "2026.12.0.json"));
     expect(next.release).toBe("2026.12.0");
-    expect(next["pinGroups"]).toMatchObject(
-      z.record(z.string(), z.array(z.string())).parse(previous["pinGroups"]),
+    expect(next.pinGroups).toMatchObject(
+      z.record(z.string(), z.array(z.string())).parse(previous.pinGroups),
     );
-    const previousDependencies = z.record(z.string(), z.string()).parse(previous["dependencies"]);
-    const nextDependencies = z.record(z.string(), z.string()).parse(next["dependencies"]);
+    const previousDependencies = z.record(z.string(), z.string()).parse(previous.dependencies);
+    const nextDependencies = z.record(z.string(), z.string()).parse(next.dependencies);
     expect(nextDependencies).toMatchObject(previousDependencies);
     const names = Object.keys(nextDependencies);
     expect(names).toEqual(names.toSorted());
-    expect(z.record(z.string(), z.string()).parse(next["modules"])["tailwind4"]).toBe("2.0.0");
+    expect(z.record(z.string(), z.string()).parse(next.modules).tailwind4).toBe("2.0.0");
   });
 
   test("tailwind4 2.0.0 ships and 1.x stays published", async () => {
@@ -126,10 +128,10 @@ describe("Release 2026.12.0", () => {
 
   test("a remaining Catalog fragment never redefines a dependency of the 2026.12.0 Catalog", () => {
     const releasedCatalog = readJson(join(sourceRoot, "catalog", "2026.12.0.json"));
-    const released = z.record(z.string(), z.string()).parse(releasedCatalog["dependencies"]);
+    const released = z.record(z.string(), z.string()).parse(releasedCatalog.dependencies);
     const releasedPinGroups = z
       .record(z.string(), z.array(z.string()))
-      .parse(releasedCatalog["pinGroups"]);
+      .parse(releasedCatalog.pinGroups);
     const fragmentSchema = z.object({
       dependencies: z.record(z.string(), z.string()),
       pinGroups: z.record(z.string(), z.array(z.string())).optional(),
@@ -174,12 +176,12 @@ describe("Release 2026.12.1", () => {
     const previous = readJson(join(sourceRoot, "catalog", "2026.12.0.json"));
     const next = readJson(join(sourceRoot, "catalog", "2026.12.1.json"));
     expect(next.release).toBe("2026.12.1");
-    expect(next["pinGroups"]).toEqual(previous["pinGroups"]);
-    const previousDependencies = z.record(z.string(), z.string()).parse(previous["dependencies"]);
-    const nextDependencies = z.record(z.string(), z.string()).parse(next["dependencies"]);
+    expect(next.pinGroups).toEqual(previous.pinGroups);
+    const previousDependencies = z.record(z.string(), z.string()).parse(previous.dependencies);
+    const nextDependencies = z.record(z.string(), z.string()).parse(next.dependencies);
     expect(nextDependencies).toMatchObject(previousDependencies);
     expect(Object.keys(nextDependencies)).toEqual(Object.keys(nextDependencies).toSorted());
-    const modules = z.record(z.string(), z.string()).parse(next["modules"]);
+    const modules = z.record(z.string(), z.string()).parse(next.modules);
     for (const name of newModules) expect(modules[name]).toBe("1.0.0");
   });
 
@@ -208,7 +210,7 @@ describe("Release 2026.12.1", () => {
     const index = readJson(join(repositoryRoot, "registry", "index.json"));
     const indexModules = z
       .record(z.string(), z.object({ versions: z.record(z.string(), z.unknown()) }))
-      .parse(index["modules"]);
+      .parse(index.modules);
     const leftovers = readdirSync(sourceRoot, { withFileTypes: true })
       .filter(
         (entry) => entry.isDirectory() && existsSync(join(sourceRoot, entry.name, "catalog.json")),

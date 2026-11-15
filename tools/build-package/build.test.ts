@@ -42,8 +42,8 @@ test("create-aokit has the version of aokit and depends on exactly that version"
   const createAokit = await readManifest(
     join(repoRoot, "packages", "create-aokit", "package.json"),
   );
-  expect(createAokit["version"]).toBe(aokit["version"]);
-  expect(createAokit["dependencies"]).toMatchObject({ aokit: aokit["version"] });
+  expect(createAokit.version).toBe(aokit.version);
+  expect(createAokit.dependencies).toMatchObject({ aokit: aokit.version });
 });
 
 type MutuallyAssignable<Left, Right> = [Left] extends [Right]

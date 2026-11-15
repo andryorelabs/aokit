@@ -35,7 +35,7 @@ async function loadRenovateConfig(): Promise<JsonObject> {
  * Returns the `packageRules` entries of a Renovate config.
  */
 function packageRulesOf(config: JsonObject): JsonObject[] {
-  const rules = config["packageRules"];
+  const rules = config.packageRules;
   if (!Array.isArray(rules)) {
     throw new Error("packageRules must be an array");
   }
@@ -46,7 +46,7 @@ function packageRulesOf(config: JsonObject): JsonObject[] {
  * Finds the package rule whose `groupName` matches.
  */
 function groupRuleOf(config: JsonObject, groupName: string): JsonObject {
-  const rule = packageRulesOf(config).find((candidate) => candidate["groupName"] === groupName);
+  const rule = packageRulesOf(config).find((candidate) => candidate.groupName === groupName);
   if (rule === undefined) {
     throw new Error(`missing package rule group ${groupName}`);
   }
@@ -64,7 +64,7 @@ function automergeRuleOf(
   const rule = packageRulesOf(config).find((candidate) => {
     const selector = candidate[selectorKey];
     return (
-      isStringArray(selector) && selector.includes(selectorValue) && candidate["automerge"] === true
+      isStringArray(selector) && selector.includes(selectorValue) && candidate.automerge === true
     );
   });
   if (rule === undefined) {
@@ -86,72 +86,72 @@ function automergeRulesOf(config: JsonObject): JsonObject[] {
 describe("renovate.json5", () => {
   test("extends config:best-practices", async () => {
     const config = await loadRenovateConfig();
-    expect(config["extends"]).toContain("config:best-practices");
+    expect(config.extends).toContain("config:best-practices");
   });
 
   test("waits 3 days by default and 7 days for automerge", async () => {
     const config = await loadRenovateConfig();
-    expect(config["minimumReleaseAge"]).toBe("3 days");
+    expect(config.minimumReleaseAge).toBe("3 days");
     for (const rule of automergeRulesOf(config)) {
-      expect(rule["minimumReleaseAge"]).toBe("7 days");
+      expect(rule.minimumReleaseAge).toBe("7 days");
     }
   });
 
   test("automerges patch and minor devDependency and action updates", async () => {
     const config = await loadRenovateConfig();
     for (const rule of automergeRulesOf(config)) {
-      expect(rule["matchUpdateTypes"]).toEqual(["patch", "minor"]);
+      expect(rule.matchUpdateTypes).toEqual(["patch", "minor"]);
     }
   });
 
   test("pins the oxc group exactly and never automerges it", async () => {
     const group = groupRuleOf(await loadRenovateConfig(), "oxc");
-    expect(group["matchPackageNames"]).toEqual(oxcMembers);
-    expect(group["rangeStrategy"]).toBe("pin");
-    expect(group["automerge"]).toBe(false);
+    expect(group.matchPackageNames).toEqual(oxcMembers);
+    expect(group.rangeStrategy).toBe("pin");
+    expect(group.automerge).toBe(false);
   });
 
   test("pins the typescript7 group exactly and never automerges it", async () => {
     const group = groupRuleOf(await loadRenovateConfig(), "typescript7");
-    expect(group["matchDepNames"]).toEqual(["typescript7"]);
-    expect(group["rangeStrategy"]).toBe("pin");
-    expect(group["automerge"]).toBe(false);
+    expect(group.matchDepNames).toEqual(["typescript7"]);
+    expect(group.rangeStrategy).toBe("pin");
+    expect(group.automerge).toBe(false);
   });
 
   test("limits typescript to versions below 7", async () => {
     const rule = packageRulesOf(await loadRenovateConfig()).find((candidate) => {
-      const names = candidate["matchDepNames"];
+      const names = candidate.matchDepNames;
       return isStringArray(names) && names.includes("typescript");
     });
-    expect(rule?.["allowedVersions"]).toBe("<7");
+    expect(rule?.allowedVersions).toBe("<7");
   });
 
   test("enables OSV vulnerability alerts", async () => {
     const config = await loadRenovateConfig();
-    expect(config["osvVulnerabilityAlerts"]).toBe(true);
+    expect(config.osvVulnerabilityAlerts).toBe(true);
   });
 
   test("S3: opens its pull requests against develop only", async () => {
     const config = await loadRenovateConfig();
-    expect(config["baseBranchPatterns"]).toEqual(["develop"]);
-    expect(config["baseBranches"]).toBeUndefined();
+    expect(config.baseBranchPatterns).toEqual(["develop"]);
+    expect(config.baseBranches).toBeUndefined();
   });
 
   test("enables lockfile maintenance", async () => {
     const config = await loadRenovateConfig();
-    const maintenance = config["lockFileMaintenance"];
-    expect(isJsonObject(maintenance) && maintenance["enabled"]).toBe(true);
+    const maintenance = config.lockFileMaintenance;
+    expect(isJsonObject(maintenance) && maintenance.enabled).toBe(true);
   });
 
   test("runs on Mondays", async () => {
     const config = await loadRenovateConfig();
-    const schedule = config["schedule"];
+    const schedule = config.schedule;
     expect(isStringArray(schedule) && schedule.join(" ")).toContain("on monday");
   });
 
   test("enables the dependency dashboard", async () => {
     const config = await loadRenovateConfig();
-    expect(config["dependencyDashboard"]).toBe(true);
+    expect(config.dependencyDashboard).toBe(true);
   });
 
   test("labels updates and each label exists in labels.yml", async () => {
@@ -160,12 +160,12 @@ describe("renovate.json5", () => {
       await Bun.file(join(import.meta.dir, "..", "..", ".github", "labels.yml")).text(),
     );
     const declaredNames = Array.isArray(declared)
-      ? declared.map((label: unknown) => (isJsonObject(label) ? label["name"] : undefined))
+      ? declared.map((label: unknown) => (isJsonObject(label) ? label.name : undefined))
       : [];
     const referenced = [
-      ...(isStringArray(config["labels"]) ? config["labels"] : []),
+      ...(isStringArray(config.labels) ? config.labels : []),
       ...packageRulesOf(config).flatMap((rule) =>
-        isStringArray(rule["addLabels"]) ? rule["addLabels"] : [],
+        isStringArray(rule.addLabels) ? rule.addLabels : [],
       ),
     ];
     expect(referenced).toContain("dependencies");
@@ -175,10 +175,10 @@ describe("renovate.json5", () => {
 
   test("has a regex manager for renovate datasource comments", async () => {
     const config = await loadRenovateConfig();
-    const managers = config["customManagers"];
+    const managers = config.customManagers;
     const manager = Array.isArray(managers) ? managers.find(isJsonObject) : undefined;
-    expect(manager?.["customType"]).toBe("regex");
-    const matchStrings = manager?.["matchStrings"];
+    expect(manager?.customType).toBe("regex");
+    const matchStrings = manager?.matchStrings;
     if (!isStringArray(matchStrings)) {
       throw new Error("regex manager needs matchStrings");
     }

@@ -24,7 +24,7 @@ interface Collected {
 
 const FORMATTING = { insertSpaces: true, tabSize: 2, eol: "\n" } as const;
 
-function isObject(value: unknown): value is { [key: string]: JsonValue } {
+function isObject(value: unknown): value is Record<string, JsonValue> {
   return typeof value === "object" && value !== null && !Array.isArray(value);
 }
 
@@ -94,9 +94,9 @@ function collectKey(
 
 function collectObject(
   path: JSONPath,
-  base: { [key: string]: JsonValue },
-  user: { [key: string]: JsonValue },
-  next: { [key: string]: JsonValue },
+  base: Record<string, JsonValue>,
+  user: Record<string, JsonValue>,
+  next: Record<string, JsonValue>,
   collected: Collected,
 ): void {
   const keys = new Set([...Object.keys(base), ...Object.keys(user), ...Object.keys(next)]);

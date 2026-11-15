@@ -3,7 +3,7 @@ import { installSignalHandlers, registerShutdownHook } from "../../src/cli/shutd
 
 test("a second signal during cleanup exits immediately with 130", async () => {
   const exits: number[] = [];
-  const release = Promise.withResolvers<void>();
+  const release: PromiseWithResolvers<void> = Promise.withResolvers();
   const unregister = registerShutdownHook(() => release.promise);
   const uninstall = installSignalHandlers({ exit: (code) => exits.push(code) });
   try {

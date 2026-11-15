@@ -17,5 +17,5 @@ test("the draft Catalog keeps every dependency of the latest Release Catalog", (
 test("buildSelection builds a curated Module with draft Catalog dependencies", async () => {
   const built = await buildSelection(["oxc"], "single");
   if (!built.ok) throw new Error(built.error.message);
-  expect(built.lockfile.deps["oxlint"]).toMatchObject({ pinned: true });
+  expect(built.lockfile.deps.oxlint).toMatchObject({ pinned: true });
 });

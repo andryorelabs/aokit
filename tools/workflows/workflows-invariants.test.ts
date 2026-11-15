@@ -78,9 +78,9 @@ function describeProblem(file: string, job: string, rule: WorkflowRule, detail: 
 
 /** A workflow triggered by a tag push publishes what it builds, so it must not restore a cache. */
 function isReleaseWorkflow(workflow: Record<string, unknown>): boolean {
-  const on = workflow["on"];
-  if (!isRecord(on) || !isRecord(on["push"])) return false;
-  return on["push"]["tags"] !== undefined;
+  const on = workflow.on;
+  if (!isRecord(on) || !isRecord(on.push)) return false;
+  return on.push.tags !== undefined;
 }
 
 function listTriggers(on: unknown): string[] {
@@ -112,11 +112,11 @@ function findCancellationProblems(file: string, scope: string, concurrency: unkn
  * requests and cancels the superseded ones on pull requests only.
  */
 function findConcurrencyProblems(file: string, workflow: Record<string, unknown>): string[] {
-  const concurrency = workflow["concurrency"];
+  const concurrency = workflow.concurrency;
   const cancellationProblems = findCancellationProblems(file, workflowScope, concurrency);
   if (cancellationProblems.length > 0) return cancellationProblems;
-  const isPullRequestWorkflow = listTriggers(workflow["on"]).includes("pull_request");
-  const group = isRecord(concurrency) ? concurrency["group"] : undefined;
+  const isPullRequestWorkflow = listTriggers(workflow.on).includes("pull_request");
+  const group = isRecord(concurrency) ? concurrency.group : undefined;
   if (typeof group !== "string" || group === "") {
     const kind = isPullRequestWorkflow ? "a pull_request workflow" : "every workflow";
     return [
@@ -152,9 +152,9 @@ function findConcurrencyProblems(file: string, workflow: Record<string, unknown>
 }
 
 function listPushBranches(workflow: Record<string, unknown>): unknown[] {
-  const on = workflow["on"];
-  const push = isRecord(on) ? on["push"] : undefined;
-  const branches = isRecord(push) ? push["branches"] : undefined;
+  const on = workflow.on;
+  const push = isRecord(on) ? on.push : undefined;
+  const branches = isRecord(push) ? push.branches : undefined;
   if (typeof branches === "string") return [branches];
   return Array.isArray(branches) ? branches : [];
 }
@@ -191,7 +191,7 @@ function findPushBranchProblems(file: string, workflow: Record<string, unknown>)
 
 function findWorkflowLevelProblems(file: string, workflow: Record<string, unknown>): string[] {
   const problems: string[] = [];
-  const permissions = workflow["permissions"];
+  const permissions = workflow.permissions;
   if (permissions === undefined) {
     problems.push(
       describeProblem(file, workflowScope, "permissions", "top-level permissions is missing"),
@@ -218,7 +218,7 @@ function findWorkflowLevelProblems(file: string, workflow: Record<string, unknow
       );
     }
   }
-  if (listTriggers(workflow["on"]).includes("pull_request_target")) {
+  if (listTriggers(workflow.on).includes("pull_request_target")) {
     problems.push(
       describeProblem(
         file,
@@ -230,7 +230,7 @@ function findWorkflowLevelProblems(file: string, workflow: Record<string, unknow
   }
   problems.push(...findConcurrencyProblems(file, workflow));
   problems.push(...findPushBranchProblems(file, workflow));
-  if (dispatchWorkflows.has(file) && !listTriggers(workflow["on"]).includes("workflow_dispatch")) {
+  if (dispatchWorkflows.has(file) && !listTriggers(workflow.on).includes("workflow_dispatch")) {
     problems.push(
       describeProblem(
         file,
@@ -246,7 +246,7 @@ function findWorkflowLevelProblems(file: string, workflow: Record<string, unknow
 /** The first step of a job is harden-runner with an explicit egress policy. */
 function findHardenRunnerProblems(file: string, job: string, steps: readonly unknown[]): string[] {
   const first = steps[0];
-  const uses = isRecord(first) ? first["uses"] : undefined;
+  const uses = isRecord(first) ? first.uses : undefined;
   if (typeof uses !== "string" || !uses.startsWith(hardenRunnerAction)) {
     return [
       describeProblem(
@@ -257,7 +257,7 @@ function findHardenRunnerProblems(file: string, job: string, steps: readonly unk
       ),
     ];
   }
-  const inputs = isRecord(first) && isRecord(first["with"]) ? first["with"] : {};
+  const inputs = isRecord(first) && isRecord(first.with) ? first.with : {};
   if (egressPolicies.has(inputs["egress-policy"])) return [];
   return [
     describeProblem(
@@ -270,7 +270,7 @@ function findHardenRunnerProblems(file: string, job: string, steps: readonly unk
 }
 
 function stepLabel(step: Record<string, unknown>, index: number): string {
-  const name = step["name"];
+  const name = step.name;
   return typeof name === "string" ? `"${name}"` : `#${index + 1}`;
 }
 
@@ -282,8 +282,8 @@ function findStepProblems(
 ): string[] {
   const problems: string[] = [];
   const label = stepLabel(step, index);
-  const uses = step["uses"];
-  const inputs = isRecord(step["with"]) ? step["with"] : {};
+  const uses = step.uses;
+  const inputs = isRecord(step.with) ? step.with : {};
   if (typeof uses === "string" && uses.startsWith("actions/checkout@")) {
     const persistCredentials = inputs["persist-credentials"];
     if (persistCredentials !== false && persistCredentials !== "false") {
@@ -309,7 +309,7 @@ function findStepProblems(
       );
     }
   }
-  const run = step["run"];
+  const run = step.run;
   if (typeof run === "string" && run.includes("${{")) {
     problems.push(
       describeProblem(
@@ -330,10 +330,10 @@ function findReleaseCacheProblems(
   step: Record<string, unknown>,
   index: number,
 ): string[] {
-  const uses = step["uses"];
+  const uses = step.uses;
   if (typeof uses !== "string") return [];
   const label = stepLabel(step, index);
-  const inputs = isRecord(step["with"]) ? step["with"] : {};
+  const inputs = isRecord(step.with) ? step.with : {};
   const detail = uses.startsWith("actions/cache")
     ? `cache step ${label} restores a cache in a release workflow`
     : uses.startsWith("oven-sh/setup-bun@") && inputs["no-cache"] !== true
@@ -351,12 +351,12 @@ function findJobProblems(
   isRelease: boolean,
 ): string[] {
   const problems: string[] = [];
-  const callsReusableWorkflow = definition["uses"] !== undefined;
+  const callsReusableWorkflow = definition.uses !== undefined;
   if (!callsReusableWorkflow && definition["timeout-minutes"] === undefined) {
     problems.push(describeProblem(file, job, "timeout-minutes", "job sets no timeout-minutes"));
   }
-  problems.push(...findCancellationProblems(file, job, definition["concurrency"]));
-  const steps = Array.isArray(definition["steps"]) ? definition["steps"] : [];
+  problems.push(...findCancellationProblems(file, job, definition.concurrency));
+  const steps = Array.isArray(definition.steps) ? definition.steps : [];
   if (!callsReusableWorkflow) problems.push(...findHardenRunnerProblems(file, job, steps));
   steps.forEach((step: unknown, index) => {
     if (!isRecord(step)) return;
@@ -369,12 +369,12 @@ function findJobProblems(
 
 function isBunCacheStep(step: unknown): boolean {
   if (!isRecord(step)) return false;
-  const uses = step["uses"];
+  const uses = step.uses;
   if (typeof uses !== "string" || !uses.startsWith("actions/cache@")) return false;
-  const inputs = isRecord(step["with"]) ? step["with"] : {};
+  const inputs = isRecord(step.with) ? step.with : {};
   return (
-    inputs["path"] === bunCache.path &&
-    inputs["key"] === bunCache.key &&
+    inputs.path === bunCache.path &&
+    inputs.key === bunCache.key &&
     inputs["restore-keys"] === bunCache.restoreKeys
   );
 }
@@ -384,7 +384,7 @@ function findBunCacheProblems(file: string, job: string, steps: readonly unknown
   const problems: string[] = [];
   steps.forEach((step: unknown, index) => {
     if (!isRecord(step)) return;
-    const run = step["run"];
+    const run = step.run;
     if (typeof run !== "string" || !installCommand.test(run)) return;
     if (isBunCacheStep(steps[index - 1])) return;
     problems.push(
@@ -444,7 +444,7 @@ function findPinningProblems(file: string, text: string): string[] {
 export function findWorkflowProblems(file: string, text: string): string[] {
   const workflow: unknown = Bun.YAML.parse(text);
   if (!isRecord(workflow)) throw new Error(`${file} is not a YAML mapping`);
-  const jobs = isRecord(workflow["jobs"]) ? workflow["jobs"] : {};
+  const jobs = isRecord(workflow.jobs) ? workflow.jobs : {};
   const isRelease = isReleaseWorkflow(workflow);
   const jobProblems = Object.entries(jobs).flatMap(([job, definition]) =>
     isRecord(definition) ? findJobProblems(file, job, definition, isRelease) : [],
@@ -914,8 +914,8 @@ describe("S8: workflow hardening invariants", () => {
         }));
       const withoutGroup = workflows
         .filter(({ workflow }) => {
-          const concurrency = isRecord(workflow) ? workflow["concurrency"] : undefined;
-          return !isRecord(concurrency) || typeof concurrency["group"] !== "string";
+          const concurrency = isRecord(workflow) ? workflow.concurrency : undefined;
+          return !isRecord(concurrency) || typeof concurrency.group !== "string";
         })
         .map(({ name }) => name);
       expect(withoutGroup).toEqual([]);
@@ -924,7 +924,7 @@ describe("S8: workflow hardening invariants", () => {
           ({ name, workflow }) =>
             dispatchWorkflows.has(name) &&
             isRecord(workflow) &&
-            listTriggers(workflow["on"]).includes("workflow_dispatch"),
+            listTriggers(workflow.on).includes("workflow_dispatch"),
         )
         .map(({ name }) => name)
         .toSorted();
@@ -936,32 +936,31 @@ describe("S8: workflow hardening invariants", () => {
     const workflow: unknown = Bun.YAML.parse(
       readFileSync(join(workflowsDirectory, "ci.yml"), "utf8"),
     );
-    const jobs = isRecord(workflow) && isRecord(workflow["jobs"]) ? workflow["jobs"] : {};
-    const testJob = jobs["test"];
+    const jobs = isRecord(workflow) && isRecord(workflow.jobs) ? workflow.jobs : {};
+    const testJob = jobs.test;
     const steps: Record<string, unknown>[] = (
-      isRecord(testJob) && Array.isArray(testJob["steps"]) ? testJob["steps"] : []
+      isRecord(testJob) && Array.isArray(testJob.steps) ? testJob.steps : []
     ).filter(isRecord);
     const testSteps = steps.filter(
-      (step) => typeof step["run"] === "string" && step["run"].startsWith("bun "),
+      (step) => typeof step.run === "string" && step.run.startsWith("bun "),
     );
-    expect(testSteps.map((step) => step["run"])).toEqual([
+    expect(testSteps.map((step) => step.run)).toEqual([
       "bun install --frozen-lockfile",
       "bun run test",
       "bun test packages tools",
     ]);
     for (const step of testSteps.slice(1)) {
-      expect(step["env"]).toEqual({
+      expect(step.env).toEqual({
         BUN_OPTIONS: "--reporter=junit --reporter-outfile=${{ runner.temp }}/junit.xml",
       });
     }
     const uploads = steps.filter(
-      (step) =>
-        typeof step["uses"] === "string" && step["uses"].startsWith("actions/upload-artifact@"),
+      (step) => typeof step.uses === "string" && step.uses.startsWith("actions/upload-artifact@"),
     );
     expect(uploads).toHaveLength(1);
     const [upload] = uploads;
-    expect(upload?.["if"]).toBe("failure()");
-    expect(upload?.["with"]).toEqual({
+    expect(upload?.if).toBe("failure()");
+    expect(upload?.with).toEqual({
       name: "test-report-${{ matrix.os }}-bun-${{ matrix.bun }}",
       path: "${{ runner.temp }}/junit.xml\ncoverage/lcov.info\n",
       "if-no-files-found": "ignore",
@@ -999,13 +998,13 @@ describe("S8: workflow hardening invariants", () => {
           const workflow: unknown = Bun.YAML.parse(
             readFileSync(join(workflowsDirectory, name), "utf8"),
           );
-          const jobs = isRecord(workflow) && isRecord(workflow["jobs"]) ? workflow["jobs"] : {};
+          const jobs = isRecord(workflow) && isRecord(workflow.jobs) ? workflow.jobs : {};
           return Object.entries(jobs).map(([job, definition]) => {
             const steps =
-              isRecord(definition) && Array.isArray(definition["steps"]) ? definition["steps"] : [];
+              isRecord(definition) && Array.isArray(definition.steps) ? definition.steps : [];
             const first: unknown = steps[0];
-            const inputs = isRecord(first) && isRecord(first["with"]) ? first["with"] : {};
-            return `${name}:${job} ${isRecord(first) ? String(first["uses"]) : "none"} ${String(inputs["egress-policy"])}`;
+            const inputs = isRecord(first) && isRecord(first.with) ? first.with : {};
+            return `${name}:${job} ${isRecord(first) ? String(first.uses) : "none"} ${String(inputs["egress-policy"])}`;
           });
         });
       expect(firstSteps.length).toBeGreaterThan(0);
@@ -1025,21 +1024,21 @@ describe("S8: workflow hardening invariants", () => {
     const workflow: unknown = Bun.YAML.parse(text);
 
     test("runs on pull requests only, read-only", () => {
-      expect(isRecord(workflow) ? listTriggers(workflow["on"]) : []).toEqual(["pull_request"]);
-      expect(isRecord(workflow) ? workflow["permissions"] : undefined).toEqual({
+      expect(isRecord(workflow) ? listTriggers(workflow.on) : []).toEqual(["pull_request"]);
+      expect(isRecord(workflow) ? workflow.permissions : undefined).toEqual({
         contents: "read",
       });
     });
 
     test("its job runs the pinned dependency-review-action after harden-runner", () => {
-      const jobs = isRecord(workflow) && isRecord(workflow["jobs"]) ? workflow["jobs"] : {};
+      const jobs = isRecord(workflow) && isRecord(workflow.jobs) ? workflow.jobs : {};
       const review = jobs["dependency-review"];
-      const steps = isRecord(review) && Array.isArray(review["steps"]) ? review["steps"] : [];
-      const uses = steps.map((step: unknown) => (isRecord(step) ? step["uses"] : undefined));
+      const steps = isRecord(review) && Array.isArray(review.steps) ? review.steps : [];
+      const uses = steps.map((step: unknown) => (isRecord(step) ? step.uses : undefined));
       expect(uses).toContain(
         "actions/dependency-review-action@a1d282b36b6f3519aa1f3fc636f609c47dddb294",
       );
-      expect(isRecord(review) ? review["name"] : undefined).toBe("dependency-review");
+      expect(isRecord(review) ? review.name : undefined).toBe("dependency-review");
     });
   });
 
@@ -1176,7 +1175,7 @@ describe("github-ci Module workflow invariants", () => {
     const scorecard: unknown = Bun.YAML.parse(
       readFileSync(join(moduleWorkflowsDirectory, "scorecard.yml"), "utf8"),
     );
-    const concurrency = isRecord(scorecard) ? scorecard["concurrency"] : undefined;
+    const concurrency = isRecord(scorecard) ? scorecard.concurrency : undefined;
     expect(isRecord(concurrency) ? concurrency["cancel-in-progress"] : undefined).toBe(false);
   });
 

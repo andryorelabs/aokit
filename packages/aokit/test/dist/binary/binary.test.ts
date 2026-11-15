@@ -5,7 +5,7 @@ import { join } from "node:path";
 import { z } from "zod";
 import { aokitCommand, spawnAokit } from "../../helpers/aokit-process.ts";
 
-const describeWithBinary = (process.env["AOKIT_BIN"] ?? "") === "" ? describe.skip : describe;
+const describeWithBinary = (process.env.AOKIT_BIN ?? "") === "" ? describe.skip : describe;
 
 const committedRegistry = join(import.meta.dir, "../../../../../registry");
 
@@ -211,7 +211,7 @@ describeWithBinary("the standalone binary", () => {
     const lockfile = lockfileSchema.parse(
       JSON.parse(await readFile(join(workDirectory, "latest", "aokit.lock.json"), "utf8")),
     );
-    const officialRegistry = lockfile.registries["official"];
+    const officialRegistry = lockfile.registries.official;
     const viteReactModule = lockfile.modules["vite-react"];
     if (officialRegistry === undefined || viteReactModule === undefined) {
       throw new Error("the lockfile lacks the official Registry or vite-react");

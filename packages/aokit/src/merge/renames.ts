@@ -3,7 +3,7 @@
  * A path that ends where it started drops out.
  */
 export function composeRenames(
-  manifests: ReadonlyArray<Readonly<Record<string, string>>>,
+  manifests: readonly Readonly<Record<string, string>>[],
 ): Map<string, string> {
   const composed = new Map<string, string>();
   for (const manifest of manifests) {

@@ -85,7 +85,7 @@ async function commitAll(directory: string): Promise<void> {
 test("update keeps a user dependency the target Release does not resolve", async () => {
   const directory = await updatableProject();
   await editLockfileJson(directory, (lockfile) => {
-    objectAt(lockfile, "deps")["mine"] = {
+    objectAt(lockfile, "deps").mine = {
       version: "9.9.9",
       owners: [],
       pinned: false,

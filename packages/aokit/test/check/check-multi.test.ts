@@ -27,7 +27,7 @@ describe("aokit check with several Registries and versions", () => {
     const project = await createProject(registry);
     await editLockfileJson(project, (lockfile) => {
       const registries = objectAt(lockfile, "registries");
-      registries["another"] = { ...official(lockfile) };
+      registries.another = { ...official(lockfile) };
     });
     const envelope = await runCommand(checkCommand, commandContext, { directory: project });
     expect(envelope).toMatchObject({ ok: true, data: { modules: [] } });

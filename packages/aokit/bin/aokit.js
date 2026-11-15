@@ -21,7 +21,14 @@ for (const signal of forwardedSignals) {
     child.kill(signal);
   });
 }
-process.on("SIGINT", () => {});
+/**
+ * Keeps the shim alive on SIGINT so it exits with the child's status. The child already got the
+ * signal; 130 stands only until the child closes and its own status replaces it.
+ */
+function awaitChildAfterInterrupt() {
+  process.exitCode = 130;
+}
+process.on("SIGINT", awaitChildAfterInterrupt);
 
 child.on("error", (error) => {
   spawnFailed = true;

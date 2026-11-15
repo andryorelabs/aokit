@@ -56,9 +56,9 @@ function atFirstRelease(index: IndexShape): IndexShape {
     const entry = copy.modules[name];
     if (entry === undefined) throw new Error(`index lists no ${name}`);
     entry.latest = previous;
-    for (const version of Object.keys(entry.versions)) {
-      if (version !== previous) delete entry.versions[version];
-    }
+    entry.versions = Object.fromEntries(
+      Object.entries(entry.versions).filter(([version]) => version === previous),
+    );
   }
   return copy;
 }

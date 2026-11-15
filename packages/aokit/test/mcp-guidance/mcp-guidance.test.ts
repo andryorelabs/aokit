@@ -18,8 +18,8 @@ async function markdownOf(topic: string): Promise<string> {
   const result = await callTool(client, "get_guidance", { topic });
   expect(result.ok).toBe(true);
   expect(result.isError).toBe(false);
-  expect(result.data?.["topic"]).toBe(topic);
-  return z.string().parse(result.data?.["markdown"]);
+  expect(result.data?.topic).toBe(topic);
+  return z.string().parse(result.data?.markdown);
 }
 
 describe("get_guidance", () => {
@@ -65,13 +65,13 @@ describe("get_guidance", () => {
   test("a code added to the exit-code table appears without editing markdown", async () => {
     const registry = await openDefaultRegistry({ version: cliVersion, env: {}, commands: [] });
     const table: Record<string, number> = errorCodeExitCodes;
-    table["BRAND_NEW_CODE"] = 5;
+    table.BRAND_NEW_CODE = 5;
     try {
       expect(renderGuidance("errors", registry)).toContain(
         "| `BRAND_NEW_CODE` | precondition | 5 |",
       );
     } finally {
-      delete table["BRAND_NEW_CODE"];
+      delete table.BRAND_NEW_CODE;
     }
   });
 
@@ -148,9 +148,7 @@ describe("get_schema", () => {
     expect(Object.keys(parsed.inputSchema.properties).toSorted()).toEqual(expectedKeys);
     for (const key of expectedKeys) {
       expect(parsed.inputSchema.properties[key]?.["x-aokit"]).toEqual(cliInput[key]?.["x-aokit"]);
-      expect(parsed.inputSchema.properties[key]?.["description"]).toEqual(
-        cliInput[key]?.["description"],
-      );
+      expect(parsed.inputSchema.properties[key]?.description).toEqual(cliInput[key]?.description);
     }
     expect(parsed.inputSchema["x-aokit"].name).toBe("create");
   });

@@ -58,11 +58,11 @@ describe("capability-derived matrix", () => {
     "curated sets render to the committed digest baseline",
     async () => {
       const actual = `${(await curatedDigestLines()).join("\n")}\n`;
-      if (process.env["AOKIT_UPDATE_CURATED_BASELINE"] === "1") {
+      if (process.env.AOKIT_UPDATE_CURATED_BASELINE === "1") {
         await writeFile(baselineFile, actual);
       }
       expect(actual).toBe(await readFile(baselineFile, "utf8"));
-      const target = process.env["AOKIT_MATRIX_DIGEST_FILE"];
+      const target = process.env.AOKIT_MATRIX_DIGEST_FILE;
       if (target !== undefined && target !== "") {
         await writeFile(target, actual, { flag: "a" });
       }
@@ -100,7 +100,7 @@ describe("capability-derived matrix", () => {
           digests[`${layout} ${selection.join(",")}`] = first.digest;
         }
       }
-      const target = process.env["AOKIT_MATRIX_DIGEST_FILE"];
+      const target = process.env.AOKIT_MATRIX_DIGEST_FILE;
       if (target !== undefined && target !== "") {
         const lines = Object.entries(digests).map(([key, digest]) => `${key} ${digest}`);
         await writeFile(target, `${lines.join("\n")}\n`);

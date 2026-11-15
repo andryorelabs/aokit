@@ -88,16 +88,16 @@ async function planCreate(
   const envelope = await runCommand(createCommand, context, commandInput);
   if (!envelope.ok) return { ok: false, envelope };
   const data = isRecord(envelope.data) ? envelope.data : {};
-  const plan = isRecord(data["plan"]) ? data["plan"] : {};
-  const vfsHash = typeof plan["hash"] === "string" ? plan["hash"] : "";
+  const plan = isRecord(data.plan) ? data.plan : {};
+  const vfsHash = typeof plan.hash === "string" ? plan.hash : "";
   const { dryRun: _dryRun, ...normalized } = commandInput;
-  const release = typeof data["release"] === "string" ? data["release"] : "";
+  const release = typeof data.release === "string" ? data.release : "";
   const planId = computePlanId({ tool: "create", input: normalized }, release, vfsHash);
   return { ok: true, planned: { data, planId } };
 }
 
 function directoryOf(input: unknown): string {
-  return isRecord(input) && typeof input["directory"] === "string" ? input["directory"] : "";
+  return isRecord(input) && typeof input.directory === "string" ? input.directory : "";
 }
 
 function shellWord(value: string): string {
@@ -138,7 +138,7 @@ export const createTool: McpToolDefinition = {
     const explicit = isRecord(input) ? input : {};
     const requested = directoryOf(explicit);
     if (!isAbsolute(requested)) return relativeDirectoryFailure(requested);
-    const planId = typeof explicit["planId"] === "string" ? explicit["planId"] : "";
+    const planId = typeof explicit.planId === "string" ? explicit.planId : "";
     if (!session.has(planId))
       return planRequiredFailure("this `planId` was not issued by `plan` in this session");
     const directory = await canonicalDirectory(requested);

@@ -109,7 +109,7 @@ export async function startMcpServer(): Promise<void> {
       interactive: false,
     },
   });
-  const closed = Promise.withResolvers<void>();
+  const closed: PromiseWithResolvers<void> = Promise.withResolvers();
   process.stdin.once("end", closed.resolve);
   process.stdin.once("close", closed.resolve);
   await server.connect(new StdioServerTransport());

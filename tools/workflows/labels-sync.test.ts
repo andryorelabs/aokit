@@ -11,20 +11,20 @@ function isRecord(value: unknown): value is Record<string, unknown> {
 /** The `with:` inputs of the labeler step in `labels.yml`. */
 function readLabelerInputs(): Record<string, unknown> {
   const workflow: unknown = Bun.YAML.parse(readFileSync(workflowPath, "utf8"));
-  const jobs = isRecord(workflow) && isRecord(workflow["jobs"]) ? workflow["jobs"] : {};
+  const jobs = isRecord(workflow) && isRecord(workflow.jobs) ? workflow.jobs : {};
   const steps = Object.values(jobs).flatMap((job): unknown[] =>
-    isRecord(job) && Array.isArray(job["steps"]) ? job["steps"] : [],
+    isRecord(job) && Array.isArray(job.steps) ? job.steps : [],
   );
   const labeler = steps.find(
     (step) =>
       isRecord(step) &&
-      typeof step["uses"] === "string" &&
-      step["uses"].startsWith("crazy-max/ghaction-github-labeler@"),
+      typeof step.uses === "string" &&
+      step.uses.startsWith("crazy-max/ghaction-github-labeler@"),
   );
-  if (!isRecord(labeler) || !isRecord(labeler["with"])) {
+  if (!isRecord(labeler) || !isRecord(labeler.with)) {
     throw new Error("labels.yml has no labeler step with inputs");
   }
-  return labeler["with"];
+  return labeler.with;
 }
 
 /**

@@ -28,7 +28,7 @@ test("a locked version missing from the Registry renders the latest and notes it
   const directory = await createProject(workspace);
   const latest = (await readLock(directory)).modules.oxc?.version;
   await lockWith(directory, (lock) => {
-    objectAt(lock, "modules", "oxc")["version"] = "0.0.1";
+    objectAt(lock, "modules", "oxc").version = "0.0.1";
   });
   await commitAll(directory);
   const envelope = await recopy(directory);

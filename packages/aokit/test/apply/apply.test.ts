@@ -251,7 +251,8 @@ test("a simulated SIGINT before the final rename exits 130 and changes nothing",
   const { directory, base } = await existingProject();
   const before = await snapshot(directory);
   const exitCodes: number[] = [];
-  const { promise: exited, resolve: markExited } = Promise.withResolvers<void>();
+  const { promise: exited, resolve: markExited }: PromiseWithResolvers<void> =
+    Promise.withResolvers();
   const uninstall = installSignalHandlers({
     exit: (code) => {
       exitCodes.push(code);
@@ -282,7 +283,8 @@ test("a simulated SIGINT while creating a new Project leaves nothing behind", as
   const next = Vfs.empty();
   next.write("a.txt", "a");
   const exitCodes: number[] = [];
-  const { promise: exited, resolve: markExited } = Promise.withResolvers<void>();
+  const { promise: exited, resolve: markExited }: PromiseWithResolvers<void> =
+    Promise.withResolvers();
   const uninstall = installSignalHandlers({
     exit: (code) => {
       exitCodes.push(code);

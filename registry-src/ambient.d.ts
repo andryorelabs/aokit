@@ -25,9 +25,7 @@ declare module "react/jsx-runtime" {
     interface ElementChildrenAttribute {
       children: unknown;
     }
-    interface IntrinsicElements {
-      [tag: string]: Record<string, unknown>;
-    }
+    type IntrinsicElements = Record<string, Record<string, unknown>>;
   }
   export function jsx(type: unknown, props: unknown, key?: string): JSX.Element;
   export function jsxs(type: unknown, props: unknown, key?: string): JSX.Element;

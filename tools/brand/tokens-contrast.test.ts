@@ -26,7 +26,7 @@ function readDeclarations(block: string | undefined): Record<string, string> {
   return declarations;
 }
 
-const MINIMUM_CONTRAST: ReadonlyArray<readonly [Token, number]> = [
+const MINIMUM_CONTRAST: readonly (readonly [Token, number])[] = [
   ["text", 7],
   ["muted", 4.5],
   ["mark", 3],
@@ -44,7 +44,7 @@ describe("tokens.css", () => {
 
     for (const [token, minimum] of MINIMUM_CONTRAST) {
       test(`${grade} ${token} on bg is at least ${minimum}:1`, () => {
-        const ratio = contrastRatio(declared[token] ?? "", declared["bg"] ?? "");
+        const ratio = contrastRatio(declared[token] ?? "", declared.bg ?? "");
         expect(
           ratio,
           `${grade} ${token} on bg is ${ratio.toFixed(2)}:1, needs ${minimum}:1`,

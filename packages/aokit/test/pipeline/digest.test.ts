@@ -23,7 +23,7 @@ test("prints the determinism digest and writes it to AOKIT_DIGEST_FILE when set"
   expect(await digestLines()).toEqual(lines);
   const text = `${lines.join("\n")}\n`;
   process.stdout.write(`determinism digest\n${text}`);
-  const target = process.env["AOKIT_DIGEST_FILE"];
+  const target = process.env.AOKIT_DIGEST_FILE;
   if (target !== undefined && target !== "") {
     await writeFile(target, text);
   }

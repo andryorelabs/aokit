@@ -10,7 +10,7 @@ export function parseJson(text: string): unknown {
 /**
  * Walks `path` through nested objects and arrays, returning `undefined` when a step is missing.
  */
-export function jsonAt(value: unknown, ...path: ReadonlyArray<string | number>): unknown {
+export function jsonAt(value: unknown, ...path: readonly (string | number)[]): unknown {
   let current = value;
   for (const key of path) {
     if (typeof current !== "object" || current === null) {
@@ -24,7 +24,7 @@ export function jsonAt(value: unknown, ...path: ReadonlyArray<string | number>):
 /**
  * Parses JSON text and reads the value at `path` in one step.
  */
-export function parseJsonAt(text: string, ...path: ReadonlyArray<string | number>): unknown {
+export function parseJsonAt(text: string, ...path: readonly (string | number)[]): unknown {
   return jsonAt(parseJson(text), ...path);
 }
 
@@ -40,7 +40,7 @@ export function commandNamesFrom(text: string): string[] {
 /**
  * Lists the own keys of the object at `path`, or an empty list when it is not an object.
  */
-export function keysAt(value: unknown, ...path: ReadonlyArray<string | number>): string[] {
+export function keysAt(value: unknown, ...path: readonly (string | number)[]): string[] {
   const target = jsonAt(value, ...path);
   return typeof target === "object" && target !== null ? Object.keys(target) : [];
 }

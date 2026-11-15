@@ -4,6 +4,11 @@ import { join } from "node:path";
 import type { OxlintConfig } from "oxlint";
 import configuration, {
   apiHygieneRules,
+  baselineRuleNames,
+  baselineRuleSettings,
+  baselineTestFileGlobs,
+  baselineTestRuleNames,
+  baselineTestRuleSettings,
   exhaustivenessRules,
   ignoredPaths,
   noUnsafeAnyRules,
@@ -92,14 +97,16 @@ describe("oxlint.config.ts", () => {
     expect(testIntegrityRules).toEqual([
       "jest/no-focused-tests",
       "jest/no-disabled-tests",
+      "jest/no-identical-title",
       "local/no-unawaited-async-matcher",
+      "local/no-bun-test-only",
     ]);
     const testOverride = config.overrides?.find((override) =>
       override.files.includes("**/*.test.ts"),
     );
     expect(testOverride?.files).toEqual(testFileGlobs);
     expect(testOverride?.plugins).toEqual(["jest"]);
-    for (const ruleName of testIntegrityRules) {
+    for (const ruleName of [...testIntegrityRules, ...baselineTestRuleNames]) {
       expect(testOverride?.rules?.[ruleName]).toBe("error");
       expect(config.rules?.[ruleName]).toBeUndefined();
     }
@@ -115,5 +122,58 @@ describe("oxlint.config.ts", () => {
     expect(existsSync(join(repositoryRoot, ".oxlintrc.json"))).toBe(false);
     expect(existsSync(join(repositoryRoot, "knip.json"))).toBe(false);
     expect(existsSync(join(repositoryRoot, "knip.jsonc"))).toBe(true);
+  });
+});
+
+const toolingStandardPath = join(repositoryRoot, "docs", "standards", "tooling.md");
+const oxcModuleConfigPath = join(repositoryRoot, "registry-src", "oxc", "files", "oxlintrc.json");
+
+/**
+ * The `### Oxlint baseline (E10)` section of the tooling standard, up to the next heading.
+ */
+async function baselineSection(): Promise<string> {
+  const text = await Bun.file(toolingStandardPath).text();
+  const start = text.indexOf("### Oxlint baseline (E10)");
+  expect(start).toBeGreaterThan(-1);
+  const end = text.indexOf("\n#", start + 1);
+  return text.slice(start, end === -1 ? undefined : end);
+}
+
+/**
+ * Every backticked `scope/rule` name in a Markdown text.
+ */
+function namedRules(markdown: string): string[] {
+  return [...markdown.matchAll(/`((?:typescript|jsdoc|jest|unicorn|local|eslint)\/[a-z-]+)`/g)].map(
+    (match) => match[1] ?? "",
+  );
+}
+
+describe("shared Oxlint baseline (E10)", () => {
+  test("aokit's config denies every baseline rule with the baseline setting", () => {
+    expect(baselineRuleNames.length).toBeGreaterThan(80);
+    for (const [ruleName, setting] of Object.entries(baselineRuleSettings)) {
+      expect(config.rules?.[ruleName]).toEqual(setting);
+    }
+    expect(baselineRuleSettings["typescript/return-await"]).toEqual(["error", "in-try-catch"]);
+  });
+
+  test("every rule the tooling standard names is in the exported baseline", async () => {
+    const named = namedRules(await baselineSection());
+    expect(named.length).toBeGreaterThan(10);
+    const exported = new Set([...baselineRuleNames, ...baselineTestRuleNames]);
+    expect(named.filter((ruleName) => !exported.has(ruleName))).toEqual([]);
+  });
+
+  test("the oxc Module ships exactly the exported baseline", async () => {
+    const shipped: unknown = await Bun.file(oxcModuleConfigPath).json();
+    expect(shipped).toMatchObject({
+      jsPlugins: ["./oxlint-plugin.ts"],
+      options: { typeAware: true, reportUnusedDisableDirectives: "error" },
+      rules: baselineRuleSettings,
+      overrides: [
+        { files: baselineTestFileGlobs, plugins: ["jest"], rules: baselineTestRuleSettings },
+      ],
+    });
+    expect(shipped).toHaveProperty("rules", baselineRuleSettings);
   });
 });

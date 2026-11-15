@@ -131,13 +131,13 @@ describe("project registries", () => {
 describe("open source, snapshot and create", () => {
   test("an online Registry needs no Catalog check against the Lockfile", async () => {
     const registry = await openBuilt();
-    expect(() =>
+    expect(() => {
       assertCatalogDepsAuthenticated(
         registry,
         { deps: {} },
         { deps: { zod: { source: "catalog", version: "9.9.9", owners: [], pinned: false } } },
-      ),
-    ).not.toThrow();
+      );
+    }).not.toThrow();
   });
 
   test("a snapshot answers only the versions its scope read", async () => {

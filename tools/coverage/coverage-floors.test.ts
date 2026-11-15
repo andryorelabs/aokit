@@ -10,7 +10,7 @@ describe("parseCoverageFloors", () => {
       }),
     );
     expect(floors.all).toEqual({ lines: 0.9, functions: 0.8 });
-    expect(floors.workspaces["tools"]).toEqual({ lines: 1, functions: 1 });
+    expect(floors.workspaces.tools).toEqual({ lines: 1, functions: 1 });
   });
 
   test("rejects a missing section", () => {
