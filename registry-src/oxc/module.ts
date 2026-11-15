@@ -40,7 +40,7 @@ export default defineModule({
       file: "package.json",
       value: {
         scripts: {
-          lint: 'oxlint --type-aware --ignore-pattern "**/node_modules/**" -c {{target:config}}/.oxlintrc.json',
+          lint: 'oxlint --type-aware --ignore-pattern "**/node_modules/**" --ignore-pattern "**/generated/**" -c {{target:config}}/.oxlintrc.json',
           format: "oxfmt",
         },
       },

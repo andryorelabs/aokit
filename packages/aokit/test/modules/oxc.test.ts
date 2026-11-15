@@ -29,7 +29,7 @@ describe("oxc", () => {
     expect(parsed(built.plan.vfs.read("package.json"))).toMatchObject({
       scripts: {
         format: "oxfmt",
-        lint: 'oxlint --type-aware --ignore-pattern "**/node_modules/**" -c ./.oxlintrc.json',
+        lint: 'oxlint --type-aware --ignore-pattern "**/node_modules/**" --ignore-pattern "**/generated/**" -c ./.oxlintrc.json',
       },
       devDependencies: { oxfmt: "0.75.0", oxlint: "1.90.0", "oxlint-tsgolint": "^7.0.2006" },
     });
@@ -50,7 +50,7 @@ describe("oxc", () => {
     ]);
     expect(parsed(built.plan.vfs.read("package.json"))).toMatchObject({
       scripts: {
-        lint: 'oxlint --type-aware --ignore-pattern "**/node_modules/**" -c packages/config/.oxlintrc.json',
+        lint: 'oxlint --type-aware --ignore-pattern "**/node_modules/**" --ignore-pattern "**/generated/**" -c packages/config/.oxlintrc.json',
       },
     });
   });
