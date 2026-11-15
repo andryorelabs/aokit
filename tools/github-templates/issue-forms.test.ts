@@ -161,33 +161,56 @@ describe("issue forms in .github/ISSUE_TEMPLATE", () => {
     expect(findMissingLabels(formLabels, declaredLabels)).toEqual([]);
   });
 
-  test("labels.yml declares the taxonomy and the kept labels", () => {
-    const requiredLabels = [
+  test("labels.yml holds exactly the standard label set plus the Area labels", () => {
+    const standardLabels = [
       "Type: Bug",
       "Type: Feature",
       "Type: Enhancement",
       "Type: Docs",
       "Type: Security",
+      "Status: Needs Info",
+      "Status: Needs Decision",
+      "Status: Blocked",
+      "Status: In Progress",
       "Priority: Critical",
       "Priority: High",
       "Priority: Medium",
       "Priority: Low",
-      "Status: Needs Info",
-      "Status: Blocked",
-      "Status: In Progress",
-      "Area: cli",
-      "Area: module",
-      "Area: registry",
-      "Area: ci",
-      "Area: docs",
+      "Resolution: Duplicate",
+      "Resolution: Won't Fix",
+      "Resolution: Invalid",
       "dependencies",
-      "breaking-change",
-      "security",
       "github-actions",
+      "security",
+      "breaking-change",
       "good first issue",
       "help wanted",
     ];
-    expect(findMissingLabels(requiredLabels, readDeclaredLabelNames())).toEqual([]);
+    const areaLabels = ["Area: cli", "Area: module", "Area: registry", "Area: ci", "Area: docs"];
+    expect(readDeclaredLabelNames().toSorted()).toEqual(
+      [...standardLabels, ...areaLabels].toSorted(),
+    );
+  });
+
+  test("every label has a color and a description", () => {
+    const parsedLabels: unknown = Bun.YAML.parse(
+      readFileSync(join(repositoryRoot, ".github", "labels.yml"), "utf8"),
+    );
+    for (const label of Array.isArray(parsedLabels) ? parsedLabels : []) {
+      expect(String(readField(label, "color"))).toMatch(/^[0-9a-f]{6}$/);
+      expect(String(readField(label, "description")).length).toBeGreaterThan(0);
+    }
+  });
+
+  test("every Renovate label exists in labels.yml", () => {
+    const renovateSource = readFileSync(join(repositoryRoot, "renovate.json5"), "utf8");
+    const renovateLabels = [
+      ...renovateSource.matchAll(/(?:labels|addLabels): \[([^\]]*)\]/g),
+    ].flatMap((match) =>
+      [...(match[1] ?? "").matchAll(/"([^"]+)"/g)].map((quoted) => quoted[1] ?? ""),
+    );
+    expect(renovateLabels.length).toBeGreaterThan(0);
+    expect(findMissingLabels(renovateLabels, readDeclaredLabelNames())).toEqual([]);
   });
 
   test("config.yml disables blank issues and routes security reports", () => {
@@ -203,5 +226,16 @@ describe("issue forms in .github/ISSUE_TEMPLATE", () => {
           return typeof linkUrl === "string" && linkUrl.endsWith("/security/advisories/new");
         }),
     ).toBe(true);
+  });
+
+  test("config.yml has a Support/Docs contact link next to the security link", () => {
+    const config: unknown = Bun.YAML.parse(
+      readFileSync(join(issueTemplateDirectory, "config.yml"), "utf8"),
+    );
+    const contactLinks = readField(config, "contact_links");
+    const linkNames = Array.isArray(contactLinks)
+      ? contactLinks.map((link: unknown) => String(readField(link, "name")))
+      : [];
+    expect(linkNames.some((name) => /support|docs|documentation/i.test(name))).toBe(true);
   });
 });
