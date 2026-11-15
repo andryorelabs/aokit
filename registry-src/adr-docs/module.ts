@@ -2,7 +2,7 @@ import { defineModule } from "@aokit/module";
 
 export default defineModule({
   name: "adr-docs",
-  version: "1.0.1",
+  version: "1.1.0",
   description: "Architecture Decision Records: a docs/adr folder with a template and an index.",
   provides: [{ capability: "docs:adr", cardinality: { max: 1 } }],
   files: [
@@ -15,10 +15,18 @@ export default defineModule({
     },
     { from: "files/GLOSSARY.md", to: "GLOSSARY.md", target: "root", ownership: "seed" },
     {
-      from: "files/skill/SKILL.md",
-      to: ".claude/skills/adr/SKILL.md",
+      from: "files/skill/add-adr.md",
+      to: ".claude/skills/add-adr/SKILL.md",
       target: "root",
       ownership: "managed",
+    },
+  ],
+  migrations: [
+    {
+      from: ">=1.0.0 <1.1.0",
+      to: "1.1.0",
+      stage: "after",
+      script: "migrations/adr-skill-rename.after.js",
     },
   ],
   ops: [
@@ -28,7 +36,7 @@ export default defineModule({
       file: "AGENTS.md",
       region: "agents",
       content:
-        "\n## adr-docs\n\nArchitecture decisions live in `docs/adr/`, and project terms in `GLOSSARY.md`.\n\nKey files:\n\n- `docs/adr/README.md`: the ADR index; add a row for every new ADR.\n- `docs/adr/0000-template.md`: copy it as `NNNN-kebab-title.md`.\n- `GLOSSARY.md`: the project vocabulary; use these terms in code and docs.\n- `.claude/skills/adr/SKILL.md`: how to write an ADR.\n",
+        "\n## adr-docs\n\nArchitecture decisions live in `docs/adr/`, and project terms in `GLOSSARY.md`.\n\nKey files:\n\n- `docs/adr/README.md`: the ADR index; add a row for every new ADR.\n- `docs/adr/0000-template.md`: copy it as `NNNN-kebab-title.md`.\n- `GLOSSARY.md`: the project vocabulary; use these terms in code and docs.\n- `.claude/skills/add-adr/SKILL.md`: how to write an ADR.\n",
     },
   ],
 });
