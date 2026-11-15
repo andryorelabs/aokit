@@ -14,8 +14,12 @@
 [![Release](https://img.shields.io/github/v/release/andryorelabs/aokit)](https://github.com/andryorelabs/aokit/releases/latest)
 [![License: MIT](https://img.shields.io/github/license/andryorelabs/aokit)](LICENSE)
 [![OpenSSF Scorecard](https://api.scorecard.dev/projects/github.com/andryorelabs/aokit/badge)](https://scorecard.dev/viewer/?uri=github.com/andryorelabs/aokit)
+[![npm version](https://img.shields.io/npm/v/aokit)](https://www.npmjs.com/package/aokit)
+[![npm types](https://img.shields.io/npm/types/aokit)](https://www.npmjs.com/package/aokit)
 
 [Documentation](docs/README.md) · [Changelog](CHANGELOG.md) · [Contributing](CONTRIBUTING.md) · [Security](.github/SECURITY.md) · [Support](.github/SUPPORT.md)
+
+## What it is
 
 aokit is a Bun-only CLI that creates TypeScript projects from composable Modules and keeps them up to date. A Lockfile stores a hash for every generated file, so an update merges with your edits and never overwrites them.
 

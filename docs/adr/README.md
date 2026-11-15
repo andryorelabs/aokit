@@ -6,6 +6,7 @@ Decisions that are hard to reverse, surprising without context, and the result o
 
 | #    | Title                                                                                                                                                  | Status   | Spec                                |
 | ---- | ------------------------------------------------------------------------------------------------------------------------------------------------------ | -------- | ----------------------------------- |
+| 0000 | [ADR template](0000-template.md)                                                                                                                       | Accepted | S16 (Standard v2 spec)              |
 | 0001 | [Capabilities instead of fixed categories](0001-capabilities-instead-of-fixed-categories.md)                                                           | Accepted | S5, S2                              |
 | 0002 | [Modules integrate through versioned extension points and declarative ops (no inverse ops)](0002-extension-points-and-declarative-ops.md)              | Accepted | S2, S3, S5                          |
 | 0003 | [`remove` re-renders without the module and 3-way merges](0003-remove-by-rerender-and-three-way-merge.md)                                              | Accepted | S6, S7                              |
@@ -49,4 +50,4 @@ One file per decision, named `NNNN-kebab-title.md`, numbered in order and never 
 
 An ADR that replaces or changes another records it in the header with `Supersedes: NNNN` or `Amends: NNNN`, and the other ADR records the reverse with `Superseded by: NNNN` or `Amended by: NNNN`. A test fails when either side is missing. The Status column of the index must equal the ADR's `Status:` word (the date is not part of it).
 
-ADRs are living, as in [docs and emet](../standards/docs-and-emet.md#living-adrs). A decision that changes is revised in place and gains a `Revised:` line under `Status:` with the date and a one-line reason. The original text is not deleted, and a reversed decision says so in its Decision section. The index must list every ADR file, and every listed file must exist.
+ADRs are living, as in [docs and emet](../standards/docs-and-emet.md#living-adrs). A decision that changes is revised in place and gains a `Revised: YYYY-MM-DD — reason` line under `Status:` with the date and a one-line reason (a comma may replace the dash). A test fails when a `Revised:` line is malformed or when an ADR notes a revision without one. New ADRs start from [the template](0000-template.md). The original text is not deleted, and a reversed decision says so in its Decision section. The index must list every ADR file, and every listed file must exist.

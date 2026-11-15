@@ -1,5 +1,5 @@
 ---
-name: adr
+name: add-adr
 description: Write or update an architecture decision record in docs/adr. Use when a decision is hard to reverse, surprising without context, and the result of a real trade-off.
 ---
 

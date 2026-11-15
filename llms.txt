@@ -2,6 +2,12 @@
 
 > aokit is a Bun-only CLI that creates and evolves TypeScript Projects from composable Modules served by Registries. It keeps a Lockfile with per-file hashes so updates merge with your edits instead of overwriting them.
 
+## Packages
+
+- [aokit](https://www.npmjs.com/package/aokit): the CLI and the core. Run it with `bunx aokit` or install the standalone binary from a GitHub Release.
+- [create-aokit](https://www.npmjs.com/package/create-aokit): scaffolds a new Project with `bunx create-aokit` or `bun create aokit`.
+- [@aokit/module](https://www.npmjs.com/package/@aokit/module): the Module manifest contract for Module authors.
+
 ## Reference
 
 - [CLI reference](https://github.com/andryorelabs/aokit/blob/main/docs/reference/cli.md): every command, its flags, the exit codes, the error codes and the `AOKIT_*` environment variables.

@@ -1,6 +1,20 @@
 {
   "version": 1,
   "skills": {
+    "add-adr": {
+      "source": "registry-src",
+      "sourceType": "local",
+      "skillPath": ".claude/skills/add-adr/SKILL.md",
+      "computedHash": "16b5a8fdb9439327db7d4910162fab7e1af69cac54f133ad71dde055fa30dcf9",
+      "installMode": "copy"
+    },
+    "cut-release": {
+      "source": "registry-src",
+      "sourceType": "local",
+      "skillPath": ".claude/skills/cut-release/SKILL.md",
+      "computedHash": "7c3be9d0b08fc08e20d38a7855f0392d92776fc6199fb7540cd42ba7bbcb016e",
+      "installMode": "copy"
+    },
     "design-taste-frontend": {
       "source": "Leonxlnx/taste-skill",
       "sourceType": "github",
