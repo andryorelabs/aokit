@@ -78,6 +78,52 @@ describe("lintCommits", () => {
     expect(code).toBe(3);
     expect(received).toEqual(commitlintArguments("base"));
   });
+
+  test("lints an explicit --from and --to range without asking git for a merge base", () => {
+    let received: readonly string[] = [];
+    let askedGit = false;
+    const code = lintCommits(
+      {
+        git: () => {
+          askedGit = true;
+          return { exitCode: 1, stdout: "" };
+        },
+        runCommitlint: (args) => {
+          received = args;
+          return 0;
+        },
+        writeError: () => undefined,
+      },
+      ["--from", "base123", "--to", "head456"],
+    );
+    expect(code).toBe(0);
+    expect(askedGit).toBe(false);
+    expect(received).toEqual(commitlintArguments("base123", "head456"));
+  });
+
+  test.each([
+    [["--from", "base123"]],
+    [["--to", "head456"]],
+    [["--from", "--to", "head456"]],
+    [["--verbose"]],
+  ])("rejects the arguments %j without running commitlint", (argv) => {
+    const errors: string[] = [];
+    let ran = false;
+    const code = lintCommits(
+      {
+        git: () => ({ exitCode: 0, stdout: "base\n" }),
+        runCommitlint: () => {
+          ran = true;
+          return 0;
+        },
+        writeError: (message) => errors.push(message),
+      },
+      argv,
+    );
+    expect(code).toBe(1);
+    expect(ran).toBe(false);
+    expect(errors.join("")).toContain("lint:commits: pass both --from <ref> and --to <ref>");
+  });
 });
 
 describe("runGit", () => {
@@ -113,6 +159,17 @@ describe("commitlintArguments", () => {
       "def456",
       "--to",
       "HEAD",
+      "--verbose",
+    ]);
+  });
+
+  test("lints an explicit range up to the given ref", () => {
+    expect(commitlintArguments("def456", "abc123")).toEqual([
+      "commitlint",
+      "--from",
+      "def456",
+      "--to",
+      "abc123",
       "--verbose",
     ]);
   });
