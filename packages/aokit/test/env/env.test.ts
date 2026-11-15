@@ -99,7 +99,7 @@ describe("environment readers", () => {
   test("the create-aokit child environment keeps the process environment and disables the notice", () => {
     const environment = childEnvironment();
     expect(environment.AOKIT_NO_UPDATE_NOTIFIER).toBe("1");
-    expect(environment.PATH).toBe(process.env.PATH);
+    expect(environment).toEqual({ ...process.env, AOKIT_NO_UPDATE_NOTIFIER: "1" });
   });
 
   test("the native library path is set and cleared", () => {
