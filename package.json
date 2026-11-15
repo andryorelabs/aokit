@@ -6,7 +6,9 @@
   ],
   "type": "module",
   "scripts": {
-    "check": "bun run typecheck && bun run lint && bun run format:check && bun run knip",
+    "check": "bun run typecheck && bun run lint && bun run format:check && bun run knip && bun run check:package",
+    "check:package": "bun run build:package && bun run lint:package && bun run size",
+    "size": "bun tools/size/main.ts",
     "typecheck": "node_modules/typescript7/bin/tsc --project tsconfig.json",
     "lint": "oxlint --type-aware --deny-warnings",
     "format:write": "oxfmt",

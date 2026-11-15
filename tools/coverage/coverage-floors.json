@@ -1,0 +1,12 @@
+{
+  "all": { "lines": 0.997, "functions": 0.999 },
+  "workspaces": {
+    ".": { "lines": 1, "functions": 1 },
+    "packages/aokit": { "lines": 0.996, "functions": 0.999 },
+    "packages/create-aokit": { "lines": 0.97, "functions": 0.98 },
+    "packages/module": { "lines": 0.994, "functions": 1 },
+    "registry": { "lines": 1, "functions": 1 },
+    "registry-src": { "lines": 1, "functions": 1 },
+    "tools": { "lines": 0.996, "functions": 0.999 }
+  }
+}
