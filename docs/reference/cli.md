@@ -203,4 +203,4 @@ A code outside this table is treated as an unexpected failure (`1`).
 | `AOKIT_AGENT`                     | Any value marks the run as made by a coding agent: non-interactive mode, as with `CI`, `CLAUDECODE`, `CURSOR_AGENT`, `CODEX_SANDBOX` and `GEMINI_CLI`. |
 | `AOKIT_BUNDLED_REGISTRY_RELATIVE` | Build-time constant that locates the bundled Registry next to the packaged CLI. Set by the build, not by users.                                        |
 
-The CLI also honors `NO_COLOR`, `CI`, `XDG_CONFIG_HOME` (user config at `$XDG_CONFIG_HOME/aokit/config.json`) and `XDG_CACHE_HOME` (Registry cache).
+Every variable the code reads is in [Configuration](../configuration.md). The CLI also honors `NO_COLOR`, `CI`, `XDG_CONFIG_HOME` (user config at `$XDG_CONFIG_HOME/aokit/config.json`) and `XDG_CACHE_HOME` (Registry cache).
