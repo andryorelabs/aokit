@@ -511,6 +511,7 @@ export const stepsCallScriptsExemptions: readonly ScriptExemption[] = [
 
 /** A script call: a `package.json` script through `bun run`, or a repo script under `tools/`. */
 const scriptCall = /^bun (?:run (?:--[\w-]+ )*[\w:-]+|tools\/[\w./-]+\.ts)(?:\s|$)/;
+const bunRunScriptName = /^bun run (?:--[\w-]+ )*([\w:-]+)(?:\s|$)/;
 const commandSeparator = /[|;&()\n]/;
 /** Words that open, continue or close a compound command; the command starts after them. */
 const reservedWords: ReadonlySet<string> = new Set([
@@ -699,6 +700,25 @@ export function listStepCommands(run: string): string[] {
   return listScriptCommands(script);
 }
 
+/** The `scripts` keys of the root `package.json`: the only names `bun run` may call in a step. */
+const rootPackageScripts: ReadonlySet<string> = (() => {
+  const manifest: unknown = JSON.parse(
+    readFileSync(join(import.meta.dir, "..", "..", "package.json"), "utf8"),
+  );
+  const scripts = isRecord(manifest) && isRecord(manifest.scripts) ? manifest.scripts : {};
+  return new Set(Object.keys(scripts));
+})();
+
+/**
+ * True for a repo script under `tools/` or a `bun run <name>` whose name is a `package.json`
+ * script: `bun run` also executes `node_modules/.bin` binaries, which is a raw tool call.
+ */
+function isKnownScriptCall(command: string, knownScripts: ReadonlySet<string>): boolean {
+  if (!scriptCall.test(command)) return false;
+  const name = bunRunScriptName.exec(command)?.[1];
+  return name === undefined || knownScripts.has(name);
+}
+
 /**
  * The `steps-call-scripts` rule (V32): a step calls `bun run <script>` or a repo script under
  * `tools/`, never a raw tool such as `bunx commitlint`, unless {@link stepsCallScriptsExemptions}
@@ -709,13 +729,14 @@ export function findStepScriptProblems(
   job: string,
   step: Record<string, unknown>,
   index: number,
+  knownScripts: ReadonlySet<string> = rootPackageScripts,
 ): string[] {
   const run = step.run;
   if (typeof run !== "string") return [];
   return listStepCommands(run)
     .filter(
       (command) =>
-        !scriptCall.test(command) &&
+        !isKnownScriptCall(command, knownScripts) &&
         !stepsCallScriptsExemptions.some((exemption) => exemption.command.test(command)),
     )
     .map((command) =>
@@ -1516,6 +1537,13 @@ describe("S5: CI steps call bun run <script>", () => {
       run: 'bun run lint:commits --from "$BASE_SHA" --to "$HEAD_SHA"\nbun run build:binary -- --target "$TARGET"\nbun tools/upgrade-job/main.ts',
     };
     expect(findStepScriptProblems("ci.yml", "check", step, 0)).toEqual([]);
+  });
+
+  test("bun run of a node_modules binary that is not a package.json script fails", () => {
+    const step = { name: "Lint", run: 'bun run commitlint --from "$BASE_SHA" --to "$HEAD_SHA"' };
+    expect(findStepScriptProblems("ci.yml", "commitlint", step, 0)).toEqual([
+      'ci.yml:commitlint breaks steps-call-scripts: step "Lint" runs `bun run commitlint --from "$BASE_SHA" --to "$HEAD_SHA"` directly; call bun run <script>, or exempt the command with a reason',
+    ]);
   });
 
   test("a raw tool hidden in a command substitution fails", () => {
