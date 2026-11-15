@@ -12,17 +12,20 @@ How to set up the repository, run its scripts and what the git hooks check. Term
 
 Run every script from the root with `bun run <script>`.
 
-| Script                | What it does                                                                                       |
-| --------------------- | -------------------------------------------------------------------------------------------------- |
-| `check`               | Typecheck, lint, format check and knip.                                                            |
-| `test`                | All tests, with the coverage gate.                                                                 |
-| `fix`                 | Formats with Oxfmt, then applies Oxlint fixes.                                                     |
-| `format:check`        | Fails when a file is not formatted.                                                                |
-| `format:write`        | Formats every file with Oxfmt.                                                                     |
-| `lint:docs`           | Checks Markdown links.                                                                             |
-| `lint:commits`        | Checks the last commit message with commitlint.                                                    |
-| `ci:local`            | Runs the frozen install, `check`, `lint:docs`, `test` and `lint:commits`, as CI does.              |
-| `repo-settings:check` | Compares the live GitHub settings with the files. See [Repository settings](#repository-settings). |
+| Script                | What it does                                                                                          |
+| --------------------- | ----------------------------------------------------------------------------------------------------- |
+| `check`               | Typecheck, lint, format check and knip.                                                               |
+| `test`                | All tests, with the coverage gate.                                                                    |
+| `fix`                 | Alias of `lint:fix`.                                                                                  |
+| `lint:fix`            | Formats with Oxfmt, then applies Oxlint fixes.                                                        |
+| `test:coverage`       | Runs the tests with the coverage gate.                                                                |
+| `cache:clear`         | Removes `node_modules/.cache` and `coverage`.                                                         |
+| `format:check`        | Fails when a file is not formatted.                                                                   |
+| `format:write`        | Formats every file with Oxfmt.                                                                        |
+| `lint:docs`           | Checks Markdown links.                                                                                |
+| `lint:commits`        | Lints every commit from the merge base with `origin/develop` to `HEAD`; fetch `origin develop` first. |
+| `ci:local`            | Runs the frozen install, `check`, `lint:docs`, `test` and `lint:commits`, as CI does.                 |
+| `repo-settings:check` | Compares the live GitHub settings with the files. See [Repository settings](#repository-settings).    |
 
 Do not run `build:package` or `build:binary` unless a change needs them.
 

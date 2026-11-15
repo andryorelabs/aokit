@@ -610,9 +610,10 @@ describe("S3: release binaries, SHA256SUMS and attestations", () => {
 
   test("the binary jobs run bash on every runner and keep LF checkouts on Windows", () => {
     expect(job("binaries")["defaults"]).toEqual({ run: { shell: "bash" } });
-    const [first] = steps("binaries");
-    expect(first?.["if"]).toBe("runner.os == 'Windows'");
-    expect(first?.["run"]).toBe("git config --global core.autocrlf false");
+    const [hardening, lineEndings] = steps("binaries");
+    expect(String(hardening?.["uses"])).toStartWith("step-security/harden-runner@");
+    expect(lineEndings?.["if"]).toBe("runner.os == 'Windows'");
+    expect(lineEndings?.["run"]).toBe("git config --global core.autocrlf false");
   });
 
   test("each binary job builds its target and runs the process and e2e tests only when tested", () => {

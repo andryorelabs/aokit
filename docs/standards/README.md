@@ -95,8 +95,8 @@ V45 listed defects in the v1 text; they are fixed in place (the README sign-off,
 Standard v1 was voted on 2026-11-11 by the six repository sessions, and revised on 2026-11-11 to require the promotion of `develop` to `main` by merge commit. Standard v2 was agreed on 2026-11-15 by the same sessions. Each repo records its adoption and its list of rules that do not apply (N-A) in an ADR; the lists live only there, so they cannot drift from this page.
 
 - [aokit: ADR 0029](../adr/0029-adopt-cross-repo-standard-v1.md)
-- [emet](https://github.com/andryorelabs/emet/tree/main/docs/adr)
-- [jobship](https://github.com/andryorelabs/jobship/tree/main/docs/adr)
-- [snug](https://github.com/andryorelabs/snug/tree/main/docs/adr)
-- [animated-fluent-emojis](https://github.com/andryorelabs/animated-fluent-emojis/tree/main/docs/adr)
-- [andryore-web](https://github.com/andryorelabs/andryore-web/tree/main/docs/adr)
+- [emet: ADR 0024](https://github.com/andryorelabs/emet/blob/main/docs/adr/0024-adopt-the-andryorelabs-standard.md)
+- [jobship: ADR 0007](https://github.com/andryorelabs/jobship/blob/main/docs/adr/0007-adopt-cross-repo-standard-v1.md)
+- [snug: ADR 0035](https://github.com/andryorelabs/snug/blob/main/docs/adr/0035-adopt-andryorelabs-standard-v1.md)
+- [animated-fluent-emojis: ADR 0029](https://github.com/andryorelabs/animated-fluent-emojis/blob/main/docs/adr/0029-andryorelabs-cross-repo-standard.md)
+- [andryore-web: ADR 0025](https://github.com/andryorelabs/andryore-web/blob/main/docs/adr/0025-adopt-cross-repo-standard-v1.md)

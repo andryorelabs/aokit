@@ -53,11 +53,6 @@ const dispatchWorkflows: ReadonlySet<string> = new Set(["ci.yml", "codeql.yml", 
 /** The action every job starts with, so its network and process activity is audited (V43). */
 const hardenRunnerAction = "step-security/harden-runner@";
 const egressPolicies: ReadonlySet<unknown> = new Set(["audit", "block"]);
-/**
- * The one step allowed before harden-runner: it only sets a git option, and it has to come before
- * the checkout on Windows.
- */
-const lineEndingsCommand = "git config --global core.autocrlf false";
 /** The rules aokit's own workflows follow and a generated Project's workflows need not. */
 const repoOnlyRules: readonly WorkflowRule[] = [
   "push-branches",
@@ -248,14 +243,9 @@ function findWorkflowLevelProblems(file: string, workflow: Record<string, unknow
   return problems;
 }
 
-function isLineEndingsStep(step: unknown): boolean {
-  return isRecord(step) && step["run"] === lineEndingsCommand;
-}
-
-/** The first step of a job, after the line endings step, is harden-runner with an explicit egress policy. */
+/** The first step of a job is harden-runner with an explicit egress policy. */
 function findHardenRunnerProblems(file: string, job: string, steps: readonly unknown[]): string[] {
-  const firstIndex = isLineEndingsStep(steps[0]) ? 1 : 0;
-  const first = steps[firstIndex];
+  const first = steps[0];
   const uses = isRecord(first) ? first["uses"] : undefined;
   if (typeof uses !== "string" || !uses.startsWith(hardenRunnerAction)) {
     return [
@@ -539,11 +529,6 @@ ${fixtureCacheStep}
         env:
           REF: \${{ github.ref }}
         run: echo "$REF"
-`;
-
-const lineEndingsStep = `      - name: Keep LF line endings on checkout
-        if: runner.os == 'Windows'
-        run: ${lineEndingsCommand}
 `;
 
 /** A second fixture job named `other`: `before`, then harden-runner, then `body`. */
@@ -999,18 +984,6 @@ describe("S8: workflow hardening invariants", () => {
       ]);
     });
 
-    test("the Windows line endings step may come before harden-runner", () => {
-      const text = `${validWorkflow}${secondJob("", lineEndingsStep)}`;
-      expect(findWorkflowProblems("fixture.yml", text)).toEqual([]);
-    });
-
-    test("the line endings step alone does not stand in for harden-runner", () => {
-      const text = `${validWorkflow}  other:\n    runs-on: ubuntu-latest\n    timeout-minutes: 5\n    steps:\n${lineEndingsStep}      - run: true\n`;
-      expect(findWorkflowProblems("fixture.yml", text)).toEqual([
-        "fixture.yml:other breaks harden-runner: the first step must be step-security/harden-runner",
-      ]);
-    });
-
     test("any other step before harden-runner fails", () => {
       const text = `${validWorkflow}${secondJob("", "      - run: echo first\n")}`;
       expect(findWorkflowProblems("fixture.yml", text)).toEqual([
@@ -1030,7 +1003,7 @@ describe("S8: workflow hardening invariants", () => {
           return Object.entries(jobs).map(([job, definition]) => {
             const steps =
               isRecord(definition) && Array.isArray(definition["steps"]) ? definition["steps"] : [];
-            const first: unknown = isLineEndingsStep(steps[0]) ? steps[1] : steps[0];
+            const first: unknown = steps[0];
             const inputs = isRecord(first) && isRecord(first["with"]) ? first["with"] : {};
             return `${name}:${job} ${isRecord(first) ? String(first["uses"]) : "none"} ${String(inputs["egress-policy"])}`;
           });

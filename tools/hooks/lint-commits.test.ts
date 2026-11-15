@@ -1,4 +1,7 @@
 import { describe, expect, test } from "bun:test";
+import { mkdtempSync, rmSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { join, resolve } from "node:path";
 import {
   commitlintArguments,
   lintCommits,
@@ -109,5 +112,65 @@ describe("commitlintArguments", () => {
       "HEAD",
       "--verbose",
     ]);
+  });
+});
+
+const repositoryRoot = resolve(import.meta.dir, "../..");
+
+function gitIn(directory: string, args: readonly string[]): string {
+  const result = Bun.spawnSync(
+    [
+      "git",
+      "-C",
+      directory,
+      "-c",
+      "user.name=Test",
+      "-c",
+      "user.email=test@example.com",
+      "-c",
+      "commit.gpgsign=false",
+      ...args,
+    ],
+    { stdout: "pipe", stderr: "pipe" },
+  );
+  return result.stdout.toString();
+}
+
+describe("lintCommits against a real repository", () => {
+  test("fails when an older commit in the range has a bad message and the newest is good", () => {
+    const directory = mkdtempSync(join(tmpdir(), "lint-commits-"));
+    try {
+      gitIn(directory, ["init", "--quiet", "--initial-branch=develop"]);
+      gitIn(directory, ["commit", "--allow-empty", "--quiet", "-m", "chore: 🔧 base"]);
+      gitIn(directory, ["update-ref", "refs/remotes/origin/develop", "HEAD"]);
+      gitIn(directory, ["checkout", "--quiet", "-b", "feature"]);
+      gitIn(directory, ["commit", "--allow-empty", "--quiet", "-m", "bad message"]);
+      gitIn(directory, ["commit", "--allow-empty", "--quiet", "-m", "chore: 🔧 good message"]);
+      const code = lintCommits({
+        git: (args) => ({
+          exitCode: Bun.spawnSync(["git", "-C", directory, ...args]).exitCode,
+          stdout: gitIn(directory, args),
+        }),
+        runCommitlint: (args) =>
+          Bun.spawnSync(
+            [
+              "bun",
+              "x",
+              "--no-install",
+              ...args.slice(0, 1),
+              "--cwd",
+              directory,
+              "--config",
+              join(repositoryRoot, "commitlint.config.ts"),
+              ...args.slice(1),
+            ],
+            { cwd: repositoryRoot, stdout: "pipe", stderr: "pipe" },
+          ).exitCode,
+        writeError: () => undefined,
+      });
+      expect(code).not.toBe(0);
+    } finally {
+      rmSync(directory, { recursive: true, force: true });
+    }
   });
 });
