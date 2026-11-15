@@ -45,7 +45,7 @@ const pendingMigration: ReadonlySet<string> = new Set([
 async function filesReadingTheEnvironment(): Promise<string[]> {
   const offenders: string[] = [];
   for await (const path of new Glob("**/*.ts").scan({ cwd: sourceRoot, absolute: true })) {
-    const name = relative(sourceRoot, path);
+    const name = relative(sourceRoot, path).replaceAll("\\", "/");
     if (name === environmentModule) continue;
     const text = await Bun.file(path).text();
     const readsCode = text
