@@ -1,6 +1,6 @@
 # Changelog
 
-All notable changes to the `aokit` CLI, `create-aokit` and `@aokit/module` are recorded here. The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). For what a version number promises, see [stability](docs/stability.md).
+All notable changes to the `aokit` CLI, `create-aokit` and `@aokit/module` are recorded here. The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html). For what a version number promises, see [stability](docs/stability.md).
 
 The notes of each [GitHub Release](https://github.com/andryorelabs/aokit/releases) are the section of its tag in this file; a release fails when that section is missing or empty. Registry Releases use the dated `YYYY.MM.PATCH` scheme and are separate from the CLI versions below.
 
@@ -48,6 +48,9 @@ The first release of the `aokit` CLI, `create-aokit` and `@aokit/module`.
 - An MCP server (`aokit mcp`, `aokit mcp init`) for Claude, Cursor, VS Code and Codex, and a shadcn Registry adapter.
 - Standalone binaries for Linux, macOS and Windows with checksums and build provenance attestations, and no telemetry.
 
+[Unreleased]: https://github.com/andryorelabs/aokit/compare/v0.2.0...HEAD
+[0.2.0]: https://github.com/andryorelabs/aokit/compare/v0.1.0...v0.2.0
+[0.1.0]: https://github.com/andryorelabs/aokit/releases/tag/v0.1.0
 [Unreleased]: https://github.com/andryorelabs/aokit/compare/v0.2.0...HEAD
 [0.2.0]: https://github.com/andryorelabs/aokit/compare/v0.1.0...v0.2.0
 [0.1.0]: https://github.com/andryorelabs/aokit/releases/tag/v0.1.0

@@ -704,3 +704,144 @@ describe("github-ci Module check names", () => {
     expect(listModuleCheckNames(file)).toEqual(expected);
   });
 });
+
+interface PromotionDocs {
+  readonly standard: string;
+  readonly decisionRecord: string;
+}
+
+interface PromotionSettings {
+  readonly allow_squash_merge?: unknown;
+  readonly allow_merge_commit?: unknown;
+  readonly allow_rebase_merge?: unknown;
+}
+
+const promotionTitlePattern = /titled `([^`]+)`/;
+const requiredCheckPattern = /required checks "([^"]+)" and "([^"]+)"/g;
+
+function findAllowedMergeMethods(ruleset: unknown): string {
+  const parameters = findRule(ruleset, "pull_request")?.["parameters"];
+  const methods = isRecord(parameters) ? parameters["allowed_merge_methods"] : undefined;
+  return JSON.stringify(asArray(methods));
+}
+
+/**
+ * The disagreements between the promotion docs (repo-settings A1/A4 and ADR-0030) and the
+ * rulesets and settings: merge methods, repo-level merge toggles, required checks and the
+ * promotion title.
+ */
+function findPromotionDocProblems(input: {
+  readonly docs: PromotionDocs;
+  readonly mainRuleset: unknown;
+  readonly developRuleset: unknown;
+  readonly settings: PromotionSettings;
+}): string[] {
+  const { docs, mainRuleset: main, developRuleset: develop, settings } = input;
+  const problems: string[] = [];
+  const a1 = docs.standard.split("\n").find((line) => line.startsWith("- **A1**")) ?? "";
+  const developMethods = findAllowedMergeMethods(develop);
+  const mainMethods = findAllowedMergeMethods(main);
+  if (a1.includes("squash merge") && developMethods !== '["squash"]') {
+    problems.push(
+      `docs/standards/repo-settings.md A1 says develop is squash only but develop.json allows ${developMethods}`,
+    );
+  }
+  if (a1.includes("merged with a merge commit") && mainMethods !== '["merge"]') {
+    problems.push(
+      `docs/standards/repo-settings.md A1 says main takes a merge commit but main.json allows ${mainMethods}`,
+    );
+  }
+  if (a1.includes("rebase is off") && settings.allow_rebase_merge !== false) {
+    problems.push(
+      "docs/standards/repo-settings.md A1 says rebase is off but .github/repo-settings.json allows it",
+    );
+  }
+  if (
+    a1.includes("squash and merge commits are on") &&
+    (settings.allow_squash_merge !== true || settings.allow_merge_commit !== true)
+  ) {
+    problems.push(
+      "docs/standards/repo-settings.md A1 says squash and merge commits are on but .github/repo-settings.json disagrees",
+    );
+  }
+  const standardTitle = promotionTitlePattern.exec(a1)?.[1];
+  const recordTitle = promotionTitlePattern.exec(docs.decisionRecord)?.[1];
+  if (standardTitle === undefined || standardTitle !== recordTitle) {
+    problems.push(
+      `the promotion title in A1 (${standardTitle ?? "missing"}) differs from ADR-0030 (${recordTitle ?? "missing"})`,
+    );
+  }
+  const documentedChecks = new Set<string>();
+  for (const match of docs.standard.matchAll(requiredCheckPattern)) {
+    for (const name of [match[1], match[2]]) if (name !== undefined) documentedChecks.add(name);
+  }
+  if (documentedChecks.size === 0) {
+    problems.push("docs/standards/repo-settings.md names no required checks");
+  }
+  for (const [file, ruleset] of [
+    ["main.json", main],
+    ["develop.json", develop],
+  ] as const) {
+    const required = listRequiredChecks(ruleset);
+    for (const name of documentedChecks) {
+      if (!required.includes(name)) {
+        problems.push(`${file} does not require "${name}", which A4 documents`);
+      }
+    }
+  }
+  return problems;
+}
+
+describe("V33: promotion docs tie to the rulesets and settings", () => {
+  const docs: PromotionDocs = {
+    standard: readFileSync(join(repoRoot, "docs", "standards", "repo-settings.md"), "utf8"),
+    decisionRecord: readFileSync(
+      join(repoRoot, "docs", "adr", "0030-develop-is-the-trunk.md"),
+      "utf8",
+    ),
+  };
+  const rawSettings = readJson(join(repoRoot, ".github", "repo-settings.json"));
+  const repositorySettings =
+    isRecord(rawSettings) && isRecord(rawSettings["repository"]) ? rawSettings["repository"] : {};
+  const mainRuleset = readJson(join(rulesetsDirectory, "main.json"));
+  const developRuleset = readJson(join(rulesetsDirectory, "develop.json"));
+  const input = { docs, mainRuleset, developRuleset, settings: repositorySettings };
+
+  test("A1, A4, ADR-0030, the rulesets and the settings agree", () => {
+    expect(findPromotionDocProblems(input)).toEqual([]);
+  });
+
+  test("A1 and main.json disagreeing on the merge method fails", () => {
+    const squashMain = withRuleParameters(mainRuleset, "pull_request", {
+      allowed_merge_methods: ["squash"],
+    });
+    expect(findPromotionDocProblems({ ...input, mainRuleset: squashMain })).toEqual([
+      'docs/standards/repo-settings.md A1 says main takes a merge commit but main.json allows ["squash"]',
+    ]);
+  });
+
+  test("a rebase-enabled repository fails against A1", () => {
+    const settings = { ...repositorySettings, allow_rebase_merge: true };
+    expect(findPromotionDocProblems({ ...input, settings })).toEqual([
+      "docs/standards/repo-settings.md A1 says rebase is off but .github/repo-settings.json allows it",
+    ]);
+  });
+
+  test("a promotion title that differs between A1 and ADR-0030 fails", () => {
+    const decisionRecord = docs.decisionRecord.replace("promote develop to main", "promote");
+    expect(findPromotionDocProblems({ ...input, docs: { ...docs, decisionRecord } })).toHaveLength(
+      1,
+    );
+  });
+
+  test("a documented required check missing from a ruleset fails", () => {
+    const without = withRuleParameters(developRuleset, "required_status_checks", {
+      required_status_checks: [
+        { context: aggregateJobName, integration_id: githubActionsIntegrationId },
+      ],
+    });
+    expect(findPromotionDocProblems({ ...input, developRuleset: without })).toEqual([
+      'develop.json does not require "Validate PR title", which A4 documents',
+    ]);
+  });
+});
