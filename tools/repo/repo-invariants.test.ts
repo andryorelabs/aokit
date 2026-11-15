@@ -45,9 +45,24 @@ describe("root scripts (standard E1)", () => {
     "format:write",
     "lint:docs",
     "lint:commits",
+    "lint:fix",
+    "test:coverage",
+    "cache:clear",
     "ci:local",
   ])("%s exists", (name) => {
     expect(typeof scripts[name]).toBe("string");
+  });
+
+  test("fix is an alias of lint:fix", () => {
+    expect(scripts["fix"]).toBe("bun run lint:fix");
+  });
+
+  test("lint:commits checks the PR range, not the last commit", () => {
+    expect(scripts["lint:commits"]).toBe("bun tools/hooks/lint-commits.ts");
+  });
+
+  test("cache:clear removes only generated caches", () => {
+    expect(scripts["cache:clear"]).toBe("rm -rf node_modules/.cache coverage");
   });
 
   test("the old format script is gone", () => {
@@ -73,6 +88,7 @@ describe("git attributes and ignores (standard B6, H4)", () => {
     expect(lines).toContain("* text=auto eol=lf");
     expect(lines).toContain("registry/** linguist-generated=true");
     expect(lines).toContain("bun.lock linguist-generated=true");
+    expect(lines).toContain("skills-lock.json linguist-generated=true");
   });
 
   test.each([".emet/*", ".claude/worktrees/", ".env", ".env.keys"])(

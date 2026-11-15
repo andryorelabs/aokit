@@ -361,7 +361,10 @@ describe("CI runner routing", () => {
     expect(field(commitlint, "if")).toBe(
       "github.event_name == 'pull_request' && !(github.base_ref == 'main' && github.head_ref == 'develop')",
     );
-    const checkoutInputs = field(jobSteps(jobs, "commitlint")[0], "with");
+    const checkout = jobSteps(jobs, "commitlint").find((step: unknown) =>
+      String(field(step, "uses")).startsWith("actions/checkout@"),
+    );
+    const checkoutInputs = field(checkout, "with");
     expect(field(checkoutInputs, "fetch-depth")).toBe(0);
     expect(field(checkoutInputs, "filter")).toBe("blob:none");
     expect(stepRuns(jobs, "commitlint")).toContain(
@@ -410,7 +413,9 @@ describe("CI runner routing", () => {
 
   test("ci-passed reads each needed job result through its own env variable", () => {
     const text = readFileSync(join(workflowsDirectory, "ci.yml"), "utf8");
-    const steps = jobSteps(field(Bun.YAML.parse(text), "jobs"), "ci-passed");
+    const steps = jobSteps(field(Bun.YAML.parse(text), "jobs"), "ci-passed").filter(
+      (step: unknown) => field(step, "run") !== undefined,
+    );
     expect(steps.map((step) => field(step, "env"))).toEqual([
       {
         CHECK_RESULT: "${{ needs.check.result }}",

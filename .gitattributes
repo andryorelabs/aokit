@@ -3,3 +3,4 @@
 registry/** linguist-generated=true
 bun.lock linguist-generated=true
 packages/aokit/registry/** linguist-generated=true
+skills-lock.json linguist-generated=true

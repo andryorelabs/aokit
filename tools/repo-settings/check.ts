@@ -100,14 +100,41 @@ function withSortedTopics(repositorySettings: unknown): unknown {
   return { ...repositorySettings, topics: sortStrings(repositorySettings["topics"]) };
 }
 
-/** Reads the live counterpart of `.github/settings.json`, in the shape of that file. */
+function readField(response: unknown, field: string): unknown {
+  return isRecord(response) ? response[field] : undefined;
+}
+
+/**
+ * Reads the Actions settings: the default `GITHUB_TOKEN` permissions, whether workflows may
+ * approve pull requests, and which fork pull requests need approval before their workflows run.
+ */
+function readLiveActions(runGh: GhRunner, repository: string): Record<string, unknown> {
+  const workflow = getJson(runGh, `repos/${repository}/actions/permissions/workflow`);
+  const forkApproval = getJson(
+    runGh,
+    `repos/${repository}/actions/permissions/fork-pr-contributor-approval`,
+  );
+  return {
+    default_workflow_permissions: readField(workflow, "default_workflow_permissions"),
+    can_approve_pull_request_reviews: readField(workflow, "can_approve_pull_request_reviews"),
+    fork_pr_contributor_approval: readField(forkApproval, "approval_policy"),
+  };
+}
+
+/** Reads the state of CodeQL default setup, which an advanced setup workflow keeps off. */
+function readLiveCodeScanning(runGh: GhRunner, repository: string): Record<string, unknown> {
+  const defaultSetup = getJson(runGh, `repos/${repository}/code-scanning/default-setup`);
+  return { default_setup: readField(defaultSetup, "state") };
+}
+
+/** Reads the live counterpart of `.github/repo-settings.json`, in the shape of that file. */
 function readLiveSettings(runGh: GhRunner, repository: string): unknown {
   const repositoryResponse = getJson(runGh, `repos/${repository}`);
-  const securityAndAnalysis = isRecord(repositoryResponse)
-    ? repositoryResponse["security_and_analysis"]
-    : undefined;
+  const securityAndAnalysis = readField(repositoryResponse, "security_and_analysis");
   const dependabotAlerts = readDependabotAlerts(runGh, repository);
   const privateReporting = getJson(runGh, `repos/${repository}/private-vulnerability-reporting`);
+  const actions = readLiveActions(runGh, repository);
+  const codeScanning = readLiveCodeScanning(runGh, repository);
   return {
     repository: withSortedTopics(repositoryResponse),
     security: {
@@ -118,10 +145,10 @@ function readLiveSettings(runGh: GhRunner, repository: string): unknown {
       ),
       dependabot_alerts: dependabotAlerts,
       dependabot_security_updates: readStatus(securityAndAnalysis, "dependabot_security_updates"),
-      private_vulnerability_reporting: isRecord(privateReporting)
-        ? privateReporting["enabled"]
-        : undefined,
+      private_vulnerability_reporting: readField(privateReporting, "enabled"),
     },
+    actions,
+    code_scanning: codeScanning,
   };
 }
 
@@ -178,7 +205,7 @@ function readJsonFile(path: string): unknown {
 }
 
 function readExpectedSettings(repoRoot: string): unknown {
-  const settings = readJsonFile(join(repoRoot, ".github", "settings.json"));
+  const settings = readJsonFile(join(repoRoot, ".github", "repo-settings.json"));
   if (!isRecord(settings)) return settings;
   return { ...settings, repository: withSortedTopics(settings["repository"]) };
 }
@@ -241,7 +268,7 @@ export type CheckOptions = {
 };
 
 /**
- * Compares `.github/settings.json` and every `.github/rulesets/*.json` with the live repository
+ * Compares `.github/repo-settings.json` and every `.github/rulesets/*.json` with the live repository
  * through `gh api` GET requests, and never writes. Returns 0 when they match. Returns 1 after
  * printing each drifted setting with its expected and live value, or after printing why the live
  * settings could not be read (gh missing, unauthenticated or a failed request).
@@ -253,7 +280,7 @@ export function runCheck({ repoRoot, repository, runGh, print }: CheckOptions): 
     const settingsDrift = compareSettings(
       readExpectedSettings(repoRoot),
       readLiveSettings(runGh, repository),
-    ).map((drift) => prefixed("settings.json", drift));
+    ).map((drift) => prefixed("repo-settings.json", drift));
     drifts = settingsDrift.concat(findRulesetDrift(runGh, repository, repoRoot, rulesetFiles));
   } catch (error) {
     if (!(error instanceof LiveSettingsError)) throw error;
@@ -262,7 +289,7 @@ export function runCheck({ repoRoot, repository, runGh, print }: CheckOptions): 
   }
   if (drifts.length === 0) {
     print(
-      `Live settings of ${repository} match .github/settings.json and .github/rulesets (${rulesetFiles.join(", ")}).`,
+      `Live settings of ${repository} match .github/repo-settings.json and .github/rulesets (${rulesetFiles.join(", ")}).`,
     );
     return 0;
   }
