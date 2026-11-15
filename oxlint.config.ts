@@ -208,6 +208,10 @@ export type BaselineRuleSetting = "error" | RuleWithOptions;
  */
 export const baselineRuleOptions: Readonly<Record<string, RuleWithOptions>> = {
   "typescript/return-await": ["error", "in-try-catch"],
+  "import/no-unassigned-import": [
+    "error",
+    { allow: ["**/*.css", "@fontsource/**", "@fontsource-variable/**"] },
+  ],
 };
 
 /**
@@ -234,6 +238,7 @@ export const baselineRuleNames = [
     "typescript/return-await",
     "typescript/consistent-type-imports",
     "typescript/no-unnecessary-condition",
+    "import/no-unassigned-import",
     ...jsdocContentRules,
     "unicorn/no-abusive-eslint-disable",
     "local/require-description",

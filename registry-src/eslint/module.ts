@@ -2,7 +2,7 @@ import { defineModule } from "@aokit/module";
 
 export default defineModule({
   name: "eslint",
-  version: "1.1.1",
+  version: "1.1.2",
   description: "ESLint companion that runs the rules Oxlint does not cover.",
   provides: [{ capability: "lint:companion", cardinality: "many" }],
   requires: ["lint", "ext:lint.ignores@^1"],
@@ -43,7 +43,7 @@ export default defineModule({
       op: "mergeJson",
       extensionPoint: "lint.ignores",
       range: "^1",
-      value: [".astro/**"],
+      value: [".astro/**", "**/eslint.config.mjs"],
     },
   ],
   extensionPoints: [

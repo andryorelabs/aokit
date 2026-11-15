@@ -28,6 +28,7 @@ test.each([
     expect(built.plan.vfs.has("eslint.config.mjs")).toBe(true);
     const config = lintConfigSchema.parse(JSON.parse(String(built.plan.vfs.read(oxlintrc))));
     expect(config.ignorePatterns).toContain(".astro/**");
+    expect(config.ignorePatterns).toContain("**/eslint.config.mjs");
     expect(config.ignorePatterns).toContain("dist/**");
   },
 );
@@ -58,7 +59,7 @@ test.each(["single", "monorepo"] as const)(
     });
     const config = String(built.plan.vfs.read("eslint.config.mjs"));
     expect(config).toContain("unicorn.configs.recommended");
-    expect(config).toContain('jsdoc.configs["flat/recommended-typescript"]');
+    expect(config).toContain('jsdocConfigs["flat/recommended-typescript"]');
     expect(config).toContain("eslintComments.recommended");
     expect(config).toContain("aokit:begin eslint:configs");
   },

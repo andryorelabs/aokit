@@ -11,6 +11,10 @@
     "reportUnusedDisableDirectives": "error"
   },
   "rules": {
+    "import/no-unassigned-import": [
+      "error",
+      { "allow": ["**/*.css", "@fontsource/**", "@fontsource-variable/**"] }
+    ],
     "typescript/await-thenable": "error",
     "typescript/ban-ts-comment": "error",
     "eslint/no-array-constructor": "error",
@@ -132,5 +136,5 @@
       }
     }
   ],
-  "ignorePatterns": ["**/node_modules/**", "coverage/**", "dist/**"]
+  "ignorePatterns": ["**/node_modules/**", "**/generated/**", "coverage/**", "dist/**"]
 }
