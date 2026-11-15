@@ -338,6 +338,14 @@ describe("format config (E13, E14)", () => {
     },
   );
 
+  test("the root format scope covers Module sources and skips published Module files (S7)", () => {
+    const ignorePatterns = fieldOf(readRepoJson(".oxfmtrc.json"), "ignorePatterns");
+    const patterns = Array.isArray(ignorePatterns) ? ignorePatterns.map(String) : [];
+    const matching = (file: string) => patterns.filter((pattern) => isIgnoredBy(pattern, file));
+    expect(matching("registry-src/msw/files/server.ts")).toEqual([]);
+    expect(matching("registry/modules/msw/1.0.0/files/server.ts")).not.toEqual([]);
+  });
+
   test("the root tsconfig includes root *.ts and *.mts config files", () => {
     const include = fieldOf(readRepoJson("tsconfig.json"), "include");
     const patterns = Array.isArray(include) ? include.map(String) : [];
