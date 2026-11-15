@@ -60,7 +60,6 @@ const egressPolicies: ReadonlySet<unknown> = new Set(["audit", "block"]);
  */
 const repoOnlyRules: readonly WorkflowRule[] = [
   "push-branches",
-  "workflow-dispatch",
   "harden-runner",
   "steps-call-scripts",
 ];
@@ -812,8 +811,9 @@ function breaksAny(problem: string, rules: readonly WorkflowRule[]): boolean {
 
 /**
  * The rules a `github-ci` Module workflow must follow: every rule except the repo-only ones. A
- * generated Project chooses its own trunk, and harden-runner and manual dispatch are aokit's own
- * choices there.
+ * generated Project chooses its own trunk and defines its own scripts, and harden-runner is aokit's
+ * own choice there (V43 is optional for a repo that ships no binary). Manual dispatch on ci, codeql
+ * and lint-docs is required for every repo (V28), so it applies to the Module too.
  */
 function findModuleWorkflowProblems(file: string, text: string): string[] {
   return findWorkflowProblems(file, text).filter((problem) => !breaksAny(problem, repoOnlyRules));
@@ -1675,6 +1675,18 @@ describe("github-ci Module workflow invariants", () => {
       ]);
     }
   });
+
+  test.each(["ci.yml", "codeql.yml", "lint-docs.yml"])(
+    "S6: %s without workflow_dispatch fails naming the file",
+    (file) => {
+      const text = readFileSync(join(moduleWorkflowsDirectory, file), "utf8");
+      const broken = text.replace(/^ {2}workflow_dispatch:\n/m, "");
+      expect(broken).not.toBe(text);
+      expect(findModuleWorkflowProblems(file, broken)).toEqual([
+        `${file}:(workflow) breaks workflow-dispatch: on: lacks workflow_dispatch, so the workflow cannot be rerun by hand`,
+      ]);
+    },
+  );
 
   test("scorecard.yml never cancels a run", () => {
     const scorecard: unknown = Bun.YAML.parse(
