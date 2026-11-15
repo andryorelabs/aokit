@@ -3,3 +3,6 @@ contact_links:
   - name: Report a security vulnerability
     url: https://github.com/andryorelabs/aokit/security/advisories/new
     about: Report vulnerabilities privately. Do not open a public issue.
+  - name: Support and documentation
+    url: https://github.com/andryorelabs/aokit/blob/main/docs/README.md
+    about: Read the docs first. For usage questions, use the guides before opening an issue.

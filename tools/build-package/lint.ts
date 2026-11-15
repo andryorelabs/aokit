@@ -24,12 +24,20 @@ async function runCommand(command: readonly string[], cwd: string): Promise<stri
   return stdout;
 }
 
-/** The paths `npm pack` would put in the tarball of the package at `packageDir`. */
-export async function packedPathsOf(packageDir: string): Promise<string[]> {
+async function packReportOf(packageDir: string): Promise<object> {
   const output = await runCommand(["npm", "pack", "--dry-run", "--json"], packageDir);
   const reports: unknown = JSON.parse(output);
   const report: unknown = Array.isArray(reports) ? reports[0] : undefined;
-  if (typeof report !== "object" || report === null || !("files" in report)) {
+  if (typeof report !== "object" || report === null) {
+    throw new Error(`npm pack reported no files for ${packageDir}.`);
+  }
+  return report;
+}
+
+/** The paths `npm pack` would put in the tarball of the package at `packageDir`. */
+export async function packedPathsOf(packageDir: string): Promise<string[]> {
+  const report = await packReportOf(packageDir);
+  if (!("files" in report)) {
     throw new Error(`npm pack reported no files for ${packageDir}.`);
   }
   const { files } = report;
@@ -41,6 +49,15 @@ export async function packedPathsOf(packageDir: string): Promise<string[]> {
       ? [file.path]
       : [],
   );
+}
+
+/** The size in bytes of the tarball `npm pack` would produce for the package at `packageDir`. */
+export async function packedSizeOf(packageDir: string): Promise<number> {
+  const report = await packReportOf(packageDir);
+  if (!("size" in report) || typeof report.size !== "number") {
+    throw new Error(`npm pack reported no size for ${packageDir}.`);
+  }
+  return report.size;
 }
 
 /** Lints the built package at `packageDir`: publint strict, attw on the tarball, and the tarball contents. */

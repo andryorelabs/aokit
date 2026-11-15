@@ -16,7 +16,7 @@ Guide for coding agents working in aokit. Terms follow [GLOSSARY.md](GLOSSARY.md
 
 Read `package.json` first, then run scripts from the repo root with `bun run <script>`; never call the tools directly.
 
-- `bun run check`: typecheck, lint, format check, knip.
+- `bun run check`: typecheck, lint, format check, knip, and `check:package` (builds the package, then publint, attw and the size budget). This is the one allowed build; still never run `build:binary`.
 - `bun run test`: all tests.
 - `bun run format:write`: format with Oxfmt.
 - `bun run fix`: format and apply Oxlint fixes.

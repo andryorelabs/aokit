@@ -4,13 +4,14 @@ import {
   type UserConfig,
   userConfigPath,
 } from "../config/user-config.ts";
+import { type Environment, processEnvironment, readIsAgentRun } from "../env.ts";
 import type { Lockfile } from "../lockfile/schema.ts";
 import type { Registry } from "../registry/client.ts";
 import { RegistryError } from "../registry/errors.ts";
 import { formatRegistrySource } from "../registry/source.ts";
 import { sourceIdentity, sourceStringIdentity } from "./identity.ts";
 
-type TrustEnvironment = Readonly<Record<string, string | undefined>>;
+type TrustEnvironment = Environment;
 
 /** The part of an opened Registry the trust gate reads: its declared name and its source. */
 export type TrustedRegistryInput = Pick<Registry, "name" | "source">;
@@ -50,15 +51,6 @@ interface EnsureTrustedOptions {
   readonly env?: TrustEnvironment;
 }
 
-const agentVariables = [
-  "CI",
-  "CLAUDECODE",
-  "CURSOR_AGENT",
-  "CODEX_SANDBOX",
-  "GEMINI_CLI",
-  "AOKIT_AGENT",
-] as const;
-
 const sourceLikePattern = /^(?:[A-Za-z][A-Za-z0-9+.-]*:|@[^=\s]+=)/;
 
 /**
@@ -73,10 +65,7 @@ export function isNonInteractive(input: {
   if (input.yes || !input.isTTY) {
     return true;
   }
-  return agentVariables.some((variable) => {
-    const value = input.env[variable];
-    return value !== undefined && value !== "";
-  });
+  return readIsAgentRun(input.env);
 }
 
 function isFirstParty(registry: TrustedRegistryInput): boolean {
@@ -219,7 +208,7 @@ export async function ensureTrusted(
   registries: readonly TrustedRegistryInput[],
   options: EnsureTrustedOptions,
 ): Promise<TrustDecision[]> {
-  const env = options.env ?? process.env;
+  const env = options.env ?? processEnvironment();
   const userConfig =
     options.userConfig ??
     (registries.every(isFirstParty) ? { trustedRegistries: [] } : await loadUserConfig(env));

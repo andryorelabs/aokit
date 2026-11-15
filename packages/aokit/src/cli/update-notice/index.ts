@@ -1,5 +1,6 @@
 import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { dirname, join } from "node:path";
+import { readIsContinuousIntegration, readUpdateNotifierDisabled } from "../../env.ts";
 import { xdgCacheDir } from "../../xdg.ts";
 
 const dayInMilliseconds = 24 * 60 * 60 * 1000;
@@ -55,10 +56,9 @@ function writeCache(path: string, cache: UpdateCache): void {
 }
 
 function isDisabled(input: UpdateNoticeInput): boolean {
-  const ci = input.env.CI;
   return (
-    input.env.AOKIT_NO_UPDATE_NOTIFIER === "1" ||
-    (ci !== undefined && ci !== "" && ci !== "0" && ci !== "false") ||
+    readUpdateNotifierDisabled(input.env) ||
+    readIsContinuousIntegration(input.env) ||
     !input.isTTY ||
     input.json ||
     input.quiet ||

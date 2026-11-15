@@ -1,0 +1,14 @@
+{
+  "packages": {
+    "packages/aokit": 6500000,
+    "packages/create-aokit": 20000,
+    "packages/module/dist": 15000
+  },
+  "binaries": {
+    "aokit-darwin-arm64": 125000000,
+    "aokit-darwin-x64": 135000000,
+    "aokit-linux-arm64": 146000000,
+    "aokit-linux-x64": 148000000,
+    "aokit-windows-x64.exe": 152000000
+  }
+}
