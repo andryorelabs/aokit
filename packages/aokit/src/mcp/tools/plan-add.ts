@@ -118,7 +118,7 @@ function commandInputOf(
 }
 
 function directoryOf(input: unknown): string {
-  return isRecord(input) && typeof input["directory"] === "string" ? input["directory"] : "";
+  return isRecord(input) && typeof input.directory === "string" ? input.directory : "";
 }
 
 /**
@@ -137,8 +137,8 @@ async function planAdd(
   const envelope = await runCommand(addCommand, context, commandInput);
   if (!envelope.ok) return { ok: false, envelope: withMcpTrustFix(envelope) };
   const data = isRecord(envelope.data) ? envelope.data : {};
-  const plan = isRecord(data["plan"]) ? data["plan"] : {};
-  const vfsHash = typeof plan["hash"] === "string" ? plan["hash"] : "";
+  const plan = isRecord(data.plan) ? data.plan : {};
+  const vfsHash = typeof plan.hash === "string" ? plan.hash : "";
   const lockfileDigest = await lockfileDigestOf(directory);
   const { dryRun: _dryRun, ...normalized } = commandInput;
   const planId = computePlanId({ tool: "add", input: normalized }, lockfileDigest, vfsHash);
@@ -146,13 +146,13 @@ async function planAdd(
 }
 
 function changesPackageJson(data: Record<string, unknown>): boolean {
-  const plan = isRecord(data["plan"]) ? data["plan"] : {};
-  const changes = Array.isArray(plan["changes"]) ? plan["changes"] : [];
+  const plan = isRecord(data.plan) ? data.plan : {};
+  const changes = Array.isArray(plan.changes) ? plan.changes : [];
   return changes.some(
     (change) =>
       isRecord(change) &&
-      typeof change["path"] === "string" &&
-      (change["path"] === "package.json" || change["path"].endsWith("/package.json")),
+      typeof change.path === "string" &&
+      (change.path === "package.json" || change.path.endsWith("/package.json")),
   );
 }
 
@@ -191,7 +191,7 @@ export const addTool: McpToolDefinition = {
     const explicit = isRecord(input) ? input : {};
     const requested = directoryOf(explicit);
     if (!isAbsolute(requested)) return relativeDirectoryFailure(requested);
-    const planId = typeof explicit["planId"] === "string" ? explicit["planId"] : "";
+    const planId = typeof explicit.planId === "string" ? explicit.planId : "";
     if (!session.has(planId))
       return planRequiredFailure("this `planId` was not issued by `plan_add` in this session");
     const directory = await canonicalDirectory(requested);

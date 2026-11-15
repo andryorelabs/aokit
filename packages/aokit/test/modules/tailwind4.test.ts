@@ -66,7 +66,9 @@ async function runMigration(vfs: Vfs): Promise<void> {
         const content = vfs.read(path);
         return typeof content === "string" ? content : undefined;
       },
-      write: (path, content) => vfs.write(path, content),
+      write: (path, content) => {
+        vfs.write(path, content);
+      },
       delete: (path) => vfs.delete(path),
       list: (prefix = "") => vfs.paths().filter((path) => path.startsWith(prefix)),
     },

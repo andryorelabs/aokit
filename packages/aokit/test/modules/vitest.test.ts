@@ -16,8 +16,8 @@ test.each(["single", "monorepo"] as const)(
     expect(String(vfs.read("vitest.config.ts"))).toContain("vitest/config");
     expect(String(vfs.read("tests/smoke.test.ts"))).toContain('from "vitest"');
     const manifest = packageSchema.parse(JSON.parse(String(vfs.read("package.json"))));
-    expect(manifest.scripts["test"]).toBe("vitest run");
-    expect(manifest.devDependencies["vitest"]).toBe("^5.1.0");
+    expect(manifest.scripts.test).toBe("vitest run");
+    expect(manifest.devDependencies.vitest).toBe("^5.1.0");
   },
 );
 

@@ -26,7 +26,7 @@ async function runOnStream(
     stdout: (text) => {
       stdout += text;
     },
-    stderr: () => {},
+    stderr: () => undefined,
     isTTY,
   };
   await runCli({

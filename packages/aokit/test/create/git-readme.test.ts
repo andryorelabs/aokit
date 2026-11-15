@@ -90,7 +90,7 @@ function git(directory: string, env: Record<string, string>, ...args: string[]):
 describe("create git init", () => {
   posixShellTest("makes exactly one commit that includes bun.lock", async () => {
     const parent = workspace();
-    const env = { ...isolatedGitEnv(parent), PATH: `${fakeBun(parent)}:${process.env["PATH"]}` };
+    const env = { ...isolatedGitEnv(parent), PATH: `${fakeBun(parent)}:${process.env.PATH}` };
     const target = join(parent, "app");
     const result = await runAokit(["create", target, "--modules", "oxc", "--yes", "--json"], env);
     expect(result.exitCode).toBe(0);
@@ -106,7 +106,7 @@ describe("create git init", () => {
 
   posixShellTest("--no-git leaves no .git", async () => {
     const parent = workspace();
-    const env = { ...isolatedGitEnv(parent), PATH: `${fakeBun(parent)}:${process.env["PATH"]}` };
+    const env = { ...isolatedGitEnv(parent), PATH: `${fakeBun(parent)}:${process.env.PATH}` };
     const target = join(parent, "app");
     const result = await runAokit(["create", target, "--modules", "oxc", "--yes", "--no-git"], env);
     expect(result.exitCode).toBe(0);
@@ -121,18 +121,18 @@ describe("create git init", () => {
     expect(result.exitCode).toBe(0);
     expect(existsSync(join(target, ".git"))).toBe(false);
     const envelope = parseJsonRecord(result.stdout);
-    expect(JSON.stringify(envelope["data"])).toContain("git is not installed");
+    expect(JSON.stringify(envelope.data)).toContain("git is not installed");
   });
 
   posixShellTest("skips with a warning inside an existing work tree", async () => {
     const parent = workspace();
-    const env = { ...isolatedGitEnv(parent), PATH: `${fakeBun(parent)}:${process.env["PATH"]}` };
+    const env = { ...isolatedGitEnv(parent), PATH: `${fakeBun(parent)}:${process.env.PATH}` };
     git(parent, env, "init");
     const target = join(parent, "app");
     const result = await runAokit(["create", target, "--modules", "oxc", "--yes", "--json"], env);
     expect(result.exitCode).toBe(0);
     expect(existsSync(join(target, ".git"))).toBe(false);
-    expect(JSON.stringify(parseJsonRecord(result.stdout)["data"])).toContain("git work tree");
+    expect(JSON.stringify(parseJsonRecord(result.stdout).data)).toContain("git work tree");
   });
 });
 

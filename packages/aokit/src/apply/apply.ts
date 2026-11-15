@@ -376,7 +376,8 @@ export async function apply(
 ): Promise<ApplyResult> {
   const projectDirectory = resolve(directory);
   const interruption: Interruption = { interrupted: false };
-  const { promise: settled, resolve: markSettled } = Promise.withResolvers<void>();
+  const { promise: settled, resolve: markSettled }: PromiseWithResolvers<void> =
+    Promise.withResolvers();
   const unregister = (options.registerCleanup ?? registerShutdownHook)(async () => {
     interruption.interrupted = true;
     await settled;

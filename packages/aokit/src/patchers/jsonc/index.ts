@@ -11,7 +11,7 @@ export type JsoncValue =
 
 const FORMATTING = { insertSpaces: true, tabSize: 2, eol: "\n" } as const;
 
-function isPlainObject(value: unknown): value is { [key: string]: JsoncValue } {
+function isPlainObject(value: unknown): value is Record<string, JsoncValue> {
   return typeof value === "object" && value !== null && !Array.isArray(value);
 }
 
@@ -19,14 +19,14 @@ function isJsoncArray(value: unknown): value is JsoncValue[] {
   return Array.isArray(value);
 }
 
-function sortedEntries(value: { [key: string]: JsoncValue }): [string, JsoncValue][] {
+function sortedEntries(value: Record<string, JsoncValue>): [string, JsoncValue][] {
   return Object.entries(value).toSorted(([a], [b]) => (a < b ? -1 : a > b ? 1 : 0));
 }
 
 function sortKeysDeep(value: JsoncValue): JsoncValue {
   if (Array.isArray(value)) return value.map(sortKeysDeep);
   if (!isPlainObject(value)) return value;
-  const sorted: { [key: string]: JsoncValue } = {};
+  const sorted: Record<string, JsoncValue> = {};
   for (const [key, child] of sortedEntries(value)) {
     sorted[key] = sortKeysDeep(child);
   }
@@ -86,7 +86,7 @@ function mergeAt(text: string, path: JSONPath, current: unknown, patch: JsoncVal
  * Objects merge recursively, arrays union by value, scalars take the patch value,
  * and new keys are inserted at their sorted position.
  */
-export function mergeJsonc(text: string, patch: { [key: string]: JsoncValue }): string {
+export function mergeJsonc(text: string, patch: Record<string, JsoncValue>): string {
   const base = text.trim() === "" ? "{}\n" : text;
   const current: unknown = parse(base, [], { allowTrailingComma: true });
   return mergeAt(base, [], isPlainObject(current) ? current : {}, patch);

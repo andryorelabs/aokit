@@ -121,7 +121,7 @@ test("a newer minCliVersion fails with MIN_CLI_VERSION before any Registry is re
 
 test("an absent locked Module version fails naming Module, version and the recopy fix", async () => {
   const { directory, lockfile } = await createProject("single");
-  const oxc = lockfile.modules["oxc"];
+  const oxc = lockfile.modules.oxc;
   if (oxc === undefined) throw new Error("oxc missing");
   const stale: Lockfile = {
     ...lockfile,
@@ -136,7 +136,7 @@ test("an absent locked Module version fails naming Module, version and the recop
 
 test("versionOverride renders another published version of a Module", async () => {
   const { directory, lockfile } = await createProject("single");
-  const oxc = lockfile.modules["oxc"];
+  const oxc = lockfile.modules.oxc;
   if (oxc === undefined) throw new Error("oxc missing");
   const stale: Lockfile = {
     ...lockfile,
@@ -146,5 +146,5 @@ test("versionOverride renders another published version of a Module", async () =
     ...options(directory),
     versionOverride: { oxc: oxc.version },
   });
-  expect(rendered.lockfile.modules["oxc"]?.version).toBe(oxc.version);
+  expect(rendered.lockfile.modules.oxc?.version).toBe(oxc.version);
 });

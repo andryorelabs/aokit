@@ -10,6 +10,12 @@ export default defineModule({
   ],
   files: [
     { from: "files/oxlintrc.json", to: ".oxlintrc.json", target: "config", ownership: "managed" },
+    {
+      from: "files/oxlint-plugin.ts",
+      to: "oxlint-plugin.ts",
+      target: "config",
+      ownership: "managed",
+    },
     { from: "files/oxfmtrc.json", to: ".oxfmtrc.json", target: "root", ownership: "managed" },
   ],
   deps: {
@@ -26,7 +32,7 @@ export default defineModule({
       file: "AGENTS.md",
       region: "agents",
       content:
-        "\n## oxc\n\nOxc provides linting (Oxlint) and formatting (Oxfmt) for this Project.\n\nCommands:\n\n- `bun run lint`: run Oxlint with the shared config and type-aware rules (powered by `oxlint-tsgolint`).\n- `bun run format`: format the Project with Oxfmt.\n\nKey files:\n\n- `.oxlintrc.json`: lint rules and ignore patterns, in the config Target.\n- `.oxfmtrc.json`: formatter options, at the Project root.\n",
+        "\n## oxc\n\nOxc provides linting (Oxlint) and formatting (Oxfmt) for this Project.\n\nCommands:\n\n- `bun run lint`: run Oxlint with the shared config and type-aware rules (powered by `oxlint-tsgolint`).\n- `bun run format`: format the Project with Oxfmt.\n\nKey files:\n\n- `.oxlintrc.json`: the shared lint baseline and ignore patterns, in the config Target. Fix violations; never disable a rule without a ` -- reason`.\n- `oxlint-plugin.ts`: the baseline rules no built-in plugin has (disable reasons, awaited async matchers, no `.only` from `bun:test`), loaded as the `local` jsPlugin.\n- `.oxfmtrc.json`: formatter options, at the Project root.\n",
     },
     {
       op: "mergeJson",

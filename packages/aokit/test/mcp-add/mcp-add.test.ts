@@ -62,11 +62,11 @@ describe("plan_add", () => {
     const result = await callTool(client, "plan_add", addInput(directory));
     expect(result.error).toBeNull();
     expect(result.ok).toBe(true);
-    expect(result.data?.["planId"]).toEqual(expect.stringMatching(/^plan_[0-9a-f]{64}$/));
-    expect(result.data?.["added"]).toEqual(["knip"]);
-    expect(result.data?.["applied"]).toBe(false);
-    expect(result.data?.["reproduce"]).toEqual(expect.any(String));
-    expect(result.data?.["nextSteps"]).toEqual(expect.any(Array));
+    expect(result.data?.planId).toEqual(expect.stringMatching(/^plan_[0-9a-f]{64}$/));
+    expect(result.data?.added).toEqual(["knip"]);
+    expect(result.data?.applied).toBe(false);
+    expect(result.data?.reproduce).toEqual(expect.any(String));
+    expect(result.data?.nextSteps).toEqual(expect.any(Array));
     expect(planChangeCount(result.data)).toBeGreaterThan(0);
     expect(readFileSync(join(directory, "aokit.lock.json"), "utf8")).toBe(before);
     expect(entriesOf(directory)).not.toContain("knip.json");
@@ -94,13 +94,13 @@ describe("add", () => {
     const planned = await callTool(client, "plan_add", addInput(directory));
     const added = await callTool(client, "add", {
       ...addInput(directory),
-      planId: planned.data?.["planId"],
+      planId: planned.data?.planId,
     });
     expect(added.error).toBeNull();
     expect(added.ok).toBe(true);
-    expect(added.data?.["applied"]).toBe(true);
-    expect(added.data?.["installed"]).toBe(false);
-    expect(added.data?.["nextSteps"]).toContain("bun install");
+    expect(added.data?.applied).toBe(true);
+    expect(added.data?.installed).toBe(false);
+    expect(added.data?.nextSteps).toContain("bun install");
     expect(readFileSync(join(directory, "aokit.lock.json"), "utf8")).toContain("knip");
     expect(entriesOf(directory)).not.toContain("node_modules");
   });
@@ -124,7 +124,7 @@ describe("add", () => {
     writeFileSync(lockfilePath, `${readFileSync(lockfilePath, "utf8")}\n`);
     const result = await callTool(client, "add", {
       ...addInput(directory),
-      planId: planned.data?.["planId"],
+      planId: planned.data?.planId,
     });
     expect(result.ok).toBe(false);
     expect(result.error?.code).toBe("PLAN_REQUIRED");
@@ -140,7 +140,7 @@ describe("add", () => {
     await git(directory, "commit", "-q", "-am", "touch lockfile");
     const result = await callTool(client, "add", {
       ...addInput(directory),
-      planId: planned.data?.["planId"],
+      planId: planned.data?.planId,
     });
     expect(result.error?.code).toBe("PLAN_REQUIRED");
   });
@@ -151,13 +151,13 @@ describe("add", () => {
     const planned = await callTool(client, "plan_add", addInput(directory));
     const packagePath = join(directory, "package.json");
     const manifest = z.looseObject({}).parse(JSON.parse(readFileSync(packagePath, "utf8")));
-    manifest["devDependencies"] = { left: "1.0.0" };
+    manifest.devDependencies = { left: "1.0.0" };
     writeFileSync(packagePath, `${JSON.stringify(manifest, null, 2)}\n`);
     await git(directory, "commit", "-q", "-am", "edit manifest");
     const before = readFileSync(packagePath, "utf8");
     const result = await callTool(client, "add", {
       ...addInput(directory),
-      planId: planned.data?.["planId"],
+      planId: planned.data?.planId,
     });
     expect(result.error?.code).toBe("PLAN_REQUIRED");
     expect(readFileSync(packagePath, "utf8")).toBe(before);
@@ -171,7 +171,7 @@ describe("add", () => {
     const before = readFileSync(join(directory, "aokit.lock.json"), "utf8");
     const result = await callTool(client, "add", {
       ...addInput(directory),
-      planId: planned.data?.["planId"],
+      planId: planned.data?.planId,
     });
     expect(result.ok).toBe(false);
     expect(result.error?.code).toBe("DIRTY_TREE");
@@ -189,7 +189,7 @@ describe("add", () => {
     const directory = await freshProject();
     const client = await connectClient(home);
     const planned = await callTool(client, "plan_add", addInput(directory));
-    const args = { ...addInput(directory), planId: planned.data?.["planId"] };
+    const args = { ...addInput(directory), planId: planned.data?.planId };
     expect((await callTool(client, "add", args)).ok).toBe(true);
     await git(directory, "add", "-A");
     await git(directory, "commit", "-q", "-m", "knip");
@@ -205,7 +205,7 @@ describe("add", () => {
     const planned = await callTool(client, "plan_add", addInput(directory));
     const result = await callTool(client, "add", {
       ...addInput(directory, { modules: ["knip", "vitest"] }),
-      planId: planned.data?.["planId"],
+      planId: planned.data?.planId,
     });
     expect(result.error?.code).toBe("PLAN_REQUIRED");
   });
@@ -220,7 +220,7 @@ describe("add", () => {
     );
     const result = await callTool(client, "add", {
       ...addInput(directory),
-      planId: planned.data?.["planId"],
+      planId: planned.data?.planId,
     });
     expect(result.error?.code).toBe("PLAN_REQUIRED");
     expect(entriesOf(directory)).not.toContain("knip.json");
@@ -234,15 +234,15 @@ describe("add", () => {
     const secondPlan = await callTool(client, "plan_add", addInput(second));
     const crossed = await callTool(client, "add", {
       ...addInput(first),
-      planId: secondPlan.data?.["planId"],
+      planId: secondPlan.data?.planId,
     });
     expect(crossed.error?.code).toBe("PLAN_REQUIRED");
     const applied = await callTool(client, "add", {
       ...addInput(second),
-      planId: secondPlan.data?.["planId"],
+      planId: secondPlan.data?.planId,
     });
     expect(applied.ok).toBe(true);
-    expect(firstPlan.data?.["planId"]).not.toBe(secondPlan.data?.["planId"]);
+    expect(firstPlan.data?.planId).not.toBe(secondPlan.data?.planId);
   });
 
   symlinkTest(
@@ -255,10 +255,10 @@ describe("add", () => {
       const client = await connectClient(home);
       const planned = await callTool(client, "plan_add", addInput(dotted));
       expect(planned.error).toBeNull();
-      expect(planned.data?.["directory"]).toBe(directory);
+      expect(planned.data?.directory).toBe(directory);
       const added = await callTool(client, "add", {
         ...addInput(directory),
-        planId: planned.data?.["planId"],
+        planId: planned.data?.planId,
       });
       expect(added.ok).toBe(true);
     },
@@ -271,7 +271,7 @@ describe("untrusted Registry", () => {
   beforeAll(async () => {
     const root = await builtFixtureRegistry();
     await editJson(join(root, "index.json"), (index) => {
-      index["name"] = "acme";
+      index.name = "acme";
     });
     served = serveRegistry(root);
   });
@@ -303,7 +303,7 @@ describe("untrusted Registry", () => {
     const planned = await callTool(client, "plan_add", args);
     expect(planned.error).toBeNull();
     expect(planned.ok).toBe(true);
-    const added = await callTool(client, "add", { ...args, planId: planned.data?.["planId"] });
+    const added = await callTool(client, "add", { ...args, planId: planned.data?.planId });
     expect(added.error).toBeNull();
     expect(added.ok).toBe(true);
   });
@@ -315,7 +315,7 @@ describe("untrusted Registry", () => {
     const planned = await callTool(client, "plan_add", trusted);
     const result = await callTool(client, "add", {
       ...addInput(directory, { registry: served.url }),
-      planId: planned.data?.["planId"],
+      planId: planned.data?.planId,
     });
     expect(result.ok).toBe(false);
     expect(result.error?.code).toBe("PLAN_REQUIRED");

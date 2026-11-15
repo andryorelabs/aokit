@@ -31,7 +31,7 @@ export interface MigrationInput {
 /**
  * A Migration script: edits the VFS and may return migrated answers (`before` stage).
  */
-export type MigrationFn = (input: MigrationInput) => Record<string, unknown> | void;
+export type MigrationFn = (input: MigrationInput) => Record<string, unknown> | undefined;
 
 /**
  * Typed identity function: type-checks a Migration script and returns it unchanged.

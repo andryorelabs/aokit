@@ -164,7 +164,7 @@ describe("item URLs of another host", () => {
     );
     expect(addressed.names).toEqual(["@official/plain"]);
     expect(addressed.set.registries.has("official")).toBe(true);
-    expect(addressed.set.entries["official"]).toBeDefined();
+    expect(addressed.set.entries.official).toBeDefined();
   });
 
   test("a host declaring the name of an opened Registry from elsewhere clashes", async () => {

@@ -17,7 +17,7 @@ const registryIndexSchema = z.looseObject({
 });
 const catalogSchema = z.looseObject({ dependencies: z.record(z.string(), z.string()) });
 
-const tarballVariable = process.env["AOKIT_DIST_TARBALLS"];
+const tarballVariable = process.env.AOKIT_DIST_TARBALLS;
 const describeWithTarballs = tarballVariable === undefined ? describe.skip : describe;
 const tarballPaths = (tarballVariable ?? "").split(",").filter((path) => path !== "");
 
@@ -149,7 +149,7 @@ describeWithTarballs("the installed aokit and create-aokit tarballs", () => {
     );
     return Bun.spawn(["node", join(createRoot, manifest.bin["create-aokit"] ?? ""), ...args], {
       cwd: work,
-      env: { ...process.env, PATH: `${fakeBin}:${process.env["PATH"] ?? ""}` },
+      env: { ...process.env, PATH: `${fakeBin}:${process.env.PATH ?? ""}` },
       stdout: "pipe",
       stderr: "pipe",
     });
@@ -201,7 +201,7 @@ describeWithTarballs("the installed aokit and create-aokit tarballs", () => {
     if (nodePath === null) {
       throw new Error("node is not on PATH.");
     }
-    return Bun.spawn([nodePath, join(packageRoot, manifest.bin["aokit"] ?? ""), ...args], {
+    return Bun.spawn([nodePath, join(packageRoot, manifest.bin.aokit ?? ""), ...args], {
       cwd: await freshDirectory(name),
       env: { ...process.env, PATH: pathValue },
       stdout: "pipe",
@@ -220,7 +220,7 @@ describeWithTarballs("the installed aokit and create-aokit tarballs", () => {
     const manifest = binSchema.parse(
       JSON.parse(await readFile(join(packageRoot, "package.json"), "utf8")),
     );
-    const binPath = join(packageRoot, manifest.bin["aokit"] ?? "");
+    const binPath = join(packageRoot, manifest.bin.aokit ?? "");
     expect((await readFile(binPath, "utf8")).startsWith("#!/usr/bin/env node\n")).toBe(true);
     const child = await startAokitShim(await freshDirectory("no-bun"), ["--version"], "no-bun-cwd");
     const [stderr] = await Promise.all([new Response(child.stderr).text(), child.exited]);
@@ -275,7 +275,7 @@ describeWithTarballs("the installed aokit and create-aokit tarballs", () => {
     const lockfile = lockfileSchema.parse(
       JSON.parse(await readFile(join(workDirectory, "my-app", "aokit.lock.json"), "utf8")),
     );
-    expect(lockfile.registries["official"]?.release).toBe(index.release);
+    expect(lockfile.registries.official?.release).toBe(index.release);
   }, 120_000);
 
   test("S4: the packaged create fails with format.version-mismatch on a differing oxc pin", async () => {
@@ -289,7 +289,7 @@ describeWithTarballs("the installed aokit and create-aokit tarballs", () => {
     }
     const catalogPath = join(registryCopy, entry.path);
     const catalog = catalogSchema.parse(JSON.parse(await readFile(catalogPath, "utf8")));
-    catalog.dependencies["oxfmt"] = "0.1.0";
+    catalog.dependencies.oxfmt = "0.1.0";
     const catalogText = `${JSON.stringify(catalog, null, 2)}\n`;
     await writeFile(catalogPath, catalogText);
     const digest = new Bun.CryptoHasher("sha256").update(catalogText).digest("hex");

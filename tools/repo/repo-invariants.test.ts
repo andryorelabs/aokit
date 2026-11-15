@@ -54,7 +54,7 @@ describe("root scripts (standard E1)", () => {
   });
 
   test("fix is an alias of lint:fix", () => {
-    expect(scripts["fix"]).toBe("bun run lint:fix");
+    expect(scripts.fix).toBe("bun run lint:fix");
   });
 
   test("lint:commits checks the PR range, not the last commit", () => {
@@ -66,11 +66,11 @@ describe("root scripts (standard E1)", () => {
   });
 
   test("the old format script is gone", () => {
-    expect(scripts["format"]).toBeUndefined();
+    expect(scripts.format).toBeUndefined();
   });
 
   test("check runs typecheck, lint, format:check, knip and the package checks", () => {
-    expect(scripts["check"]).toBe(
+    expect(scripts.check).toBe(
       "bun run typecheck && bun run lint && bun run format:check && bun run knip && bun run check:package",
     );
   });

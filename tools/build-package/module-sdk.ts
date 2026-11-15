@@ -39,8 +39,8 @@ function stripDistPrefix(value: unknown): unknown {
  * relative to `dist/`, `files` lists only JS and declarations, and workspace-only fields drop.
  */
 export function publishManifestOf(source: Record<string, unknown>): Record<string, unknown> {
-  const publishConfig = source["publishConfig"];
-  if (!isRecord(publishConfig) || publishConfig["exports"] === undefined) {
+  const publishConfig = source.publishConfig;
+  if (!isRecord(publishConfig) || publishConfig.exports === undefined) {
     throw new Error("the package manifest has no publishConfig.exports to publish");
   }
   const { exports: publishedExports, ...remainingPublishConfig } = publishConfig;
@@ -59,7 +59,7 @@ export function publishManifestOf(source: Record<string, unknown>): Record<strin
       manifest[field] = value;
     }
   }
-  manifest["exports"] ??= stripDistPrefix(publishedExports);
+  manifest.exports ??= stripDistPrefix(publishedExports);
   return manifest;
 }
 

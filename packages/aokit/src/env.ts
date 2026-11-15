@@ -128,12 +128,12 @@ export function readIsAgentRun(env: Environment): boolean {
  * Points the native library loader at an extracted library.
  */
 export function setNativeLibraryPath(path: string): void {
-  process.env["NAPI_RS_NATIVE_LIBRARY_PATH"] = path;
+  process.env.NAPI_RS_NATIVE_LIBRARY_PATH = path;
 }
 
 /**
  * Removes the native library loader override.
  */
 export function clearNativeLibraryPath(): void {
-  delete process.env["NAPI_RS_NATIVE_LIBRARY_PATH"];
+  delete process.env.NAPI_RS_NATIVE_LIBRARY_PATH;
 }

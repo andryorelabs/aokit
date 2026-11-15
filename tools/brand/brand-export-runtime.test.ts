@@ -228,16 +228,16 @@ describe("exportBrand", () => {
 });
 
 async function launchOptionsFor(cache: string): Promise<unknown[]> {
-  const previous = process.env["PLAYWRIGHT_BROWSERS_PATH"];
-  process.env["PLAYWRIGHT_BROWSERS_PATH"] = cache;
+  const previous = process.env.PLAYWRIGHT_BROWSERS_PATH;
+  process.env.PLAYWRIGHT_BROWSERS_PATH = cache;
   const launch = spyOn(chromium, "launch").mockRejectedValue(new Error("launch stopped"));
   try {
     expect(await rejection(() => launchChromium())).toBe("launch stopped");
     return launch.mock.calls.map(([options]) => options);
   } finally {
     launch.mockRestore();
-    if (previous === undefined) delete process.env["PLAYWRIGHT_BROWSERS_PATH"];
-    else process.env["PLAYWRIGHT_BROWSERS_PATH"] = previous;
+    if (previous === undefined) delete process.env.PLAYWRIGHT_BROWSERS_PATH;
+    else process.env.PLAYWRIGHT_BROWSERS_PATH = previous;
   }
 }
 

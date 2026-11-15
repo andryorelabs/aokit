@@ -8,7 +8,9 @@ function opVfs(vfs: Vfs) {
     has: (path: string) => vfs.has(path),
     paths: () => vfs.paths(),
     read: (path: string) => vfs.read(path),
-    write: (path: string, content: string | Uint8Array) => vfs.write(path, content),
+    write: (path: string, content: string | Uint8Array) => {
+      vfs.write(path, content);
+    },
   };
 }
 

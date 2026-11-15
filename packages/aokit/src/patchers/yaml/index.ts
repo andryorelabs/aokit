@@ -10,7 +10,7 @@ export type YamlValue =
   | YamlValue[]
   | { [key: string]: YamlValue };
 
-function isPlainObject(value: unknown): value is { [key: string]: YamlValue } {
+function isPlainObject(value: unknown): value is Record<string, YamlValue> {
   return typeof value === "object" && value !== null && !Array.isArray(value);
 }
 
@@ -28,7 +28,7 @@ function mergeSequence(document: Document, sequence: YAMLSeq, incoming: YamlValu
   }
 }
 
-function mergeMap(document: Document, map: YAMLMap, incoming: { [key: string]: YamlValue }) {
+function mergeMap(document: Document, map: YAMLMap, incoming: Record<string, YamlValue>) {
   for (const [key, value] of Object.entries(incoming)) {
     const existing = map.get(key, true);
     if (isAlias(existing)) {
@@ -68,7 +68,7 @@ function mergeMap(document: Document, map: YAMLMap, incoming: { [key: string]: Y
  * Merges a patch into YAML text using the Document API, so comments and anchors survive.
  * Maps merge recursively, sequences union by value, and scalars take the patch value.
  */
-export function mergeYaml(text: string, patch: { [key: string]: YamlValue }): string {
+export function mergeYaml(text: string, patch: Record<string, YamlValue>): string {
   const document = text.trim() === "" ? new Document({}) : parseDocument(text);
   if (document.errors.length > 0) {
     throw new AokitError(

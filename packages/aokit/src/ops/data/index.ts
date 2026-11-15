@@ -66,15 +66,15 @@ function mergeAtPointer(
   return mergeJsonc(text, nestAt(pointerSegments(pointer), value));
 }
 
-function nestAt(segments: readonly string[], value: JsoncValue): { [key: string]: JsoncValue } {
-  const patch: { [key: string]: JsoncValue } = {};
+function nestAt(segments: readonly string[], value: JsoncValue): Record<string, JsoncValue> {
+  const patch: Record<string, JsoncValue> = {};
   let cursor = patch;
   segments.forEach((segment, index) => {
     if (index === segments.length - 1) {
       cursor[segment] = value;
       return;
     }
-    const next: { [key: string]: JsoncValue } = {};
+    const next: Record<string, JsoncValue> = {};
     cursor[segment] = next;
     cursor = next;
   });

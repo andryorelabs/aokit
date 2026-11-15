@@ -25,13 +25,13 @@ const workflow = asRecord(
   Bun.YAML.parse(readFileSync(distributionPath, "utf8")),
   "distribution.yml",
 );
-const jobs = asRecord(workflow["jobs"], "jobs");
+const jobs = asRecord(workflow.jobs, "jobs");
 
 function stepRuns(jobName: string): string[] {
-  const steps = asRecord(jobs[jobName], `job ${jobName}`)["steps"];
+  const steps = asRecord(jobs[jobName], `job ${jobName}`).steps;
   if (!Array.isArray(steps)) throw new Error(`job ${jobName} has no steps`);
   return steps.flatMap((step: unknown) => {
-    const run = asRecord(step, `${jobName} step`)["run"];
+    const run = asRecord(step, `${jobName} step`).run;
     return typeof run === "string" ? [run] : [];
   });
 }
@@ -39,18 +39,18 @@ function stepRuns(jobName: string): string[] {
 describe("S3: PR distribution builds and tests the natively tested binaries", () => {
   test("linux-x64 keeps its job and arm64 covers linux-arm64 and darwin-arm64 on native runners", () => {
     expect(Object.keys(jobs)).toEqual(["linux-x64", "arm64"]);
-    const arm64 = asRecord(jobs["arm64"], "job arm64");
+    const arm64 = asRecord(jobs.arm64, "job arm64");
     expect(arm64["runs-on"]).toBe("${{ matrix.runner }}");
-    const matrix = asRecord(asRecord(arm64["strategy"], "strategy")["matrix"], "matrix");
-    const include = matrix["include"];
+    const matrix = asRecord(asRecord(arm64.strategy, "strategy").matrix, "matrix");
+    const include = matrix.include;
     if (!Array.isArray(include)) throw new Error("arm64 matrix has no include list");
     const entries = include.map((entry: unknown) => asRecord(entry, "matrix entry"));
-    expect(entries.map((entry) => [entry["target"], entry["runner"]])).toEqual([
+    expect(entries.map((entry) => [entry.target, entry.runner])).toEqual([
       ["bun-linux-arm64", "ubuntu-24.04-arm"],
       ["bun-darwin-arm64", "macos-latest"],
     ]);
     for (const entry of entries) {
-      expect(entry["artifact"]).toBe(parseBinaryTarget(String(entry["target"])).outputName);
+      expect(entry.artifact).toBe(parseBinaryTarget(String(entry.target)).outputName);
     }
   });
 

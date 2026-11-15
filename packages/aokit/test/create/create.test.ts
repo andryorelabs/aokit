@@ -139,7 +139,7 @@ describe("aokit create", () => {
     expect(envelope.data?.applied).toBe(true);
     expect(envelope.data?.installed).toBe(false);
     expect(envelope.data?.modules).toEqual(["oxc", "vite-react"]);
-    const rawData = z.record(z.string(), z.unknown()).parse(rawEnvelope["data"]);
+    const rawData = z.record(z.string(), z.unknown()).parse(rawEnvelope.data);
     expect(Object.keys(rawData)).toEqual(Object.keys(rawData).toSorted());
     const lockfile = parseLockfileJson(readFileSync(join(target, "aokit.lock.json"), "utf8"));
     expect(Object.keys(lockfile.modules)).toEqual(["oxc", "vite-react"]);
@@ -277,7 +277,7 @@ describe("aokit create", () => {
       chmodSync(join(fakeBin, "bun"), 0o755);
       const target = join(parent, "app");
       const result = await spawnAokit(["create", target, "--modules", "oxc", "--json"], {
-        PATH: `${fakeBin}:${process.env["PATH"] ?? ""}`,
+        PATH: `${fakeBin}:${process.env.PATH ?? ""}`,
       });
       expect(result.exitCode).toBe(1);
       const { fix } = envelopeError(result.stdout);
@@ -297,7 +297,7 @@ describe("aokit create", () => {
       {
         stdout: "pipe",
         stderr: "pipe",
-        env: { ...process.env, PATH: `${fakeBin}:${process.env["PATH"] ?? ""}` },
+        env: { ...process.env, PATH: `${fakeBin}:${process.env.PATH ?? ""}` },
       },
     );
     await waitForFile(join(parent, "app", "aokit.lock.json"), 200);

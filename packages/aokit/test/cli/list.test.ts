@@ -55,7 +55,7 @@ async function runAokit(argv: string[]): Promise<{ exitCode: number; stdout: str
     stdout: (text) => {
       stdout += text;
     },
-    stderr: () => {},
+    stderr: () => undefined,
     isTTY: false,
   };
   const exitCode = await runCli({
@@ -143,6 +143,6 @@ describe("aokit list", () => {
       { name: "a", version: "1.0.0", description: "A", provides: [] },
     ]);
     expect(Object.keys(groups)).toEqual(["uncategorized", "x", "y"]);
-    expect(groups["x"]?.map((entry) => entry.name)).toEqual(["b"]);
+    expect(groups.x?.map((entry) => entry.name)).toEqual(["b"]);
   });
 });

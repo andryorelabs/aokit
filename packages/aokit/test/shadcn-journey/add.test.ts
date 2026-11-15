@@ -61,29 +61,27 @@ test("add @fixture/button installs it, @fixture/utils and the URL item, each Reg
   });
   expect(added).toMatchObject({ ok: true, data: { added: ["@fixture/button"] } });
   const lockfile = await readLockfileJson(project);
-  const cardModule = Object.keys(lockfile["modules"]).find((name) => name.endsWith("/card"));
+  const cardModule = Object.keys(lockfile.modules).find((name) => name.endsWith("/card"));
   expect(cardModule).toBeDefined();
-  expect(lockfile["modules"]["@fixture/button"]).toMatchObject({
+  expect(lockfile.modules["@fixture/button"]).toMatchObject({
     registry: "fixture",
     selected: true,
   });
-  expect(lockfile["modules"]["@fixture/utils"]).toMatchObject({
+  expect(lockfile.modules["@fixture/utils"]).toMatchObject({
     registry: "fixture",
     selected: false,
   });
-  const cardKey: string = lockfile["modules"][cardModule ?? ""]?.["registry"] ?? "";
-  expect(lockfile["modules"][cardModule ?? ""]?.["selected"]).toBe(false);
-  expect(lockfile["registries"]["fixture"]).toMatchObject({
+  const cardKey: string = lockfile.modules[cardModule ?? ""]?.registry ?? "";
+  expect(lockfile.modules[cardModule ?? ""]?.selected).toBe(false);
+  expect(lockfile.registries.fixture).toMatchObject({
     source: `${fixture.url}/registry.json`,
     trusted: true,
   });
-  expect(lockfile["registries"][cardKey]).toMatchObject({
+  expect(lockfile.registries[cardKey]).toMatchObject({
     source: `${cards.trustSource}/registry.json`,
     trusted: true,
   });
-  expect(lockfile["modules"]["@fixture/button"]?.["version"]).toMatch(
-    /^0\.0\.0-shadcn\.[0-9a-f]{12}$/,
-  );
+  expect(lockfile.modules["@fixture/button"]?.version).toMatch(/^0\.0\.0-shadcn\.[0-9a-f]{12}$/);
   const data = addCommand.output.parse(added.ok ? added.data : undefined);
   const fetched = data.fetched.map((entry) => entry.module);
   expect(fetched).toEqual(["@fixture/button", "@fixture/utils", cardModule ?? ""].toSorted());

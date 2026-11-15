@@ -573,9 +573,8 @@ function changesPackageJson(plan: NonNullable<UpdateResult["plan"]>): boolean {
 function movedPins(before: Lockfile, after: Lockfile): PinMove[] {
   return Object.entries(after.registries).flatMap(([registry, entry]) => {
     const from = before.registries[registry]?.source;
-    return from !== undefined && from !== entry.source && entry.source.startsWith("github:")
-      ? [{ registry, from, to: entry.source }]
-      : [];
+    if (from === undefined || !entry.source.startsWith("github:")) return [];
+    return entry.source === from ? [] : [{ registry, from, to: entry.source }];
   });
 }
 

@@ -92,7 +92,9 @@ describe("process dependencies", () => {
     expect(processDependencies.git).toBe(runGit);
     expect(processDependencies.runCommitlint).toBe(runCommitlintProcess);
     expect(processDependencies.writeError).toBe(writeStderr);
-    expect(() => writeStderr("")).not.toThrow();
+    expect(() => {
+      writeStderr("");
+    }).not.toThrow();
   });
 });
 

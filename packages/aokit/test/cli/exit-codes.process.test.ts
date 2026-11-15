@@ -46,7 +46,7 @@ describe("exit codes through a real process", () => {
       await writeFile(path, text.replace('version: "1.0.0",', 'version: "1.1.0",'), "utf8");
     });
     await editLockfileJson(project, (lockfile) => {
-      const registries: unknown = lockfile["registries"];
+      const registries: unknown = lockfile.registries;
       const official = jsonAt(registries, "official");
       if (typeof official !== "object" || official === null) {
         throw new Error("official registry missing from lockfile");

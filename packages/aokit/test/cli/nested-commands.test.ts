@@ -23,7 +23,7 @@ const silentIo: CliIo = { stdout: () => undefined, stderr: () => undefined, isTT
 
 async function runAokit(
   argv: string[],
-  hidden: boolean = false,
+  hidden = false,
 ): Promise<{ exitCode: number; stdout: string; stderr: string }> {
   let stdout = "";
   let stderr = "";

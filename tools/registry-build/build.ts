@@ -128,7 +128,7 @@ async function readExistingIndex(outDir: string): Promise<RegistryIndex | undefi
 
 function modulesField(raw: unknown): unknown {
   const file = catalogFileSchema.safeParse(raw);
-  return file.success ? file.data["modules"] : undefined;
+  return file.success ? file.data.modules : undefined;
 }
 
 async function readPublishedModules(

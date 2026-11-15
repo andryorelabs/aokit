@@ -33,24 +33,24 @@ test.each(["single", "monorepo"] as const)(
       expect(await readFile(join(directory, "aokit.lock.json"), "utf8")).toBe(result.lockfileText);
       expect(lockfile.layout).toBe(layout);
       expect(Object.keys(lockfile.modules)).toEqual(["auth", "base"]);
-      expect(lockfile.modules["base"]?.answers).toEqual({ appName: "demo" });
+      expect(lockfile.modules.base?.answers).toEqual({ appName: "demo" });
       expect(lockfile.files["demo.md"]).toMatchObject({ owners: ["base"], mode: "seed" });
       expect(lockfile.files["run.sh"]).toBeDefined();
       expect(lockfile.files[webPath("providers.ts")]?.owners).toEqual(["auth", "base"]);
       expect(lockfile.files[webPath(".env")]?.owners).toEqual(["auth", "base"]);
-      expect(lockfile.deps["oxlint"]).toEqual({
+      expect(lockfile.deps.oxlint).toEqual({
         version: "1.90.0",
         owners: ["base"],
         pinned: true,
         source: "catalog",
       });
-      expect(lockfile.deps["next"]).toEqual({
+      expect(lockfile.deps.next).toEqual({
         version: "^16.0.0",
         owners: ["base"],
         pinned: false,
         source: "catalog",
       });
-      expect(lockfile.deps["zod"]?.source).toBe("catalog");
+      expect(lockfile.deps.zod?.source).toBe("catalog");
 
       const rootPackage = await readFile(join(directory, "package.json"), "utf8");
       const webPackage = await readFile(

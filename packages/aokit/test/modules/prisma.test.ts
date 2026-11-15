@@ -58,8 +58,8 @@ test.each([
     const manifest = packageSchema.parse(JSON.parse(String(built.plan.vfs.read(manifestPath))));
     expect(manifest.dependencies["@prisma/client"]).toBe(exact ? "7.10.1" : "catalog:");
     expect(manifest.dependencies["@prisma/adapter-pg"]).toBe(exact ? "7.10.1" : "catalog:");
-    expect(manifest.dependencies["pg"]).toBe(exact ? "^8.23.1" : "catalog:");
-    expect(manifest.devDependencies["prisma"]).toBe(exact ? "7.10.1" : "catalog:");
+    expect(manifest.dependencies.pg).toBe(exact ? "^8.23.1" : "catalog:");
+    expect(manifest.devDependencies.prisma).toBe(exact ? "7.10.1" : "catalog:");
   },
 );
 

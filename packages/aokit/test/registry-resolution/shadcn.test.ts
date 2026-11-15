@@ -146,7 +146,7 @@ test("add <item-url> --trust --yes is ok and the Lockfile records the Registry",
   const [name] = addCommand.output.parse(envelope.ok ? envelope.data : undefined).added;
   expect(name).toMatch(/^@[a-z0-9-]+\/card$/);
   const lockfile = await readLockfileJson(project);
-  const key: string = lockfile.modules[name ?? ""]?.["registry"] ?? "";
+  const key: string = lockfile.modules[name ?? ""]?.registry ?? "";
   expect(lockfile.registries[key]).toMatchObject({
     source: `${host.trustSource}/registry.json`,
     release: "shadcn",
@@ -171,7 +171,7 @@ test("create --registry <shadcn-url> installs Adapted Modules and records the Re
   await rm(join(project, "README.md"), { force: true });
   expect(created).toMatchObject({ ok: true, data: { modules: ["@fixture/utils"] } });
   const lockfile = await readLockfileJson(project);
-  expect(lockfile.registries["fixture"]).toMatchObject({
+  expect(lockfile.registries.fixture).toMatchObject({
     source: `${fixture.url}/registry.json`,
     trusted: true,
   });
@@ -204,11 +204,11 @@ test("create --registry <shadcn-url> follows registryDependencies and keeps the 
     registry: "fixture",
     selected: false,
   });
-  const nativeKey: string = lockfile.modules["tailwind4"]?.["registry"] ?? "";
+  const nativeKey: string = lockfile.modules.tailwind4?.registry ?? "";
   expect(nativeKey).not.toBe("fixture");
   expect(lockfile.registries[nativeKey]).toMatchObject({ source: "bundled" });
-  expect(lockfile.registries["fixture"]).toMatchObject({ trusted: true });
-  const cardKey: string = lockfile.modules[cardModule ?? ""]?.["registry"] ?? "";
+  expect(lockfile.registries.fixture).toMatchObject({ trusted: true });
+  const cardKey: string = lockfile.modules[cardModule ?? ""]?.registry ?? "";
   expect(lockfile.registries[cardKey]).toMatchObject({
     source: `${cards.trustSource}/registry.json`,
     trusted: true,
@@ -243,7 +243,7 @@ test("create --modules @ns/item reaches a Namespace of the user config", async (
   await mkdir(join(root, "a"), { recursive: true });
   await writeFile(join(root, "a", "alpha.json"), JSON.stringify(item("alpha")));
   const host = served(root);
-  const configDir = join(context.env["XDG_CONFIG_HOME"] ?? "", "aokit");
+  const configDir = join(context.env.XDG_CONFIG_HOME ?? "", "aokit");
   await mkdir(configDir, { recursive: true });
   const template = `${host.url}/a/{name}.json`;
   await writeFile(
@@ -263,7 +263,7 @@ test("create --modules @ns/item reaches a Namespace of the user config", async (
   expect(created).toMatchObject({ ok: true });
   const lockfile = await readLockfileJson(project);
   expect(lockfile.modules["@alpha/alpha"]).toMatchObject({ selected: true });
-  expect(lockfile.modules["oxc"]).toMatchObject({ selected: true });
+  expect(lockfile.modules.oxc).toMatchObject({ selected: true });
 });
 
 test("update --registry <shadcn-url> reads the shadcn Registry of the Lockfile", async () => {
@@ -282,7 +282,7 @@ test("after add @fixture/button the native Modules still render with their Catal
   const context = await isolatedContext();
   const { project } = await projectWithButton(context);
   const lockfile = await readLockfileJson(project);
-  expect(lockfile.deps["oxlint"]).toMatchObject({ source: "catalog" });
+  expect(lockfile.deps.oxlint).toMatchObject({ source: "catalog" });
   const doctor = await runCommand(doctorCommand, context, { directory: project });
   expect(doctor).toMatchObject({ ok: true, data: { clean: true, problems: [] } });
   const removed = await runCommand(removeCommand, context, {
@@ -291,14 +291,13 @@ test("after add @fixture/button the native Modules still render with their Catal
     module: "@fixture/button",
   });
   expect(removed).toMatchObject({ ok: true });
-  expect((await readLockfileJson(project)).deps["oxlint"]).toEqual(lockfile.deps["oxlint"]);
+  expect((await readLockfileJson(project)).deps.oxlint).toEqual(lockfile.deps.oxlint);
 });
 
 test("a locked shadcn version keeps resolving after the item changes upstream", async () => {
   const context = await isolatedContext();
   const { project, fixture } = await projectWithButton(context);
-  const locked: string =
-    (await readLockfileJson(project)).modules["@fixture/utils"]?.["version"] ?? "";
+  const locked: string = (await readLockfileJson(project)).modules["@fixture/utils"]?.version ?? "";
   await fixture.writeItem({
     name: "utils",
     type: "registry:lib",
@@ -306,9 +305,9 @@ test("a locked shadcn version keeps resolving after the item changes upstream", 
   });
   const doctor = await runCommand(doctorCommand, context, { directory: project });
   expect(doctor).toMatchObject({ ok: true, data: { clean: true, problems: [] } });
-  expect((await readLockfileJson(project)).modules["@fixture/utils"]?.["version"]).toBe(locked);
+  expect((await readLockfileJson(project)).modules["@fixture/utils"]?.version).toBe(locked);
 
-  await rm(join(context.env["XDG_CACHE_HOME"] ?? "", "aokit", "registry"), {
+  await rm(join(context.env.XDG_CACHE_HOME ?? "", "aokit", "registry"), {
     recursive: true,
     force: true,
   });
@@ -400,7 +399,7 @@ test("two Namespaces on one host send each its own headers, and each is trusted 
   await writeFile(join(root, "a", "alpha.json"), JSON.stringify(item("alpha", ["@beta/beta"])));
   await writeFile(join(root, "b", "beta.json"), JSON.stringify(item("beta")));
   const host = served(root);
-  const configDir = join(context.env["XDG_CONFIG_HOME"] ?? "", "aokit");
+  const configDir = join(context.env.XDG_CONFIG_HOME ?? "", "aokit");
   await mkdir(configDir, { recursive: true });
   const alphaTemplate = `${host.url}/a/{name}.json`;
   const betaTemplate = `${host.url}/b/{name}.json`;
@@ -484,7 +483,7 @@ test("an owner/repo/item#ref dependency is read through the github: transport, p
   expect(lsRemoteCalls).toEqual(["https://github.com/acme/ui.git v2"]);
   const lockfile = await readLockfileJson(project);
   const iconName = Object.keys(lockfile.modules).find((name) => name.endsWith("/icon"));
-  const key: string = lockfile.modules[iconName ?? ""]?.["registry"] ?? "";
+  const key: string = lockfile.modules[iconName ?? ""]?.registry ?? "";
   expect(lockfile.registries[key]).toMatchObject({
     source: `github:acme/ui#${sha}`,
     trusted: true,
@@ -540,8 +539,8 @@ test("an owner/repo/item#ref dependency is versioned from its commit SHA and sta
   );
   const lockfile = await readLockfileJson(project);
   const iconName = Object.keys(lockfile.modules).find((name) => name.endsWith("/icon")) ?? "";
-  expect(lockfile.modules[iconName]?.["version"]).toBe(`0.0.0-shadcn.${sha.slice(0, 12)}`);
-  const toolbarVersion: string = lockfile.modules["@fixture/toolbar"]?.["version"] ?? "";
+  expect(lockfile.modules[iconName]?.version).toBe(`0.0.0-shadcn.${sha.slice(0, 12)}`);
+  const toolbarVersion: string = lockfile.modules["@fixture/toolbar"]?.version ?? "";
   expect(toolbarVersion).toMatch(/^0\.0\.0-shadcn\.[0-9a-f]{12}$/);
   expect(toolbarVersion).not.toBe(`0.0.0-shadcn.${sha.slice(0, 12)}`);
 
@@ -553,7 +552,7 @@ test("an owner/repo/item#ref dependency is versioned from its commit SHA and sta
       directory: project,
     });
     expect(updated).toMatchObject({ ok: true });
-    expect((await readLockfileJson(project)).modules[iconName]?.["version"]).toBe(
+    expect((await readLockfileJson(project)).modules[iconName]?.version).toBe(
       `0.0.0-shadcn.${sha.slice(0, 12)}`,
     );
     const removed = await runCommand(removeCommand, context, {

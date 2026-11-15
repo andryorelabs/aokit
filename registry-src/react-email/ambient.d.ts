@@ -1,5 +1,9 @@
 declare module "@react-email/components" {
-  type EmailProps = { children?: unknown; href?: string; style?: object };
+  interface EmailProps {
+    children?: unknown;
+    href?: string;
+    style?: object;
+  }
   export function Html(props: EmailProps): object;
   export function Head(props: EmailProps): object;
   export function Body(props: EmailProps): object;

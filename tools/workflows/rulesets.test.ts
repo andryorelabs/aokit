@@ -21,13 +21,13 @@ function asArray(value: unknown): unknown[] {
 
 function parseJobs(text: string): Record<string, unknown> {
   const workflow: unknown = Bun.YAML.parse(text);
-  return isRecord(workflow) && isRecord(workflow["jobs"]) ? workflow["jobs"] : {};
+  return isRecord(workflow) && isRecord(workflow.jobs) ? workflow.jobs : {};
 }
 
 /** The matrix combinations of a job: the product of its list keys, then each `include` entry. */
 function listMatrixCombinations(job: Record<string, unknown>): Record<string, unknown>[] {
-  const strategy = job["strategy"];
-  const matrix = isRecord(strategy) ? strategy["matrix"] : undefined;
+  const strategy = job.strategy;
+  const matrix = isRecord(strategy) ? strategy.matrix : undefined;
   if (!isRecord(matrix)) return [{}];
   const listedKeys = Object.entries(matrix).filter(
     ([key]) => key !== "include" && key !== "exclude",
@@ -41,7 +41,7 @@ function listMatrixCombinations(job: Record<string, unknown>): Record<string, un
     }
     product = next;
   }
-  return product.concat(asArray(matrix["include"]).filter(isRecord));
+  return product.concat(asArray(matrix.include).filter(isRecord));
 }
 
 /**
@@ -56,7 +56,7 @@ export function listCheckNames(text: string): string[] {
 /** The check names one job reports, as `listCheckNames` expands them. */
 function listJobCheckNames(id: string, job: unknown): string[] {
   if (!isRecord(job)) return [];
-  const name = job["name"];
+  const name = job.name;
   if (name === undefined) return [id];
   if (typeof name !== "string") return [];
   const expanded = listMatrixCombinations(job).map((combination) =>
@@ -71,7 +71,7 @@ function listJobCheckNames(id: string, job: unknown): string[] {
 /** The check names the CodeQL workflow's `analyze` job reports, one per analyzed language. */
 function listAnalyzeCheckNames(): string[] {
   const jobs = parseJobs(readFileSync(join(workflowsDirectory, "codeql.yml"), "utf8"));
-  return listJobCheckNames("analyze", jobs["analyze"]);
+  return listJobCheckNames("analyze", jobs.analyze);
 }
 
 /** Returns one line per check in `checks` that `ruleset` does not require. */
@@ -102,21 +102,21 @@ function readWorkflows(): { file: string; text: string }[] {
 }
 
 function listRules(ruleset: unknown): Record<string, unknown>[] {
-  return isRecord(ruleset) ? asArray(ruleset["rules"]).filter(isRecord) : [];
+  return isRecord(ruleset) ? asArray(ruleset.rules).filter(isRecord) : [];
 }
 
 function findRule(ruleset: unknown, type: string): Record<string, unknown> | undefined {
-  return listRules(ruleset).find((rule) => rule["type"] === type);
+  return listRules(ruleset).find((rule) => rule.type === type);
 }
 
 function listRequiredChecks(ruleset: unknown): string[] {
   return listRules(ruleset)
-    .filter((rule) => rule["type"] === "required_status_checks")
+    .filter((rule) => rule.type === "required_status_checks")
     .flatMap((rule) => {
-      const parameters = isRecord(rule["parameters"]) ? rule["parameters"] : {};
-      return asArray(parameters["required_status_checks"]).filter(isRecord);
+      const parameters = isRecord(rule.parameters) ? rule.parameters : {};
+      return asArray(parameters.required_status_checks).filter(isRecord);
     })
-    .map((check) => check["context"])
+    .map((check) => check.context)
     .filter((context): context is string => typeof context === "string");
 }
 
@@ -132,7 +132,7 @@ function findRulesetProblems(
 }
 
 /** What a branch ruleset must hold: its ref, its one merge method, and whether history stays linear. */
-type BranchPolicy = {
+interface BranchPolicy {
   readonly name: string;
   readonly ref: string;
   readonly mergeMethod: "squash" | "merge";
@@ -141,7 +141,7 @@ type BranchPolicy = {
    * False on `main`, where a promotion merge commit is never on `develop`.
    */
   readonly linear: boolean;
-};
+}
 
 const developPolicy: BranchPolicy = {
   name: "develop",
@@ -157,26 +157,22 @@ const mainPolicy: BranchPolicy = {
 };
 
 function readParameters(rule: Record<string, unknown> | undefined): Record<string, unknown> {
-  return isRecord(rule?.["parameters"]) ? rule["parameters"] : {};
+  return isRecord(rule?.parameters) ? rule.parameters : {};
 }
 
 function findTargetProblems(file: string, ruleset: unknown, policy: BranchPolicy): string[] {
   const record = isRecord(ruleset) ? ruleset : {};
   const problems: string[] = [];
-  if (
-    record["name"] !== policy.name ||
-    record["target"] !== "branch" ||
-    record["enforcement"] !== "active"
-  )
+  if (record.name !== policy.name || record.target !== "branch" || record.enforcement !== "active")
     problems.push(`${file} must be an active branch ruleset named ${policy.name}`);
-  const conditions = isRecord(record["conditions"]) ? record["conditions"] : {};
-  const refName = isRecord(conditions["ref_name"]) ? conditions["ref_name"] : {};
-  const included = JSON.stringify(asArray(refName["include"]));
+  const conditions = isRecord(record.conditions) ? record.conditions : {};
+  const refName = isRecord(conditions.ref_name) ? conditions.ref_name : {};
+  const included = JSON.stringify(asArray(refName.include));
   const expected = JSON.stringify([policy.ref]);
   if (included !== expected)
     problems.push(`${file} targets ${included}; it must target ${expected} only`);
-  if (asArray(refName["exclude"]).length > 0) problems.push(`${file} must exclude no ref`);
-  if (!Array.isArray(record["bypass_actors"]) || record["bypass_actors"].length > 0)
+  if (asArray(refName.exclude).length > 0) problems.push(`${file} must exclude no ref`);
+  if (!Array.isArray(record.bypass_actors) || record.bypass_actors.length > 0)
     problems.push(`${file} must have no bypass actors`);
   return problems;
 }
@@ -188,21 +184,21 @@ function findBranchRulesetProblems(file: string, ruleset: unknown, policy: Branc
     if (findRule(ruleset, type) === undefined) problems.push(`${file} lacks the ${type} rule`);
   }
   const pullRequest = readParameters(findRule(ruleset, "pull_request"));
-  const methods = JSON.stringify(asArray(pullRequest["allowed_merge_methods"]));
+  const methods = JSON.stringify(asArray(pullRequest.allowed_merge_methods));
   const expectedMethods = JSON.stringify([policy.mergeMethod]);
   if (methods !== expectedMethods)
     problems.push(
       `${file} allows the merge methods ${methods}; it must allow ${expectedMethods} only`,
     );
-  if (pullRequest["required_review_thread_resolution"] !== true)
+  if (pullRequest.required_review_thread_resolution !== true)
     problems.push(`${file} must require review thread resolution`);
   const hasLinearHistory = findRule(ruleset, "required_linear_history") !== undefined;
   if (policy.linear && !hasLinearHistory) problems.push(`${file} must require linear history`);
   if (!policy.linear && hasLinearHistory)
     problems.push(`${file} requires linear history, which blocks every promotion merge commit`);
-  const strict = readParameters(findRule(ruleset, "required_status_checks"))[
-    "strict_required_status_checks_policy"
-  ];
+  const strict = readParameters(
+    findRule(ruleset, "required_status_checks"),
+  ).strict_required_status_checks_policy;
   if (policy.linear && strict !== true)
     problems.push(`${file} must set the strict required checks policy`);
   if (!policy.linear && strict !== false)
@@ -217,7 +213,7 @@ function withRuleParameters(
   parameters: Record<string, unknown>,
 ): Record<string, unknown> {
   const rules = listRules(ruleset).map((rule) =>
-    rule["type"] === type
+    rule.type === type
       ? Object.assign({}, rule, {
           parameters: Object.assign({}, readParameters(rule), parameters),
         })
@@ -227,7 +223,7 @@ function withRuleParameters(
 }
 
 function withoutRule(ruleset: unknown, type: string): Record<string, unknown> {
-  const rules = listRules(ruleset).filter((rule) => rule["type"] !== type);
+  const rules = listRules(ruleset).filter((rule) => rule.type !== type);
   return Object.assign({}, isRecord(ruleset) ? ruleset : {}, { rules });
 }
 
@@ -241,26 +237,26 @@ function withRule(ruleset: unknown, rule: Record<string, unknown>): Record<strin
 function findAggregateJobProblems(text: string): string[] {
   const jobs = parseJobs(text);
   const entry = Object.entries(jobs).find(
-    ([, job]) => isRecord(job) && job["name"] === aggregateJobName,
+    ([, job]) => isRecord(job) && job.name === aggregateJobName,
   );
   if (entry === undefined) return [`ci.yml has no job named "${aggregateJobName}"`];
   const [aggregateId, aggregate] = entry;
   if (!isRecord(aggregate)) return [`ci.yml:${aggregateId} is not a job mapping`];
   const problems: string[] = [];
-  if (aggregate["if"] !== "always()")
+  if (aggregate.if !== "always()")
     problems.push(`ci.yml:${aggregateId} must run with if: always()`);
-  const rawNeeds = aggregate["needs"];
+  const rawNeeds = aggregate.needs;
   const needs = new Set(typeof rawNeeds === "string" ? [rawNeeds] : asArray(rawNeeds));
   for (const id of Object.keys(jobs)) {
     if (id !== aggregateId && !needs.has(id))
       problems.push(`ci.yml:${aggregateId} does not need ${id}`);
   }
   const readResults = new Set(
-    asArray(aggregate["steps"])
+    asArray(aggregate.steps)
       .filter(isRecord)
       .flatMap((step) => {
-        const rawScript = step["run"];
-        const env = step["env"];
+        const rawScript = step.run;
+        const env = step.env;
         if (typeof rawScript !== "string" || !isRecord(env)) return [];
         const script = rawScript
           .split("\n")
@@ -471,13 +467,13 @@ describe("S9: rulesets", () => {
     "every required check in $file comes from GitHub Actions",
     ({ ruleset }) => {
       const checks = listRules(ruleset)
-        .filter((rule) => rule["type"] === "required_status_checks")
+        .filter((rule) => rule.type === "required_status_checks")
         .flatMap((rule) =>
-          asArray(isRecord(rule["parameters"]) ? rule["parameters"]["required_status_checks"] : []),
+          asArray(isRecord(rule.parameters) ? rule.parameters.required_status_checks : []),
         );
       expect(checks.length).toBeGreaterThan(0);
       for (const check of checks) {
-        expect(isRecord(check) && check["integration_id"]).toBe(githubActionsIntegrationId);
+        expect(isRecord(check) && check.integration_id).toBe(githubActionsIntegrationId);
       }
     },
   );
@@ -591,34 +587,34 @@ describe("S9: rulesets", () => {
   });
 
   test("tags cannot be updated or deleted", () => {
-    expect(isRecord(tagsRuleset) && tagsRuleset["target"]).toBe("tag");
+    expect(isRecord(tagsRuleset) && tagsRuleset.target).toBe("tag");
     expect(findRule(tagsRuleset, "update")).toBeDefined();
     expect(findRule(tagsRuleset, "deletion")).toBeDefined();
   });
 
   test("S17: only repository admins can create v* tags", () => {
     expect(findRule(tagsRuleset, "creation")).toBeDefined();
-    const conditions = isRecord(tagsRuleset) ? tagsRuleset["conditions"] : undefined;
-    const refName = isRecord(conditions) ? conditions["ref_name"] : undefined;
-    const included = isRecord(refName) ? asArray(refName["include"]) : [];
-    const excluded = isRecord(refName) ? asArray(refName["exclude"]) : [];
+    const conditions = isRecord(tagsRuleset) ? tagsRuleset.conditions : undefined;
+    const refName = isRecord(conditions) ? conditions.ref_name : undefined;
+    const included = isRecord(refName) ? asArray(refName.include) : [];
+    const excluded = isRecord(refName) ? asArray(refName.exclude) : [];
     expect(included.some((pattern) => pattern === "~ALL" || pattern === "refs/tags/v*")).toBe(true);
     expect(excluded).toEqual([]);
-    expect(isRecord(tagsRuleset) && tagsRuleset["bypass_actors"]).toEqual([
+    expect(isRecord(tagsRuleset) && tagsRuleset.bypass_actors).toEqual([
       { actor_id: repositoryAdminRoleId, actor_type: "RepositoryRole", bypass_mode: "always" },
     ]);
   });
 });
 
 describe("S19: CI test lanes", () => {
-  const testJob = parseJobs(ciText)["test"];
+  const testJob = parseJobs(ciText).test;
   const job = isRecord(testJob) ? testJob : {};
-  const steps = asArray(job["steps"]).filter(isRecord);
+  const steps = asArray(job.steps).filter(isRecord);
 
   test("the Windows lane runs the packages and tools tests", () => {
     const windowsRuns = steps
-      .filter((step) => step["if"] === "runner.os == 'Windows'")
-      .map((step) => step["run"]);
+      .filter((step) => step.if === "runner.os == 'Windows'")
+      .map((step) => step.run);
     expect(windowsRuns).toContain("bun test packages tools");
     expect(listMatrixCombinations(job)).toContainEqual({ os: "windows-latest", bun: "pinned" });
   });
@@ -631,9 +627,9 @@ describe("S19: CI test lanes", () => {
       "${{ matrix.bun == 'latest' || matrix.os == 'windows-latest' }}",
     );
     const setupBun = steps.filter(
-      (step) => typeof step["uses"] === "string" && step["uses"].startsWith("oven-sh/setup-bun@"),
+      (step) => typeof step.uses === "string" && step.uses.startsWith("oven-sh/setup-bun@"),
     );
-    expect(setupBun.map((step) => [step["if"], step["with"]])).toEqual([
+    expect(setupBun.map((step) => [step.if, step.with])).toEqual([
       ["matrix.bun == 'pinned'", { "bun-version-file": "package.json" }],
       ["matrix.bun == 'latest'", { "bun-version": "latest" }],
     ]);
@@ -661,13 +657,13 @@ describe("S9: labels", () => {
       return entryProblems;
     });
     expect(problems).toEqual([]);
-    const names = labels.map((label) => (isRecord(label) ? label["name"] : undefined));
+    const names = labels.map((label) => (isRecord(label) ? label.name : undefined));
     expect(new Set(names).size).toBe(names.length);
   });
 
   test("the five triage labels live in Linear and are absent from the GitHub labels", () => {
     expect(triageLabels).toHaveLength(5);
-    const names = new Set(labels.map((label) => (isRecord(label) ? label["name"] : undefined)));
+    const names = new Set(labels.map((label) => (isRecord(label) ? label.name : undefined)));
     expect(triageLabels.filter((label) => names.has(label))).toEqual([]);
   });
 });
@@ -720,8 +716,8 @@ const promotionTitlePattern = /titled `([^`]+)`/;
 const requiredCheckPattern = /required checks "([^"]+)" and "([^"]+)"/g;
 
 function findAllowedMergeMethods(ruleset: unknown): string {
-  const parameters = findRule(ruleset, "pull_request")?.["parameters"];
-  const methods = isRecord(parameters) ? parameters["allowed_merge_methods"] : undefined;
+  const parameters = findRule(ruleset, "pull_request")?.parameters;
+  const methods = isRecord(parameters) ? parameters.allowed_merge_methods : undefined;
   return JSON.stringify(asArray(methods));
 }
 
@@ -802,7 +798,7 @@ describe("V33: promotion docs tie to the rulesets and settings", () => {
   };
   const rawSettings = readJson(join(repoRoot, ".github", "repo-settings.json"));
   const repositorySettings =
-    isRecord(rawSettings) && isRecord(rawSettings["repository"]) ? rawSettings["repository"] : {};
+    isRecord(rawSettings) && isRecord(rawSettings.repository) ? rawSettings.repository : {};
   const mainRuleset = readJson(join(rulesetsDirectory, "main.json"));
   const developRuleset = readJson(join(rulesetsDirectory, "develop.json"));
   const input = { docs, mainRuleset, developRuleset, settings: repositorySettings };

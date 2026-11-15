@@ -10,9 +10,8 @@ function readText(...segments: string[]): string {
 }
 
 const settings: unknown = JSON.parse(readText(".github", "repo-settings.json"));
-const repository =
-  isRecord(settings) && isRecord(settings["repository"]) ? settings["repository"] : {};
-const security = isRecord(settings) ? settings["security"] : undefined;
+const repository = isRecord(settings) && isRecord(settings.repository) ? settings.repository : {};
+const security = isRecord(settings) ? settings.security : undefined;
 const githubAbout = readText("docs", "brand", "copy.md").split("## GitHub About")[1] ?? "";
 
 describe("S8: .github/repo-settings.json", () => {
@@ -30,11 +29,11 @@ describe("S8: .github/repo-settings.json", () => {
   });
 
   test("A1: main is the default branch", () => {
-    expect(repository["default_branch"]).toBe("main");
+    expect(repository.default_branch).toBe("main");
   });
 
   test("V12: the GITHUB_TOKEN is read-only by default and fork pull requests need approval", () => {
-    expect(isRecord(settings) ? settings["actions"] : undefined).toEqual({
+    expect(isRecord(settings) ? settings.actions : undefined).toEqual({
       default_workflow_permissions: "read",
       can_approve_pull_request_reviews: false,
       fork_pr_contributor_approval: "first_time_contributors",
@@ -42,14 +41,14 @@ describe("S8: .github/repo-settings.json", () => {
   });
 
   test("V29: CodeQL default setup is off, because the codeql workflow is the advanced setup", () => {
-    expect(isRecord(settings) ? settings["code_scanning"] : undefined).toEqual({
+    expect(isRecord(settings) ? settings.code_scanning : undefined).toEqual({
       default_setup: "not-configured",
     });
     expect(existsSync(join(repoRoot, ".github", "workflows", "codeql.yml"))).toBe(true);
   });
 
   test("S2: merge commits are allowed, because a promotion of develop to main merges with one", () => {
-    expect(repository["allow_merge_commit"]).toBe(true);
+    expect(repository.allow_merge_commit).toBe(true);
   });
 
   test("A1 to A3: squash and merge commits, no rebase, with branch cleanup, auto-merge, update branch and PR title and body", () => {
@@ -84,9 +83,9 @@ describe("S8: .github/repo-settings.json", () => {
     const topicsLine = /^Topics: (.+)\.$/m.exec(githubAbout)?.[1] ?? "";
     const topics = [...topicsLine.matchAll(/`([^`]+)`/g)].map((match) => match[1]);
     expect(topics.length).toBeGreaterThanOrEqual(5);
-    expect(repository["description"]).toBe(description);
-    expect(repository["homepage"]).toBe(homepage);
-    expect(repository["topics"]).toEqual(topics);
+    expect(repository.description).toBe(description);
+    expect(repository.homepage).toBe(homepage);
+    expect(repository.topics).toEqual(topics);
   });
 
   test("A8: wiki, projects and discussions are off", () => {

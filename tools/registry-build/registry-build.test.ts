@@ -324,7 +324,7 @@ test("the 2026.11.0 Catalog lists every curated Module dependency with oxc pinne
     ].toSorted(),
   );
   expect(catalog.pinGroups).toEqual({ oxc: ["oxlint", "oxfmt"] });
-  for (const member of catalog.pinGroups["oxc"] ?? []) {
+  for (const member of catalog.pinGroups.oxc ?? []) {
     expect(catalog.dependencies[member]).toMatch(/^\d+\.\d+\.\d+$/);
   }
 });

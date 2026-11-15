@@ -62,7 +62,7 @@ export function findCopyDrift(files: {
   const descriptions = packageDescriptions(files.copy);
   for (const [path, raw] of Object.entries(files.manifests)) {
     const manifest = parseManifest(raw);
-    const name = String(manifest["name"]);
+    const name = String(manifest.name);
     const expected = descriptions.get(name);
     if (expected === undefined) {
       problems.push(`${path}: ${name} is missing from docs/brand/copy.md`);
@@ -152,11 +152,11 @@ describe("README shape", () => {
 describe("package manifests", () => {
   test.each(MANIFEST_PATHS)("%s has the six metadata fields", (path) => {
     const manifest = parseManifest(readText(path));
-    expect(manifest["description"]).toBeTruthy();
-    expect(manifest["license"]).toBe("MIT");
-    expect(manifest["author"]).toBe(AUTHOR);
-    expect(manifest["homepage"]).toBe("https://github.com/andryorelabs/aokit#readme");
-    expect(manifest["repository"]).toBeTruthy();
-    expect(manifest["bugs"]).toBeTruthy();
+    expect(manifest.description).toBeTruthy();
+    expect(manifest.license).toBe("MIT");
+    expect(manifest.author).toBe(AUTHOR);
+    expect(manifest.homepage).toBe("https://github.com/andryorelabs/aokit#readme");
+    expect(manifest.repository).toBeTruthy();
+    expect(manifest.bugs).toBeTruthy();
   });
 });

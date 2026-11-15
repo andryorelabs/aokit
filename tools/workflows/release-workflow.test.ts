@@ -41,21 +41,21 @@ function readJson(path: string): Record<string, unknown> {
 }
 
 const workflow = asRecord(Bun.YAML.parse(readFileSync(releaseWorkflowPath, "utf8")), "release.yml");
-const jobs = asRecord(workflow["jobs"], "jobs");
+const jobs = asRecord(workflow.jobs, "jobs");
 
 function job(name: string): Record<string, unknown> {
   return asRecord(jobs[name], `job ${name}`);
 }
 
 function steps(jobName: string): Record<string, unknown>[] {
-  const list = job(jobName)["steps"];
+  const list = job(jobName).steps;
   if (!Array.isArray(list)) throw new Error(`job ${jobName} has no steps`);
   return list.map((step, index) => asRecord(step, `${jobName} step ${index + 1}`));
 }
 
 function runScript(jobName: string, stepName: string): string {
-  const step = steps(jobName).find((candidate) => candidate["name"] === stepName);
-  const run = step?.["run"];
+  const step = steps(jobName).find((candidate) => candidate.name === stepName);
+  const run = step?.run;
   if (typeof run !== "string") throw new Error(`${jobName} has no "${stepName}" run step`);
   return run;
 }
@@ -83,7 +83,7 @@ interface ScriptResult {
 function runBash(script: string, cwd: string, env: Record<string, string>): ScriptResult {
   const result = Bun.spawnSync(["bash", "--noprofile", "--norc", "-eo", "pipefail", "-c", script], {
     cwd,
-    env: { PATH: process.env["PATH"] ?? "", ...env },
+    env: { PATH: process.env.PATH ?? "", ...env },
   });
   return {
     exitCode: result.exitCode,
@@ -167,7 +167,7 @@ function publishCalls(
   chmodSync(fakeNpm, 0o755);
   writeFileSync(callLog, "");
   const result = runBash(runScript("publish", publishStepName), directory, {
-    PATH: `${binDirectory}:${process.env["PATH"] ?? ""}`,
+    PATH: `${binDirectory}:${process.env.PATH ?? ""}`,
     VERSION: version,
     DIST_TAG: distTag,
     DRY_RUN: dryRun,
@@ -179,44 +179,44 @@ function publishCalls(
 
 describe("S2: release workflow", () => {
   test("a v* tag push and a manual dispatch with a dry-run input default to true trigger it", () => {
-    const on = asRecord(workflow["on"], "on");
-    expect(asRecord(on["push"], "on.push")["tags"]).toEqual(["v*"]);
-    const dispatch = asRecord(on["workflow_dispatch"], "on.workflow_dispatch");
-    const dryRun = asRecord(asRecord(dispatch["inputs"], "inputs")["dry-run"], "dry-run input");
-    expect(dryRun["type"]).toBe("boolean");
-    expect(dryRun["default"]).toBe(true);
+    const on = asRecord(workflow.on, "on");
+    expect(asRecord(on.push, "on.push").tags).toEqual(["v*"]);
+    const dispatch = asRecord(on.workflow_dispatch, "on.workflow_dispatch");
+    const dryRun = asRecord(asRecord(dispatch.inputs, "inputs")["dry-run"], "dry-run input");
+    expect(dryRun.type).toBe("boolean");
+    expect(dryRun.default).toBe(true);
     expect(Object.keys(on).toSorted()).toEqual(["push", "workflow_dispatch"]);
   });
 
   test("verify runs first, then binaries, then the GitHub Release, then publish, then smoke", () => {
     expect(Object.keys(jobs)).toEqual(["verify", "binaries", "release", "publish", "smoke"]);
-    expect(job("binaries")["needs"]).toBe("verify");
-    expect(job("release")["needs"]).toEqual(["verify", "binaries"]);
-    expect(job("publish")["needs"]).toEqual(["verify", "binaries", "release"]);
+    expect(job("binaries").needs).toBe("verify");
+    expect(job("release").needs).toEqual(["verify", "binaries"]);
+    expect(job("publish").needs).toEqual(["verify", "binaries", "release"]);
   });
 
   test("the workflow is read-only; only release and publish get id-token, only release writes", () => {
-    expect(workflow["permissions"]).toEqual({ contents: "read" });
-    expect(job("publish")["permissions"]).toEqual({ contents: "read", "id-token": "write" });
-    expect(job("release")["permissions"]).toEqual({
+    expect(workflow.permissions).toEqual({ contents: "read" });
+    expect(job("publish").permissions).toEqual({ contents: "read", "id-token": "write" });
+    expect(job("release").permissions).toEqual({
       contents: "write",
       "id-token": "write",
       attestations: "write",
     });
-    expect(job("verify")["permissions"]).toEqual({ contents: "read", checks: "read" });
-    expect(job("binaries")["permissions"]).toBeUndefined();
+    expect(job("verify").permissions).toEqual({ contents: "read", checks: "read" });
+    expect(job("binaries").permissions).toBeUndefined();
   });
 
   test("S18: only the publish job runs in the protected npm environment", () => {
-    expect(job("publish")["environment"]).toBe("npm");
+    expect(job("publish").environment).toBe("npm");
     for (const jobName of Object.keys(jobs).filter((id) => id !== "publish")) {
-      expect(job(jobName)["environment"]).toBeUndefined();
+      expect(job(jobName).environment).toBeUndefined();
     }
   });
 
   test("verify checks, tests, builds, lints and packs all three packages", () => {
     const commands = steps("verify")
-      .map((step) => step["run"])
+      .map((step) => step.run)
       .filter((run): run is string => typeof run === "string")
       .join("\n");
     for (const command of [
@@ -236,7 +236,7 @@ describe("S2: release workflow", () => {
 
   test("npm publish appears only in the publish job", () => {
     for (const name of ["verify", "binaries", "release", "smoke"]) {
-      const runs = steps(name).map((step) => step["run"]);
+      const runs = steps(name).map((step) => step.run);
       expect(runs.some((run) => typeof run === "string" && run.includes("npm publish"))).toBe(
         false,
       );
@@ -399,7 +399,7 @@ function runSmoke(
   chmodSync(join(binDirectory, "npm"), 0o755);
   chmodSync(join(binDirectory, "bunx"), 0o755);
   const result = runBash(runScript("smoke", stepName), directory, {
-    PATH: `${binDirectory}:${process.env["PATH"] ?? ""}`,
+    PATH: `${binDirectory}:${process.env.PATH ?? ""}`,
     VERSION: version,
     DIST_TAG: distTag,
     RETRY_SECONDS: "0",
@@ -413,15 +413,15 @@ const runStepName = "Run aokit and create-aokit from npm";
 
 describe("S8: post-publish smoke job", () => {
   test("smoke runs after publish and only on a real release", () => {
-    expect(job("smoke")["needs"]).toEqual(["verify", "publish"]);
-    expect(job("smoke")["if"]).toBe("needs.verify.outputs.dry-run == 'false'");
-    expect(job("smoke")["permissions"]).toBeUndefined();
+    expect(job("smoke").needs).toEqual(["verify", "publish"]);
+    expect(job("smoke").if).toBe("needs.verify.outputs.dry-run == 'false'");
+    expect(job("smoke").permissions).toBeUndefined();
   });
 
   test("smoke reads the version and dist-tag that verify resolved", () => {
-    const env = asRecord(job("smoke")["env"], "smoke env");
-    expect(env["VERSION"]).toBe("${{ needs.verify.outputs.version }}");
-    expect(env["DIST_TAG"]).toBe("${{ needs.verify.outputs.dist-tag }}");
+    const env = asRecord(job("smoke").env, "smoke env");
+    expect(env.VERSION).toBe("${{ needs.verify.outputs.version }}");
+    expect(env.DIST_TAG).toBe("${{ needs.verify.outputs.dist-tag }}");
   });
 
   bashStepTest("a stable version on latest for all three packages passes", () => {
@@ -507,8 +507,8 @@ interface MatrixEntry {
 }
 
 function binaryMatrix(): MatrixEntry[] {
-  const strategy = asRecord(job("binaries")["strategy"], "binaries strategy");
-  const include = asRecord(strategy["matrix"], "binaries matrix")["include"];
+  const strategy = asRecord(job("binaries").strategy, "binaries strategy");
+  const include = asRecord(strategy.matrix, "binaries matrix").include;
   if (!Array.isArray(include)) throw new Error("binaries matrix has no include list");
   return include.map((entry, index) => {
     const record = asRecord(entry, `matrix entry ${index + 1}`);
@@ -526,14 +526,14 @@ function binaryMatrix(): MatrixEntry[] {
 }
 
 function stepNamed(jobName: string, name: string): Record<string, unknown> {
-  const step = steps(jobName).find((candidate) => candidate["name"] === name);
+  const step = steps(jobName).find((candidate) => candidate.name === name);
   if (step === undefined) throw new Error(`${jobName} has no "${name}" step`);
   return step;
 }
 
 function stepUsing(jobName: string, action: string): Record<string, unknown>[] {
   return steps(jobName).filter(
-    (step) => typeof step["uses"] === "string" && step["uses"].startsWith(`${action}@`),
+    (step) => typeof step.uses === "string" && step.uses.startsWith(`${action}@`),
   );
 }
 
@@ -567,7 +567,7 @@ function releaseCalls(dryRun: string, distTag: string): ReleaseRun {
   mkdirSync(assets);
   for (const file of [...releasedBinaries, "SHA256SUMS"]) writeFileSync(join(assets, file), "");
   const result = runBash(runScript("release", "Create the GitHub Release"), directory, {
-    PATH: `${binDirectory}:${process.env["PATH"] ?? ""}`,
+    PATH: `${binDirectory}:${process.env.PATH ?? ""}`,
     GITHUB_REPOSITORY: "andryorelabs/aokit",
     VERSION: "0.1.0-next.0",
     DIST_TAG: distTag,
@@ -609,29 +609,29 @@ describe("S3: release binaries, SHA256SUMS and attestations", () => {
   });
 
   test("the binary jobs run bash on every runner and keep LF checkouts on Windows", () => {
-    expect(job("binaries")["defaults"]).toEqual({ run: { shell: "bash" } });
+    expect(job("binaries").defaults).toEqual({ run: { shell: "bash" } });
     const [hardening, lineEndings] = steps("binaries");
-    expect(String(hardening?.["uses"])).toStartWith("step-security/harden-runner@");
-    expect(lineEndings?.["if"]).toBe("runner.os == 'Windows'");
-    expect(lineEndings?.["run"]).toBe("git config --global core.autocrlf false");
+    expect(String(hardening?.uses)).toStartWith("step-security/harden-runner@");
+    expect(lineEndings?.if).toBe("runner.os == 'Windows'");
+    expect(lineEndings?.run).toBe("git config --global core.autocrlf false");
   });
 
   test("each binary job builds its target and runs the process and e2e tests only when tested", () => {
     expect(runScript("binaries", "Build binary")).toContain(
       'bun run build:binary -- --target "$TARGET"',
     );
-    expect(stepNamed("binaries", "Build binary")["env"]).toEqual({
+    expect(stepNamed("binaries", "Build binary").env).toEqual({
       TARGET: "${{ matrix.target }}",
       ARTIFACT: "${{ matrix.artifact }}",
     });
     const processTests = stepNamed("binaries", "Process tests against the binary");
-    expect(processTests["if"]).toBe("matrix.tested");
-    expect(processTests["run"]).toBe("bun test packages/aokit/test");
+    expect(processTests.if).toBe("matrix.tested");
+    expect(processTests.run).toBe("bun test packages/aokit/test");
     const endToEnd = stepNamed("binaries", "End-to-end and digest comparison");
-    expect(endToEnd["if"]).toBe("matrix.tested");
-    expect(endToEnd["run"]).toContain("bun test packages/aokit/test/dist/e2e");
+    expect(endToEnd.if).toBe("matrix.tested");
+    expect(endToEnd.run).toContain("bun test packages/aokit/test/dist/e2e");
     const [upload] = stepUsing("binaries", "actions/upload-artifact");
-    expect(asRecord(upload?.["with"], "upload inputs")).toMatchObject({
+    expect(asRecord(upload?.with, "upload inputs")).toMatchObject({
       name: "${{ matrix.artifact }}",
       path: "dist/bin/${{ matrix.artifact }}",
       "if-no-files-found": "error",
@@ -640,7 +640,7 @@ describe("S3: release binaries, SHA256SUMS and attestations", () => {
 
   test("the release job collects every binary artifact into one directory", () => {
     const [binaries] = stepUsing("release", "actions/download-artifact");
-    expect(asRecord(binaries?.["with"], "download inputs")).toEqual({
+    expect(asRecord(binaries?.with, "download inputs")).toEqual({
       pattern: "aokit-*",
       "merge-multiple": true,
       path: "${{ runner.temp }}/assets",
@@ -668,8 +668,8 @@ describe("S3: release binaries, SHA256SUMS and attestations", () => {
 
   test("each binary gets a provenance attestation from SHA256SUMS on a real release", () => {
     const [attest] = stepUsing("release", "actions/attest-build-provenance");
-    expect(attest?.["if"]).toBe("needs.verify.outputs.dry-run == 'false'");
-    expect(attest?.["with"]).toEqual({
+    expect(attest?.if).toBe("needs.verify.outputs.dry-run == 'false'");
+    expect(attest?.with).toEqual({
       "subject-checksums": "${{ runner.temp }}/assets/SHA256SUMS",
     });
   });
@@ -716,8 +716,8 @@ describe("S3: release binaries, SHA256SUMS and attestations", () => {
   test("the dry run still uploads the binaries, SHA256SUMS and notes as an artifact", () => {
     const uploads = stepUsing("release", "actions/upload-artifact");
     expect(uploads).toHaveLength(1);
-    expect(uploads[0]?.["if"]).toBeUndefined();
-    expect(asRecord(uploads[0]?.["with"], "upload inputs")["name"]).toBe("release-assets");
+    expect(uploads[0]?.if).toBeUndefined();
+    expect(asRecord(uploads[0]?.with, "upload inputs").name).toBe("release-assets");
   });
 });
 
@@ -725,17 +725,17 @@ describe("S2: one shared version released with bumpp", () => {
   test("aokit and create-aokit share one semver version and create-aokit pins that aokit", () => {
     const aokit = readJson("packages/aokit/package.json");
     const createAokit = readJson("packages/create-aokit/package.json");
-    expect(aokit["version"]).toMatch(/^\d+\.\d+\.\d+(?:-next\.\d+)?$/);
-    expect(createAokit["version"]).toBe(aokit["version"]);
-    expect(createAokit["dependencies"]).toEqual({ aokit: aokit["version"] });
+    expect(aokit.version).toMatch(/^\d+\.\d+\.\d+(?:-next\.\d+)?$/);
+    expect(createAokit.version).toBe(aokit.version);
+    expect(createAokit.dependencies).toEqual({ aokit: aokit.version });
   });
 
   test.each(["packages/aokit/package.json", "packages/create-aokit/package.json"])(
     "%s is ready for provenance: public, with its repository directory",
     (path) => {
       const manifest = readJson(path);
-      expect(manifest["publishConfig"]).toEqual({ access: "public" });
-      expect(manifest["repository"]).toEqual({
+      expect(manifest.publishConfig).toEqual({ access: "public" });
+      expect(manifest.repository).toEqual({
         type: "git",
         url: "git+https://github.com/andryorelabs/aokit.git",
         directory: path.replace("/package.json", ""),
@@ -744,8 +744,8 @@ describe("S2: one shared version released with bumpp", () => {
   );
 
   test("bun run release runs bumpp over the three manifests", () => {
-    const scripts = asRecord(readJson("package.json")["scripts"], "scripts");
-    expect(scripts["release"]).toBe("bumpp");
+    const scripts = asRecord(readJson("package.json").scripts, "scripts");
+    expect(scripts.release).toBe("bumpp");
     expect(bumppConfig.files).toEqual([
       "packages/aokit/package.json",
       "packages/create-aokit/package.json",
@@ -841,7 +841,7 @@ cat "${response}"
   );
   chmodSync(fakeGh, 0o755);
   const result = runBash(runScript("verify", ciPassedStepName), directory, {
-    PATH: `${binDirectory}:${process.env["PATH"] ?? ""}`,
+    PATH: `${binDirectory}:${process.env.PATH ?? ""}`,
     GH_TOKEN: "test-token",
     GITHUB_REPOSITORY: "andryorelabs/aokit",
     REF_TYPE: refType,
@@ -869,7 +869,7 @@ function runReleaseNotes(
   const runnerTemp = join(directory, "runner-temp");
   mkdirSync(runnerTemp);
   const result = runBash(runScript("verify", releaseNotesStepName), directory, {
-    PATH: `${dirname(process.execPath)}:${process.env["PATH"] ?? ""}`,
+    PATH: `${dirname(process.execPath)}:${process.env.PATH ?? ""}`,
     RUNNER_TEMP: runnerTemp,
     REF_TYPE: refType,
     VERSION: version,
@@ -900,7 +900,7 @@ const gateChangelog = `# Changelog
 
 describe("S6: a release is gated on main, green CI and a CHANGELOG section", () => {
   test("the three gates run in verify before any check, test or build step", () => {
-    const names = steps("verify").map((step) => step["name"]);
+    const names = steps("verify").map((step) => step.name);
     const firstBuildStep = names.indexOf("Check");
     expect(firstBuildStep).toBeGreaterThan(0);
     for (const gate of [tagOnMainStepName, ciPassedStepName, releaseNotesStepName]) {
@@ -908,17 +908,15 @@ describe("S6: a release is gated on main, green CI and a CHANGELOG section", () 
       expect(names.indexOf(gate)).toBeLessThan(firstBuildStep);
     }
     for (const name of ["binaries", "release", "publish"]) {
-      expect([job(name)["needs"]].flat()).toContain("verify");
+      expect([job(name).needs].flat()).toContain("verify");
     }
   });
 
   test("no step runs changelogithub and no manifest names it", () => {
     expect(readFileSync(releaseWorkflowPath, "utf8")).not.toContain("release:notes");
     const manifest = readJson("package.json");
-    expect(asRecord(manifest["scripts"], "scripts")["release:notes"]).toBeUndefined();
-    expect(
-      asRecord(manifest["devDependencies"], "devDependencies")["changelogithub"],
-    ).toBeUndefined();
+    expect(asRecord(manifest.scripts, "scripts")["release:notes"]).toBeUndefined();
+    expect(asRecord(manifest.devDependencies, "devDependencies").changelogithub).toBeUndefined();
     expect(readFileSync(join(repositoryRoot, "bun.lock"), "utf8")).not.toContain("changelogithub");
   });
 

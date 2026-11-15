@@ -132,7 +132,7 @@ export async function assertFontsLoaded(page: PageLike, name: string): Promise<v
  * Returns `undefined` when none is cached and Playwright's own default applies.
  */
 export async function findCachedChromium(
-  cache = process.env["PLAYWRIGHT_BROWSERS_PATH"] ?? join(homedir(), ".cache", "ms-playwright"),
+  cache = process.env.PLAYWRIGHT_BROWSERS_PATH ?? join(homedir(), ".cache", "ms-playwright"),
 ): Promise<string | undefined> {
   const entries = await readdir(cache).catch(() => [] as string[]);
   const builds = entries

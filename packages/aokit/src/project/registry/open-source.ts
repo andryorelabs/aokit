@@ -36,9 +36,6 @@ interface OpenSourceExtras {
   readonly sourceSha?: string;
 }
 
-const shadcnIndexPath = /\/registry\.json$/;
-const jsonPath = /\.json$/;
-
 /**
  * Wraps `fetch` so every JSON document read while a Registry opens is kept in `captured`, which is
  * how the raw shadcn items (and their `registryDependencies`, which the Adapted Module drops) are
@@ -54,10 +51,14 @@ function capturingItems(
     const url = typeof input === "string" ? input : input instanceof URL ? input.href : input.url;
     const response = await fetchImpl(input, init);
     const { pathname } = new URL(url);
-    if (synthesizeIndex && response.status === 404 && shadcnIndexPath.test(pathname)) {
+    if (synthesizeIndex && response.status === 404 && pathname.endsWith("/registry.json")) {
       return new Response('{"items":[]}', { status: 200 });
     }
-    if (response.status === 200 && jsonPath.test(pathname) && !shadcnIndexPath.test(pathname)) {
+    if (
+      response.status === 200 &&
+      pathname.endsWith(".json") &&
+      !pathname.endsWith("/registry.json")
+    ) {
       captured.push(await response.clone().text());
     }
     return response;

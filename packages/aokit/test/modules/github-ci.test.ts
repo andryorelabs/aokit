@@ -114,7 +114,7 @@ describe("github-ci", () => {
   });
 
   test("lints the pull request's commits only when the Project has a commitlint configuration", async () => {
-    const workflow: unknown = Bun.YAML.parse((await renderWorkflows())["ci"] ?? "");
+    const workflow: unknown = Bun.YAML.parse((await renderWorkflows()).ci ?? "");
     const commitlint = field(field(workflow, "jobs"), "commitlint");
     expect(field(commitlint, "if")).toBe("github.event_name == 'pull_request'");
     const steps = listSteps(workflow, "commitlint");
@@ -157,8 +157,8 @@ describe("github-ci", () => {
   });
 
   test("calls package scripts with --if-present", async () => {
-    const ci = (await renderWorkflows())["ci"] ?? "";
-    const scriptRuns = ci.split("\n").filter((line) => /run: bun run /.test(line));
+    const ci = (await renderWorkflows()).ci ?? "";
+    const scriptRuns = ci.split("\n").filter((line) => line.includes("run: bun run "));
     expect(scriptRuns.length).toBeGreaterThan(0);
     for (const line of scriptRuns) expect(line).toContain("bun run --if-present ");
   });

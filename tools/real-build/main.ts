@@ -63,7 +63,7 @@ function report(result: CombinationResult): void {
   const output = (result.output ?? "").trim().split("\n").slice(-40).join("\n");
   process.stdout.write(`FAIL ${result.label} at ${result.failedStep ?? "unknown step"}\n`);
   process.stdout.write(`${output}\n`);
-  if (process.env["GITHUB_ACTIONS"] === "true") {
+  if (process.env.GITHUB_ACTIONS === "true") {
     process.stdout.write(`::error::${result.label} failed at ${result.failedStep ?? "unknown"}\n`);
   }
 }

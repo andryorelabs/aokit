@@ -64,7 +64,7 @@ async function main(): Promise<number> {
     stdout: "inherit",
     stderr: "inherit",
   });
-  return await run.exited;
+  return run.exited;
 }
 
 process.exit(await main());

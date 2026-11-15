@@ -74,7 +74,7 @@ describe("aokit diff edge cases", () => {
   test("a Lockfile that lists no Registry is invalid input for --to", async () => {
     const project = await bundledProject();
     await editLockfileJson(project, (lockfile) => {
-      lockfile["registries"] = {};
+      lockfile.registries = {};
     });
     const envelope = await runDiff(project, "2026.11.1");
     expect(envelope).toMatchObject({ ok: false, error: { code: "INVALID_INPUT" } });

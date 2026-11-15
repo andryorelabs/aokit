@@ -29,7 +29,7 @@ export function editDefineConfig(
   calleeName = "defineConfig",
 ): string {
   const module = parseModule(source);
-  const call: unknown = module.exports["default"];
+  const call: unknown = module.exports.default;
   if (!isProxifiedCall(call) || call.$type !== "function-call" || call.$callee !== calleeName) {
     throw new EditError(
       "edit.config-shape",

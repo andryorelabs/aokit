@@ -25,10 +25,10 @@ export class InvalidClientConfigError extends Error {
 export interface JsonClientLayout {
   readonly path: string;
   readonly key: "mcpServers" | "servers";
-  readonly entry: { [key: string]: JsoncValue };
+  readonly entry: Record<string, JsoncValue>;
 }
 
-function stdioEntry(): { [key: string]: JsoncValue } {
+function stdioEntry(): Record<string, JsoncValue> {
   return { command: "bunx", args: ["aokit", "mcp"] };
 }
 

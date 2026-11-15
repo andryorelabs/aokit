@@ -199,5 +199,5 @@ describe("formatterForSelection", () => {
 
 test("oxfmt is an exact runtime dependency equal to the installed version", async () => {
   const manifest = dependenciesSchema.parse(await readJson(join(packageRoot, "package.json")));
-  expect(manifest.dependencies["oxfmt"]).toBe(await installedOxfmtVersion());
+  expect(manifest.dependencies.oxfmt).toBe(await installedOxfmtVersion());
 });

@@ -1,4 +1,5 @@
 import { afterAll, expect, test } from "bun:test";
+import { defined } from "../helpers/defined.ts";
 import { readFile, rm, writeFile } from "node:fs/promises";
 import { join } from "node:path";
 import { runCommand } from "../../src/cli/command.ts";
@@ -28,7 +29,7 @@ test("eject marks the entry ejected, keeps owners and hash, and changes only the
   expect(envelope.ok).toBe(true);
   expect((await git(directory, "status", "--porcelain")).trim()).toBe("M aokit.lock.json");
   const after = (await readLock(directory)).files["src/main.tsx"];
-  expect(after).toEqual({ ...before!, mode: "ejected" });
+  expect(after).toEqual({ ...defined(before, "the Lockfile entry"), mode: "ejected" });
   expect(after?.hash).toBe(await hashOf(directory, "src/main.tsx"));
 });
 

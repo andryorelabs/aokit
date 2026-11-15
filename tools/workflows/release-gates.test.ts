@@ -33,22 +33,22 @@ function asRecord(value: unknown, what: string): Record<string, unknown> {
 }
 
 const workflow = asRecord(Bun.YAML.parse(readFileSync(releaseWorkflowPath, "utf8")), "release.yml");
-const jobs = asRecord(workflow["jobs"], "jobs");
+const jobs = asRecord(workflow.jobs, "jobs");
 
 function steps(jobName: string): Record<string, unknown>[] {
-  const list = asRecord(jobs[jobName], `job ${jobName}`)["steps"];
+  const list = asRecord(jobs[jobName], `job ${jobName}`).steps;
   if (!Array.isArray(list)) throw new Error(`job ${jobName} has no steps`);
   return list.map((step, index) => asRecord(step, `${jobName} step ${index + 1}`));
 }
 
 function stepNamed(jobName: string, stepName: string): Record<string, unknown> {
-  const step = steps(jobName).find((candidate) => candidate["name"] === stepName);
+  const step = steps(jobName).find((candidate) => candidate.name === stepName);
   if (step === undefined) throw new Error(`${jobName} has no "${stepName}" step`);
   return step;
 }
 
 function runScript(jobName: string, stepName: string): string {
-  const run = stepNamed(jobName, stepName)["run"];
+  const run = stepNamed(jobName, stepName).run;
   if (typeof run !== "string") throw new Error(`${jobName} "${stepName}" has no run script`);
   return run;
 }
@@ -56,9 +56,7 @@ function runScript(jobName: string, stepName: string): string {
 /** The index of the first step whose `run:` or `uses:` contains `fragment`. */
 function firstStepIndex(jobName: string, fragment: string): number {
   return steps(jobName).findIndex((step) =>
-    [step["run"], step["uses"]].some(
-      (value) => typeof value === "string" && value.includes(fragment),
-    ),
+    [step.run, step.uses].some((value) => typeof value === "string" && value.includes(fragment)),
   );
 }
 
@@ -85,7 +83,7 @@ interface ScriptResult {
 function runBash(script: string, cwd: string, env: Record<string, string>): ScriptResult {
   const result = Bun.spawnSync(["bash", "--noprofile", "--norc", "-eo", "pipefail", "-c", script], {
     cwd,
-    env: { PATH: process.env["PATH"] ?? "", ...env },
+    env: { PATH: process.env.PATH ?? "", ...env },
   });
   return {
     exitCode: result.exitCode,
@@ -196,7 +194,7 @@ ${tagCommand}`,
   const refType = scenario.refType ?? "tag";
   const result = runBash(runScript("verify", signedTagStepName), clone, {
     ...gitIdentity,
-    PATH: `${binDirectory}:${process.env["PATH"] ?? ""}`,
+    PATH: `${binDirectory}:${process.env.PATH ?? ""}`,
     GH_TOKEN: "test-token",
     RUNNER_TEMP: runnerTemp,
     REF_TYPE: refType,
@@ -209,16 +207,16 @@ ${tagCommand}`,
 
 describe("S6: a release tag is annotated and signed", () => {
   test("the signed tag gate runs in verify before any check, test or build step", () => {
-    const gate = steps("verify").findIndex((step) => step["name"] === signedTagStepName);
+    const gate = steps("verify").findIndex((step) => step.name === signedTagStepName);
     expect(gate).toBeGreaterThan(firstStepIndex("verify", "bun install"));
     for (const buildStep of ["bun run check", "bun run test", "bun run build:package"]) {
       expect(gate).toBeLessThan(firstStepIndex("verify", buildStep));
     }
-    expect(asRecord(jobs["binaries"], "binaries")["needs"]).toBe("verify");
+    expect(asRecord(jobs.binaries, "binaries").needs).toBe("verify");
   });
 
   test("the gate reads the tag, commit and actor through env", () => {
-    expect(stepNamed("verify", signedTagStepName)["env"]).toEqual({
+    expect(stepNamed("verify", signedTagStepName).env).toEqual({
       GH_TOKEN: "${{ github.token }}",
       REF_TYPE: "${{ github.ref_type }}",
       REF_NAME: "${{ github.ref_name }}",
@@ -228,7 +226,7 @@ describe("S6: a release tag is annotated and signed", () => {
   });
 
   test("the verify job keeps its read-only permissions", () => {
-    expect(asRecord(jobs["verify"], "verify")["permissions"]).toEqual({
+    expect(asRecord(jobs.verify, "verify").permissions).toEqual({
       contents: "read",
       checks: "read",
     });
@@ -314,9 +312,9 @@ describe("S6: a release tag is annotated and signed", () => {
 
 describe("S6: each binary's size is in the step summary", () => {
   test("the size step runs right after the build, for the artifact the build wrote", () => {
-    const names = steps("binaries").map((step) => step["name"]);
+    const names = steps("binaries").map((step) => step.name);
     expect(names.indexOf(binarySizeStepName)).toBe(names.indexOf("Build binary") + 1);
-    expect(stepNamed("binaries", binarySizeStepName)["env"]).toEqual({
+    expect(stepNamed("binaries", binarySizeStepName).env).toEqual({
       ARTIFACT: "${{ matrix.artifact }}",
     });
   });
@@ -352,9 +350,9 @@ describe("S6: each binary's size is in the step summary", () => {
 describe("S7: the release attaches an SBOM", () => {
   test("verify writes an SPDX SBOM into the release artifact after packing, without uploading it itself", () => {
     const sbom = steps("verify").find(
-      (step) => typeof step["uses"] === "string" && step["uses"].startsWith(sbomAction),
+      (step) => typeof step.uses === "string" && step.uses.startsWith(sbomAction),
     );
-    expect(sbom?.["with"]).toEqual({
+    expect(sbom?.with).toEqual({
       path: ".",
       format: "spdx-json",
       "output-file": "${{ runner.temp }}/release/sbom.spdx.json",
@@ -367,11 +365,11 @@ describe("S7: the release attaches an SBOM", () => {
   });
 
   test("the release job attaches it after creating the GitHub Release, on a real release only", () => {
-    const names = steps("release").map((step) => step["name"]);
+    const names = steps("release").map((step) => step.name);
     expect(names.indexOf(attachSbomStepName)).toBe(names.indexOf("Create the GitHub Release") + 1);
     const attach = stepNamed("release", attachSbomStepName);
-    expect(attach["if"]).toBe("needs.verify.outputs.dry-run == 'false'");
-    expect(attach["env"]).toEqual({
+    expect(attach.if).toBe("needs.verify.outputs.dry-run == 'false'");
+    expect(attach.env).toEqual({
       GH_TOKEN: "${{ github.token }}",
       VERSION: "${{ needs.verify.outputs.version }}",
       SBOM_FILE: "${{ runner.temp }}/release/sbom.spdx.json",
@@ -388,7 +386,7 @@ describe("S7: the release attaches an SBOM", () => {
     writeFileSync(fakeGh, `#!/usr/bin/env bash\necho "gh $*" >> "${callLog}"\n`);
     chmodSync(fakeGh, 0o755);
     const result = runBash(runScript("release", attachSbomStepName), directory, {
-      PATH: `${binDirectory}:${process.env["PATH"] ?? ""}`,
+      PATH: `${binDirectory}:${process.env.PATH ?? ""}`,
       GH_TOKEN: "test-token",
       GITHUB_REPOSITORY: "andryorelabs/aokit",
       VERSION: "0.2.0",
@@ -402,10 +400,9 @@ describe("S7: the release attaches an SBOM", () => {
 
   test("the release-assets artifact keeps the SBOM for dry runs", () => {
     const upload = steps("release").find(
-      (step) =>
-        typeof step["uses"] === "string" && step["uses"].startsWith("actions/upload-artifact@"),
+      (step) => typeof step.uses === "string" && step.uses.startsWith("actions/upload-artifact@"),
     );
-    const inputs = asRecord(upload?.["with"], "upload inputs");
-    expect(String(inputs["path"])).toContain("${{ runner.temp }}/release/sbom.spdx.json");
+    const inputs = asRecord(upload?.with, "upload inputs");
+    expect(String(inputs.path)).toContain("${{ runner.temp }}/release/sbom.spdx.json");
   });
 });

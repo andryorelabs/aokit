@@ -23,6 +23,7 @@ describe("oxc", () => {
       ".oxlintrc.json",
       "AGENTS.md",
       "CLAUDE.md",
+      "oxlint-plugin.ts",
       "package.json",
     ]);
     expect(parsed(built.plan.vfs.read("package.json"))).toMatchObject({
@@ -32,8 +33,8 @@ describe("oxc", () => {
       },
       devDependencies: { oxfmt: "0.75.0", oxlint: "1.90.0", "oxlint-tsgolint": "^7.0.2006" },
     });
-    expect(built.lockfile.deps["oxlint"]).toMatchObject({ pinned: true });
-    expect(built.lockfile.deps["oxfmt"]).toMatchObject({ pinned: true });
+    expect(built.lockfile.deps.oxlint).toMatchObject({ pinned: true });
+    expect(built.lockfile.deps.oxfmt).toMatchObject({ pinned: true });
     expect(built.lockfile.deps["oxlint-tsgolint"]).not.toMatchObject({ pinned: true });
   });
 
@@ -45,6 +46,7 @@ describe("oxc", () => {
       "CLAUDE.md",
       "package.json",
       "packages/config/.oxlintrc.json",
+      "packages/config/oxlint-plugin.ts",
     ]);
     expect(parsed(built.plan.vfs.read("package.json"))).toMatchObject({
       scripts: {

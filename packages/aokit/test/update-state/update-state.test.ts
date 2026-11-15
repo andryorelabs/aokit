@@ -10,6 +10,7 @@ import { exitCodeForErrorCode } from "../../src/cli/exit-codes.ts";
 import { openGit } from "../../src/git/index.ts";
 import { runGitChecked } from "../../src/git/run.ts";
 import { parseLockfile, serializeLockfile } from "../../src/lockfile/index.ts";
+import { defined } from "../helpers/defined.ts";
 import { parseJson } from "../helpers/update-json.ts";
 import {
   assertPlanFresh,
@@ -340,14 +341,14 @@ describe("assertPlanFresh", () => {
         ...plan.plan,
         changes: [
           ...plan.plan.changes,
-          { ...plan.plan.changes[0]!, type: "create", path: "new.txt" },
+          { ...defined(plan.plan.changes[0], "a planned change"), type: "create", path: "new.txt" },
         ],
       },
     };
     await writePlanFile(project, undefined, withCreate);
     await writeFile(join(project, "new.txt"), "user file\n");
     const saved = await readPlanFile(project, undefined);
-    const error = await failure(assertPlanFresh(project, saved!));
+    const error = await failure(assertPlanFresh(project, defined(saved, "the saved Plan")));
     expect(messageOf(error)).toContain("new.txt");
   });
 

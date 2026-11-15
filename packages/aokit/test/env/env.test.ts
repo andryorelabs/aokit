@@ -124,8 +124,8 @@ describe("environment readers", () => {
 
   test("the native library path is set and cleared", () => {
     setNativeLibraryPath("/tmp/lib");
-    expect(process.env["NAPI_RS_NATIVE_LIBRARY_PATH"]).toBe("/tmp/lib");
+    expect(process.env.NAPI_RS_NATIVE_LIBRARY_PATH).toBe("/tmp/lib");
     clearNativeLibraryPath();
-    expect(process.env["NAPI_RS_NATIVE_LIBRARY_PATH"]).toBeUndefined();
+    expect(process.env.NAPI_RS_NATIVE_LIBRARY_PATH).toBeUndefined();
   });
 });

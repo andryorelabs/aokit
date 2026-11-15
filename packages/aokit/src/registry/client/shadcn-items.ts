@@ -374,7 +374,5 @@ export async function namespaceEnvironment(
   context: OpenRegistryContext,
 ): Promise<TemplateEnvironment> {
   const env = context.env ?? process.env;
-  return context.projectDir === undefined
-    ? env
-    : await loadNamespaceEnvironment(context.projectDir, env);
+  return context.projectDir === undefined ? env : loadNamespaceEnvironment(context.projectDir, env);
 }

@@ -44,7 +44,7 @@ export function envSchemaOps(
     }
     const name = `env.${entry.visibility ?? "server"}`;
     const point = extensionPoints.get(name);
-    if (point === undefined || point.target !== "config") {
+    if (point?.target !== "config") {
       continue;
     }
     ops.push({

@@ -53,7 +53,9 @@ const servers: { stop(force: boolean): void }[] = [];
 const roots: string[] = [];
 
 afterEach(async () => {
-  servers.splice(0).forEach((server) => server.stop(true));
+  servers.splice(0).forEach((server) => {
+    server.stop(true);
+  });
   await Promise.all(roots.splice(0).map((root) => rm(root, { recursive: true, force: true })));
 });
 

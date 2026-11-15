@@ -149,7 +149,7 @@ for (const useGit of [true, false]) {
       const lockfile = lockfileOf(directory);
       const path = Object.keys(lockfile.files).find((file) => !file.endsWith("package.json")) ?? "";
       const edited = readLockfileJson(directory);
-      objectAt(edited, "files", path)["mode"] = "ejected";
+      objectAt(edited, "files", path).mode = "ejected";
       writeFileSync(join(directory, "aokit.lock.json"), JSON.stringify(edited));
       const original = readFileSync(join(directory, path), "utf8");
       writeFileSync(join(directory, path), `${original}\nchanged\n`);
@@ -157,7 +157,7 @@ for (const useGit of [true, false]) {
       expect(exitCode).toBe(0);
       expect(stateMap(envelope.data)[path]).toBe("pristine");
       writeFileSync(join(directory, path), original);
-      objectAt(edited, "files", path)["mode"] = lockfile.files[path]?.mode ?? null;
+      objectAt(edited, "files", path).mode = lockfile.files[path]?.mode ?? null;
       writeFileSync(join(directory, "aokit.lock.json"), JSON.stringify(edited));
     });
 
@@ -166,15 +166,15 @@ for (const useGit of [true, false]) {
       const path =
         Object.keys(objectAt(lockfile, "files")).find((file) => !file.endsWith("package.json")) ??
         "";
-      const previous = objectAt(lockfile, "files", path)["hash"] ?? null;
+      const previous = objectAt(lockfile, "files", path).hash ?? null;
       const { createHash } = await import("node:crypto");
-      objectAt(lockfile, "files", path)["hash"] =
+      objectAt(lockfile, "files", path).hash =
         `sha256-${createHash("sha256").update("volatile").digest("hex")}`;
       writeFileSync(join(directory, "aokit.lock.json"), JSON.stringify(lockfile));
       const { envelope, exitCode } = await doctor(directory);
       expect(exitCode).toBe(0);
       expect(stateMap(envelope.data)[path]).toBe("volatile");
-      objectAt(lockfile, "files", path)["hash"] = previous;
+      objectAt(lockfile, "files", path).hash = previous;
       writeFileSync(join(directory, "aokit.lock.json"), JSON.stringify(lockfile));
     });
 
@@ -237,7 +237,7 @@ for (const useGit of [true, false]) {
       expect(name).not.toBe("");
       for (const section of ["devDependencies", "dependencies"]) {
         const dependencies = valueAt(manifest, section);
-        if (isJsonObject(dependencies)) delete dependencies[name];
+        if (isJsonObject(dependencies)) Reflect.deleteProperty(dependencies, name);
       }
       writeFileSync(manifestPath, JSON.stringify(manifest, null, 2));
       const { envelope } = await doctor(directory);
@@ -288,7 +288,7 @@ describe("doctor Project checks", () => {
     const directory = await createProject(false);
     rewriteLockfile(directory, (lockfile) => {
       const name = Object.keys(objectAt(lockfile, "modules"))[0] ?? "";
-      objectAt(lockfile, "modules", name)["integrity"] = `sha256-${"0".repeat(64)}`;
+      objectAt(lockfile, "modules", name).integrity = `sha256-${"0".repeat(64)}`;
     });
     expect(await problemKinds(directory)).toContain("integrity");
   });
@@ -297,7 +297,7 @@ describe("doctor Project checks", () => {
     const directory = await createProject(false);
     rewriteLockfile(directory, (lockfile) => {
       const name = Object.keys(objectAt(lockfile, "registries"))[0] ?? "";
-      objectAt(lockfile, "registries", name)["minCliVersion"] = "999.0.0";
+      objectAt(lockfile, "registries", name).minCliVersion = "999.0.0";
     });
     expect(await problemKinds(directory)).toContain("cli");
   });

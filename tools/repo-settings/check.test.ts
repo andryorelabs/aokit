@@ -31,10 +31,10 @@ const notFound: GhResult = {
 /** The `gh api` responses of a repository whose live settings equal the files, by endpoint. */
 function liveResponsesFromFiles(): Record<string, GhResult> {
   const settings = readJson(".github", "repo-settings.json");
-  const expectedRepository = isRecord(settings["repository"]) ? settings["repository"] : {};
-  const topics = Array.isArray(expectedRepository["topics"]) ? expectedRepository["topics"] : [];
-  const actions = isRecord(settings["actions"]) ? settings["actions"] : {};
-  const codeScanning = isRecord(settings["code_scanning"]) ? settings["code_scanning"] : {};
+  const expectedRepository = isRecord(settings.repository) ? settings.repository : {};
+  const topics = Array.isArray(expectedRepository.topics) ? expectedRepository.topics : [];
+  const actions = isRecord(settings.actions) ? settings.actions : {};
+  const codeScanning = isRecord(settings.code_scanning) ? settings.code_scanning : {};
   const responses: Record<string, GhResult> = {
     [`repos/${repository}`]: ok({
       ...expectedRepository,
@@ -52,14 +52,14 @@ function liveResponsesFromFiles(): Record<string, GhResult> {
     [`repos/${repository}/vulnerability-alerts`]: ok(undefined),
     [`repos/${repository}/private-vulnerability-reporting`]: ok({ enabled: true }),
     [`repos/${repository}/actions/permissions/workflow`]: ok({
-      default_workflow_permissions: actions["default_workflow_permissions"],
-      can_approve_pull_request_reviews: actions["can_approve_pull_request_reviews"],
+      default_workflow_permissions: actions.default_workflow_permissions,
+      can_approve_pull_request_reviews: actions.can_approve_pull_request_reviews,
     }),
     [`repos/${repository}/actions/permissions/fork-pr-contributor-approval`]: ok({
-      approval_policy: actions["fork_pr_contributor_approval"],
+      approval_policy: actions.fork_pr_contributor_approval,
     }),
     [`repos/${repository}/code-scanning/default-setup`]: ok({
-      state: codeScanning["default_setup"],
+      state: codeScanning.default_setup,
       languages: ["actions", "javascript-typescript"],
       query_suite: "default",
       updated_at: null,
@@ -71,7 +71,7 @@ function liveResponsesFromFiles(): Record<string, GhResult> {
   };
   for (const [name, id] of Object.entries(rulesetIds)) {
     const ruleset = readJson(".github", "rulesets", `${name}.json`);
-    const rules = Array.isArray(ruleset["rules"]) ? ruleset["rules"] : [];
+    const rules = Array.isArray(ruleset.rules) ? ruleset.rules : [];
     responses[`repos/${repository}/rulesets/${id}`] = ok({
       ...ruleset,
       id,
@@ -82,7 +82,11 @@ function liveResponsesFromFiles(): Record<string, GhResult> {
   return responses;
 }
 
-type Harness = { runGh: GhRunner; calls: (readonly string[])[]; lines: string[] };
+interface Harness {
+  runGh: GhRunner;
+  calls: (readonly string[])[];
+  lines: string[];
+}
 
 function createHarness(responses: Record<string, GhResult>): Harness {
   const calls: (readonly string[])[] = [];
@@ -149,7 +153,7 @@ describe("S8: repo-settings:check", () => {
 
   test("one differing repository setting exits 1 and prints setting, expected and live", () => {
     const responses = withBody(liveResponsesFromFiles(), `repos/${repository}`, (body) => {
-      body["allow_auto_merge"] = false;
+      body.allow_auto_merge = false;
     });
     const result = check(responses);
     expect(result.exitCode).toBe(1);
@@ -163,7 +167,7 @@ describe("S8: repo-settings:check", () => {
 
   test("a security feature that is off live is drift", () => {
     const responses = withBody(liveResponsesFromFiles(), `repos/${repository}`, (body) => {
-      body["security_and_analysis"] = { secret_scanning: { status: "disabled" } };
+      body.security_and_analysis = { secret_scanning: { status: "disabled" } };
     });
     responses[`repos/${repository}/vulnerability-alerts`] = notFound;
     responses[`repos/${repository}/private-vulnerability-reporting`] = ok({ enabled: false });
@@ -191,7 +195,7 @@ describe("S8: repo-settings:check", () => {
 
   test("a default branch that differs live is named", () => {
     const responses = withBody(liveResponsesFromFiles(), `repos/${repository}`, (body) => {
-      body["default_branch"] = "develop";
+      body.default_branch = "develop";
     });
     const result = check(responses);
     expect(result.exitCode).toBe(1);
@@ -208,8 +212,8 @@ describe("S8: repo-settings:check", () => {
       liveResponsesFromFiles(),
       `repos/${repository}/actions/permissions/workflow`,
       (body) => {
-        body["default_workflow_permissions"] = "write";
-        body["can_approve_pull_request_reviews"] = true;
+        body.default_workflow_permissions = "write";
+        body.can_approve_pull_request_reviews = true;
       },
     );
     const result = check(responses);
@@ -230,7 +234,7 @@ describe("S8: repo-settings:check", () => {
       liveResponsesFromFiles(),
       `repos/${repository}/actions/permissions/fork-pr-contributor-approval`,
       (body) => {
-        body["approval_policy"] = "first_time_contributors_new_to_github";
+        body.approval_policy = "first_time_contributors_new_to_github";
       },
     );
     const result = check(responses);
@@ -248,7 +252,7 @@ describe("S8: repo-settings:check", () => {
       liveResponsesFromFiles(),
       `repos/${repository}/code-scanning/default-setup`,
       (body) => {
-        body["state"] = "configured";
+        body.state = "configured";
       },
     );
     const result = check(responses);
@@ -276,16 +280,16 @@ describe("S8: repo-settings:check", () => {
   });
 
   test("a ruleset parameter that differs live is named by ruleset file, rule type and parameter", () => {
-    const endpoint = `repos/${repository}/rulesets/${rulesetIds["main"]}`;
+    const endpoint = `repos/${repository}/rulesets/${rulesetIds.main}`;
     const responses = withBody(liveResponsesFromFiles(), endpoint, (body) => {
-      const rules = Array.isArray(body["rules"]) ? body["rules"] : [];
+      const rules = Array.isArray(body.rules) ? body.rules : [];
       const pullRequest: unknown = rules.find(
-        (rule: unknown) => isRecord(rule) && rule["type"] === "pull_request",
+        (rule: unknown) => isRecord(rule) && rule.type === "pull_request",
       );
-      if (!isRecord(pullRequest) || !isRecord(pullRequest["parameters"])) {
+      if (!isRecord(pullRequest) || !isRecord(pullRequest.parameters)) {
         throw new Error("main.json has no pull_request rule");
       }
-      pullRequest["parameters"]["required_review_thread_resolution"] = false;
+      pullRequest.parameters.required_review_thread_resolution = false;
     });
     const result = check(responses);
     expect(result.exitCode).toBe(1);
@@ -297,11 +301,11 @@ describe("S8: repo-settings:check", () => {
   });
 
   test("a rule missing live and a rule only live are both drift", () => {
-    const endpoint = `repos/${repository}/rulesets/${rulesetIds["main"]}`;
+    const endpoint = `repos/${repository}/rulesets/${rulesetIds.main}`;
     const responses = withBody(liveResponsesFromFiles(), endpoint, (body) => {
-      const rules = Array.isArray(body["rules"]) ? body["rules"] : [];
-      body["rules"] = rules
-        .filter((rule: unknown) => isRecord(rule) && rule["type"] !== "required_signatures")
+      const rules = Array.isArray(body.rules) ? body.rules : [];
+      body.rules = rules
+        .filter((rule: unknown) => isRecord(rule) && rule.type !== "required_signatures")
         .concat([{ type: "creation" }]);
     });
     const result = check(responses);
@@ -320,7 +324,7 @@ describe("S8: repo-settings:check", () => {
   test("a ruleset file with no live ruleset of that name is drift", () => {
     const responses = liveResponsesFromFiles();
     responses[`repos/${repository}/rulesets?per_page=100`] = ok([
-      { id: rulesetIds["main"], name: "main" },
+      { id: rulesetIds.main, name: "main" },
     ]);
     const result = check(responses);
     expect(result.exitCode).toBe(1);

@@ -37,7 +37,7 @@ function report(result: CaseResult): void {
   }
   const lines = result.failures.map((line) => `  ${line}`).join("\n");
   process.stdout.write(`FAIL ${result.label}\n${lines}\n`);
-  if (process.env["GITHUB_ACTIONS"] === "true") {
+  if (process.env.GITHUB_ACTIONS === "true") {
     process.stdout.write(`::error::upgrade ${result.label} failed\n`);
   }
 }
