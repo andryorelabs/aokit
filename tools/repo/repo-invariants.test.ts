@@ -69,9 +69,9 @@ describe("root scripts (standard E1)", () => {
     expect(scripts["format"]).toBeUndefined();
   });
 
-  test("check runs typecheck, lint, format:check and knip", () => {
+  test("check runs typecheck, lint, format:check, knip and the package checks", () => {
     expect(scripts["check"]).toBe(
-      "bun run typecheck && bun run lint && bun run format:check && bun run knip",
+      "bun run typecheck && bun run lint && bun run format:check && bun run knip && bun run check:package",
     );
   });
 

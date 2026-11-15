@@ -1,5 +1,5 @@
 import { afterEach, expect, spyOn, test } from "bun:test";
-import { packedPathsOf } from "./lint.ts";
+import { packedPathsOf, packedSizeOf } from "./lint.ts";
 
 async function failureOf(attempt: Promise<unknown>): Promise<string> {
   return attempt.then(
@@ -42,6 +42,19 @@ test("an npm report that is not an object with files is rejected", async () => {
 
 test("an npm report whose files is not a list is rejected", async () => {
   expect(await failureOf(packedPathsFor('[{"files":{}}]'))).toContain("no file list");
+});
+
+test("the packed size is read from the npm report", async () => {
+  spawnStub = stubNpm(JSON.stringify([{ size: 1234, files: [] }]));
+  expect(await packedSizeOf("/stubbed/package")).toBe(1234);
+});
+
+test("an npm report without a numeric size is rejected for the size", async () => {
+  spawnStub = stubNpm('[{"files":[]}]');
+  expect(await failureOf(packedSizeOf("/stubbed/package"))).toContain("npm pack reported no size");
+  spawnStub.mockRestore();
+  spawnStub = stubNpm('[{"size":"big"}]');
+  expect(await failureOf(packedSizeOf("/stubbed/package"))).toContain("npm pack reported no size");
 });
 
 test("a failing npm command reports its command line and output", async () => {
