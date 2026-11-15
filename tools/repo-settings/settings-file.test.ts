@@ -1,5 +1,5 @@
 import { describe, expect, test } from "bun:test";
-import { readFileSync } from "node:fs";
+import { existsSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 import { isRecord } from "./compare.ts";
 
@@ -9,15 +9,43 @@ function readText(...segments: string[]): string {
   return readFileSync(join(repoRoot, ...segments), "utf8");
 }
 
-const settings: unknown = JSON.parse(readText(".github", "settings.json"));
+const settings: unknown = JSON.parse(readText(".github", "repo-settings.json"));
 const repository =
   isRecord(settings) && isRecord(settings["repository"]) ? settings["repository"] : {};
 const security = isRecord(settings) ? settings["security"] : undefined;
 const githubAbout = readText("docs", "brand", "copy.md").split("## GitHub About")[1] ?? "";
 
-describe("S8: .github/settings.json", () => {
-  test("the file has exactly the repository and security sections", () => {
-    expect(Object.keys(isRecord(settings) ? settings : {})).toEqual(["repository", "security"]);
+describe("S8: .github/repo-settings.json", () => {
+  test("the file has exactly the repository, security, actions and code scanning sections", () => {
+    expect(Object.keys(isRecord(settings) ? settings : {})).toEqual([
+      "repository",
+      "security",
+      "actions",
+      "code_scanning",
+    ]);
+  });
+
+  test("the old name .github/settings.json is gone", () => {
+    expect(existsSync(join(repoRoot, ".github", "settings.json"))).toBe(false);
+  });
+
+  test("A1: main is the default branch", () => {
+    expect(repository["default_branch"]).toBe("main");
+  });
+
+  test("V12: the GITHUB_TOKEN is read-only by default and fork pull requests need approval", () => {
+    expect(isRecord(settings) ? settings["actions"] : undefined).toEqual({
+      default_workflow_permissions: "read",
+      can_approve_pull_request_reviews: false,
+      fork_pr_contributor_approval: "first_time_contributors",
+    });
+  });
+
+  test("V29: CodeQL default setup is off, because the codeql workflow is the advanced setup", () => {
+    expect(isRecord(settings) ? settings["code_scanning"] : undefined).toEqual({
+      default_setup: "not-configured",
+    });
+    expect(existsSync(join(repoRoot, ".github", "workflows", "codeql.yml"))).toBe(true);
   });
 
   test("S2: merge commits are allowed, because a promotion of develop to main merges with one", () => {
