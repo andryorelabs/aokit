@@ -32,9 +32,39 @@ export function resolveRangeStart(git: GitRunner): RangeResult {
   return { ok: true, from };
 }
 
-/** Builds the commitlint arguments for the range `from..HEAD`. */
-export function commitlintArguments(from: string): string[] {
-  return ["commitlint", "--from", from, "--to", "HEAD", "--verbose"];
+/** Builds the commitlint arguments for the range `from..to`, which ends at `HEAD` by default. */
+export function commitlintArguments(from: string, to = "HEAD"): string[] {
+  return ["commitlint", "--from", from, "--to", to, "--verbose"];
+}
+
+/** An explicit `--from`/`--to` range, none when no arguments are given, or a usage error. */
+type ExplicitRange =
+  | { kind: "none" }
+  | { kind: "range"; from: string; to: string }
+  | { kind: "invalid"; message: string };
+
+const rangeUsage = "lint:commits: pass both --from <ref> and --to <ref>, or no arguments";
+
+/**
+ * Reads `--from <ref> --to <ref>` from the script arguments. CI passes the pull request's base and
+ * head SHAs this way; with no arguments the range starts at the merge base with `origin/develop`.
+ */
+function parseExplicitRange(argv: readonly string[]): ExplicitRange {
+  if (argv.length === 0) return { kind: "none" };
+  const values = new Map<string, string>();
+  for (let index = 0; index < argv.length; index += 2) {
+    const flag = argv[index] ?? "";
+    const value = argv[index + 1];
+    const isKnownFlag = flag === "--from" || flag === "--to";
+    if (!isKnownFlag || value === undefined || value.startsWith("--") || values.has(flag)) {
+      return { kind: "invalid", message: rangeUsage };
+    }
+    values.set(flag, value);
+  }
+  const from = values.get("--from");
+  const to = values.get("--to");
+  if (from === undefined || to === undefined) return { kind: "invalid", message: rangeUsage };
+  return { kind: "range", from, to };
 }
 
 /** Runs git in the current directory and captures its output. */
@@ -50,8 +80,22 @@ export interface LintCommitsDependencies {
   readonly writeError: (message: string) => void;
 }
 
-/** Lints every commit between the merge base with `origin/develop` and `HEAD`; returns the exit code. */
-export function lintCommits(dependencies: LintCommitsDependencies): number {
+/**
+ * Lints every commit between the merge base with `origin/develop` and `HEAD`, or the explicit
+ * `--from <ref> --to <ref>` range in `argv`; returns the exit code.
+ */
+export function lintCommits(
+  dependencies: LintCommitsDependencies,
+  argv: readonly string[] = [],
+): number {
+  const explicitRange = parseExplicitRange(argv);
+  if (explicitRange.kind === "invalid") {
+    dependencies.writeError(`${explicitRange.message}\n`);
+    return 1;
+  }
+  if (explicitRange.kind === "range") {
+    return dependencies.runCommitlint(commitlintArguments(explicitRange.from, explicitRange.to));
+  }
   const range = resolveRangeStart(dependencies.git);
   if (!range.ok) {
     dependencies.writeError(`${range.message}\n`);
@@ -80,4 +124,4 @@ export const processDependencies: LintCommitsDependencies = {
   writeError: writeStderr,
 };
 
-if (import.meta.main) process.exit(lintCommits(processDependencies));
+if (import.meta.main) process.exit(lintCommits(processDependencies, process.argv.slice(2)));
