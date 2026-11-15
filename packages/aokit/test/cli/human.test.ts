@@ -1,4 +1,5 @@
 import { expect, test } from "bun:test";
+
 import { asDiagnosticData } from "../../src/cli/envelope.ts";
 import { renderFailureReport } from "../../src/cli/human.ts";
 

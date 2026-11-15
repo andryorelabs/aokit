@@ -1,4 +1,5 @@
 import { join } from "node:path";
+
 import { embeddedRegistryTarget, hasEmbeddedRegistry } from "./embedded/extract.ts";
 
 declare const AOKIT_BUNDLED_REGISTRY_RELATIVE: string | undefined;

@@ -1,4 +1,5 @@
 import { MagicString } from "magic-string";
+
 import { EditError } from "./errors.ts";
 
 /** A text change expressed in original-source offsets. */

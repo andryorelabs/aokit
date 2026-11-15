@@ -3,10 +3,12 @@ import { mkdtempSync } from "node:fs";
 import { readFile, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
+
+import { z } from "zod";
+
 import { runCommand } from "../../src/cli/command.ts";
 import { createCommand } from "../../src/cli/commands/create.ts";
 import { removeCommand } from "../../src/cli/commands/remove.ts";
-import { z } from "zod";
 import { cliVersion } from "../../src/cli/version.ts";
 
 const lockfileSchema = z.object({

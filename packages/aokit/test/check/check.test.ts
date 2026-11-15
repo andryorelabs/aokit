@@ -1,9 +1,10 @@
 import { afterEach, describe, expect, test } from "bun:test";
-import { join } from "node:path";
 import { mkdir, readFile, writeFile } from "node:fs/promises";
-import { exitCodeForEnvelope } from "../../src/cli/envelope.ts";
+import { join } from "node:path";
+
 import { runCommand } from "../../src/cli/command.ts";
 import { checkCommand } from "../../src/cli/commands/check.ts";
+import { exitCodeForEnvelope } from "../../src/cli/envelope.ts";
 import {
   builtRegistry,
   cleanTemporaryDirectories,

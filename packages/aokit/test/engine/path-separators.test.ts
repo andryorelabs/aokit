@@ -2,6 +2,7 @@ import { expect, test } from "bun:test";
 import { mkdir, mkdtemp, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
+
 import { type EngineContext, Vfs, buildPlan } from "../../src/engine/index.ts";
 import { normalizeProjectPath } from "../../src/engine/vfs.ts";
 import { assembleLockfile } from "../../src/pipeline/assemble.ts";

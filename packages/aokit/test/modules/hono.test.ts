@@ -1,4 +1,5 @@
 import { expect, test } from "bun:test";
+
 import { buildSelection, expectBuilt } from "./deploy/support.ts";
 
 function packageJson(text: string | Uint8Array | undefined): Record<string, unknown> {

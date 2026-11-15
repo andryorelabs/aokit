@@ -1,12 +1,13 @@
 import { mkdir, writeFile } from "node:fs/promises";
 import { join } from "node:path";
+
 import { type ServedRegistry, serveRegistry } from "../registry-remote/served-registry.ts";
+import { temporaryDirectory } from "../registry-resolution/support.ts";
 import {
   type FixtureItem,
   type ServedShadcnRegistry,
   serveShadcnRegistry,
 } from "../registry-shadcn/served-shadcn-registry.ts";
-import { temporaryDirectory } from "../registry-resolution/support.ts";
 
 /** The `card` item another host serves at `/r/card.json`, with no `registry.json` beside it. */
 export function cardItem(): FixtureItem {

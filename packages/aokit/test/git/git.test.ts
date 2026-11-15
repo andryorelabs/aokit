@@ -4,12 +4,13 @@ import { realpathSync } from "node:fs";
 import { mkdir, mkdtemp, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join, resolve } from "node:path";
+
 import { AokitError } from "../../src/cli/envelope.ts";
 import { hashTrackedFile, volatileHash } from "../../src/drift/hash.ts";
 import { assertCleanTree, openGit } from "../../src/git/index.ts";
-import { createMerger } from "../../src/merger/index.ts";
 import { runGitChecked } from "../../src/git/run.ts";
 import type { Lockfile } from "../../src/lockfile/schema.ts";
+import { createMerger } from "../../src/merger/index.ts";
 
 let root = "";
 let repo = "";

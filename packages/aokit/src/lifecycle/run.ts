@@ -1,15 +1,16 @@
 import { readFile } from "node:fs/promises";
 import { join } from "node:path";
-import { apply, lockfileName, type ConflictWrite } from "../apply/index.ts";
+
 import { conflictFile } from "../apply/conflicts.ts";
+import { apply, lockfileName, type ConflictWrite } from "../apply/index.ts";
 import { lockfileMissingError } from "../cli/errors.ts";
-import { Vfs, type FileContent } from "../engine/vfs.ts";
 import type { Plan } from "../engine/plan.ts";
+import { Vfs, type FileContent } from "../engine/vfs.ts";
 import { assertCleanTree, openGit } from "../git/index.ts";
 import { readLockfile } from "../lockfile/index.ts";
 import type { Lockfile } from "../lockfile/schema.ts";
-import { createMerger } from "../merger/index.ts";
 import { mergeProject, type DriftOf } from "../merge/index.ts";
+import { createMerger } from "../merger/index.ts";
 import type { BuiltProject } from "../pipeline/build.ts";
 import { unifiedDiff } from "../project/diff.ts";
 import { runInstall } from "../project/install.ts";

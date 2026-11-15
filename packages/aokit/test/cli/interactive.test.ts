@@ -1,12 +1,13 @@
 import { afterEach, expect, test } from "bun:test";
 import { join } from "node:path";
+
 import { type CliIo, runCli } from "../../src/cli/adapter.ts";
 import { type CommandContext, runCommand } from "../../src/cli/command.ts";
 import { addCommand } from "../../src/cli/commands/add.ts";
 import { createCommand } from "../../src/cli/commands/create.ts";
 import { exposedCommands } from "../../src/cli/commands/registry.ts";
-import { removeShadcnFixtures } from "../registry-shadcn/served-shadcn-registry.ts";
 import { cleanUp, isolatedContext, temporaryDirectory } from "../registry-resolution/support.ts";
+import { removeShadcnFixtures } from "../registry-shadcn/served-shadcn-registry.ts";
 import { type JourneyFixture, serveJourneyFixture } from "../shadcn-journey/fixture.ts";
 
 const fixtures: JourneyFixture[] = [];

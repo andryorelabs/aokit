@@ -2,21 +2,23 @@ import { afterEach, expect, test } from "bun:test";
 import { mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { isAbsolute, join } from "node:path";
+
+import { stableStringify } from "@aokit/module";
+import { z } from "zod";
+
 import { buildRegistry } from "../../../../tools/registry-build/build.ts";
 import {
   addMigrationToFixtureSource,
   writeRegistrySourceFixture,
 } from "../../../../tools/registry-build/fixture.ts";
-import { stableStringify } from "@aokit/module";
-import { z } from "zod";
-import { parseJsonRecord } from "../helpers/registry-json.ts";
-import { registryIndexSchema } from "../../src/registry/schema.ts";
 import {
   computeIntegrity,
   type LocalRegistry,
   readLocalRegistry,
   RegistryError,
 } from "../../src/registry/index.ts";
+import { registryIndexSchema } from "../../src/registry/schema.ts";
+import { parseJsonRecord } from "../helpers/registry-json.ts";
 
 const options = { cliVersion: "0.1.0" };
 const loadedScriptSchema = z.object({

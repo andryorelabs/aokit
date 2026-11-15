@@ -1,5 +1,6 @@
 import { homedir } from "node:os";
 import { posix, win32 } from "node:path";
+
 import {
   readFirstNonEmptyVariable,
   readNonEmptyVariable,

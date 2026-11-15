@@ -1,6 +1,7 @@
 import { afterAll, afterEach, describe, expect, test } from "bun:test";
 import { rm, writeFile } from "node:fs/promises";
 import { join } from "node:path";
+
 import {
   builtRegistry,
   cleanTemporaryDirectories,
@@ -8,8 +9,8 @@ import {
   editLockfileJson,
 } from "../diff/support.ts";
 import { spawnAokit as spawnAokitProcess } from "../helpers/aokit-process.ts";
-import { commitAll, createProject, git, newWorkspace } from "../restore/helpers.ts";
 import { jsonAt } from "../helpers/cli-json.ts";
+import { commitAll, createProject, git, newWorkspace } from "../restore/helpers.ts";
 
 const workspace = newWorkspace();
 

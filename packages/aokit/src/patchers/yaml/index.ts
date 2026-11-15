@@ -1,5 +1,6 @@
-import { AokitError } from "../../cli/envelope.ts";
 import { Document, isAlias, isMap, isSeq, parseDocument, YAMLMap, type YAMLSeq } from "yaml";
+
+import { AokitError } from "../../cli/envelope.ts";
 
 /** A YAML-compatible value. */
 export type YamlValue =

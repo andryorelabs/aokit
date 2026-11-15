@@ -1,5 +1,7 @@
 import { expect, test } from "bun:test";
+
 import { type ModuleManifestInput } from "@aokit/module";
+
 import {
   type EngineContext,
   type EngineModule,

@@ -1,4 +1,5 @@
 import { describe, expect, test } from "bun:test";
+
 import { createMerger } from "../../src/merger/index.ts";
 
 const block = (id: string, body: string) =>

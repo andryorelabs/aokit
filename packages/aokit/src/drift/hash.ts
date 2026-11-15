@@ -1,4 +1,5 @@
 import { createHash } from "node:crypto";
+
 import { isRegionFile, regionDigest, RegionSyntaxError } from "../patchers/markdown/regions.ts";
 
 /** The Lockfile hash recorded for a file whose content is volatile. */

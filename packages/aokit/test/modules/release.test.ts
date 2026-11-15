@@ -1,7 +1,9 @@
 import { describe, expect, test } from "bun:test";
 import { existsSync, readdirSync, readFileSync } from "node:fs";
 import { join } from "node:path";
+
 import { z } from "zod";
+
 import { cliVersion } from "../../src/cli/version.ts";
 import { Vfs } from "../../src/engine/index.ts";
 import { readLocalRegistry } from "../../src/registry/index.ts";

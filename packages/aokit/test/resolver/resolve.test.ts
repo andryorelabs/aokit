@@ -1,5 +1,7 @@
 import { expect, test } from "bun:test";
+
 import { parseManifest, type ModuleManifest, type ModuleManifestInput } from "@aokit/module";
+
 import { resolve } from "../../src/resolver/resolve.ts";
 import { suggestModuleName } from "../../src/resolver/suggest.ts";
 import type { ResolveFailure, ResolveSuccess } from "../../src/resolver/types.ts";

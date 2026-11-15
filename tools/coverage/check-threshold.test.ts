@@ -2,8 +2,7 @@ import { afterEach, describe, expect, test } from "bun:test";
 import { mkdirSync, mkdtempSync, readdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join, resolve } from "node:path";
-import { type CoverageException, coverageExceptions } from "./coverage-exceptions";
-import { type CoverageFloors, loadCoverageFloors } from "./coverage-floors";
+
 import {
   checkCoverageReport,
   FILE_FUNCTION_FLOOR,
@@ -14,6 +13,8 @@ import {
   parseLcov,
   summarize,
 } from "./check-threshold";
+import { type CoverageException, coverageExceptions } from "./coverage-exceptions";
+import { type CoverageFloors, loadCoverageFloors } from "./coverage-floors";
 
 const record = (path: string, lf: number, lh: number, fnf: number, fnh: number): string =>
   [`SF:${path}`, `FNF:${fnf}`, `FNH:${fnh}`, `LF:${lf}`, `LH:${lh}`, "end_of_record"].join("\n");

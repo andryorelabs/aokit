@@ -1,6 +1,8 @@
 import { readFile, stat } from "node:fs/promises";
 import { dirname, join, relative, resolve as resolvePath } from "node:path";
+
 import type { ModuleManifest } from "@aokit/module";
+
 import { lockfileName } from "../apply/index.ts";
 import { AokitError } from "../cli/envelope.ts";
 import { LockfileError, parseLockfile } from "../lockfile/index.ts";

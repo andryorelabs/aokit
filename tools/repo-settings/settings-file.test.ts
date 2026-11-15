@@ -1,6 +1,7 @@
 import { describe, expect, test } from "bun:test";
 import { existsSync, readFileSync } from "node:fs";
 import { join } from "node:path";
+
 import { isRecord } from "./compare.ts";
 
 const repoRoot = join(import.meta.dir, "..", "..");

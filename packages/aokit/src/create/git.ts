@@ -1,5 +1,6 @@
 import { appendFile, mkdir } from "node:fs/promises";
 import { join } from "node:path";
+
 import { registerShutdownHook } from "../cli/shutdown.ts";
 
 type Environment = Readonly<Record<string, string | undefined>>;

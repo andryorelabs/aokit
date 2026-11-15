@@ -1,7 +1,9 @@
 import { createHash } from "node:crypto";
+
 import type { ModuleManifest } from "@aokit/module";
-import { hashTrackedFile } from "../drift/hash.ts";
+
 import { cliVersion } from "../cli/version.ts";
+import { hashTrackedFile } from "../drift/hash.ts";
 import type { AnswerValue } from "../engine/interpolate.ts";
 import type { LayoutName } from "../engine/layout.ts";
 import type { Plan } from "../engine/plan.ts";

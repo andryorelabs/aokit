@@ -1,6 +1,7 @@
 import { afterAll, expect, test } from "bun:test";
 import { readFile, rm, writeFile } from "node:fs/promises";
 import { join } from "node:path";
+
 import { runCommand } from "../../src/cli/command.ts";
 import { addCommand } from "../../src/cli/commands/add.ts";
 import { isJsonObject, objectAt, parseJsonObject, valueAt } from "../helpers/update-json.ts";

@@ -1,4 +1,5 @@
 import type { MigrationContext, MigrationFn, MigrationVfs } from "@aokit/module";
+
 import { AokitError } from "../cli/envelope.ts";
 import { compareByCodepoint, type Vfs } from "../engine/vfs.ts";
 import type { LocalRegistry } from "../registry/index.ts";

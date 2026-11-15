@@ -1,5 +1,6 @@
 import { readFile } from "node:fs/promises";
 import { join } from "node:path";
+
 import type { NamespaceConfig, UserConfig } from "../config/user-config.ts";
 import { RegistryError } from "./errors.ts";
 import { isReadableRegistryUrl } from "./source.ts";

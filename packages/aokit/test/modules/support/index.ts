@@ -1,7 +1,9 @@
 import { existsSync, readdirSync, readFileSync } from "node:fs";
 import { join } from "node:path";
+
 import { type Catalog, parseManifest } from "@aokit/module";
 import { composeDraftCatalog } from "@aokit/module/catalog";
+
 import type { EngineContext, EngineModule } from "../../../src/engine/index.ts";
 import type { LayoutName } from "../../../src/engine/layout.ts";
 import { buildProject } from "../../../src/pipeline/index.ts";

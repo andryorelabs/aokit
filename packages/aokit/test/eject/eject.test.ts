@@ -1,10 +1,11 @@
 import { afterAll, expect, test } from "bun:test";
-import { defined } from "../helpers/defined.ts";
 import { readFile, rm, writeFile } from "node:fs/promises";
 import { join } from "node:path";
+
 import { runCommand } from "../../src/cli/command.ts";
 import { ejectCommand } from "../../src/cli/commands/eject.ts";
 import { exitCodeForErrorCode } from "../../src/cli/exit-codes.ts";
+import { defined } from "../helpers/defined.ts";
 import {
   commitAll,
   context,

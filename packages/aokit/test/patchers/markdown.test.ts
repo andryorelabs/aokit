@@ -1,4 +1,5 @@
 import { expect, test } from "bun:test";
+
 import { appendRegion } from "../../src/patchers/markdown/index.ts";
 
 const source = `# Title

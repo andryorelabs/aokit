@@ -1,7 +1,9 @@
 import { expect, test } from "bun:test";
 import { readFile } from "node:fs/promises";
 import { join } from "node:path";
+
 import { z } from "zod";
+
 import { lockfileSchema } from "../../src/lockfile/schema.ts";
 
 const repoRoot = join(import.meta.dir, "..", "..", "..", "..");

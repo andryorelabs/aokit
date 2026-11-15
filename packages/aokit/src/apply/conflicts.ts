@@ -1,5 +1,6 @@
 import { mkdir, writeFile } from "node:fs/promises";
 import { dirname, join } from "node:path";
+
 import type { Git } from "../git/git.ts";
 import { inSequence } from "./sequence.ts";
 

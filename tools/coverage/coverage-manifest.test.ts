@@ -1,5 +1,6 @@
 import { describe, expect, test } from "bun:test";
 import { resolve } from "node:path";
+
 import { coverageExemptions } from "./coverage-exemptions";
 import {
   collectImportedModules,

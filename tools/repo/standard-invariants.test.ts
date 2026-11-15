@@ -1,6 +1,7 @@
 import { describe, expect, test } from "bun:test";
 import { existsSync, readdirSync } from "node:fs";
 import { resolve } from "node:path";
+
 import { MANIFEST_PATHS, findCopyDrift, readText } from "../brand/copy-drift.test";
 import { checkDocsIndex } from "../docs/docs-invariant.test";
 import { findStaleNames, readTrackedFiles } from "../docs/stale-names.test";

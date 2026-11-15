@@ -1,4 +1,5 @@
 import { type ModuleManifest, stableStringify } from "@aokit/module";
+
 import type { UserConfig } from "../../config/user-config.ts";
 import { RegistryError } from "../errors.ts";
 import { computeIntegrity, computeModuleIntegrity, type Integrity } from "../integrity.ts";

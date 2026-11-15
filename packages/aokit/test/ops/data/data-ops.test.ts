@@ -1,5 +1,7 @@
 import { expect, test } from "bun:test";
+
 import { type Catalog, type ModuleManifestInput, catalogSchema } from "@aokit/module";
+
 import {
   type EngineContext,
   type EngineModule,

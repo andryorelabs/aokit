@@ -1,5 +1,7 @@
 import { basename } from "node:path";
+
 import { legacyManifestDescription, type ModuleManifest } from "@aokit/module";
+
 import { type Plan, hashVfs } from "../engine/plan.ts";
 
 const readmePath = "README.md";

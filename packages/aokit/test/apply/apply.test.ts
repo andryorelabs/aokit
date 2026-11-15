@@ -2,6 +2,7 @@ import { afterEach, beforeEach, expect, test } from "bun:test";
 import { chmod, mkdir, mkdtemp, readFile, readdir, rm, stat, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
+
 import { ApplyError, apply, lockfileName } from "../../src/apply/index.ts";
 import { installSignalHandlers } from "../../src/cli/shutdown.ts";
 import { Vfs } from "../../src/engine/index.ts";

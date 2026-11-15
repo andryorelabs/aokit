@@ -1,4 +1,5 @@
 import { expect, test } from "bun:test";
+
 import { mergeJsonc } from "../../src/patchers/jsonc/index.ts";
 
 const source = `{

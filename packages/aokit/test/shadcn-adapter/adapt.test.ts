@@ -1,8 +1,11 @@
 import { expect, test } from "bun:test";
+
 import { parseManifest } from "@aokit/module";
+
 import { errorCodeExitCodes } from "../../src/cli/exit-codes.ts";
 import { type EngineContext, type EngineModule, Vfs, buildPlan } from "../../src/engine/index.ts";
 import { lockfileSchema } from "../../src/lockfile/schema.ts";
+import { parseRegions } from "../../src/patchers/markdown/regions.ts";
 import { RegistryError } from "../../src/registry/errors.ts";
 import { adaptShadcnItem, type AdaptedModule } from "../../src/registry/shadcn/adapt.ts";
 import {
@@ -10,7 +13,6 @@ import {
   shadcnRegistrySchema,
   type ShadcnItem,
 } from "../../src/registry/shadcn/schema.ts";
-import { parseRegions } from "../../src/patchers/markdown/regions.ts";
 import { resolve } from "../../src/resolver/resolve.ts";
 
 const context: EngineContext = { now: new Date(0), random: () => 0.5, env: {} };

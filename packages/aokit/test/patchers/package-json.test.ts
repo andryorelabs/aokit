@@ -1,4 +1,5 @@
 import { expect, test } from "bun:test";
+
 import { mergePackageJson } from "../../src/patchers/package-json/index.ts";
 import { jsonAt, keysAt, parseJson } from "../helpers/cli-json.ts";
 

@@ -1,6 +1,8 @@
 import { matchesGlob, posix } from "node:path";
+
 import { type ParseError, parse, printParseErrorCode } from "jsonc-parser";
 import type { FormatConfig, Oxfmtrc } from "oxfmt";
+
 import type { Vfs } from "../engine/index.ts";
 import { FormatError } from "./errors.ts";
 

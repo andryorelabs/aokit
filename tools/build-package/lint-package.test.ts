@@ -2,6 +2,7 @@ import { afterAll, expect, test } from "bun:test";
 import { chmod, mkdir, mkdtemp, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
+
 import { lintPackage, packedPathsOf } from "./lint.ts";
 
 const posixTest = process.platform === "win32" ? test.skip : test;

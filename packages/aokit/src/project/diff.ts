@@ -1,4 +1,5 @@
 import { structuredPatch } from "diff";
+
 import type { Plan, PlanChange } from "../engine/plan.ts";
 import type { FileContent } from "../engine/vfs.ts";
 

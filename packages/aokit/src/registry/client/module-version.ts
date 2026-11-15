@@ -1,5 +1,6 @@
-import { z } from "zod";
 import { ManifestError, type ModuleManifest, parseManifest } from "@aokit/module";
+import { z } from "zod";
+
 import { RegistryError } from "../errors.ts";
 import { computeIntegrity, computeModuleIntegrity } from "../integrity.ts";
 import type { RegistryTransport } from "../remote.ts";

@@ -9,6 +9,7 @@ import {
 } from "node:fs";
 import { tmpdir } from "node:os";
 import { dirname, join, relative, resolve } from "node:path";
+
 import { githubSlug, headingSlugs } from "./slug";
 
 const repoRoot = resolve(import.meta.dir, "../..");

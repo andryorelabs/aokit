@@ -3,10 +3,12 @@ import { existsSync, mkdtempSync, readdirSync, realpathSync } from "node:fs";
 import { mkdir, readFile, rename, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
+
 import { Client, InMemoryTransport } from "@modelcontextprotocol/client";
+import { z } from "zod";
+
 import { buildRegistry } from "../../../../tools/registry-build/build.ts";
 import { writeRegistrySourceFixture } from "../../../../tools/registry-build/fixture.ts";
-import { z } from "zod";
 import { cliVersion } from "../../src/cli/version.ts";
 import { createMcpServer } from "../../src/mcp/server.ts";
 

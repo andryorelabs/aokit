@@ -1,4 +1,5 @@
 import { expect, test } from "bun:test";
+
 import { computePlanId, createPlanSession } from "../../src/mcp/plan-id.ts";
 
 test("planId changes with the input, the Release and the VFS hash, not with key order", () => {

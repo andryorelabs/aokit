@@ -1,5 +1,7 @@
 import { isDeepStrictEqual } from "node:util";
+
 import { applyEdits, modify, parse, type ParseError } from "jsonc-parser";
+
 import { mergeJsonc, type JsoncValue } from "../../patchers/jsonc/index.ts";
 
 /** The MCP clients `mcp init` can register the server in. */

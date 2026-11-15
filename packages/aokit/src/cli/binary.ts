@@ -1,8 +1,8 @@
 import { clearNativeLibraryPath, setNativeLibraryPath } from "../env.ts";
+import { registerEmbeddedRegistry } from "../registry/embedded/extract.ts";
 import { embeddedRegistry } from "../registry/embedded/generated-registry.ts";
 import oxfmtLibrary from "../registry/embedded/native-oxfmt-library.ts";
 import parserLibrary from "../registry/embedded/native-parser-library.ts";
-import { registerEmbeddedRegistry } from "../registry/embedded/extract.ts";
 
 registerEmbeddedRegistry(embeddedRegistry);
 

@@ -1,5 +1,6 @@
 import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { dirname, join } from "node:path";
+
 import { readIsContinuousIntegration, readUpdateNotifierDisabled } from "../../env.ts";
 import { xdgCacheDir } from "../../xdg.ts";
 

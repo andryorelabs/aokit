@@ -1,5 +1,7 @@
 import { expect, test } from "bun:test";
+
 import { targetSchema } from "@aokit/module";
+
 import { headerTargets, renderHeader } from "../../src/engine/agent-files.ts";
 import { layoutTables, resolveTarget } from "../../src/engine/layout.ts";
 

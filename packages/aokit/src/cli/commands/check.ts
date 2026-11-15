@@ -1,10 +1,12 @@
 import { join, resolve as resolvePath } from "node:path";
+
 import { z } from "zod";
+
+import { LockfileError, readLockfile } from "../../lockfile/index.ts";
+import type { Lockfile } from "../../lockfile/schema.ts";
 import { selectMigrations } from "../../migrations/index.ts";
 import { openProjectRegistry } from "../../project/registry.ts";
 import { bundledRegistryPath } from "../../registry/bundled.ts";
-import { LockfileError, readLockfile } from "../../lockfile/index.ts";
-import type { Lockfile } from "../../lockfile/schema.ts";
 import { type LocalRegistry, RegistryError } from "../../registry/index.ts";
 import { defineCommand } from "../command.ts";
 import { AokitError } from "../envelope.ts";

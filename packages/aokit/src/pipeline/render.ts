@@ -1,5 +1,9 @@
 import { AokitError } from "../cli/envelope.ts";
 import { meetsMinCliVersion, minCliVersionFix } from "../cli/min-cli-version.ts";
+import type { AnswerValue } from "../engine/interpolate.ts";
+import { formatterForSelection } from "../format/index.ts";
+import type { Lockfile } from "../lockfile/schema.ts";
+import { fromResolveError, toAokitError } from "../project/errors.ts";
 import {
   assertCatalogDepsAuthenticated,
   loadProjectRegistries,
@@ -7,10 +11,6 @@ import {
   type RegistryAdapters,
   toPipelineModule,
 } from "../project/registry.ts";
-import { fromResolveError, toAokitError } from "../project/errors.ts";
-import type { AnswerValue } from "../engine/interpolate.ts";
-import { formatterForSelection } from "../format/index.ts";
-import type { Lockfile } from "../lockfile/schema.ts";
 import type { Registry } from "../registry/index.ts";
 import { type BuiltProject, type PipelineModule, buildProject } from "./build.ts";
 

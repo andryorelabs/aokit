@@ -1,6 +1,8 @@
 import { expect, test } from "bun:test";
-import { z } from "zod";
+
 import { parseManifest } from "@aokit/module";
+import { z } from "zod";
+
 import eslint from "../../../../registry-src/eslint/module.ts";
 import { buildSelection } from "./support/index.ts";
 

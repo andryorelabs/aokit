@@ -1,6 +1,8 @@
 import { describe, expect, test } from "bun:test";
-import { z } from "zod";
+
 import { parseManifest } from "@aokit/module";
+import { z } from "zod";
+
 import wxtSource from "../../../../registry-src/wxt/module.ts";
 import { buildSelection } from "./support/index.ts";
 

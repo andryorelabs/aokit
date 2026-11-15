@@ -2,16 +2,15 @@ import { afterEach, beforeEach, describe, expect, test } from "bun:test";
 import { mkdir, mkdtemp, readFile, readdir, rm, stat, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
+
 import { apply, lockfileName, type ConflictWrite } from "../../src/apply/index.ts";
-import { Vfs } from "../../src/engine/index.ts";
-import { diffVfs, hashVfs, type Plan } from "../../src/engine/plan.ts";
 import { AokitError } from "../../src/cli/envelope.ts";
 import { exitCodeForErrorCode } from "../../src/cli/exit-codes.ts";
+import { Vfs } from "../../src/engine/index.ts";
+import { diffVfs, hashVfs, type Plan } from "../../src/engine/plan.ts";
 import { openGit } from "../../src/git/index.ts";
 import { runGitChecked } from "../../src/git/run.ts";
 import { parseLockfile, serializeLockfile } from "../../src/lockfile/index.ts";
-import { defined } from "../helpers/defined.ts";
-import { parseJson } from "../helpers/update-json.ts";
 import {
   assertPlanFresh,
   deletePlanFile,
@@ -23,6 +22,8 @@ import {
   type UpdatePlanFile,
 } from "../../src/update/plan-file.ts";
 import { abortUpdate, readUpdateMarker, writeUpdateMarker } from "../../src/update/state.ts";
+import { defined } from "../helpers/defined.ts";
+import { parseJson } from "../helpers/update-json.ts";
 
 const lockfileFixture = join(
   import.meta.dir,

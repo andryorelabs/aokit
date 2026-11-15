@@ -1,5 +1,6 @@
 import { expect, test } from "bun:test";
 import { join } from "node:path";
+
 import { spawnAokit } from "./helpers/aokit-process.ts";
 
 test("the aokit bin entry runs and exits cleanly", async () => {

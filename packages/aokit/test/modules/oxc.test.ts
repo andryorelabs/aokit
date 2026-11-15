@@ -1,5 +1,7 @@
 import { describe, expect, test } from "bun:test";
+
 import { parseManifest } from "@aokit/module";
+
 import oxc from "../../../../registry-src/oxc/module.ts";
 import { buildSelection } from "./support/index.ts";
 
@@ -51,6 +53,18 @@ describe("oxc", () => {
     expect(parsed(built.plan.vfs.read("package.json"))).toMatchObject({
       scripts: {
         lint: 'oxlint --type-aware --ignore-pattern "**/node_modules/**" --ignore-pattern "**/generated/**" -c packages/config/.oxlintrc.json',
+      },
+    });
+  });
+
+  test("the Oxfmt config sorts imports in the standard group order", async () => {
+    const built = await build("single");
+    expect(parsed(built.plan.vfs.read(".oxfmtrc.json"))).toMatchObject({
+      sortImports: {
+        groups: ["builtin", "external", "internal", ["parent", "sibling", "index"], "unknown"],
+        internalPattern: ["@/"],
+        ignoreCase: true,
+        newlinesBetween: true,
       },
     });
   });

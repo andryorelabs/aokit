@@ -1,25 +1,27 @@
 import { resolve as resolvePath } from "node:path";
+
 import type { ModuleManifest } from "@aokit/module";
+
 import { apply } from "../apply/index.ts";
 import { AokitError } from "../cli/envelope.ts";
 import type { LayoutName } from "../engine/layout.ts";
 import type { Plan, PlanChange } from "../engine/plan.ts";
-import type { Lockfile } from "../lockfile/schema.ts";
 import { formatterForSelection } from "../format/index.ts";
+import type { Lockfile } from "../lockfile/schema.ts";
+import type { RegistryInfo } from "../pipeline/assemble.ts";
 import { buildProject } from "../pipeline/index.ts";
-import { resolve } from "../resolver/resolve.ts";
 import { completeAnswers, parseAnswers } from "../project/answers.ts";
 import { unifiedDiff } from "../project/diff.ts";
 import { fromResolveError, toAokitError } from "../project/errors.ts";
 import { runInstall } from "../project/install.ts";
-import type { RegistryInfo } from "../pipeline/assemble.ts";
 import {
   type CreateRegistries,
   loadCreateRegistries,
   type RegistryAdapters,
 } from "../project/registry.ts";
-import type { Registry } from "../registry/index.ts";
 import { reproduceCommand } from "../project/reproduce.ts";
+import type { Registry } from "../registry/index.ts";
+import { resolve } from "../resolver/resolve.ts";
 import { renderFromSource } from "./from.ts";
 import { initGitRepository } from "./git.ts";
 import { withProjectReadme } from "./readme.ts";

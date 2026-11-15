@@ -2,13 +2,14 @@ import { afterEach, beforeEach, describe, expect, spyOn, test } from "bun:test";
 import { mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
+
 import { createRunOptions, run } from "../../src/cli/run.ts";
+import { runShutdownHooks } from "../../src/cli/shutdown.ts";
 import {
   refreshArgument,
   runDetachedRefresh,
   spawnDetachedRefresh,
 } from "../../src/cli/update-notice/spawn.ts";
-import { runShutdownHooks } from "../../src/cli/shutdown.ts";
 import { runInstall } from "../../src/project/install.ts";
 
 let root: string;

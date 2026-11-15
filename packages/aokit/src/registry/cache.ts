@@ -1,6 +1,7 @@
 import { randomUUID } from "node:crypto";
 import { mkdir, readdir, readFile, rename, rm, writeFile } from "node:fs/promises";
 import { dirname, join, relative, sep } from "node:path";
+
 import { xdgCacheDir } from "../xdg.ts";
 import type { CachedModuleVersion, RegistryCache } from "./client.ts";
 import { RegistryError } from "./errors.ts";

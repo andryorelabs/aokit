@@ -1,5 +1,6 @@
 import { describe, expect, test } from "bun:test";
 import { resolve } from "node:path";
+
 import {
   allInOrder,
   byCodepoint,
@@ -19,13 +20,13 @@ import {
   parseModuleManifest,
 } from "../../src/registry/client/module-version.ts";
 import { openRegistry } from "../../src/registry/client/open.ts";
-import { openShadcnRegistry } from "../../src/registry/client/shadcn.ts";
 import {
   asIntegrity,
   hostScope,
   scopeOf,
   splitModuleKey,
 } from "../../src/registry/client/shadcn-items.ts";
+import { openShadcnRegistry } from "../../src/registry/client/shadcn.ts";
 import { computeIntegrity, RegistryError } from "../../src/registry/index.ts";
 import { fixtureItems } from "../registry-shadcn/served-shadcn-registry.ts";
 

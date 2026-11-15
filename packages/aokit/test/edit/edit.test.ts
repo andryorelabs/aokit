@@ -1,11 +1,12 @@
 import { expect, test } from "bun:test";
-import { defined } from "../helpers/defined.ts";
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
+
 import { createEditBatch } from "../../src/edit/batch.ts";
 import { editDefineConfig } from "../../src/edit/config.ts";
 import { EditError } from "../../src/edit/errors.ts";
 import { languageOf, locateAnchor, parseSource } from "../../src/edit/locate.ts";
+import { defined } from "../helpers/defined.ts";
 
 const fixtureDirectory = join(import.meta.dir, "fixtures");
 const moduleOrder = ["base", "auth", "db"];

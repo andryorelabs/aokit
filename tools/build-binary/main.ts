@@ -1,5 +1,6 @@
 import { join } from "node:path";
 import { parseArgs } from "node:util";
+
 import { buildBinary } from "./build.ts";
 
 const repoRoot = join(import.meta.dir, "..", "..");

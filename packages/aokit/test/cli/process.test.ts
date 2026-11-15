@@ -3,8 +3,9 @@ import { mkdtempSync, readFileSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 
-import { spawnAokit as spawnAokitProcess } from "../helpers/aokit-process.ts";
 import { z } from "zod";
+
+import { spawnAokit as spawnAokitProcess } from "../helpers/aokit-process.ts";
 
 /** Windows has no POSIX signals: killing a child with SIGINT ends it without running its handlers. */
 const posixSignalTest = process.platform === "win32" ? test.skip : test;

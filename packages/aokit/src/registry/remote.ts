@@ -1,5 +1,6 @@
 import { readFile } from "node:fs/promises";
 import { join, resolve } from "node:path";
+
 import { RegistryError } from "./errors.ts";
 import { normalizeLineEndings } from "./integrity.ts";
 import { isReadableRegistryUrl } from "./source.ts";

@@ -1,6 +1,7 @@
 import { mkdir, realpath, rm } from "node:fs/promises";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
+
 import { oxfmtStubPlugin } from "../build-shared/oxfmt-stubs.ts";
 import { embeddedRegistryPlugin, nativeBindingPlugin } from "./plugins.ts";
 import { type BinaryTarget, parseBinaryTarget } from "./targets.ts";

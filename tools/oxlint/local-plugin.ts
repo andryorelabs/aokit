@@ -1,5 +1,6 @@
 import { definePlugin, defineRule } from "@oxlint/plugins";
 import type { Comment } from "@oxlint/plugins";
+
 import { baselineLocalRules } from "../../registry-src/oxc/files/oxlint-plugin.ts";
 
 /**

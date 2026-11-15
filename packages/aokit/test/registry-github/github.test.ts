@@ -1,4 +1,5 @@
 import { expect, test } from "bun:test";
+
 import { resolveGithubPin } from "../../src/registry/github.ts";
 import { RegistryError, type RegistrySource } from "../../src/registry/index.ts";
 

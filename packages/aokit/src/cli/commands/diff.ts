@@ -1,11 +1,12 @@
 import { readFile } from "node:fs/promises";
 import { join, resolve as resolvePath } from "node:path";
+
 import { structuredPatch } from "diff";
 import { z } from "zod";
+
 import type { PlanChange } from "../../engine/plan.ts";
 import { type FileContent, type Vfs, compareByCodepoint } from "../../engine/vfs.ts";
 import { loadUserTree } from "../../lifecycle/migration-stage.ts";
-import { modulesInOrder } from "../../update/run.ts";
 import { LockfileError, readLockfile } from "../../lockfile/index.ts";
 import type { Lockfile } from "../../lockfile/schema.ts";
 import { runMigrations } from "../../migrations/index.ts";
@@ -15,6 +16,7 @@ import { unifiedDiff } from "../../project/diff.ts";
 import { toAokitError } from "../../project/errors.ts";
 import { openProjectRegistry } from "../../project/registry.ts";
 import { bundledRegistryPath } from "../../registry/bundled.ts";
+import { modulesInOrder } from "../../update/run.ts";
 import { resolveUpdateTarget } from "../../update/target.ts";
 import { defineCommand } from "../command.ts";
 import { AokitError } from "../envelope.ts";

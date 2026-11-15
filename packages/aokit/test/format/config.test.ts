@@ -1,4 +1,5 @@
 import { describe, expect, test } from "bun:test";
+
 import { Vfs } from "../../src/engine/index.ts";
 import { matchesIgnore, optionsFor, readProjectConfigs } from "../../src/format/config.ts";
 import { FormatError } from "../../src/format/errors.ts";

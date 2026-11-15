@@ -2,6 +2,7 @@ import { afterEach, beforeEach, describe, expect, test } from "bun:test";
 import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
+
 import { openGit } from "../../src/git/git.ts";
 import { abortUpdate, readUpdateMarker, writeFileAtomically } from "../../src/update/state.ts";
 
