@@ -1,6 +1,7 @@
 import { type ModuleManifest, stableStringify } from "@aokit/module";
 
 import type { UserConfig } from "../../config/user-config.ts";
+import { processEnvironment } from "../../env.ts";
 import { RegistryError } from "../errors.ts";
 import { computeIntegrity, computeModuleIntegrity, type Integrity } from "../integrity.ts";
 import {
@@ -374,6 +375,6 @@ export function syntheticIndex(
 export async function namespaceEnvironment(
   context: OpenRegistryContext,
 ): Promise<TemplateEnvironment> {
-  const env = context.env ?? process.env;
+  const env = context.env ?? processEnvironment();
   return context.projectDir === undefined ? env : loadNamespaceEnvironment(context.projectDir, env);
 }
