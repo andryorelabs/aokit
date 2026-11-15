@@ -28,12 +28,24 @@
 - name: "Status: Needs Info"
   color: d876e3
   description: Waiting on more information before it can proceed
+- name: "Status: Needs Decision"
+  color: e99695
+  description: Waiting on a maintainer decision before it can proceed
 - name: "Status: Blocked"
   color: "000000"
   description: Blocked by another change or an outside decision
 - name: "Status: In Progress"
   color: 1d76db
   description: Someone is working on it
+- name: "Resolution: Duplicate"
+  color: cfd3d7
+  description: Already reported or tracked elsewhere
+- name: "Resolution: Won't Fix"
+  color: ffffff
+  description: Out of scope or intentionally not changed
+- name: "Resolution: Invalid"
+  color: e4e669
+  description: Not a valid report or not reproducible
 - name: "Area: cli"
   color: c5def5
   description: The aokit CLI and core
