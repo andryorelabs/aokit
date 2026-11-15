@@ -30,6 +30,10 @@ jobs:
       dist-tag: ${{ steps.release.outputs.dist-tag }}
       dry-run: ${{ steps.release.outputs.dry-run }}
     steps:
+      - uses: step-security/harden-runner@1d88384fd173af6ecb012dfd0264a306b711241a # v2.22.4
+        with:
+          egress-policy: audit
+
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
@@ -105,6 +109,40 @@ jobs:
           fi
           echo "tag $REF_NAME ($TAG_SHA) is on main"
 
+      - name: Tag is annotated and signed
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REF_TYPE: ${{ github.ref_type }}
+          REF_NAME: ${{ github.ref_name }}
+          TAG_SHA: ${{ github.sha }}
+          ACTOR: ${{ github.actor }}
+        run: |
+          if [ "$REF_TYPE" != tag ]; then
+            echo "No tag: a dry run from $REF_NAME is not checked for a signed tag."
+            exit 0
+          fi
+          git fetch --quiet --no-tags --force origin "+refs/tags/$REF_NAME:refs/tags/$REF_NAME"
+          if [ "$(git cat-file -t "refs/tags/$REF_NAME")" != tag ]; then
+            echo "::error::tag $REF_NAME is a lightweight tag; a release tag is annotated and signed (git tag -s)"
+            exit 1
+          fi
+          tagged_sha="$(git rev-parse "refs/tags/$REF_NAME^{commit}")"
+          if [ "$tagged_sha" != "$TAG_SHA" ]; then
+            echo "::error::tag $REF_NAME points to $tagged_sha, not the released commit $TAG_SHA"
+            exit 1
+          fi
+          allowed_signers="$RUNNER_TEMP/allowed_signers"
+          gh api "users/$ACTOR/ssh_signing_keys" --jq '.[].key' | sed 's/^/* /' > "$allowed_signers"
+          gpg_keys="$(gh api "users/$ACTOR/gpg_keys" --jq '.[].raw_key')"
+          if [ -n "$gpg_keys" ]; then
+            printf '%s\n' "$gpg_keys" | gpg --batch --quiet --import
+          fi
+          if ! git -c gpg.ssh.allowedSignersFile="$allowed_signers" verify-tag "$REF_NAME"; then
+            echo "::error::tag $REF_NAME has no valid signature from a signing key $ACTOR registered on GitHub"
+            exit 1
+          fi
+          echo "tag $REF_NAME is annotated and signed by $ACTOR"
+
       - name: CI passed for the tagged commit
         env:
           GH_TOKEN: ${{ github.token }}
@@ -162,6 +200,14 @@ jobs:
           AOKIT_DIST_TARBALLS="$(printf '%s,' "$RUNNER_TEMP"/release/tarballs/*.tgz)" \
             bun test packages/aokit/test/dist/package
 
+      - uses: anchore/sbom-action@66cbf4bc1f1c0d2edc94016e65bc221b6bb0ad6c # v0.24.3
+        with:
+          path: .
+          format: spdx-json
+          output-file: ${{ runner.temp }}/release/sbom.spdx.json
+          upload-artifact: false
+          upload-release-assets: false
+
       - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: release
@@ -206,6 +252,10 @@ jobs:
         if: runner.os == 'Windows'
         run: git config --global core.autocrlf false
 
+      - uses: step-security/harden-runner@1d88384fd173af6ecb012dfd0264a306b711241a # v2.22.4
+        with:
+          egress-policy: audit
+
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
@@ -233,6 +283,21 @@ jobs:
             echo "::error::build:binary for $TARGET did not write dist/bin/$ARTIFACT"
             exit 1
           fi
+
+      - name: Write the binary size to the step summary
+        env:
+          ARTIFACT: ${{ matrix.artifact }}
+        run: |
+          size="$(wc -c < "dist/bin/$ARTIFACT" | tr -d '[:space:]')"
+          mebibytes="$(awk -v bytes="$size" 'BEGIN { printf "%.1f", bytes / 1048576 }')"
+          echo "$ARTIFACT is $size bytes ($mebibytes MiB)"
+          {
+            echo "### Binary size"
+            echo
+            echo "| Binary | Bytes | MiB |"
+            echo "| --- | ---: | ---: |"
+            echo "| $ARTIFACT | $size | $mebibytes |"
+          } >> "$GITHUB_STEP_SUMMARY"
 
       - uses: actions/download-artifact@37930b1c2abaa49bbe596cd826c3c89aef350131 # v7.0.0
         if: matrix.tested
@@ -274,6 +339,10 @@ jobs:
       id-token: write
       attestations: write
     steps:
+      - uses: step-security/harden-runner@1d88384fd173af6ecb012dfd0264a306b711241a # v2.22.4
+        with:
+          egress-policy: audit
+
       - uses: actions/download-artifact@37930b1c2abaa49bbe596cd826c3c89aef350131 # v7.0.0
         with:
           pattern: aokit-*
@@ -346,12 +415,21 @@ jobs:
           fi
           gh release create "v$VERSION" "$ASSETS_DIR"/aokit-* "$ASSETS_DIR/SHA256SUMS" "${release_flags[@]}"
 
+      - name: Attach the SBOM to the GitHub Release
+        if: needs.verify.outputs.dry-run == 'false'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          VERSION: ${{ needs.verify.outputs.version }}
+          SBOM_FILE: ${{ runner.temp }}/release/sbom.spdx.json
+        run: gh release upload "v$VERSION" "$SBOM_FILE" --repo "$GITHUB_REPOSITORY"
+
       - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: release-assets
           path: |
             ${{ runner.temp }}/assets
             ${{ runner.temp }}/release/release-notes.md
+            ${{ runner.temp }}/release/sbom.spdx.json
           if-no-files-found: error
           retention-days: 7
 
@@ -365,6 +443,10 @@ jobs:
       contents: read
       id-token: write
     steps:
+      - uses: step-security/harden-runner@1d88384fd173af6ecb012dfd0264a306b711241a # v2.22.4
+        with:
+          egress-policy: audit
+
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
@@ -423,6 +505,10 @@ jobs:
       VERSION: ${{ needs.verify.outputs.version }}
       DIST_TAG: ${{ needs.verify.outputs.dist-tag }}
     steps:
+      - uses: step-security/harden-runner@1d88384fd173af6ecb012dfd0264a306b711241a # v2.22.4
+        with:
+          egress-policy: audit
+
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
