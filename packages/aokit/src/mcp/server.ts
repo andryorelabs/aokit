@@ -11,6 +11,7 @@ import {
   type Envelope,
 } from "../cli/envelope.ts";
 import { cliVersion } from "../cli/version.ts";
+import { processEnvironment } from "../env.ts";
 import { createPlanSession } from "./plan-id.ts";
 import { toToolResult } from "./result.ts";
 import { mcpTools } from "./tools/index.ts";
@@ -105,7 +106,7 @@ export async function startMcpServer(): Promise<void> {
   const server = createMcpServer({
     context: {
       version: cliVersion,
-      env: process.env,
+      env: processEnvironment(),
       commands: exposedCommands,
       interactive: false,
     },

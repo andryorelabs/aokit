@@ -4,6 +4,7 @@ import { dirname, join } from "node:path";
 import { z } from "zod";
 
 import { AokitError } from "../cli/envelope.ts";
+import { processEnvironment } from "../env.ts";
 import { xdgConfigDir } from "../xdg.ts";
 
 /** The environment the user config path is derived from. */
@@ -51,7 +52,7 @@ export interface UserConfig {
 }
 
 /** The user config file: `$XDG_CONFIG_HOME/aokit/config.json` (default `~/.config/aokit`). */
-export function userConfigPath(env: UserConfigEnvironment = process.env): string {
+export function userConfigPath(env: UserConfigEnvironment = processEnvironment()): string {
   return join(xdgConfigDir(env), "config.json");
 }
 
@@ -105,7 +106,7 @@ async function readRawConfig(path: string): Promise<z.infer<typeof userConfigSch
  * invalid one fails with `INVALID_INPUT` naming the file.
  */
 export async function loadUserConfig(
-  env: UserConfigEnvironment = process.env,
+  env: UserConfigEnvironment = processEnvironment(),
 ): Promise<UserConfig> {
   const raw = await readRawConfig(userConfigPath(env));
   return raw.registries === undefined
@@ -119,7 +120,7 @@ export async function loadUserConfig(
  */
 export async function addTrustedRegistry(
   entry: TrustedRegistryEntry,
-  env: UserConfigEnvironment = process.env,
+  env: UserConfigEnvironment = processEnvironment(),
 ): Promise<void> {
   const path = userConfigPath(env);
   const raw = await readRawConfig(path);
