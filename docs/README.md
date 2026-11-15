@@ -4,11 +4,12 @@ Every Markdown file under `docs/` has a row here; a test fails when one is missi
 
 ## Overview
 
-| Doc                              | Title       |
-| -------------------------------- | ----------- |
-| [development.md](development.md) | Development |
-| [stability.md](stability.md)     | Stability   |
-| [CHANGELOG.md](../CHANGELOG.md)  | Changelog   |
+| Doc                                  | Title         |
+| ------------------------------------ | ------------- |
+| [development.md](development.md)     | Development   |
+| [stability.md](stability.md)         | Stability     |
+| [configuration.md](configuration.md) | Configuration |
+| [CHANGELOG.md](../CHANGELOG.md)      | Changelog     |
 
 ## Guides
 
@@ -18,13 +19,21 @@ Every Markdown file under `docs/` has a row here; a test fails when one is missi
 | [guide/writing-modules.md](guide/writing-modules.md)       | Writing a Module   |
 | [guide/hosting-a-registry.md](guide/hosting-a-registry.md) | Hosting a Registry |
 
+## How-to guides
+
+| Doc                                                | Title         |
+| -------------------------------------------------- | ------------- |
+| [how-to/README.md](how-to/README.md)               | How-to guides |
+| [how-to/cut-a-release.md](how-to/cut-a-release.md) | Cut a release |
+
 ## Reference
 
-| Doc                                      | Title           |
-| ---------------------------------------- | --------------- |
-| [reference/cli.md](reference/cli.md)     | CLI reference   |
-| [security.md](security.md)               | Security model  |
-| [troubleshooting.md](troubleshooting.md) | Troubleshooting |
+| Doc                                                    | Title           |
+| ------------------------------------------------------ | --------------- |
+| [reference/cli.md](reference/cli.md)                   | CLI reference   |
+| [reference/dependencies.md](reference/dependencies.md) | Dependencies    |
+| [security.md](security.md)                             | Security model  |
+| [troubleshooting.md](troubleshooting.md)               | Troubleshooting |
 
 ## Architecture
 
