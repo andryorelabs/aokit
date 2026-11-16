@@ -2,6 +2,7 @@ import { afterAll, expect, test } from "bun:test";
 import { mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
+
 import { runCommand, type CommandContext } from "../../src/cli/command.ts";
 import { createCommand } from "../../src/cli/commands/create.ts";
 import { doctorCommand } from "../../src/cli/commands/doctor.ts";
@@ -53,7 +54,7 @@ test("a Registry whose source cannot be parsed is reported as a Registry problem
   const directory = await createProject();
   rewriteLockfile(directory, (lockfile) => {
     const registries = objectAt(lockfile, "registries");
-    objectAt(lockfile, "registries", firstKey(registries))["source"] = "github:not-a-source";
+    objectAt(lockfile, "registries", firstKey(registries)).source = "github:not-a-source";
   });
   const found = await problems(directory);
   expect(found.some((problem) => problem.kind === "registry")).toBe(true);
@@ -65,7 +66,7 @@ test("a Module version the Registry does not publish is reported", async () => {
   rewriteLockfile(directory, (lockfile) => {
     const modules = objectAt(lockfile, "modules");
     name = firstKey(modules);
-    objectAt(lockfile, "modules", name)["version"] = "99.0.0";
+    objectAt(lockfile, "modules", name).version = "99.0.0";
   });
   const found = await problems(directory);
   const missing = found.find((problem) => problem.message.includes(`${name}@99.0.0`));

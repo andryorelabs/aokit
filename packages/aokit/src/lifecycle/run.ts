@@ -1,15 +1,17 @@
 import { readFile } from "node:fs/promises";
 import { join } from "node:path";
-import { apply, lockfileName, type ConflictWrite } from "../apply/index.ts";
+
 import { conflictFile } from "../apply/conflicts.ts";
+import { apply, lockfileName, type ConflictWrite } from "../apply/index.ts";
 import { lockfileMissingError } from "../cli/errors.ts";
-import { Vfs, type FileContent } from "../engine/vfs.ts";
 import type { Plan } from "../engine/plan.ts";
+import { Vfs, type FileContent } from "../engine/vfs.ts";
+import { processEnvironment } from "../env.ts";
 import { assertCleanTree, openGit } from "../git/index.ts";
 import { readLockfile } from "../lockfile/index.ts";
 import type { Lockfile } from "../lockfile/schema.ts";
-import { createMerger } from "../merger/index.ts";
 import { mergeProject, type DriftOf } from "../merge/index.ts";
+import { createMerger } from "../merger/index.ts";
 import type { BuiltProject } from "../pipeline/build.ts";
 import { unifiedDiff } from "../project/diff.ts";
 import { runInstall } from "../project/install.ts";
@@ -182,7 +184,8 @@ export async function runLifecycle(input: LifecycleInput): Promise<LifecycleResu
     });
   }
   const shouldInstall = input.install && packageJsonChanged(merged.plan);
-  if (shouldInstall) await (input.installer ?? ((dir) => runInstall(dir, process.env)))(input.dir);
+  if (shouldInstall)
+    await (input.installer ?? ((dir) => runInstall(dir, processEnvironment())))(input.dir);
   return { ...result, applied: true, installed: shouldInstall, stashKept: keepStash };
 }
 

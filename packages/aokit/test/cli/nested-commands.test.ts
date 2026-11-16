@@ -1,5 +1,7 @@
 import { expect, test } from "bun:test";
+
 import { z } from "zod";
+
 import { runCli, type CliIo } from "../../src/cli/adapter.ts";
 import { defineCommand } from "../../src/cli/command.ts";
 import { exposedCommands } from "../../src/cli/commands/registry.ts";
@@ -23,7 +25,7 @@ const silentIo: CliIo = { stdout: () => undefined, stderr: () => undefined, isTT
 
 async function runAokit(
   argv: string[],
-  hidden: boolean = false,
+  hidden = false,
 ): Promise<{ exitCode: number; stdout: string; stderr: string }> {
   let stdout = "";
   let stderr = "";

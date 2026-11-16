@@ -1,7 +1,9 @@
 import { readFile } from "node:fs/promises";
 import { join, resolve } from "node:path";
-import { z } from "zod";
+
 import { catalogSchema, ManifestError, type ModuleManifest, parseManifest } from "@aokit/module";
+import { z } from "zod";
+
 import { meetsMinCliVersion, minCliVersionFix } from "../cli/min-cli-version.ts";
 import { RegistryError } from "./errors.ts";
 import {

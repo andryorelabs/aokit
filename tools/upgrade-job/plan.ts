@@ -62,21 +62,23 @@ export function indexAtRelease(
   catalogModules: Record<string, string>,
 ): RegistryIndex {
   const copy = structuredClone(index);
-  for (const later of Object.keys(index.releases)) {
-    if (bySemver(later, release) > 0) delete copy.releases[later];
-  }
+  copy.releases = Object.fromEntries(
+    Object.entries(copy.releases).filter(([later]) => bySemver(later, release) <= 0),
+  );
   copy.release = release;
+  const keptModules: typeof copy.modules = {};
   for (const [name, entry] of Object.entries(copy.modules)) {
     const pinned = catalogModules[name];
     if (pinned === undefined || entry.versions[pinned] === undefined) {
-      delete copy.modules[name];
       continue;
     }
-    for (const version of Object.keys(entry.versions)) {
-      if (bySemver(version, pinned) > 0) delete entry.versions[version];
-    }
+    entry.versions = Object.fromEntries(
+      Object.entries(entry.versions).filter(([version]) => bySemver(version, pinned) <= 0),
+    );
     entry.latest = pinned;
+    keptModules[name] = entry;
   }
+  copy.modules = keptModules;
   return copy;
 }
 
@@ -166,7 +168,11 @@ export function planEdits(
 
 /** Content of the edited file for `edit`, given the current `content` ("" for a new file). */
 export function applyEdit(edit: Edit, content: string): string {
-  if (edit.kind === "managed-json") return content.replace("{", `{\n  "${edit.marker}": true,`);
+  if (edit.kind === "managed-json") {
+    const openBrace = content.indexOf("{");
+    if (openBrace === -1) return content;
+    return `${content.slice(0, openBrace + 1)}\n  "${edit.marker}": true,${content.slice(openBrace + 1)}`;
+  }
   if (edit.kind === "user-import") {
     return `import { ${edit.marker} } from "${edit.importFrom ?? "./routes"}";\n\nexport { ${edit.marker} };\n`;
   }

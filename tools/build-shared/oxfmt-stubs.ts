@@ -18,7 +18,10 @@ const stubFilter = new RegExp(
 
 /** Source of a stub module whose exports throw `"<name> is not bundled with aokit"` when called. */
 export function stubModuleSource(packageName: string): string {
-  const message = JSON.stringify(`${packageName} is not bundled with aokit`);
+  const message = JSON.stringify(`${packageName} is not bundled with aokit`).replace(
+    /[<>/\u2028\u2029]/g,
+    (character) => `\\u${character.charCodeAt(0).toString(16).padStart(4, "0")}`,
+  );
   return [
     `function notBundled() { throw new Error(${message}); }`,
     "export const parse = notBundled;",

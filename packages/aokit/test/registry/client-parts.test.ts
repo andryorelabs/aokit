@@ -1,5 +1,6 @@
 import { describe, expect, test } from "bun:test";
 import { resolve } from "node:path";
+
 import {
   allInOrder,
   byCodepoint,
@@ -19,13 +20,13 @@ import {
   parseModuleManifest,
 } from "../../src/registry/client/module-version.ts";
 import { openRegistry } from "../../src/registry/client/open.ts";
-import { openShadcnRegistry } from "../../src/registry/client/shadcn.ts";
 import {
   asIntegrity,
   hostScope,
   scopeOf,
   splitModuleKey,
 } from "../../src/registry/client/shadcn-items.ts";
+import { openShadcnRegistry } from "../../src/registry/client/shadcn.ts";
 import { computeIntegrity, RegistryError } from "../../src/registry/index.ts";
 import { fixtureItems } from "../registry-shadcn/served-shadcn-registry.ts";
 
@@ -70,7 +71,9 @@ async function caughtCode(run: () => unknown): Promise<string | undefined> {
 describe("common", () => {
   test("allInOrder rethrows the earliest rejection in input order", async () => {
     const late = new Promise<number>((_, reject) => {
-      setTimeout(() => reject(new Error("first")), 5);
+      setTimeout(() => {
+        reject(new Error("first"));
+      }, 5);
     });
     const failure = await allInOrder([late, Promise.reject(new Error("second"))]).catch(
       (error: unknown) => error,
@@ -87,9 +90,9 @@ describe("common", () => {
   });
 
   test("verifyIntegrity refuses a mismatch", async () => {
-    const code = await caughtCode(() =>
-      verifyIntegrity(computeIntegrity("a"), computeIntegrity("b"), "subject", { registry: "r" }),
-    );
+    const code = await caughtCode(() => {
+      verifyIntegrity(computeIntegrity("a"), computeIntegrity("b"), "subject", { registry: "r" });
+    });
     expect(code).toBe("REGISTRY_INTEGRITY_MISMATCH");
   });
 });
@@ -106,7 +109,11 @@ describe("index file", () => {
       { cliVersion },
     );
     const index = parseIndex(transport, await transport.read("index.json"));
-    expect(await caughtCode(() => checkCliVersion(index, "0.0.1"))).toBe("REGISTRY_CLI_TOO_OLD");
+    expect(
+      await caughtCode(() => {
+        checkCliVersion(index, "0.0.1");
+      }),
+    ).toBe("REGISTRY_CLI_TOO_OLD");
     const pointer = index.releases[index.release];
     if (pointer === undefined) throw new Error("the built Registry has no current Catalog");
     const catalog = await readCatalog(transport, index.name, index.release, pointer);

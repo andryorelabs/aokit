@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import type { ReactNode } from "react";
+
 import { Providers } from "../providers";
 // oxlint-disable-next-line import/no-unassigned-import -- the side-effect import registers the stylesheets
 import "../styles";

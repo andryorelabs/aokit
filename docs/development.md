@@ -12,17 +12,20 @@ How to set up the repository, run its scripts and what the git hooks check. Term
 
 Run every script from the root with `bun run <script>`.
 
-| Script                | What it does                                                                                       |
-| --------------------- | -------------------------------------------------------------------------------------------------- |
-| `check`               | Typecheck, lint, format check and knip.                                                            |
-| `test`                | All tests, with the coverage gate.                                                                 |
-| `fix`                 | Formats with Oxfmt, then applies Oxlint fixes.                                                     |
-| `format:check`        | Fails when a file is not formatted.                                                                |
-| `format:write`        | Formats every file with Oxfmt.                                                                     |
-| `lint:docs`           | Checks Markdown links.                                                                             |
-| `lint:commits`        | Checks the last commit message with commitlint.                                                    |
-| `ci:local`            | Runs the frozen install, `check`, `lint:docs`, `test` and `lint:commits`, as CI does.              |
-| `repo-settings:check` | Compares the live GitHub settings with the files. See [Repository settings](#repository-settings). |
+| Script                | What it does                                                                                          |
+| --------------------- | ----------------------------------------------------------------------------------------------------- |
+| `check`               | Typecheck, lint, format check, knip and `check:package` (build, package lint and size budget).        |
+| `test`                | All tests, with the coverage gate.                                                                    |
+| `fix`                 | Alias of `lint:fix`.                                                                                  |
+| `lint:fix`            | Formats with Oxfmt, then applies Oxlint fixes.                                                        |
+| `test:coverage`       | Runs the tests with the coverage gate.                                                                |
+| `cache:clear`         | Removes `node_modules/.cache` and `coverage`.                                                         |
+| `format:check`        | Fails when a file is not formatted.                                                                   |
+| `format:write`        | Formats every file with Oxfmt.                                                                        |
+| `lint:docs`           | Checks Markdown links.                                                                                |
+| `lint:commits`        | Lints every commit from the merge base with `origin/develop` to `HEAD`; fetch `origin develop` first. |
+| `ci:local`            | Runs the frozen install, `check`, `lint:docs`, `test` and `lint:commits`, as CI does.                 |
+| `repo-settings:check` | Compares the live GitHub settings with the files. See [Repository settings](#repository-settings).    |
 
 Do not run `build:package` or `build:binary` unless a change needs them.
 
@@ -42,12 +45,13 @@ Rules for tooling, TypeScript, dependencies, docs and tests are in [docs/standar
 
 GitHub settings live as code, as rules A1 to A8 of [repo settings](standards/repo-settings.md) require.
 
-| File                            | What it holds                                                                                                                                                          |
-| ------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `.github/settings.json`         | `repository`: merge options, features, description, homepage and topics. `security`: secret scanning, push protection, Dependabot and private vulnerability reporting. |
-| `.github/rulesets/main.json`    | The ruleset for `main`.                                                                                                                                                |
-| `.github/rulesets/develop.json` | The ruleset for `develop`.                                                                                                                                             |
-| `.github/rulesets/tags.json`    | The ruleset for tags.                                                                                                                                                  |
+| File                            | What it holds                                                                                                                                                                                                                                                                                                                                             |
+| ------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `.github/repo-settings.json`    | `repository`: default branch, merge options, features, description, homepage and topics. `security`: secret scanning, push protection, Dependabot and private vulnerability reporting. `actions`: read-only `GITHUB_TOKEN` default and fork pull request approval. `code_scanning`: CodeQL default setup, off because `codeql.yml` is the advanced setup. |
+| `.github/rulesets/README.md`    | What each ruleset file holds and how it is checked.                                                                                                                                                                                                                                                                                                       |
+| `.github/rulesets/main.json`    | The ruleset for `main`.                                                                                                                                                                                                                                                                                                                                   |
+| `.github/rulesets/develop.json` | The ruleset for `develop`.                                                                                                                                                                                                                                                                                                                                |
+| `.github/rulesets/tags.json`    | The ruleset for tags.                                                                                                                                                                                                                                                                                                                                     |
 
 ### Check for drift
 
@@ -64,8 +68,16 @@ Applying is a manual step for a repository admin, after the change to the files 
 Repository options and topics:
 
 ```sh
-jq '.repository | del(.topics)' .github/settings.json | gh api -X PATCH repos/andryorelabs/aokit --input -
-jq '{names: .repository.topics}' .github/settings.json | gh api -X PUT repos/andryorelabs/aokit/topics --input -
+jq '.repository | del(.topics)' .github/repo-settings.json | gh api -X PATCH repos/andryorelabs/aokit --input -
+jq '{names: .repository.topics}' .github/repo-settings.json | gh api -X PUT repos/andryorelabs/aokit/topics --input -
+```
+
+Actions token, fork pull request approval and CodeQL default setup, as in `actions` and `code_scanning`:
+
+```sh
+jq '.actions | del(.fork_pr_contributor_approval)' .github/repo-settings.json | gh api -X PUT repos/andryorelabs/aokit/actions/permissions/workflow --input -
+jq '{approval_policy: .actions.fork_pr_contributor_approval}' .github/repo-settings.json | gh api -X PUT repos/andryorelabs/aokit/actions/permissions/fork-pr-contributor-approval --input -
+jq '{state: .code_scanning.default_setup}' .github/repo-settings.json | gh api -X PATCH repos/andryorelabs/aokit/code-scanning/default-setup --input -
 ```
 
 Security features, all on in `security`:

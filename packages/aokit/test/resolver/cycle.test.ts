@@ -1,5 +1,7 @@
 import { expect, test } from "bun:test";
+
 import { parseManifest } from "@aokit/module";
+
 import { resolve } from "../../src/resolver/resolve.ts";
 
 function mod(name: string, provides: string[], requires: string[]) {

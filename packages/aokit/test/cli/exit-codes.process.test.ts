@@ -1,6 +1,7 @@
 import { afterAll, afterEach, describe, expect, test } from "bun:test";
 import { rm, writeFile } from "node:fs/promises";
 import { join } from "node:path";
+
 import {
   builtRegistry,
   cleanTemporaryDirectories,
@@ -8,8 +9,8 @@ import {
   editLockfileJson,
 } from "../diff/support.ts";
 import { spawnAokit as spawnAokitProcess } from "../helpers/aokit-process.ts";
-import { commitAll, createProject, git, newWorkspace } from "../restore/helpers.ts";
 import { jsonAt } from "../helpers/cli-json.ts";
+import { commitAll, createProject, git, newWorkspace } from "../restore/helpers.ts";
 
 const workspace = newWorkspace();
 
@@ -46,7 +47,7 @@ describe("exit codes through a real process", () => {
       await writeFile(path, text.replace('version: "1.0.0",', 'version: "1.1.0",'), "utf8");
     });
     await editLockfileJson(project, (lockfile) => {
-      const registries: unknown = lockfile["registries"];
+      const registries: unknown = lockfile.registries;
       const official = jsonAt(registries, "official");
       if (typeof official !== "object" || official === null) {
         throw new Error("official registry missing from lockfile");

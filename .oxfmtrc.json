@@ -9,6 +9,13 @@
     "dist/**",
     "schema/**",
     "registry/modules/**/migrations/**",
+    "registry/modules/**/files/**",
     "LICENSE"
-  ]
+  ],
+  "sortImports": {
+    "groups": ["builtin", "external", "internal", ["parent", "sibling", "index"], "unknown"],
+    "internalPattern": ["@/"],
+    "ignoreCase": true,
+    "newlinesBetween": true
+  }
 }

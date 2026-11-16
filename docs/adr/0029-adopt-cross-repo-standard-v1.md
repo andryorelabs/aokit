@@ -2,6 +2,7 @@
 
 Status: Accepted (2026-11-11)
 Revised: 2026-11-11 — the branch model is a must: `develop` is promoted to `main` by merge commit
+Revised: 2026-11-15 — aokit adopts standard v2 (rules V01 to V44, IDs continuing each standards page), with its own N-A list and the deferred site, `install.sh` and plugin work
 Spec: S1 to S8 (Standard v1 spec)
 Architecture: [Standards](../standards/README.md)
 
@@ -24,6 +25,15 @@ Rules that do not apply to aokit:
 - G3, site footer credit: aokit has no product site yet. It applies once `aokit.andryore.dev` exists; the GitHub homepage changes to that address at the same time.
 - B6, `FUNDING.yml`: kept in andryore-web only.
 - B5, `ROADMAP.md` and `PRODUCT.md`: optional, not adopted.
+
+### Standard v2 (revised 2026-11-15)
+
+The same six sessions agreed standard v2: 44 further rules, V01 to V44, each with a level (must, should, may), the project types it applies to and an ID that continues the letter series of the [standards](../standards/README.md) page that holds it. A new page, [product types](../standards/product-types.md), carries the CLI, plugin, site and bilingual rules under the letter I. The v2 text is the single source; v1 rules keep their IDs.
+
+- aokit adopts standard v2. Rules that do not apply to aokit, by v2 number: V09 (accessibility and design files, no site or UI), V10 (privacy policy, no user data), V17 (`lint:parity`, the ESLint companion is not used), V27 (flaky-on-retry summary, no E2E suite), V34 (site build, no site), V40 (plugin contract, no plugin) and V41 and V42 (site and bilingual rules).
+- Deferred, not rejected: the aokit site (G3 footer credit, V08 for the site, V41), `install.sh`, and a Claude Code plugin. Each applies when it ships.
+- The standards README links the six adoption ADRs instead of copying their N-A lists, so a list is edited in one place only.
+- aokit closes its own v2 gaps in separate tickets, citing the rule IDs in commits and ADR text.
 
 ## Consequences
 

@@ -1,5 +1,7 @@
 import { isDeepStrictEqual } from "node:util";
+
 import { applyEdits, modify, parse, type ParseError } from "jsonc-parser";
+
 import { mergeJsonc, type JsoncValue } from "../../patchers/jsonc/index.ts";
 
 /** The MCP clients `mcp init` can register the server in. */
@@ -25,10 +27,10 @@ export class InvalidClientConfigError extends Error {
 export interface JsonClientLayout {
   readonly path: string;
   readonly key: "mcpServers" | "servers";
-  readonly entry: { [key: string]: JsoncValue };
+  readonly entry: Record<string, JsoncValue>;
 }
 
-function stdioEntry(): { [key: string]: JsoncValue } {
+function stdioEntry(): Record<string, JsoncValue> {
   return { command: "bunx", args: ["aokit", "mcp"] };
 }
 

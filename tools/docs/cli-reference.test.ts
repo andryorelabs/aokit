@@ -1,6 +1,7 @@
 import { describe, expect, test } from "bun:test";
 import { readdirSync, readFileSync } from "node:fs";
 import { join, resolve } from "node:path";
+
 import { exposedCommands, hiddenCommands } from "../../packages/aokit/src/cli/commands/registry.ts";
 import { errorCodeExitCodes, exitCodes } from "../../packages/aokit/src/cli/exit-codes.ts";
 

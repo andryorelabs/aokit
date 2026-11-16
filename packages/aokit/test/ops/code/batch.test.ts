@@ -1,11 +1,12 @@
 import { expect, test } from "bun:test";
+
+import { EditError } from "../../../src/edit/errors.ts";
 import {
   type EngineContext,
   type EngineModule,
   type OpHandler,
   buildPlan,
 } from "../../../src/engine/index.ts";
-import { EditError } from "../../../src/edit/errors.ts";
 import { codeOpHandlers } from "../../../src/ops/code/index.ts";
 import { fixtureManifest } from "../../helpers/fixture-manifest.ts";
 

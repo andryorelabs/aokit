@@ -1,0 +1,16 @@
+import { betterAuth } from "better-auth";
+import { prismaAdapter } from "better-auth/adapters/prisma";
+import { createPrismaClient } from "{{import:db:client}}";
+
+const prisma = createPrismaClient(process.env.DATABASE_URL ?? "");
+
+/**
+ * The server-side Better Auth instance, backed by the Prisma client and Postgres.
+ * `BETTER_AUTH_SECRET` and `BETTER_AUTH_URL` come from the environment.
+ */
+export const auth = betterAuth({
+  database: prismaAdapter(prisma, { provider: "postgresql" }),
+  secret: process.env.BETTER_AUTH_SECRET,
+  baseURL: process.env.BETTER_AUTH_URL,
+  emailAndPassword: { enabled: true },
+});

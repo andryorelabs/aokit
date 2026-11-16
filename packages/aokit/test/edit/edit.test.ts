@@ -1,10 +1,12 @@
 import { expect, test } from "bun:test";
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
+
 import { createEditBatch } from "../../src/edit/batch.ts";
 import { editDefineConfig } from "../../src/edit/config.ts";
 import { EditError } from "../../src/edit/errors.ts";
 import { languageOf, locateAnchor, parseSource } from "../../src/edit/locate.ts";
+import { defined } from "../helpers/defined.ts";
 
 const fixtureDirectory = join(import.meta.dir, "fixtures");
 const moduleOrder = ["base", "auth", "db"];
@@ -29,7 +31,10 @@ test("untouched source stays byte-identical outside the edited span", () => {
   const source = readFixture("providers.fixture");
   const parsed = parseSource("providers.fixture", source);
   const providers = locateAnchor(parsed, "providers");
-  const lastEntry = providers.value!.entries.at(-1)!;
+  const lastEntry = defined(
+    defined(providers.value, "the providers value").entries.at(-1),
+    "the last providers entry",
+  );
   const batch = createEditBatch({ fileName: "providers.fixture", source, moduleOrder });
   batch.insert("auth", lastEntry.end + 1, "\n  extraProvider(),");
   const result = batch.apply();
@@ -85,12 +90,20 @@ test("same-offset inserts follow canonical Module order, not call order", () => 
 
 test("an edit from a Module outside the canonical order is rejected", () => {
   const batch = createEditBatch({ fileName: "a.ts", source: "ab", moduleOrder });
-  expect(captureEditError(() => batch.insert("ghost", 1, "x")).code).toBe("edit.unknown-module");
+  expect(
+    captureEditError(() => {
+      batch.insert("ghost", 1, "x");
+    }).code,
+  ).toBe("edit.unknown-module");
 });
 
 test("an out-of-range edit is rejected", () => {
   const batch = createEditBatch({ fileName: "a.ts", source: "ab", moduleOrder });
-  expect(captureEditError(() => batch.replace("auth", 1, 9, "x")).code).toBe("edit.out-of-range");
+  expect(
+    captureEditError(() => {
+      batch.replace("auth", 1, 9, "x");
+    }).code,
+  ).toBe("edit.out-of-range");
 });
 
 test("a missing anchor fails naming the anchor and the file", () => {
@@ -107,11 +120,13 @@ test("anchors are top-level declaration names with their value spans", () => {
   const providers = locateAnchor(parsed, "providers");
   expect(providers.value?.kind).toBe("array");
   expect(providers.value?.entries).toHaveLength(2);
-  expect(source.slice(providers.value!.start, providers.value!.start + 1)).toBe("[");
+  const providersValue = defined(providers.value, "the providers value");
+  expect(source.slice(providersValue.start, providersValue.start + 1)).toBe("[");
   const settings = locateAnchor(parsed, "settings");
   expect(settings.value?.kind).toBe("object");
   expect(settings.value?.entries).toHaveLength(2);
-  expect(source.slice(settings.value!.start, settings.value!.end).startsWith("{")).toBe(true);
+  const settingsValue = defined(settings.value, "the settings value");
+  expect(source.slice(settingsValue.start, settingsValue.end).startsWith("{")).toBe(true);
   for (const name of ["authProvider", "dbProvider", "Registry", "Mode", "answer"]) {
     expect(locateAnchor(parsed, name).name).toBe(name);
   }
@@ -132,7 +147,7 @@ test("an unparsable file fails with the file name", () => {
 test("editDefineConfig edits export default defineConfig({...}) and keeps the rest", () => {
   const source = readFixture("vite.config.fixture");
   const result = editDefineConfig("vite.config.fixture", source, (config) => {
-    config["base"] = "/app/";
+    config.base = "/app/";
   });
   expect(result).toContain('base: "/app/"');
   expect(result).toContain("// project config");

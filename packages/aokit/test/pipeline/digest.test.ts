@@ -1,6 +1,7 @@
-import { createHash } from "node:crypto";
 import { expect, test } from "bun:test";
+import { createHash } from "node:crypto";
 import { writeFile } from "node:fs/promises";
+
 import { buildProject } from "../../src/pipeline/index.ts";
 import { input } from "./fixtures.ts";
 
@@ -23,7 +24,7 @@ test("prints the determinism digest and writes it to AOKIT_DIGEST_FILE when set"
   expect(await digestLines()).toEqual(lines);
   const text = `${lines.join("\n")}\n`;
   process.stdout.write(`determinism digest\n${text}`);
-  const target = process.env["AOKIT_DIGEST_FILE"];
+  const target = process.env.AOKIT_DIGEST_FILE;
   if (target !== undefined && target !== "") {
     await writeFile(target, text);
   }

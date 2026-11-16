@@ -1,10 +1,10 @@
 import type { Op } from "@aokit/module";
 import { type Node, findNodeAtLocation, parseTree } from "jsonc-parser";
+
+import type { Target } from "../../engine/layout.ts";
 import type { DeclaredExtensionPoint, OpContext } from "../../engine/ops.ts";
 import { resolveExtensionPoint } from "../extension-point.ts";
 import { DataOpError } from "./errors.ts";
-
-import type { Target } from "../../engine/layout.ts";
 
 /** The Ops that write a file and may address an Extension point instead of a path. */
 export type DataOp = Extract<

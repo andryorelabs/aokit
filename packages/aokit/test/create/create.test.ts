@@ -10,17 +10,19 @@ import {
 } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
+
 import { parseManifest } from "@aokit/module";
 import { z } from "zod";
+
 import { runCli, type CliIo } from "../../src/cli/adapter.ts";
 import { runCommand } from "../../src/cli/command.ts";
 import { createCommand } from "../../src/cli/commands/create.ts";
 import { exposedCommands } from "../../src/cli/commands/registry.ts";
+import { cliVersion } from "../../src/cli/version.ts";
 import { parseAnswers, completeAnswers } from "../../src/project/answers.ts";
 import { reproduceCommand } from "../../src/project/reproduce.ts";
-import { cliVersion } from "../../src/cli/version.ts";
-import { parseJsonRecord, parseJsonText, parseLockfileJson } from "../helpers/registry-json.ts";
 import { aokitCommand, spawnAokit as spawnAokitProcess } from "../helpers/aokit-process.ts";
+import { parseJsonRecord, parseJsonText, parseLockfileJson } from "../helpers/registry-json.ts";
 
 /** These tests put a `#!/bin/sh` shim named `bun` on a `:`-joined PATH and send POSIX signals, neither of which exists on Windows. */
 const posixShellTest = process.platform === "win32" ? test.skip : test;
@@ -139,7 +141,7 @@ describe("aokit create", () => {
     expect(envelope.data?.applied).toBe(true);
     expect(envelope.data?.installed).toBe(false);
     expect(envelope.data?.modules).toEqual(["oxc", "vite-react"]);
-    const rawData = z.record(z.string(), z.unknown()).parse(rawEnvelope["data"]);
+    const rawData = z.record(z.string(), z.unknown()).parse(rawEnvelope.data);
     expect(Object.keys(rawData)).toEqual(Object.keys(rawData).toSorted());
     const lockfile = parseLockfileJson(readFileSync(join(target, "aokit.lock.json"), "utf8"));
     expect(Object.keys(lockfile.modules)).toEqual(["oxc", "vite-react"]);
@@ -277,7 +279,7 @@ describe("aokit create", () => {
       chmodSync(join(fakeBin, "bun"), 0o755);
       const target = join(parent, "app");
       const result = await spawnAokit(["create", target, "--modules", "oxc", "--json"], {
-        PATH: `${fakeBin}:${process.env["PATH"] ?? ""}`,
+        PATH: `${fakeBin}:${process.env.PATH ?? ""}`,
       });
       expect(result.exitCode).toBe(1);
       const { fix } = envelopeError(result.stdout);
@@ -297,7 +299,7 @@ describe("aokit create", () => {
       {
         stdout: "pipe",
         stderr: "pipe",
-        env: { ...process.env, PATH: `${fakeBin}:${process.env["PATH"] ?? ""}` },
+        env: { ...process.env, PATH: `${fakeBin}:${process.env.PATH ?? ""}` },
       },
     );
     await waitForFile(join(parent, "app", "aokit.lock.json"), 200);
@@ -374,7 +376,7 @@ describe("reproduceCommand", () => {
     );
   });
 
-  test("create --modules vite-react renders src/router.tsx from vite-react 1.3.0", async () => {
+  test("create --modules vite-react renders src/router.tsx from vite-react 1.4.0", async () => {
     const target = join(workspace(), "app");
     const result = await runAokit([
       "create",
@@ -389,6 +391,6 @@ describe("reproduceCommand", () => {
     expect(readFileSync(join(target, "src", "router.tsx"), "utf8")).toContain("routes");
     expect(readFileSync(join(target, "src", "main.tsx"), "utf8")).toContain('from "./router"');
     expect(existsSync(join(target, "src", "routes.tsx"))).toBe(false);
-    expect(readFileSync(join(target, "aokit.lock.json"), "utf8")).toContain('"version": "1.3.0"');
+    expect(readFileSync(join(target, "aokit.lock.json"), "utf8")).toContain('"version": "1.4.0"');
   });
 });

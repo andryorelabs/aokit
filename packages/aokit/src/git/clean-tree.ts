@@ -1,8 +1,9 @@
 import { readFile } from "node:fs/promises";
 import { join } from "node:path";
+
 import { AokitError } from "../cli/envelope.ts";
-import type { Lockfile } from "../lockfile/schema.ts";
 import { hashTrackedFile, volatileHash } from "../drift/hash.ts";
+import type { Lockfile } from "../lockfile/schema.ts";
 import { openGit } from "./git.ts";
 
 /** Options of {@link assertCleanTree}. */

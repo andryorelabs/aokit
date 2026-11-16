@@ -1,6 +1,7 @@
 import { afterEach, expect, test } from "bun:test";
 import { readFile, rm, writeFile } from "node:fs/promises";
 import { join } from "node:path";
+
 import { runCommand } from "../../src/cli/command.ts";
 import { addCommand } from "../../src/cli/commands/add.ts";
 import { createCommand } from "../../src/cli/commands/create.ts";
@@ -68,11 +69,11 @@ test("add --registry <url> --trust reads only that Module, records trust and sho
   });
   expect(envelope).toMatchObject({ ok: true });
   const lockfile = await readLockfileJson(project);
-  expect(lockfile.registries["acme"]).toMatchObject({ source: server.url, trusted: true });
-  expect(lockfile.registries["official"]).toMatchObject({ source: "bundled" });
-  expect(lockfile.registries["official"]?.["trusted"]).toBeUndefined();
-  expect(lockfile.modules["knip"]?.["registry"]).toBe("acme");
-  expect(lockfile.modules["oxc"]?.["registry"]).toBe("official");
+  expect(lockfile.registries.acme).toMatchObject({ source: server.url, trusted: true });
+  expect(lockfile.registries.official).toMatchObject({ source: "bundled" });
+  expect(lockfile.registries.official?.trusted).toBeUndefined();
+  expect(lockfile.modules.knip?.registry).toBe("acme");
+  expect(lockfile.modules.oxc?.registry).toBe("official");
   expect(envelope.ok && envelope.data).toMatchObject({
     fetched: [
       {
@@ -107,10 +108,10 @@ test("without --registry a remote Registry wins over the bundled one, and locked
   });
   expect(second).toMatchObject({ ok: true });
   const lockfile = await readLockfileJson(project);
-  expect(lockfile.modules["docker"]?.["registry"]).toBe("acme");
-  expect(lockfile.modules["knip"]?.["registry"]).toBe("acme");
-  expect(lockfile.modules["oxc"]?.["registry"]).toBe("official");
-  expect(lockfile.registries["acme"]?.["trusted"]).toBe(true);
+  expect(lockfile.modules.docker?.registry).toBe("acme");
+  expect(lockfile.modules.knip?.registry).toBe("acme");
+  expect(lockfile.modules.oxc?.registry).toBe("official");
+  expect(lockfile.registries.acme?.trusted).toBe(true);
 });
 
 test("two Registries declaring one name with different sources fail with INVALID_INPUT naming both", async () => {
@@ -136,7 +137,7 @@ test("a network failure midway through add leaves the Project and Lockfile byte-
   const context = await isolatedContext();
   const project = await createBundledProject(context);
   const server = served(await namedRegistryCopy("acme"));
-  server.failPaths.add("modules/knip/1.1.0/files/knip.json");
+  server.failPaths.add("modules/knip/1.1.1/files/knip.json");
   const before = await snapshotTree(project);
   const envelope = await runCommand(addCommand, context, {
     ...addDefaults,
@@ -147,7 +148,7 @@ test("a network failure midway through add leaves the Project and Lockfile byte-
   });
   expect(envelope).toMatchObject({ ok: false, error: { code: "REGISTRY_FETCH_FAILED" } });
   expect(exitCodeForEnvelope(envelope)).toBe(1);
-  expect(server.requests).toContain("modules/knip/1.1.0/files/knip.json");
+  expect(server.requests).toContain("modules/knip/1.1.1/files/knip.json");
   expect(await snapshotTree(project)).toEqual(before);
 });
 
@@ -174,8 +175,8 @@ test("diff and remove read a trusted remote Registry offline from the warm cache
   });
   expect(removed).toMatchObject({ ok: true });
   const lockfile = await readLockfileJson(project);
-  expect(lockfile.modules["knip"]).toBeUndefined();
-  expect(lockfile.registries["acme"]).toBeUndefined();
+  expect(lockfile.modules.knip).toBeUndefined();
+  expect(lockfile.registries.acme).toBeUndefined();
 });
 
 test("an edited kept index with a planted cache entry never authenticates a Module offline", async () => {
@@ -191,7 +192,7 @@ test("an edited kept index with a planted cache entry never authenticates a Modu
   });
   expect(added).toMatchObject({ ok: true });
   await server.stop();
-  const cacheRoot = join(context.env["XDG_CACHE_HOME"] ?? "", "aokit");
+  const cacheRoot = join(context.env.XDG_CACHE_HOME ?? "", "aokit");
   const cache = createRegistryCache({ dir: join(cacheRoot, "registry") });
   const genuine = await cache.get(lockedIntegrity(await readLockfileJson(project), "knip"));
   if (genuine === undefined) throw new Error("knip was not cached by add");
@@ -206,7 +207,7 @@ test("an edited kept index with a planted cache entry never authenticates a Modu
     `${new Bun.CryptoHasher("sha256").update(`${server.url}/index.json`).digest("hex")}.json`,
   );
   await editJson(keptIndex, (index) => {
-    const entry = childOf(index, ["modules", "knip", "versions", "1.1.0"]);
+    const entry = childOf(index, ["modules", "knip", "versions", "1.1.1"]);
     Reflect.set(entry, "integrity", forgedIntegrity);
     Reflect.set(childOf(entry, ["files"]), "files/knip.json", computeIntegrity(forgedFile));
   });
@@ -239,16 +240,16 @@ test("an edited kept index and Catalog never write forged dependency versions of
   await rm(join(project, "README.md"), { force: true });
   expect(created).toMatchObject({ ok: true });
   const lockfile = await readLockfileJson(project);
-  expect(lockfile.deps["oxlint"]).toMatchObject({ source: "catalog" });
+  expect(lockfile.deps.oxlint).toMatchObject({ source: "catalog" });
   await server.stop();
   const keptCopy = (url: string): string =>
     join(
-      context.env["XDG_CACHE_HOME"] ?? "",
+      context.env.XDG_CACHE_HOME ?? "",
       "aokit",
       "registry-index",
       `${new Bun.CryptoHasher("sha256").update(url).digest("hex")}.json`,
     );
-  const release: string = lockfile.registries["acme"]?.["release"] ?? "";
+  const release: string = lockfile.registries.acme?.release ?? "";
   const catalogPath = `catalog/${release}.json`;
   let forgedCatalog = "";
   await editJson(keptCopy(`${server.url}/${catalogPath}`), (catalog) => {

@@ -1,10 +1,12 @@
 import { expect, test } from "bun:test";
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
+
 import { parseManifest } from "@aokit/module";
 import { z } from "zod";
-import { type EngineContext, type EngineModule, buildPlan } from "../../src/engine/index.ts";
+
 import t3Env from "../../../../registry-src/t3-env/module.ts";
+import { type EngineContext, type EngineModule, buildPlan } from "../../src/engine/index.ts";
 import { buildSelection, draftCatalog } from "./support/index.ts";
 
 const context: EngineContext = { now: new Date(0), random: () => 0.5, env: {} };
@@ -49,7 +51,7 @@ test.each([
   expect(text).toContain("const client = {};");
   const parsed = packageSchema.parse(JSON.parse(String(built.plan.vfs.read(manifest))));
   expect(parsed.dependencies["@t3-oss/env-core"]).toBe("^0.13.11");
-  expect(parsed.dependencies["zod"]).toBe("^4.6.7");
+  expect(parsed.dependencies.zod).toBe("^4.6.7");
 });
 
 test("t3-env appends its agents Region", async () => {

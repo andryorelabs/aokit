@@ -1,5 +1,7 @@
 import { expect, test } from "bun:test";
+
 import { type Catalog, type ModuleManifestInput, catalogSchema } from "@aokit/module";
+
 import {
   type EngineContext,
   type EngineModule,
@@ -202,9 +204,9 @@ test("applyDeps in single writes ranges and exact pins, and records them", () =>
   const vfs = Vfs.empty();
   const recorded = applyDeps(depsOptions("single", "root", vfs));
   const pkg = readJson(vfs.read("package.json"));
-  expect(pkg["dependencies"]).toEqual({ next: "^16.0.0" });
-  expect(pkg["devDependencies"]).toEqual({ oxlint: "1.90.0" });
-  expect(pkg["catalog"]).toBeUndefined();
+  expect(pkg.dependencies).toEqual({ next: "^16.0.0" });
+  expect(pkg.devDependencies).toEqual({ oxlint: "1.90.0" });
+  expect(pkg.catalog).toBeUndefined();
   expect(recorded).toEqual({
     next: { version: "^16.0.0", pinned: false, source: "catalog" },
     oxlint: { version: "1.90.0", pinned: true, source: "catalog" },
@@ -219,11 +221,11 @@ test("applyDeps in monorepo gives workspace packages bare catalog: and the root 
   vfs.write("package.json", '{ "name": "root" }\n');
   applyDeps(depsOptions("monorepo", "web", vfs));
   const web = readJson(vfs.read("apps/web/package.json"));
-  expect(web["dependencies"]).toEqual({ next: "catalog:" });
-  expect(web["devDependencies"]).toEqual({ oxlint: "catalog:" });
+  expect(web.dependencies).toEqual({ next: "catalog:" });
+  expect(web.devDependencies).toEqual({ oxlint: "catalog:" });
   const root = readJson(vfs.read("package.json"));
-  expect(root["name"]).toBe("root");
-  expect(root["catalog"]).toEqual({ next: "^16.0.0", oxlint: "1.90.0" });
+  expect(root.name).toBe("root");
+  expect(root.catalog).toEqual({ next: "^16.0.0", oxlint: "1.90.0" });
   const before = String(vfs.read("package.json"));
   applyDeps(depsOptions("monorepo", "web", vfs));
   expect(vfs.read("package.json")).toBe(before);

@@ -1,4 +1,5 @@
 import { readFile } from "node:fs/promises";
+
 import { LockfileError } from "./errors.ts";
 import { lockfileMigrations, runMigrationChain, type LockfileMigration } from "./migrations.ts";
 import { currentLockfileVersion, lockfileSchema, type Lockfile } from "./schema.ts";

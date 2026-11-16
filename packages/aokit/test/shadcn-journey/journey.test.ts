@@ -1,13 +1,13 @@
 import { afterEach, expect, test } from "bun:test";
 import { readFile, rm, writeFile } from "node:fs/promises";
 import { join } from "node:path";
+
 import { runCommand } from "../../src/cli/command.ts";
 import { addCommand } from "../../src/cli/commands/add.ts";
 import { createCommand } from "../../src/cli/commands/create.ts";
 import { doctorCommand } from "../../src/cli/commands/doctor.ts";
 import { removeCommand } from "../../src/cli/commands/remove.ts";
 import { exitCodeForEnvelope } from "../../src/cli/envelope.ts";
-import { removeShadcnFixtures } from "../registry-shadcn/served-shadcn-registry.ts";
 import {
   cleanUp,
   isolatedContext,
@@ -15,6 +15,7 @@ import {
   snapshotTree,
   temporaryDirectory,
 } from "../registry-resolution/support.ts";
+import { removeShadcnFixtures } from "../registry-shadcn/served-shadcn-registry.ts";
 import { type JourneyFixture, serveJourneyFixture } from "./fixture.ts";
 
 const fixtures: JourneyFixture[] = [];
@@ -51,9 +52,9 @@ for (const layout of ["single", "monorepo"] as const) {
     });
     expect(exitCodeForEnvelope(added)).toBe(0);
     const lockfile = await readLockfileJson(project);
-    const adapted = Object.keys(lockfile["modules"]).filter((name) => name.startsWith("@"));
+    const adapted = Object.keys(lockfile.modules).filter((name) => name.startsWith("@"));
     expect(adapted).toHaveLength(3);
-    const files = Object.keys(lockfile["files"]);
+    const files = Object.keys(lockfile.files);
     expect(files.some((path) => path.endsWith("ui/button.tsx"))).toBe(true);
     expect(files.some((path) => path.endsWith("lib/utils.ts"))).toBe(true);
     expect(files.some((path) => path.endsWith("ui/card.tsx"))).toBe(true);

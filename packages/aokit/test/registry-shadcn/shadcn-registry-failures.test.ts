@@ -1,6 +1,7 @@
 import { afterEach, expect, test } from "bun:test";
 import { writeFile } from "node:fs/promises";
 import { join } from "node:path";
+
 import type { UserConfig } from "../../src/config/user-config.ts";
 import {
   type CachedModuleVersion,

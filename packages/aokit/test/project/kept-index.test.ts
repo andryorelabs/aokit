@@ -2,6 +2,7 @@ import { afterAll, beforeAll, describe, expect, test } from "bun:test";
 import { cp, mkdir, mkdtemp, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
+
 import type { LoadProjectRegistriesOptions } from "../../src/project/registry.ts";
 import { keepingIndexDocuments, pinnedToLockfile } from "../../src/project/registry/kept-index.ts";
 import { openSource } from "../../src/project/registry/open-source.ts";

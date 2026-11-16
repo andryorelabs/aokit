@@ -1,6 +1,8 @@
-import { z } from "zod";
 import { catalogSchema } from "@aokit/module";
+import { z } from "zod";
+
 import { meetsMinCliVersion, minCliVersionFix } from "../../cli/min-cli-version.ts";
+import { processEnvironment } from "../../env.ts";
 import { ensureEmbeddedRegistry } from "../embedded/extract.ts";
 import { RegistryError } from "../errors.ts";
 import {
@@ -69,7 +71,7 @@ export async function transportFor(
       source: pinnedGithubSource(pin),
     };
   }
-  if (source.kind === "bundled") await ensureEmbeddedRegistry(process.env);
+  if (source.kind === "bundled") await ensureEmbeddedRegistry(processEnvironment());
   return { transport: localTransport(source.path), source };
 }
 
@@ -170,6 +172,23 @@ export function checkCliVersion(index: RegistryIndex, cliVersion: string): void 
       { registry: index.name, expected: `>= ${index.minCliVersion}`, actual: cliVersion },
     );
   }
+}
+
+/**
+ * The Catalog pointer of the index's current release. The index schema already requires it, so
+ * a missing pointer means the index object was built without that schema.
+ */
+export function currentReleasePointer(index: RegistryIndex): RegistryIndex["releases"][string] {
+  const pointer = index.releases[index.release];
+  if (pointer === undefined) {
+    throw new RegistryError(
+      "REGISTRY_INDEX_INVALID",
+      `Registry "${index.name}" names release ${index.release}, which its index does not list.`,
+      rebuildFix,
+      { registry: index.name, expected: index.release },
+    );
+  }
+  return pointer;
 }
 
 export async function readCatalog(

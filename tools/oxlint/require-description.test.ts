@@ -1,4 +1,5 @@
 import { afterAll, beforeAll, describe, expect, test } from "bun:test";
+
 import { createLocalRuleLinter } from "./lint-fixture.ts";
 import type { LocalRuleLinter } from "./lint-fixture.ts";
 

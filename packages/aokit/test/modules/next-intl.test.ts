@@ -1,8 +1,10 @@
+import { describe, expect, test } from "bun:test";
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
-import { describe, expect, test } from "bun:test";
-import { z } from "zod";
+
 import { defineModule, parseManifest } from "@aokit/module";
+import { z } from "zod";
+
 import type { EngineModule } from "../../src/engine/index.ts";
 import { buildProject } from "../../src/pipeline/index.ts";
 import { buildSelection, draftCatalog } from "./support/index.ts";

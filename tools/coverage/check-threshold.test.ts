@@ -1,8 +1,8 @@
 import { afterEach, describe, expect, test } from "bun:test";
-import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import { mkdirSync, mkdtempSync, readdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join, resolve } from "node:path";
-import { type CoverageException, coverageExceptions } from "./coverage-exceptions";
+
 import {
   checkCoverageReport,
   FILE_FUNCTION_FLOOR,
@@ -13,6 +13,8 @@ import {
   parseLcov,
   summarize,
 } from "./check-threshold";
+import { type CoverageException, coverageExceptions } from "./coverage-exceptions";
+import { type CoverageFloors, loadCoverageFloors } from "./coverage-floors";
 
 const record = (path: string, lf: number, lh: number, fnf: number, fnh: number): string =>
   [`SF:${path}`, `FNF:${fnf}`, `FNH:${fnh}`, `LF:${lf}`, `LH:${lh}`, "end_of_record"].join("\n");
@@ -115,7 +117,7 @@ describe("checkCoverageReport", () => {
 
   test("passes a report at the thresholds and fails one below them", () => {
     expect(checkCoverageReport(reportRoot(record("a.ts", 100, 100, 100, 100)), [])).toEqual([]);
-    expect(checkCoverageReport(reportRoot(record("a.ts", 100, 90, 100, 90)), [])).toHaveLength(3);
+    expect(checkCoverageReport(reportRoot(record("a.ts", 100, 90, 100, 90)), [])).toHaveLength(5);
   });
 
   test("applies the committed exceptions by default", () => {
@@ -133,7 +135,11 @@ describe("checkCoverageReport", () => {
       { file: "src/a.ts", reason: "reached only by spawned processes", lines: 0.95, functions: 1 },
     ];
     expect(parseLcov(lcov)[0]?.path).toBe("src/a.ts");
-    expect(checkCoverageReport(reportRoot(lcov), exceptions)).toEqual([]);
+    const floors: CoverageFloors = {
+      all: loadCoverageFloors().all,
+      workspaces: { src: { lines: 0.99, functions: 1 } },
+    };
+    expect(checkCoverageReport(reportRoot(lcov), exceptions, floors)).toEqual([]);
   });
 });
 
@@ -206,6 +212,48 @@ describe("coverageExceptions", () => {
     for (const entry of coverageExceptions) {
       expect(entry.reason.trim()).not.toBe("");
       expect(entry.lines < FILE_LINE_FLOOR || entry.functions < FILE_FUNCTION_FLOOR).toBe(true);
+    }
+  });
+});
+
+describe("workspace floors", () => {
+  const floors: CoverageFloors = {
+    all: { lines: 0, functions: 0 },
+    workspaces: { "packages/a": { lines: 0.99, functions: 0.99 } },
+  };
+  const run = (lcov: string): string[] =>
+    findThresholdFailures(
+      summarize(parseLcov(lcov)),
+      floors.all,
+      parseLcov(lcov),
+      [],
+      floors.workspaces,
+    );
+
+  test("fails a workspace with no floor entry and names it", () => {
+    expect(run(record("packages/b/src/x.ts", 10, 10, 1, 1))).toEqual([
+      'Workspace packages/b has no entry in coverage-floors.json; add its floor under "workspaces".',
+    ]);
+  });
+
+  test("fails a workspace under its floor and passes one at it", () => {
+    const failures = run(record("packages/a/src/x.ts", 100, 98, 100, 98));
+    expect(failures).toHaveLength(2);
+    expect(failures[0]).toContain("Workspace packages/a line coverage 98.00%");
+    expect(run(record("packages/a/src/x.ts", 100, 99, 100, 99))).toEqual([]);
+  });
+
+  test("checkCoverageReport fails a workspace missing from the floors", () => {
+    const lcov = record("packages/b/src/x.ts", 10, 10, 1, 1);
+    expect(checkCoverageReport(reportRoot(lcov), [], floors)[0]).toContain("packages/b");
+  });
+
+  test("the committed floors keep the existing thresholds and cover every package", () => {
+    const committed = loadCoverageFloors();
+    expect(committed.all).toEqual({ lines: 0.997, functions: 0.999 });
+    const repoRoot = resolve(import.meta.dir, "../..");
+    for (const name of readdirSync(join(repoRoot, "packages"))) {
+      expect(committed.workspaces).toHaveProperty([`packages/${name}`]);
     }
   });
 });

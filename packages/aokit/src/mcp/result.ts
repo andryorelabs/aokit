@@ -1,4 +1,5 @@
 import type { CallToolResult } from "@modelcontextprotocol/server";
+
 import { stringifySorted, type Envelope } from "../cli/envelope.ts";
 
 /**

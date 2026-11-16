@@ -1,5 +1,7 @@
 import { expect, test } from "bun:test";
+
 import { type ModuleManifestInput } from "@aokit/module";
+
 import {
   type EngineContext,
   type EngineModule,
@@ -37,7 +39,7 @@ test("buildPlan alone applies manifest deps and env and reports dep owners", asy
   });
   expect(String(plan.vfs.read("package.json"))).toContain('"zod": "^4.0.0"');
   expect(String(plan.vfs.read(".env"))).toContain("ONE_URL");
-  expect(plan.deps["zod"]).toEqual({
+  expect(plan.deps.zod).toEqual({
     version: "^4.0.0",
     pinned: false,
     source: "module",

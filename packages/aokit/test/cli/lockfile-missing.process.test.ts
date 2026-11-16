@@ -1,6 +1,7 @@
 import { afterAll, describe, expect, test } from "bun:test";
 import { mkdir, rm } from "node:fs/promises";
 import { join } from "node:path";
+
 import { lockfileMissingMessage } from "../../src/cli/errors.ts";
 import { spawnAokit } from "../helpers/aokit-process.ts";
 import { jsonAt } from "../helpers/cli-json.ts";
@@ -13,7 +14,7 @@ afterAll(async () => {
   await rm(workspace, { recursive: true, force: true });
 });
 
-const commands: ReadonlyArray<readonly [string, (directory: string) => string[]]> = [
+const commands: readonly (readonly [string, (directory: string) => string[]])[] = [
   ["add", (directory) => ["add", "oxc", "--directory", directory]],
   ["remove", (directory) => ["remove", "oxc", "--directory", directory]],
   ["doctor", (directory) => ["doctor", directory]],

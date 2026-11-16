@@ -1,4 +1,5 @@
 import type { Catalog, ModuleManifest } from "@aokit/module";
+
 import { EngineError } from "../../engine/errors.ts";
 import type { LayoutName } from "../../engine/layout.ts";
 import type { OpVfs } from "../../engine/ops.ts";
@@ -80,14 +81,14 @@ function resolveDependency(
 function mergeCatalog(text: string, entries: Readonly<Record<string, string>>): string {
   const parsed: unknown = text.trim() === "" ? {} : JSON.parse(text);
   const manifest: Record<string, unknown> = isRecord(parsed) ? parsed : {};
-  const existing = manifest["catalog"];
+  const existing = manifest.catalog;
   const merged: Record<string, unknown> = isRecord(existing) ? { ...existing } : {};
   for (const [name, version] of Object.entries(entries)) {
     if (!(name in merged)) {
       merged[name] = version;
     }
   }
-  manifest["catalog"] = Object.fromEntries(
+  manifest.catalog = Object.fromEntries(
     Object.entries(merged).toSorted(([left], [right]) => compareKeys(left, right)),
   );
   return `${JSON.stringify(manifest, null, 2)}\n`;

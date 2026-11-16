@@ -1,4 +1,5 @@
 import { expect, test } from "bun:test";
+
 import { Vfs } from "../../src/engine/index.ts";
 import { buildProject } from "../../src/pipeline/index.ts";
 import { input } from "./fixtures.ts";
@@ -27,7 +28,7 @@ test("only the Agent files carry the aokit owner, and Modules record selected an
   expect(Object.values(built.lockfile.deps).flatMap((entry) => entry.owners)).not.toContain(
     "aokit",
   );
-  expect(built.lockfile.modules["auth"]?.selected).toBe(true);
-  expect(built.lockfile.modules["base"]?.selected).toBe(false);
-  expect(built.lockfile.modules["base"]?.integrity).toMatch(/^sha256-[0-9a-f]{64}$/);
+  expect(built.lockfile.modules.auth?.selected).toBe(true);
+  expect(built.lockfile.modules.base?.selected).toBe(false);
+  expect(built.lockfile.modules.base?.integrity).toMatch(/^sha256-[0-9a-f]{64}$/);
 });

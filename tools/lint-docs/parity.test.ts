@@ -1,6 +1,7 @@
 import { describe, expect, test } from "bun:test";
 import { existsSync, readFileSync } from "node:fs";
 import { join, resolve } from "node:path";
+
 import { LYCHEE_ARGS } from "./args";
 
 const workflowPath = join(resolve(import.meta.dir, "../.."), ".github/workflows/lint-docs.yml");

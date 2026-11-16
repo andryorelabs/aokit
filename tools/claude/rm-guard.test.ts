@@ -1,5 +1,6 @@
 import { describe, expect, test } from "bun:test";
 import { join } from "node:path";
+
 import { approvalOutput, isApprovedRm, readCommand, readWorkingDirectory } from "./rm-guard.ts";
 
 const roots = { repoRoot: "/work/repo", tempDirectory: "/tmp" };

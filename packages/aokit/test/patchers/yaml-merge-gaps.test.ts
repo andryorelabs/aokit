@@ -1,4 +1,5 @@
 import { expect, test } from "bun:test";
+
 import { mergeYaml } from "../../src/patchers/yaml/index.ts";
 
 test("mergeYaml appends new items to a sequence reached through an alias", () => {

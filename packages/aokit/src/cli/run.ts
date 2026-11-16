@@ -1,3 +1,4 @@
+import { processEnvironment } from "../env.ts";
 import { runCli, type RunCliOptions } from "./adapter.ts";
 import { exposedCommands, hiddenCommands } from "./commands/registry.ts";
 import type { ExitCode } from "./exit-codes.ts";
@@ -16,7 +17,7 @@ export function createRunOptions(argv: string[], options: RunOptions = {}): RunC
     argv,
     commands: exposedCommands,
     hiddenCommands,
-    env: process.env,
+    env: processEnvironment(),
     version: cliVersion,
     updateNotice: options.updateNotice ?? true,
     io: {

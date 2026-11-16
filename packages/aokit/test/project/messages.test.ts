@@ -1,5 +1,7 @@
 import { describe, expect, test } from "bun:test";
+
 import { parseManifest } from "@aokit/module";
+
 import { ApplyError } from "../../src/apply/index.ts";
 import { AokitError } from "../../src/cli/envelope.ts";
 import { FormatError } from "../../src/format/index.ts";

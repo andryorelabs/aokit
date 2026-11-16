@@ -36,11 +36,11 @@ function stripDistPrefix(value: unknown): unknown {
 
 /**
  * The manifest published from the staged `dist/`: `publishConfig.exports` becomes `exports`
- * relative to `dist/`, `files` lists only JS and declarations, and workspace-only fields drop.
+ * relative to `dist/`, `files` lists JS, declarations and `llms.txt`, and workspace-only fields drop.
  */
 export function publishManifestOf(source: Record<string, unknown>): Record<string, unknown> {
-  const publishConfig = source["publishConfig"];
-  if (!isRecord(publishConfig) || publishConfig["exports"] === undefined) {
+  const publishConfig = source.publishConfig;
+  if (!isRecord(publishConfig) || publishConfig.exports === undefined) {
     throw new Error("the package manifest has no publishConfig.exports to publish");
   }
   const { exports: publishedExports, ...remainingPublishConfig } = publishConfig;
@@ -50,7 +50,7 @@ export function publishManifestOf(source: Record<string, unknown>): Record<strin
       continue;
     }
     if (field === "files") {
-      manifest[field] = ["*.js", "*.d.ts"];
+      manifest[field] = ["*.js", "*.d.ts", "llms.txt"];
     } else if (field === "exports") {
       manifest[field] = stripDistPrefix(publishedExports);
     } else if (field === "publishConfig") {
@@ -59,7 +59,7 @@ export function publishManifestOf(source: Record<string, unknown>): Record<strin
       manifest[field] = value;
     }
   }
-  manifest["exports"] ??= stripDistPrefix(publishedExports);
+  manifest.exports ??= stripDistPrefix(publishedExports);
   return manifest;
 }
 
@@ -129,8 +129,8 @@ async function emitDeclarations(repoRoot: string, packageDir: string, distDir: s
 
 /**
  * Builds `@aokit/module` at `packageDir` into `dist/`, the directory that is packed and published:
- * the ESM bundle `index.js`, one `.d.ts` per source file, the publish manifest, the LICENSE and the
- * npm README.
+ * the ESM bundle `index.js`, one `.d.ts` per source file, the publish manifest, the LICENSE, the
+ * npm README and `llms.txt`.
  */
 export async function buildModuleSdk(repoRoot: string, packageDir: string): Promise<void> {
   const distDir = join(packageDir, "dist");
@@ -150,4 +150,5 @@ export async function buildModuleSdk(repoRoot: string, packageDir: string): Prom
     join(repoRoot, "tools", "build-package", "assets", "module.md"),
     join(distDir, "README.md"),
   );
+  await cp(join(packageDir, "llms.txt"), join(distDir, "llms.txt"));
 }

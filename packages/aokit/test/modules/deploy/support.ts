@@ -1,7 +1,9 @@
 import { readFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
+
 import { catalogSchema, parseManifest } from "@aokit/module";
+
 import type { EngineContext, EngineModule } from "../../../src/engine/index.ts";
 import { type PipelineInput, buildProject } from "../../../src/pipeline/index.ts";
 

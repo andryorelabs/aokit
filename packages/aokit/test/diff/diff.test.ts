@@ -1,8 +1,10 @@
 import { afterEach, describe, expect, test } from "bun:test";
-import { join } from "node:path";
 import { appendFile, writeFile } from "node:fs/promises";
+import { join } from "node:path";
+
 import { runCommand } from "../../src/cli/command.ts";
 import { diffCommand } from "../../src/cli/commands/diff.ts";
+import { objectAt } from "../helpers/update-json.ts";
 import {
   builtRegistry,
   cleanTemporaryDirectories,
@@ -11,7 +13,6 @@ import {
   editLockfileJson,
   temporaryDirectory,
 } from "./support.ts";
-import { objectAt } from "../helpers/update-json.ts";
 
 afterEach(cleanTemporaryDirectories);
 
@@ -42,13 +43,13 @@ describe("aokit diff", () => {
   test("a seed or ejected file that differs is not listed", async () => {
     const project = await createProject(await builtRegistry());
     await editLockfileJson(project, (lockfile) => {
-      objectAt(lockfile, "files", "notes.md")["mode"] = "seed";
+      objectAt(lockfile, "files", "notes.md").mode = "seed";
     });
     await writeFile(join(project, "notes.md"), "mine\n");
     const seed = await runDiff(project);
     expect(seed).toMatchObject({ ok: true, data: { files: [] } });
     await editLockfileJson(project, (lockfile) => {
-      objectAt(lockfile, "files", "notes.md")["mode"] = "ejected";
+      objectAt(lockfile, "files", "notes.md").mode = "ejected";
     });
     const ejected = await runDiff(project);
     expect(ejected).toMatchObject({ ok: true, data: { files: [] } });
@@ -72,7 +73,7 @@ describe("aokit diff", () => {
   test("a URL Registry source is invalid input", async () => {
     const project = await createProject(await builtRegistry());
     await editLockfileJson(project, (lockfile) => {
-      objectAt(lockfile, "registries", "official")["source"] = "https://example.com/registry";
+      objectAt(lockfile, "registries", "official").source = "https://example.com/registry";
     });
     const envelope = await runDiff(project);
     expect(envelope).toMatchObject({ ok: false, error: { code: "INVALID_INPUT" } });

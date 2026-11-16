@@ -3,7 +3,7 @@
   "minCliVersion": "0.1.0",
   "modules": {
     "adr-docs": {
-      "latest": "1.0.0",
+      "latest": "1.1.0",
       "versions": {
         "1.0.0": {
           "files": {
@@ -16,11 +16,24 @@
           "manifest": "modules/adr-docs/1.0.0/module.json",
           "provides": ["docs:adr"],
           "schemaVersion": 1
+        },
+        "1.1.0": {
+          "files": {
+            "files/GLOSSARY.md": "sha256-98e0f4a2158725af45874928f40d3f89c260a0bb55dd9a35cb6b9d3bf3356b28",
+            "files/adr/README.md": "sha256-408e3136f2eb922278f6801f28472c333cc01fab6e7517ad439daf6de8fb46a7",
+            "files/adr/template.md": "sha256-7f3e99ae53a6ecbf29486258304a6b456e47c6af20fe1bb1eb1a3182c4ec81b4",
+            "files/skill/add-adr.md": "sha256-16b5a8fdb9439327db7d4910162fab7e1af69cac54f133ad71dde055fa30dcf9",
+            "renames.json": "sha256-bdc41d96f75974048f341c21ad6fc356a2cfb494dde47863f79514f938a7e132"
+          },
+          "integrity": "sha256-fb407c5b79dd17064c13e4ef87fb70ffc480dde09b966cb751a5fe585727fde1",
+          "manifest": "modules/adr-docs/1.1.0/module.json",
+          "provides": ["docs:adr"],
+          "schemaVersion": 1
         }
       }
     },
     "astro": {
-      "latest": "1.0.0",
+      "latest": "1.1.0",
       "versions": {
         "1.0.0": {
           "files": {
@@ -36,11 +49,26 @@
           "manifest": "modules/astro/1.0.0/module.json",
           "provides": ["web", "web:react", "web:static"],
           "schemaVersion": 1
+        },
+        "1.1.0": {
+          "files": {
+            "files/Counter.tsx": "sha256-e3c6c0cdf31bdb47d7aab9f9ef8d76b65d01dbb6522cbbac88d3e225a67d7641",
+            "files/Layout.astro": "sha256-7dfbe98038c549cc09daff664d1344da45d1946a3ad590b02b5cbc1df1026b4f",
+            "files/astro.config.ts": "sha256-e12676d443173f37aedf50bc4577cc9b5b87424074a4399b462c1b234a9ff957",
+            "files/index.astro": "sha256-b0e2c48ac21a54b4ba6aff6b01404c2788413e0142a3cb23817f41175a951def",
+            "files/skill/SKILL.md": "sha256-d9a2ef14672d0a79ac6a6a5826b95742abaf24d9032219b8ba08897cfa7dccf8",
+            "files/styles.ts": "sha256-af5190c07c2984aa14d3399121618cf3fb9e13342023f4d839cfb164c6708c8e",
+            "files/tsconfig.json": "sha256-511a6c1f29a836ab2d0e669ce9fd86a5a4a3d1231f8e31c9dcc18480573da1c2"
+          },
+          "integrity": "sha256-239487c6d29ab24dfad8ae7d40fd540e77f03bcc6a7d6058d9372df75ce9fb8b",
+          "manifest": "modules/astro/1.1.0/module.json",
+          "provides": ["web", "web:react", "web:static"],
+          "schemaVersion": 1
         }
       }
     },
     "axe": {
-      "latest": "1.0.0",
+      "latest": "1.0.1",
       "versions": {
         "1.0.0": {
           "files": {
@@ -50,11 +78,20 @@
           "manifest": "modules/axe/1.0.0/module.json",
           "provides": ["a11y-test"],
           "schemaVersion": 1
+        },
+        "1.0.1": {
+          "files": {
+            "files/a11y.e2e.ts": "sha256-39b3dfaecb5e7c1956b2a171c6408aab45fa07602b5c3acb3a3812e1a0edd64d"
+          },
+          "integrity": "sha256-f88a3b8e437194625c4a683e856e5367236ca545cb88dd951421dd75cbdf5149",
+          "manifest": "modules/axe/1.0.1/module.json",
+          "provides": ["a11y-test"],
+          "schemaVersion": 1
         }
       }
     },
     "base-ui": {
-      "latest": "1.0.0",
+      "latest": "1.0.1",
       "versions": {
         "1.0.0": {
           "files": {
@@ -64,11 +101,20 @@
           "manifest": "modules/base-ui/1.0.0/module.json",
           "provides": ["ui:primitives"],
           "schemaVersion": 1
+        },
+        "1.0.1": {
+          "files": {
+            "files/button.tsx": "sha256-4954b508d4fd7e81253572fd46cbe59acfdf66fb298b0ae4828b7fae01ab6303"
+          },
+          "integrity": "sha256-382c86cfb521106506d47cb246bce19372a5ff20fdf6b83caf4c3bd92e780e9e",
+          "manifest": "modules/base-ui/1.0.1/module.json",
+          "provides": ["ui:primitives"],
+          "schemaVersion": 1
         }
       }
     },
     "better-auth": {
-      "latest": "1.0.0",
+      "latest": "1.0.1",
       "versions": {
         "1.0.0": {
           "files": {
@@ -81,11 +127,23 @@
           "manifest": "modules/better-auth/1.0.0/module.json",
           "provides": ["auth"],
           "schemaVersion": 1
+        },
+        "1.0.1": {
+          "files": {
+            "files/auth-client.ts": "sha256-054563999dffcd3240f1275da9b3da0ed4b975ed4c7659e9196c5c5a174797b4",
+            "files/auth.ts.txt": "sha256-12662110de5ce1a16f91e06eafa1a14c2ebd8fa2fafcaca92e76beb45508f4ef",
+            "files/route.ts.txt": "sha256-de48d6bbaabb29598943d290834d97494acfa4c82edb9329ad58393bad14d4be",
+            "files/skill/SKILL.md": "sha256-454a658aee25049561ec74ebf735f94ddc17670640cd57d2b654d9ffe59018ea"
+          },
+          "integrity": "sha256-fe3ca43991c14b8786da045fc6b98fcb9229db81e542db69950ee77bf727b69b",
+          "manifest": "modules/better-auth/1.0.1/module.json",
+          "provides": ["auth"],
+          "schemaVersion": 1
         }
       }
     },
     "bun-test": {
-      "latest": "1.0.0",
+      "latest": "1.0.1",
       "versions": {
         "1.0.0": {
           "files": {
@@ -95,11 +153,20 @@
           "manifest": "modules/bun-test/1.0.0/module.json",
           "provides": ["test-runner"],
           "schemaVersion": 1
+        },
+        "1.0.1": {
+          "files": {
+            "files/smoke.test.ts": "sha256-acc3f4c8eeb5aaf58cbf6f937f63da74d210224ccbe34753bbe7b74006c88ec8"
+          },
+          "integrity": "sha256-5ca8b36eb4a252b38f5daa62b84ab8d38d75ac72a026b49929bd8d423c082842",
+          "manifest": "modules/bun-test/1.0.1/module.json",
+          "provides": ["test-runner"],
+          "schemaVersion": 1
         }
       }
     },
     "commitlint": {
-      "latest": "1.0.0",
+      "latest": "1.0.1",
       "versions": {
         "1.0.0": {
           "files": {
@@ -110,11 +177,21 @@
           "manifest": "modules/commitlint/1.0.0/module.json",
           "provides": ["commit-lint"],
           "schemaVersion": 1
+        },
+        "1.0.1": {
+          "files": {
+            "files/commit-msg": "sha256-2c5083aaab5e7e580c83a32d55ce496b01b3af4a951e8b0effcf493ec681344e",
+            "files/commitlint.config.mjs": "sha256-101001638e174a3b7e9b426ae05db040fa10d04c85d3b01924d9193be16ca27e"
+          },
+          "integrity": "sha256-789d87f0977358cd191ab7714d2e0bac247187dea89a5fe6bc8fce1b873f2db1",
+          "manifest": "modules/commitlint/1.0.1/module.json",
+          "provides": ["commit-lint"],
+          "schemaVersion": 1
         }
       }
     },
     "coolify": {
-      "latest": "1.1.0",
+      "latest": "1.1.1",
       "versions": {
         "1.0.0": {
           "files": {
@@ -133,11 +210,20 @@
           "manifest": "modules/coolify/1.1.0/module.json",
           "provides": ["deploy"],
           "schemaVersion": 1
+        },
+        "1.1.1": {
+          "files": {
+            "files/docker-compose.coolify.yaml": "sha256-caacafc18d5a2e32af00dba1e396efb7894ee95f1822ed038e82a6b78024ef49"
+          },
+          "integrity": "sha256-c95a15202df68ee0a715817bcfb7fcb7883cb703cae833be67f60959fbb09b87",
+          "manifest": "modules/coolify/1.1.1/module.json",
+          "provides": ["deploy"],
+          "schemaVersion": 1
         }
       }
     },
     "docker": {
-      "latest": "1.1.0",
+      "latest": "1.1.1",
       "versions": {
         "1.0.0": {
           "files": {
@@ -158,11 +244,21 @@
           "manifest": "modules/docker/1.1.0/module.json",
           "provides": ["deploy", "container"],
           "schemaVersion": 1
+        },
+        "1.1.1": {
+          "files": {
+            "files/Dockerfile": "sha256-1583e87fe6068db8ee47a91b182b361e57e0dad19a311d62b9cca7145f8318b8",
+            "files/dockerignore": "sha256-03197980f549e8ba951fa6065b7071f2f1c89c0ceb8db6cc07608471a28690e9"
+          },
+          "integrity": "sha256-914c0f351c61ced3d3413ca2b6f8b4c5e219274ab19c1c23011f310eada8d22f",
+          "manifest": "modules/docker/1.1.1/module.json",
+          "provides": ["deploy", "container"],
+          "schemaVersion": 1
         }
       }
     },
     "docker-static": {
-      "latest": "1.0.0",
+      "latest": "1.0.1",
       "versions": {
         "1.0.0": {
           "files": {
@@ -175,11 +271,23 @@
           "manifest": "modules/docker-static/1.0.0/module.json",
           "provides": ["deploy", "container"],
           "schemaVersion": 1
+        },
+        "1.0.1": {
+          "files": {
+            "files/Dockerfile": "sha256-4359464fd7852f10d4f6d1e99ad9728354e6938d896e4ff8ff31d14cac659265",
+            "files/docker-entrypoint.sh": "sha256-3a1cf4473940d8539a04d37eb1cd921abff2270193cd03dcab72a9ff752b63e5",
+            "files/dockerignore": "sha256-03197980f549e8ba951fa6065b7071f2f1c89c0ceb8db6cc07608471a28690e9",
+            "files/nginx.conf": "sha256-8517d500f5a155423a308a5f1f9810318837300d8216c578e3428f86ff396807"
+          },
+          "integrity": "sha256-a5cb5fad651d3ca8c282f24d51ce2962a54baedfc19d1f7cd14aad2391d88190",
+          "manifest": "modules/docker-static/1.0.1/module.json",
+          "provides": ["deploy", "container"],
+          "schemaVersion": 1
         }
       }
     },
     "dotenvx": {
-      "latest": "1.0.0",
+      "latest": "1.0.1",
       "versions": {
         "1.0.0": {
           "files": {
@@ -189,11 +297,20 @@
           "manifest": "modules/dotenvx/1.0.0/module.json",
           "provides": ["env:encryption"],
           "schemaVersion": 1
+        },
+        "1.0.1": {
+          "files": {
+            "files/env.example": "sha256-9212e989fdde1f3abd6940337b9bf594b02e89a2f0bd43e95435b8261467421c"
+          },
+          "integrity": "sha256-db33d2b36c30532422a668358a6dd2ea0a5b81d251a8cc66d37abf54e28cb539",
+          "manifest": "modules/dotenvx/1.0.1/module.json",
+          "provides": ["env:encryption"],
+          "schemaVersion": 1
         }
       }
     },
     "eslint": {
-      "latest": "1.1.0",
+      "latest": "1.1.2",
       "versions": {
         "1.0.0": {
           "files": {
@@ -212,11 +329,20 @@
           "manifest": "modules/eslint/1.1.0/module.json",
           "provides": ["lint:companion"],
           "schemaVersion": 1
+        },
+        "1.1.2": {
+          "files": {
+            "files/eslint.config.mjs.txt": "sha256-a8dff0a439442d90c8b7c56242c87983d5965f0ba403ace0f3606cdbbe8a9085"
+          },
+          "integrity": "sha256-4a8abce0870404fa1383ede082db16cd5c965a1cd0ca6769a00003a7e020d24f",
+          "manifest": "modules/eslint/1.1.2/module.json",
+          "provides": ["lint:companion"],
+          "schemaVersion": 1
         }
       }
     },
     "eslint-react": {
-      "latest": "1.0.0",
+      "latest": "1.0.1",
       "versions": {
         "1.0.0": {
           "files": {},
@@ -224,11 +350,18 @@
           "manifest": "modules/eslint-react/1.0.0/module.json",
           "provides": [],
           "schemaVersion": 1
+        },
+        "1.0.1": {
+          "files": {},
+          "integrity": "sha256-73098f7000360f5fd7eeaeb41c59812535788ec37d89eee872c5e48183335f9a",
+          "manifest": "modules/eslint-react/1.0.1/module.json",
+          "provides": [],
+          "schemaVersion": 1
         }
       }
     },
     "fontsource": {
-      "latest": "1.0.0",
+      "latest": "1.0.1",
       "versions": {
         "1.0.0": {
           "files": {},
@@ -236,11 +369,18 @@
           "manifest": "modules/fontsource/1.0.0/module.json",
           "provides": [],
           "schemaVersion": 1
+        },
+        "1.0.1": {
+          "files": {},
+          "integrity": "sha256-15b51a7df60d6052695e05e13991f209f4a5625fc25ae60bce59e741f6f12f2b",
+          "manifest": "modules/fontsource/1.0.1/module.json",
+          "provides": [],
+          "schemaVersion": 1
         }
       }
     },
     "github-ci": {
-      "latest": "1.0.0",
+      "latest": "1.1.0",
       "versions": {
         "1.0.0": {
           "files": {
@@ -260,11 +400,31 @@
           "manifest": "modules/github-ci/1.0.0/module.json",
           "provides": ["ci"],
           "schemaVersion": 1
+        },
+        "1.1.0": {
+          "files": {
+            "files/bug_report.yml": "sha256-5bf7a28816061efdd88e1fa705d4337e70c3029e972b72213fa42f8798ac79f3",
+            "files/feature_request.yml": "sha256-d25636609c6e7dea2dc8c6935887cf6bb70e22823aa24b222d9d7b523c5876fb",
+            "files/issue-config.yml": "sha256-1f103c6a9dd07cd13a9a6f17ace6b813f47747eb9cb7e00488cb2073caaf91bb",
+            "files/labels.yml": "sha256-90f15ca24ae6c23e9fe155c5859c79c68fff20e07addb0bec97f93899594d7c0",
+            "files/pull_request_template.md": "sha256-5a11634156f49c6a97f40b379f38f43054d002e07dc94f3d01e42a4da207e299",
+            "files/workflows/ci.yml": "sha256-26c27af1beddc8893f9b5e6da8f9d0388c9f2cfc177107bfbede9ac5d64c6b40",
+            "files/workflows/codeql.yml": "sha256-3cd3deb7f163b3b10f558ff85b0888cc60be178520ffdc7896f3e56514b179b3",
+            "files/workflows/labels.yml": "sha256-97ccdc99135f649e4bf088febd058dfda3c0d79e31a0f49f34cd142bfc8001b8",
+            "files/workflows/lint-docs.yml": "sha256-f1d9b5d4823a160122c4f584efb536c310ed7373a0e188c668aee5e01f5f93d5",
+            "files/workflows/lint-pr.yml": "sha256-405a1262f1c3a1065d42e882952c21c47e9d296139ed6df1676fe60a287ac762",
+            "files/workflows/lint-workflows.yml": "sha256-f2530d4bfd6f99ea67ed838957b2d70d58e9919f3a9e72761a72003fd69273bb",
+            "files/workflows/scorecard.yml": "sha256-38489cffbe52c5a5a297f988e44a89d3ed67baa7d6bd6418e272d7008690c541"
+          },
+          "integrity": "sha256-4a5b5e63d85cae2149449cec61982c6352a219132e98bafddcf8428bcf96c82a",
+          "manifest": "modules/github-ci/1.1.0/module.json",
+          "provides": ["ci"],
+          "schemaVersion": 1
         }
       }
     },
     "hono": {
-      "latest": "1.2.0",
+      "latest": "1.2.1",
       "versions": {
         "1.0.0": {
           "files": {
@@ -294,11 +454,21 @@
           "manifest": "modules/hono/1.2.0/module.json",
           "provides": ["server", "api:http"],
           "schemaVersion": 1
+        },
+        "1.2.1": {
+          "files": {
+            "files/app.ts": "sha256-78dd77d3d4ed676419e77d3b684143e19cade0da49767cdfdc4c06d32cf036a9",
+            "files/hono-add-route.SKILL.md": "sha256-b97f57c7ee4f9247a736f485bc5fe3581335c5dffd14e7b5e3b91040e7f27b2d"
+          },
+          "integrity": "sha256-c814b1071cbd16cfa023e8390ec20bf668921305ee2285a5c30f67619761fd86",
+          "manifest": "modules/hono/1.2.1/module.json",
+          "provides": ["server", "api:http"],
+          "schemaVersion": 1
         }
       }
     },
     "hono-rpc": {
-      "latest": "1.0.0",
+      "latest": "1.0.1",
       "versions": {
         "1.0.0": {
           "files": {
@@ -308,11 +478,20 @@
           "manifest": "modules/hono-rpc/1.0.0/module.json",
           "provides": ["api:rpc"],
           "schemaVersion": 1
+        },
+        "1.0.1": {
+          "files": {
+            "files/client.ts.txt": "sha256-000b5a4cddb237fced1de58c34463d5ac86604f98063f4f70c51092210dc23cf"
+          },
+          "integrity": "sha256-076ce735a2aa14a2fb472c3a52c3b61dcce347495a3391f28bf17c099d43b725",
+          "manifest": "modules/hono-rpc/1.0.1/module.json",
+          "provides": ["api:rpc"],
+          "schemaVersion": 1
         }
       }
     },
     "hono-zod-validator": {
-      "latest": "1.0.0",
+      "latest": "1.0.1",
       "versions": {
         "1.0.0": {
           "files": {},
@@ -320,11 +499,18 @@
           "manifest": "modules/hono-zod-validator/1.0.0/module.json",
           "provides": [],
           "schemaVersion": 1
+        },
+        "1.0.1": {
+          "files": {},
+          "integrity": "sha256-d9665b7eb32c4655662cf3a54cf6e0c303357fc156c8ddc9fa7a1907df5efbcd",
+          "manifest": "modules/hono-zod-validator/1.0.1/module.json",
+          "provides": [],
+          "schemaVersion": 1
         }
       }
     },
     "husky": {
-      "latest": "1.0.0",
+      "latest": "1.0.1",
       "versions": {
         "1.0.0": {
           "files": {},
@@ -332,11 +518,18 @@
           "manifest": "modules/husky/1.0.0/module.json",
           "provides": ["git-hooks"],
           "schemaVersion": 1
+        },
+        "1.0.1": {
+          "files": {},
+          "integrity": "sha256-c0b556bcef106aed7dbce6faa802d5ae94a64b1e39e070c36dbff4a3a48b3efd",
+          "manifest": "modules/husky/1.0.1/module.json",
+          "provides": ["git-hooks"],
+          "schemaVersion": 1
         }
       }
     },
     "knip": {
-      "latest": "1.1.0",
+      "latest": "1.1.1",
       "versions": {
         "1.0.0": {
           "files": {
@@ -355,11 +548,20 @@
           "manifest": "modules/knip/1.1.0/module.json",
           "provides": ["unused-code"],
           "schemaVersion": 1
+        },
+        "1.1.1": {
+          "files": {
+            "files/knip.json": "sha256-0007d9d0dc2b69ab9338b08e4b294f76d8bb72c6118a3ead5f5b9b3aea42d590"
+          },
+          "integrity": "sha256-bcf48b790d127d5f846ddc5ae72d57d99e12910af0caa9fdb2225d76e18486da",
+          "manifest": "modules/knip/1.1.1/module.json",
+          "provides": ["unused-code"],
+          "schemaVersion": 1
         }
       }
     },
     "lint-staged": {
-      "latest": "1.0.0",
+      "latest": "1.0.1",
       "versions": {
         "1.0.0": {
           "files": {
@@ -370,11 +572,21 @@
           "manifest": "modules/lint-staged/1.0.0/module.json",
           "provides": ["staged-checks"],
           "schemaVersion": 1
+        },
+        "1.0.1": {
+          "files": {
+            "files/lintstagedrc.json": "sha256-07a5607aa45d0cd73167d2752bf2556b6e5f22c8a19c2e2e102254db52312fc2",
+            "files/pre-commit": "sha256-96b14f999846fb0f24baa82b02648f669f4b31a1bb9628f4b8df331785736327"
+          },
+          "integrity": "sha256-862f4571c25f28a5e92aca56f3d12066d5304cf434442cde82be7a5c781db4ad",
+          "manifest": "modules/lint-staged/1.0.1/module.json",
+          "provides": ["staged-checks"],
+          "schemaVersion": 1
         }
       }
     },
     "msw": {
-      "latest": "1.0.0",
+      "latest": "1.0.1",
       "versions": {
         "1.0.0": {
           "files": {
@@ -386,11 +598,22 @@
           "manifest": "modules/msw/1.0.0/module.json",
           "provides": [],
           "schemaVersion": 1
+        },
+        "1.0.1": {
+          "files": {
+            "files/handlers.ts": "sha256-53ebc4a00793d59a4ea5ff163656ed9ed927f2b8f3a82e0f98b5cacfc17b0add",
+            "files/server.ts": "sha256-7f9159a6f98ca7b7fdc01347a4c7e0571962046691a5acd21d97b171b450219e",
+            "files/vitest.setup.ts": "sha256-aace4f07d028b1f01bf56903de3a39cc15178c43cdaba4298d314f029c4e8ef3"
+          },
+          "integrity": "sha256-b03d5cca4dff6ce34a12e0f98301cb8e88a72c31820e574dad67c55b9cc9a52f",
+          "manifest": "modules/msw/1.0.1/module.json",
+          "provides": [],
+          "schemaVersion": 1
         }
       }
     },
     "next": {
-      "latest": "1.0.0",
+      "latest": "1.1.0",
       "versions": {
         "1.0.0": {
           "files": {
@@ -408,11 +631,28 @@
           "manifest": "modules/next/1.0.0/module.json",
           "provides": ["web", "web:ssr", "web:react", "web:app-router"],
           "schemaVersion": 1
+        },
+        "1.1.0": {
+          "files": {
+            "files/app/layout.tsx": "sha256-97cdad139ae53fa09b9a60a9974333da6642e7bc5659ecbb80e2d105b6c456ab",
+            "files/app/page.tsx": "sha256-16bb0d5ec819ac657aacaff888e2b41ba79ce63b5872d903cb2714cccca3da1f",
+            "files/css.d.ts": "sha256-35d26ea66c86da9701e4f4b467913481ffeae910761cea34c775c5dacb7f8eaa",
+            "files/next.config.ts": "sha256-c88615922faf041e3e89fc2cc967cf6534d7b2e6151342ac5be331d1a0816fde",
+            "files/providers.tsx": "sha256-43e5eadb5aa4f4ee42347fc8b6ba0eb8d11d3f562fcfb7db9524811b9ca7e79a",
+            "files/proxy.ts": "sha256-450d9d55eb02d4616defa5dce8f96eec2c281c67619465f6febaa32fcba00fb8",
+            "files/skill/SKILL.md": "sha256-82d3ee30fe962af3b69bbb20478a35bdd3647790ea3a45f421df599ed7d33112",
+            "files/styles.ts": "sha256-9ba76bbbccdd5fdbe8ea89b35e21a25f071c8b668e82b6c9dbdf412d1b5d64eb",
+            "files/tsconfig.json": "sha256-a9956d1d3fb3ef2b5b3586324ddc598606dc9206a16bc9127a7db202fd1b688b"
+          },
+          "integrity": "sha256-c574ce5b1c26161d81954daca98095f453e4788e85b0ef438797b260bd2c0692",
+          "manifest": "modules/next/1.1.0/module.json",
+          "provides": ["web", "web:ssr", "web:react", "web:app-router"],
+          "schemaVersion": 1
         }
       }
     },
     "next-intl": {
-      "latest": "1.0.0",
+      "latest": "1.0.1",
       "versions": {
         "1.0.0": {
           "files": {
@@ -427,11 +667,25 @@
           "manifest": "modules/next-intl/1.0.0/module.json",
           "provides": ["i18n"],
           "schemaVersion": 1
+        },
+        "1.0.1": {
+          "files": {
+            "files/src/i18n/messages.ts": "sha256-ea57618b6551110b51112a0e8533ce7c2470213f3542513a3cb68fc501f09419",
+            "files/src/i18n/provider.tsx": "sha256-67b830d17d0399393f083753dd9c846d22b793d83c03a09c33a7071653174ece",
+            "files/src/i18n/request.ts": "sha256-cb1ab51ec7dfc10eae017cc8d4c5557423eca4356bc926dc16bb6fd97a03dd7d",
+            "files/src/i18n/routing.ts": "sha256-61678f78f208c7f874013d6cab6cf1744a3913dba434ad4ed92148f6095e525d",
+            "files/src/messages/en.json": "sha256-8ec71743382494c6060a8dffc1b9169e85b4a83a37f88cb73335a1fcb6325dc9",
+            "files/src/proxy.ts": "sha256-1612ef0a92d06c6ccd8345a2c9159172c2bbd79483818d5feff1de10f8aea31f"
+          },
+          "integrity": "sha256-5815c297eff1cb33abae2e6c6a7a3c7f6b44ab44368f9f98d7086027590afd76",
+          "manifest": "modules/next-intl/1.0.1/module.json",
+          "provides": ["i18n"],
+          "schemaVersion": 1
         }
       }
     },
     "next-themes": {
-      "latest": "1.0.0",
+      "latest": "1.0.1",
       "versions": {
         "1.0.0": {
           "files": {
@@ -441,11 +695,20 @@
           "manifest": "modules/next-themes/1.0.0/module.json",
           "provides": [],
           "schemaVersion": 1
+        },
+        "1.0.1": {
+          "files": {
+            "files/src/theme/provider.tsx": "sha256-2a3aedf89e4668fb0ec6abc14a60fb93be49a35f68b3d65ab0ca4564b0cb9a10"
+          },
+          "integrity": "sha256-05f22b2fd4ca453f0739d49c5e4fde14f0a15468e248701266054ea0f5d9c63f",
+          "manifest": "modules/next-themes/1.0.1/module.json",
+          "provides": [],
+          "schemaVersion": 1
         }
       }
     },
     "nuqs-next": {
-      "latest": "1.0.0",
+      "latest": "1.0.1",
       "versions": {
         "1.0.0": {
           "files": {},
@@ -453,11 +716,18 @@
           "manifest": "modules/nuqs-next/1.0.0/module.json",
           "provides": ["url-state"],
           "schemaVersion": 1
+        },
+        "1.0.1": {
+          "files": {},
+          "integrity": "sha256-e5b2b7fa1a778f060d3083b4e4c84fc57ed7e1586903d6f878f7f8298d125590",
+          "manifest": "modules/nuqs-next/1.0.1/module.json",
+          "provides": ["url-state"],
+          "schemaVersion": 1
         }
       }
     },
     "nuqs-vite": {
-      "latest": "1.0.0",
+      "latest": "1.0.1",
       "versions": {
         "1.0.0": {
           "files": {},
@@ -465,11 +735,18 @@
           "manifest": "modules/nuqs-vite/1.0.0/module.json",
           "provides": ["url-state"],
           "schemaVersion": 1
+        },
+        "1.0.1": {
+          "files": {},
+          "integrity": "sha256-3267c8845037f5db0604df492936f915ea8eab86d6474690b332ab2c38af67ce",
+          "manifest": "modules/nuqs-vite/1.0.1/module.json",
+          "provides": ["url-state"],
+          "schemaVersion": 1
         }
       }
     },
     "oxc": {
-      "latest": "1.2.0",
+      "latest": "1.3.0",
       "versions": {
         "1.0.0": {
           "files": {
@@ -510,11 +787,22 @@
           "manifest": "modules/oxc/1.2.0/module.json",
           "provides": ["lint", "format"],
           "schemaVersion": 1
+        },
+        "1.3.0": {
+          "files": {
+            "files/oxfmtrc.json": "sha256-d37f00761182a9bc6b55e55a8404546c81a90f6778c1cf5948e0dca02c26c831",
+            "files/oxlint-plugin.ts": "sha256-d3e07434368484ef519aa5f023542a2534252e427f113901738791a06ecc4322",
+            "files/oxlintrc.json": "sha256-6bd5a9a9bba098034e37e01e777294c2ccdeb6ecb943d30484a805737685d6c4"
+          },
+          "integrity": "sha256-6820055219822760f1e23349cd5e8bf395fa7566dbd800ffeceffe73005f0859",
+          "manifest": "modules/oxc/1.3.0/module.json",
+          "provides": ["lint", "format"],
+          "schemaVersion": 1
         }
       }
     },
     "playwright": {
-      "latest": "1.0.0",
+      "latest": "1.0.1",
       "versions": {
         "1.0.0": {
           "files": {
@@ -525,11 +813,21 @@
           "manifest": "modules/playwright/1.0.0/module.json",
           "provides": ["e2e"],
           "schemaVersion": 1
+        },
+        "1.0.1": {
+          "files": {
+            "files/playwright.config.ts": "sha256-20f194fbffe35cfae6e3b952b2029e4351b1d006099c616625b2e96a3f5d001b",
+            "files/smoke.e2e.ts": "sha256-350a4f2e57c34865b6cb394614e9cc603a7cc9410477deb831ee8a6d14853c9d"
+          },
+          "integrity": "sha256-3e1ec5bb2483ed83136e040abcc603331853794697d562dd8e1205b99e561053",
+          "manifest": "modules/playwright/1.0.1/module.json",
+          "provides": ["e2e"],
+          "schemaVersion": 1
         }
       }
     },
     "postgres-compose": {
-      "latest": "1.0.0",
+      "latest": "1.0.1",
       "versions": {
         "1.0.0": {
           "files": {
@@ -539,11 +837,20 @@
           "manifest": "modules/postgres-compose/1.0.0/module.json",
           "provides": ["db:postgres"],
           "schemaVersion": 1
+        },
+        "1.0.1": {
+          "files": {
+            "files/compose.yml": "sha256-bea5198518c89a45df2f0d8ce743db4c9c553f1f45f85ded933e56a86aa35ce3"
+          },
+          "integrity": "sha256-695add0db71389d7d297d6e22a1834ab68a209a5bcced9ff2f2307db42a8233a",
+          "manifest": "modules/postgres-compose/1.0.1/module.json",
+          "provides": ["db:postgres"],
+          "schemaVersion": 1
         }
       }
     },
     "posthog": {
-      "latest": "1.0.0",
+      "latest": "1.0.1",
       "versions": {
         "1.0.0": {
           "files": {
@@ -554,11 +861,21 @@
           "manifest": "modules/posthog/1.0.0/module.json",
           "provides": ["analytics"],
           "schemaVersion": 1
+        },
+        "1.0.1": {
+          "files": {
+            "files/src/analytics/provider.tsx": "sha256-73f0be2d77f28af1507f60329c20a6739f0026c1286396fb38da51d7f1d5a5a8",
+            "files/src/instrumentation-client.ts": "sha256-d6de0deddb3fc1a9deec5f6f939c34f2a29494d748c5ae7fd2a272ec178116f0"
+          },
+          "integrity": "sha256-46f8ed7886d2a7ddca1095d1dd43cf3f0c2e8686ac65600f76f3c31563a0a689",
+          "manifest": "modules/posthog/1.0.1/module.json",
+          "provides": ["analytics"],
+          "schemaVersion": 1
         }
       }
     },
     "prisma": {
-      "latest": "1.0.0",
+      "latest": "1.0.1",
       "versions": {
         "1.0.0": {
           "files": {
@@ -571,11 +888,23 @@
           "manifest": "modules/prisma/1.0.0/module.json",
           "provides": ["orm", "orm:prisma"],
           "schemaVersion": 1
+        },
+        "1.0.1": {
+          "files": {
+            "files/SKILL.md": "sha256-3221c1ad9b27eb402a95b28d92c73b5707a93e97fc4da403c0389defabb3145d",
+            "files/client.ts.txt": "sha256-69be3c3efaf6d62c955b0c3ca8bb33cc5c7e0054e9ef109fcf6c154c259e1bc3",
+            "files/prisma.config.ts": "sha256-36eae3748dcea4d3c0d9ea49581a7ee9c8437b7195644b604ce7e89826e0f5c9",
+            "files/schema.prisma": "sha256-edd7b3b023d6b0d21e6aff355582f9fc2e9e66a6d8c7cd5ff977a320cdd5e426"
+          },
+          "integrity": "sha256-a4b9d444c001eb19658feb9863be8cfefc5d803bc9d74f7131bb4bbb535f8672",
+          "manifest": "modules/prisma/1.0.1/module.json",
+          "provides": ["orm", "orm:prisma"],
+          "schemaVersion": 1
         }
       }
     },
     "react-email": {
-      "latest": "1.0.0",
+      "latest": "1.0.1",
       "versions": {
         "1.0.0": {
           "files": {
@@ -585,11 +914,34 @@
           "manifest": "modules/react-email/1.0.0/module.json",
           "provides": ["email:templates"],
           "schemaVersion": 1
+        },
+        "1.0.1": {
+          "files": {
+            "files/welcome.tsx": "sha256-d3568b6eadd490774fa087a37519b37c423aa3ccefa03e2374a51545f82e34b5"
+          },
+          "integrity": "sha256-b1cba6a744310dd3aad8da879f554563f1ae4ff2b71945d8d67fcb61280a2b16",
+          "manifest": "modules/react-email/1.0.1/module.json",
+          "provides": ["email:templates"],
+          "schemaVersion": 1
+        }
+      }
+    },
+    "release-skills": {
+      "latest": "1.0.0",
+      "versions": {
+        "1.0.0": {
+          "files": {
+            "files/cut-release.md": "sha256-7c3be9d0b08fc08e20d38a7855f0392d92776fc6199fb7540cd42ba7bbcb016e"
+          },
+          "integrity": "sha256-e377591a228be91dc35401a7583d3be9e0af47352a52b3b82691763041ce8d10",
+          "manifest": "modules/release-skills/1.0.0/module.json",
+          "provides": ["docs:release"],
+          "schemaVersion": 1
         }
       }
     },
     "renovate": {
-      "latest": "1.0.0",
+      "latest": "1.0.1",
       "versions": {
         "1.0.0": {
           "files": {
@@ -599,11 +951,20 @@
           "manifest": "modules/renovate/1.0.0/module.json",
           "provides": ["dep-updates"],
           "schemaVersion": 1
+        },
+        "1.0.1": {
+          "files": {
+            "files/renovate.json": "sha256-cf51d49fddbfbb39abbbeb203f2c363e50422663e19197733de993df35db7de0"
+          },
+          "integrity": "sha256-7eaef77d3fc034481b10fe80c93cbe9bd1b63e68525ba8e9e673dc03b239f6f8",
+          "manifest": "modules/renovate/1.0.1/module.json",
+          "provides": ["dep-updates"],
+          "schemaVersion": 1
         }
       }
     },
     "repo-docs": {
-      "latest": "1.0.0",
+      "latest": "1.0.1",
       "versions": {
         "1.0.0": {
           "files": {
@@ -618,11 +979,25 @@
           "manifest": "modules/repo-docs/1.0.0/module.json",
           "provides": ["repo-docs"],
           "schemaVersion": 1
+        },
+        "1.0.1": {
+          "files": {
+            "files/CODEOWNERS": "sha256-aa527b2612972ab4c95b8dd42edd2956f8fec4d8950d3ec04374b59d9a8ae2bf",
+            "files/CODE_OF_CONDUCT.md": "sha256-49053a89f29c1948486d9f3fa8cbdff8e30f212af1dcfb43d1611a8ab4721ba6",
+            "files/CONTRIBUTING.md": "sha256-b91725e73ad0b62c5e025ee4a94fbc25ab64624096422e8ca241d4dbfa7544c3",
+            "files/GOVERNANCE.md": "sha256-2f7806d4144bdcf8e365467da087249aa30e512664d9d196a2408a729d6cbdb1",
+            "files/editorconfig": "sha256-6d6796f174b736bcd7a68999e30d2f19a3719ad92355dcc0cfdfce8a66864553",
+            "files/git-blame-ignore-revs": "sha256-9a9008901c3dae7820476cf2130e491386abe0efc4d1a8df84402d769475f9d3"
+          },
+          "integrity": "sha256-197c28e32c239a0d43c24da3c4a1f6ceabb9b292df3d55d646aba74f12fe93bf",
+          "manifest": "modules/repo-docs/1.0.1/module.json",
+          "provides": ["repo-docs"],
+          "schemaVersion": 1
         }
       }
     },
     "resend": {
-      "latest": "1.0.0",
+      "latest": "1.0.1",
       "versions": {
         "1.0.0": {
           "files": {
@@ -632,11 +1007,20 @@
           "manifest": "modules/resend/1.0.0/module.json",
           "provides": ["email:send"],
           "schemaVersion": 1
+        },
+        "1.0.1": {
+          "files": {
+            "files/client.ts": "sha256-4de706b8619a7898a426e69185f155ff2410ce9e50a317bdb3993c38aaf5daf0"
+          },
+          "integrity": "sha256-75d17cc6976e85b731451e2fac34f5a2ba2eade08305f22f94750924cbdf30ab",
+          "manifest": "modules/resend/1.0.1/module.json",
+          "provides": ["email:send"],
+          "schemaVersion": 1
         }
       }
     },
     "shadcn": {
-      "latest": "1.0.0",
+      "latest": "1.0.1",
       "versions": {
         "1.0.0": {
           "files": {
@@ -649,11 +1033,23 @@
           "manifest": "modules/shadcn/1.0.0/module.json",
           "provides": ["ui:components"],
           "schemaVersion": 1
+        },
+        "1.0.1": {
+          "files": {
+            "files/components.json": "sha256-bda2d48c34a1164d858ed708b0c0b4d385ee1afa1d17ff90636496f6136de866",
+            "files/lib/utils.ts": "sha256-53f3d3d070f0a9082934da25b875f9499855c2b0693868dd28be8c23d8730f68",
+            "files/skill/SKILL.md": "sha256-8c19caf7295f99739d98f301ef9008b93ebfccbf5681da095359d788cf415d24",
+            "files/ui/sonner.tsx": "sha256-431f6fe05110e0710c1fd7d3cce209a8f4b7122988589506e4e8b6d9747dad97"
+          },
+          "integrity": "sha256-82322039bb662b5c7bae3e847abb730a933e7a028ecefc0fc4b5638a6d1eb93d",
+          "manifest": "modules/shadcn/1.0.1/module.json",
+          "provides": ["ui:components"],
+          "schemaVersion": 1
         }
       }
     },
     "shadcn-lint": {
-      "latest": "1.0.0",
+      "latest": "1.0.1",
       "versions": {
         "1.0.0": {
           "files": {
@@ -663,11 +1059,20 @@
           "manifest": "modules/shadcn-lint/1.0.0/module.json",
           "provides": [],
           "schemaVersion": 1
+        },
+        "1.0.1": {
+          "files": {
+            "files/oxlintrc.shadcn.json": "sha256-d1674acf2682742159238edcb91aecb60e79d60c94f282e2e82afbb08b0601fb"
+          },
+          "integrity": "sha256-2178d7d5d42d02c4a3dc2127590f9f4931474f9380db9fd656bae63712d606ae",
+          "manifest": "modules/shadcn-lint/1.0.1/module.json",
+          "provides": [],
+          "schemaVersion": 1
         }
       }
     },
     "starlight": {
-      "latest": "1.0.0",
+      "latest": "1.0.1",
       "versions": {
         "1.0.0": {
           "files": {
@@ -680,11 +1085,23 @@
           "manifest": "modules/starlight/1.0.0/module.json",
           "provides": ["docs-site"],
           "schemaVersion": 1
+        },
+        "1.0.1": {
+          "files": {
+            "files/content.config.ts": "sha256-6821dfe329b42956c9cb7bbfe9fde583909c15453f216b726fce130e265781ac",
+            "files/example.mdx": "sha256-adcac4d10352fd0e7e495029cc43b6a4230875d14953c2a93183611c308cbf32",
+            "files/index.astro": "sha256-5697004320439127e476878b49a71994c268aedb99657e96efdb568dec29065e",
+            "files/skill/SKILL.md": "sha256-61a5b516408deac9041209bdbceff5194ba48ec315f84d552073a0def621bb19"
+          },
+          "integrity": "sha256-b5a2008ee8857f0392168bc93c99e77f77e30237d955b7451f1327bb77e5d470",
+          "manifest": "modules/starlight/1.0.1/module.json",
+          "provides": ["docs-site"],
+          "schemaVersion": 1
         }
       }
     },
     "t3-env": {
-      "latest": "1.0.0",
+      "latest": "1.0.1",
       "versions": {
         "1.0.0": {
           "files": {
@@ -694,11 +1111,20 @@
           "manifest": "modules/t3-env/1.0.0/module.json",
           "provides": ["env:validation"],
           "schemaVersion": 1
+        },
+        "1.0.1": {
+          "files": {
+            "files/env.ts.txt": "sha256-e85f2f07d25de825e5f4f512acd73a44ae4cd0cc5d09fd8466cb8ba1350f8bc8"
+          },
+          "integrity": "sha256-221fdf24de244da9db82c7f463eb8c3a64775581027b677745bd7aa44da5a566",
+          "manifest": "modules/t3-env/1.0.1/module.json",
+          "provides": ["env:validation"],
+          "schemaVersion": 1
         }
       }
     },
     "tailwind4": {
-      "latest": "2.0.0",
+      "latest": "2.0.1",
       "versions": {
         "1.0.0": {
           "files": {
@@ -730,11 +1156,22 @@
           "manifest": "modules/tailwind4/2.0.0/module.json",
           "provides": ["styling"],
           "schemaVersion": 1
+        },
+        "2.0.1": {
+          "files": {
+            "files/postcss.config.mjs": "sha256-5b0bc4c78be977cd81f947fb5563aaa7cc6d451e6f1c53a3260b7656a7144d20",
+            "files/styles.css": "sha256-4650ea7cbc07104a2fc7e53d850b98eab8310ce4e0bae5a5f7d5da99b1dc8145",
+            "migrations/remove-tailwind-provider.after.js": "sha256-53fd85676be4011b07701b27f0d2064abd3e9127cc7a88750fede3ad4a36ec55"
+          },
+          "integrity": "sha256-357c4a78e83c09ca5128cb9d8ad48f99a0db6fd1ec65b0ea3d5245c8f49946eb",
+          "manifest": "modules/tailwind4/2.0.1/module.json",
+          "provides": ["styling"],
+          "schemaVersion": 1
         }
       }
     },
     "tanstack-form": {
-      "latest": "1.0.0",
+      "latest": "1.0.1",
       "versions": {
         "1.0.0": {
           "files": {
@@ -744,11 +1181,20 @@
           "manifest": "modules/tanstack-form/1.0.0/module.json",
           "provides": ["forms"],
           "schemaVersion": 1
+        },
+        "1.0.1": {
+          "files": {
+            "files/example-form.ts.txt": "sha256-e92fd3003a7036756c7b8cc585bebc306aa6c5a0a925988f9f7835095980636c"
+          },
+          "integrity": "sha256-764d7f80d9b6b66414dc5b7bd976ff0a72e7a36efd788863bcb7f406148ce368",
+          "manifest": "modules/tanstack-form/1.0.1/module.json",
+          "provides": ["forms"],
+          "schemaVersion": 1
         }
       }
     },
     "tanstack-router": {
-      "latest": "1.0.0",
+      "latest": "1.0.1",
       "versions": {
         "1.0.0": {
           "files": {
@@ -762,11 +1208,24 @@
           "manifest": "modules/tanstack-router/1.0.0/module.json",
           "provides": ["routing"],
           "schemaVersion": 1
+        },
+        "1.0.1": {
+          "files": {
+            "files/index.tsx.txt": "sha256-a7a935afe0c9f53f8a72fc4cae0ea91bfbb68e0ca18caa69c381860d571f0816",
+            "files/root.tsx.txt": "sha256-a5977a246f99e51b6b825629e56bd560eda2a72521ed4eff8e88a47ce15651c1",
+            "files/routeTree.gen.ts.txt": "sha256-31b9e97caa294e3a42781d9cf39d1e28553c276cb0d849acf742650161b12386",
+            "files/router.tsx.txt": "sha256-66c0af835d101f28e5ae3833babe8ff92cce145fee16a4bfc155de1615e8f9a5",
+            "files/skill/SKILL.md": "sha256-2c4203b2527778ec828f1fa96ac870b85f77420e2e4304734d698f8457d1d7bf"
+          },
+          "integrity": "sha256-426518ccb1be426e1468d7086253df3fd7264bd08a6294c414898b72fa541a2b",
+          "manifest": "modules/tanstack-router/1.0.1/module.json",
+          "provides": ["routing"],
+          "schemaVersion": 1
         }
       }
     },
     "tanstack-table": {
-      "latest": "1.0.0",
+      "latest": "1.0.1",
       "versions": {
         "1.0.0": {
           "files": {
@@ -776,11 +1235,20 @@
           "manifest": "modules/tanstack-table/1.0.0/module.json",
           "provides": ["data-table"],
           "schemaVersion": 1
+        },
+        "1.0.1": {
+          "files": {
+            "files/example-table.tsx": "sha256-10ce0f7c48ba90f9542f473c4a12c43786e28c8099cd976b7bda48e620a5b288"
+          },
+          "integrity": "sha256-f6764ccb7ebbdc1fe22e85c0985b8e454614ab62ad2f4e2923f554897a3ba4ec",
+          "manifest": "modules/tanstack-table/1.0.1/module.json",
+          "provides": ["data-table"],
+          "schemaVersion": 1
         }
       }
     },
     "tanstack-virtual": {
-      "latest": "1.0.0",
+      "latest": "1.0.1",
       "versions": {
         "1.0.0": {
           "files": {
@@ -790,11 +1258,20 @@
           "manifest": "modules/tanstack-virtual/1.0.0/module.json",
           "provides": ["virtualization"],
           "schemaVersion": 1
+        },
+        "1.0.1": {
+          "files": {
+            "files/virtualized-list.ts": "sha256-5cc4f019fc322957b8ae907d683a47a6ffd93fd67eeff63ef5951a746eca1d97"
+          },
+          "integrity": "sha256-9815f51a05ac6a9f439616d121471d276601db186f352756205a4b2a7615440f",
+          "manifest": "modules/tanstack-virtual/1.0.1/module.json",
+          "provides": ["virtualization"],
+          "schemaVersion": 1
         }
       }
     },
     "trigger-dev": {
-      "latest": "1.0.0",
+      "latest": "1.0.1",
       "versions": {
         "1.0.0": {
           "files": {
@@ -806,11 +1283,22 @@
           "manifest": "modules/trigger-dev/1.0.0/module.json",
           "provides": ["jobs"],
           "schemaVersion": 1
+        },
+        "1.0.1": {
+          "files": {
+            "files/skill/SKILL.md": "sha256-71c110a4a2a5974d0f28668f44f0ce7b7c9f5cd45eb408a5e3cb9b03cf6ff5dc",
+            "files/src/trigger/hello-world.ts": "sha256-20dce9fedda8b30b0368572d21dc0388343522ecc1fa6186d3d54ba4aa4029c0",
+            "files/trigger.config.ts": "sha256-2e45c9419616bf465c66bbb0167a64d5d5c83e4a1346f07ba0708fc39818c50e"
+          },
+          "integrity": "sha256-5f4f86ae41dc1a6868a0b140f28533a604d80fe0a12dc784e6b768cc2667e5d6",
+          "manifest": "modules/trigger-dev/1.0.1/module.json",
+          "provides": ["jobs"],
+          "schemaVersion": 1
         }
       }
     },
     "tsdown": {
-      "latest": "1.1.0",
+      "latest": "1.1.2",
       "versions": {
         "1.0.0": {
           "files": {
@@ -837,11 +1325,24 @@
           "manifest": "modules/tsdown/1.1.0/module.json",
           "provides": ["library"],
           "schemaVersion": 1
+        },
+        "1.1.2": {
+          "files": {
+            "files/cli.ts": "sha256-b3ee54df56ee318bd7e2152e712a331472923ead6a0ca73f5843b6e073de7223",
+            "files/index.ts": "sha256-7b396c0d00b49d78e751111818a90fddd6e2af10aa2f7837b469576f204dfa85",
+            "files/skill/SKILL.md": "sha256-803c81e19a1cfd7a0bd7bcc132076b22893e6d5e91a01559f2d292609109265d",
+            "files/tsconfig.lib.json": "sha256-63935e7250e45a110ca0b8c48e2a5c958b8ffd909274c4805593b188c5c1c82d",
+            "files/tsdown.config.ts": "sha256-e17ab163ebefe37a14c6c3f3f8af3d4526ba93677cc2ec2b9e69359f536b10b1"
+          },
+          "integrity": "sha256-51c38cfa97edfec9c5ea3d099a69f5afdaaac15f00638dbecf9930c3077d3455",
+          "manifest": "modules/tsdown/1.1.2/module.json",
+          "provides": ["library"],
+          "schemaVersion": 1
         }
       }
     },
     "turborepo": {
-      "latest": "1.0.0",
+      "latest": "1.0.1",
       "versions": {
         "1.0.0": {
           "files": {
@@ -851,11 +1352,20 @@
           "manifest": "modules/turborepo/1.0.0/module.json",
           "provides": ["task-runner"],
           "schemaVersion": 1
+        },
+        "1.0.1": {
+          "files": {
+            "files/turbo.json": "sha256-71c4cd3c081d5266d5317e033acb8800a022aa6b553ab2b1254ca51ab07967e0"
+          },
+          "integrity": "sha256-957fa23946c4592273325580f83853054cf7b510199d2f3aa6c3dd6431dd5e56",
+          "manifest": "modules/turborepo/1.0.1/module.json",
+          "provides": ["task-runner"],
+          "schemaVersion": 1
         }
       }
     },
     "vite-react": {
-      "latest": "1.3.0",
+      "latest": "1.4.0",
       "versions": {
         "1.0.0": {
           "files": {
@@ -918,11 +1428,27 @@
           "manifest": "modules/vite-react/1.3.0/module.json",
           "provides": ["web", "web:spa", "web:react", "web:static"],
           "schemaVersion": 1
+        },
+        "1.4.0": {
+          "files": {
+            "files/index.html": "sha256-3dbcf875b7dfb41c393c51e420eeb0daa1801b8518a8aef92a38e2a11a587346",
+            "files/main.tsx": "sha256-c79466b24d10629e81b7f48b1d18995bcf644132752225b3624f7f7117a64e5f",
+            "files/providers.tsx": "sha256-a5207472b22927d10554b10bb95a4c43f01f4880872c32c0956626e5ca7e15eb",
+            "files/router.tsx": "sha256-8f27867d153c38b0401dba9aefb5fc5c8e298e2a115d13bbbc138b5bb97b1a44",
+            "files/tsconfig.json": "sha256-3af94e731aaad2740ee1bca5c2f91417ec878ea12f3a22fbbd3653fd47027b00",
+            "files/vite.config.ts": "sha256-0ba7556833003183eb6208815e082b78f2a5386c5bade8d0554c5e0a16e73357",
+            "migrations/routes-to-router.after.js": "sha256-21686764f847f8d1635c362c02697b0a9a72ba66123d43082057e6e868b12659",
+            "renames.json": "sha256-7d44a3900ddedea62e22ada0961f54908379c0e3cf195cf1f092412aa9cde67f"
+          },
+          "integrity": "sha256-9e4e86c9508bdcf0e2ee42197324964977882eb19496028a295eb13e39fd3f01",
+          "manifest": "modules/vite-react/1.4.0/module.json",
+          "provides": ["web", "web:spa", "web:react", "web:static"],
+          "schemaVersion": 1
         }
       }
     },
     "vitest": {
-      "latest": "1.1.0",
+      "latest": "1.1.1",
       "versions": {
         "1.0.0": {
           "files": {
@@ -943,11 +1469,21 @@
           "manifest": "modules/vitest/1.1.0/module.json",
           "provides": ["test-runner", "test-runner:vitest"],
           "schemaVersion": 1
+        },
+        "1.1.1": {
+          "files": {
+            "files/smoke.test.ts": "sha256-e8b8d969271b560bb92db20d5f7f09b212ba57ccc5d31da963e1a65d3ced646b",
+            "files/vitest.config.ts": "sha256-2b680975f914c950e430b809ec3714a299e4afe3b89889a3bb15d167a6804142"
+          },
+          "integrity": "sha256-dd65e8050a867560daa67d8d8705adbf2e847dcc9a2611db19d2d1fcec3c895c",
+          "manifest": "modules/vitest/1.1.1/module.json",
+          "provides": ["test-runner", "test-runner:vitest"],
+          "schemaVersion": 1
         }
       }
     },
     "vitest-react": {
-      "latest": "1.0.0",
+      "latest": "1.0.1",
       "versions": {
         "1.0.0": {
           "files": {
@@ -959,11 +1495,22 @@
           "manifest": "modules/vitest-react/1.0.0/module.json",
           "provides": [],
           "schemaVersion": 1
+        },
+        "1.0.1": {
+          "files": {
+            "files/greeting.browser-test.tsx": "sha256-5b24d3f0b13d184e5b06c84d0ad7eba5073e3e681ee22d07147faf38e09dec1a",
+            "files/greeting.dom-test.tsx": "sha256-41f4fecc7ceab970657dc5d31918cd885953069de14ae023e1710079514971fb",
+            "files/vitest.react.config.ts": "sha256-8ce5c8622a786340af92b143b6591b1d8ade54ca7a43b2576c3ec8daf65ad08d"
+          },
+          "integrity": "sha256-541be88a2b91ff43946c6e5dee118b26240c4bd2271881d29b8b49a12dfb9d6c",
+          "manifest": "modules/vitest-react/1.0.1/module.json",
+          "provides": [],
+          "schemaVersion": 1
         }
       }
     },
     "wxt": {
-      "latest": "1.0.0",
+      "latest": "1.1.0",
       "versions": {
         "1.0.0": {
           "files": {
@@ -979,12 +1526,27 @@
           "manifest": "modules/wxt/1.0.0/module.json",
           "provides": ["extension"],
           "schemaVersion": 1
+        },
+        "1.1.0": {
+          "files": {
+            "files/entrypoints/background.ts": "sha256-d053c57206c1c1824db6603d1ec61d567b756b809d338c0a7980389969ee85f5",
+            "files/entrypoints/popup/App.tsx": "sha256-aa8df392b3c6c60e5f24227a106940c8180da8b692d84eae1b1f431566a9840d",
+            "files/entrypoints/popup/index.html": "sha256-294459ac1a440cde3f121b5d98b1f301f43b35767ca8f33ae75e02da8808ebf1",
+            "files/entrypoints/popup/main.tsx": "sha256-74e7bf1fc38d1094acc69c870d3c028628954fe9ed9cc6f3190caadb1e28870c",
+            "files/extension.tsconfig.json": "sha256-715162d7a1ce6ce92488db3f0c229ed8e0c07f6f87c31c64af4ec6f539086a38",
+            "files/skill/SKILL.md": "sha256-b42dc5e7ecc41a67756f51609cf843e616b645dd6a8fd580a6dfbb563f2ac497",
+            "files/wxt.config.ts": "sha256-133234e82606daafe7ac5685cda026a91736d6fe7a7e873f149c533930139bf2"
+          },
+          "integrity": "sha256-37a7d920b398df776afa70f9542fb80150752f37dab0f18bc2e8eb1b224c6c9d",
+          "manifest": "modules/wxt/1.1.0/module.json",
+          "provides": ["extension"],
+          "schemaVersion": 1
         }
       }
     }
   },
   "name": "official",
-  "release": "2026.12.1",
+  "release": "2026.12.2",
   "releases": {
     "2026.11.0": {
       "integrity": "sha256-311a21c45fe4c05a051c42696b855036cb52ee3bd83b435ff53c4c2461256730",
@@ -1005,6 +1567,10 @@
     "2026.12.1": {
       "integrity": "sha256-c76fd5fc8bb39b83ec08b07f73006edc8e24a7f980861defbe915615f8319c39",
       "path": "catalog/2026.12.1.json"
+    },
+    "2026.12.2": {
+      "integrity": "sha256-bbd39d58456465e6ce729322d5984001faca5b55b5577276a49ff7730d483a40",
+      "path": "catalog/2026.12.2.json"
     }
   },
   "schemaVersion": 1

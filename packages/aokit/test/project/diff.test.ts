@@ -1,4 +1,5 @@
 import { describe, expect, test } from "bun:test";
+
 import { runCommand, type CommandContext } from "../../src/cli/command.ts";
 import { exposedCommands } from "../../src/cli/commands/registry.ts";
 import { schemaCommand } from "../../src/cli/commands/schema.ts";

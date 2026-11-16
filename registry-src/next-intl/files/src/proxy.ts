@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+
 import { defaultLocale, localeCookie, toLocale } from "./i18n/routing";
 
 /**

@@ -1,4 +1,5 @@
 import { AokitError } from "../cli/envelope.ts";
+import { processEnvironment } from "../env.ts";
 
 /** Outcome of one `git` invocation. */
 export interface GitResult {
@@ -15,7 +16,7 @@ export async function runGit(
 ): Promise<GitResult> {
   const child = Bun.spawn(["git", ...args], {
     cwd,
-    env: { ...process.env, GIT_TERMINAL_PROMPT: "0", LC_ALL: "C" },
+    env: { ...processEnvironment(), GIT_TERMINAL_PROMPT: "0", LC_ALL: "C" },
     stdin: stdin === undefined ? "ignore" : new TextEncoder().encode(stdin),
     stdout: "pipe",
     stderr: "pipe",

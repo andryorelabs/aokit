@@ -1,7 +1,9 @@
 import { afterEach, describe, expect, setDefaultTimeout, test } from "bun:test";
 import { cp, readFile, writeFile } from "node:fs/promises";
 import { join } from "node:path";
+
 import { z } from "zod";
+
 import { runCommand } from "../../src/cli/command.ts";
 import { createCommand } from "../../src/cli/commands/create.ts";
 import { doctorCommand } from "../../src/cli/commands/doctor.ts";
@@ -56,9 +58,9 @@ function atFirstRelease(index: IndexShape): IndexShape {
     const entry = copy.modules[name];
     if (entry === undefined) throw new Error(`index lists no ${name}`);
     entry.latest = previous;
-    for (const version of Object.keys(entry.versions)) {
-      if (version !== previous) delete entry.versions[version];
-    }
+    entry.versions = Object.fromEntries(
+      Object.entries(entry.versions).filter(([version]) => version === previous),
+    );
   }
   return copy;
 }
@@ -103,7 +105,7 @@ describe("aokit update against the committed Registry", () => {
       `import { userRoute } from "./router";\n`,
     );
     const lockfile = parseJson(await readFile(join(directory, "aokit.lock.json"), "utf8"));
-    expect(valueAt(lockfile, "modules", "vite-react", "version")).toBe("1.3.0");
+    expect(valueAt(lockfile, "modules", "vite-react", "version")).toBe("1.4.0");
   });
 
   test("doctor verifies the integrity of the pinned version, not the latest", async () => {

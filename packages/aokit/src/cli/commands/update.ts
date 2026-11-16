@@ -1,6 +1,7 @@
 import { resolve as resolvePath } from "node:path";
+
 import { z } from "zod";
-import type { CommandContext } from "../command.ts";
+
 import { toAokitError } from "../../project/errors.ts";
 import { isNonInteractive } from "../../trust/gate.ts";
 import {
@@ -10,6 +11,7 @@ import {
   runUpdate,
   type UpdateResult,
 } from "../../update/run.ts";
+import type { CommandContext } from "../command.ts";
 import { defineCommand } from "../command.ts";
 import { AokitError } from "../envelope.ts";
 import { aokitMeta } from "../meta.ts";

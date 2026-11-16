@@ -1,15 +1,17 @@
 import { describe, expect, test } from "bun:test";
+
 import { z } from "zod";
+
+import { runCommand } from "../../src/cli/command.ts";
 import { createCommand } from "../../src/cli/commands/create.ts";
 import { exposedCommands } from "../../src/cli/commands/registry.ts";
 import { errorCodeExitCodes } from "../../src/cli/exit-codes.ts";
-import { cliOnlyFields } from "../../src/mcp/explicit-input.ts";
-import { callTool, connectClient } from "../mcp/helpers.ts";
 import { cliVersion } from "../../src/cli/version.ts";
-import { runCommand } from "../../src/cli/command.ts";
-import { openDefaultRegistry } from "../../src/mcp/tools/schema.ts";
-import { guidanceTopics, renderGuidance } from "../../src/mcp/guidance/index.ts";
 import { renderHeader } from "../../src/engine/agent-files.ts";
+import { cliOnlyFields } from "../../src/mcp/explicit-input.ts";
+import { guidanceTopics, renderGuidance } from "../../src/mcp/guidance/index.ts";
+import { openDefaultRegistry } from "../../src/mcp/tools/schema.ts";
+import { callTool, connectClient } from "../mcp/helpers.ts";
 
 const topics = ["overview", "workflow", "modules", "layouts", "errors"] as const;
 
@@ -18,8 +20,8 @@ async function markdownOf(topic: string): Promise<string> {
   const result = await callTool(client, "get_guidance", { topic });
   expect(result.ok).toBe(true);
   expect(result.isError).toBe(false);
-  expect(result.data?.["topic"]).toBe(topic);
-  return z.string().parse(result.data?.["markdown"]);
+  expect(result.data?.topic).toBe(topic);
+  return z.string().parse(result.data?.markdown);
 }
 
 describe("get_guidance", () => {
@@ -65,13 +67,13 @@ describe("get_guidance", () => {
   test("a code added to the exit-code table appears without editing markdown", async () => {
     const registry = await openDefaultRegistry({ version: cliVersion, env: {}, commands: [] });
     const table: Record<string, number> = errorCodeExitCodes;
-    table["BRAND_NEW_CODE"] = 5;
+    table.BRAND_NEW_CODE = 5;
     try {
       expect(renderGuidance("errors", registry)).toContain(
         "| `BRAND_NEW_CODE` | precondition | 5 |",
       );
     } finally {
-      delete table["BRAND_NEW_CODE"];
+      delete table.BRAND_NEW_CODE;
     }
   });
 
@@ -148,9 +150,7 @@ describe("get_schema", () => {
     expect(Object.keys(parsed.inputSchema.properties).toSorted()).toEqual(expectedKeys);
     for (const key of expectedKeys) {
       expect(parsed.inputSchema.properties[key]?.["x-aokit"]).toEqual(cliInput[key]?.["x-aokit"]);
-      expect(parsed.inputSchema.properties[key]?.["description"]).toEqual(
-        cliInput[key]?.["description"],
-      );
+      expect(parsed.inputSchema.properties[key]?.description).toEqual(cliInput[key]?.description);
     }
     expect(parsed.inputSchema["x-aokit"].name).toBe("create");
   });

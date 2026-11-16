@@ -1,4 +1,5 @@
 import { expect, test } from "bun:test";
+
 import { findMissingTarballEntries } from "./lint.ts";
 
 test("findMissingTarballEntries reports files and directories absent from the tarball", () => {

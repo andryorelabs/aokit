@@ -2,9 +2,11 @@ import { describe, expect, spyOn, test } from "bun:test";
 import { cp, mkdir, mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
+
 import { chromium } from "playwright";
 import sharp from "sharp";
 
+import { COVER_SPECS, readPngSize } from "./brand-export-spec.ts";
 import {
   assertFontsLoaded,
   exportBrand,
@@ -18,7 +20,6 @@ import {
   type PageLike,
   type RouteLike,
 } from "./brand-export.ts";
-import { COVER_SPECS, readPngSize } from "./brand-export-spec.ts";
 
 interface FakeOptions {
   readonly fonts?: unknown;
@@ -228,16 +229,16 @@ describe("exportBrand", () => {
 });
 
 async function launchOptionsFor(cache: string): Promise<unknown[]> {
-  const previous = process.env["PLAYWRIGHT_BROWSERS_PATH"];
-  process.env["PLAYWRIGHT_BROWSERS_PATH"] = cache;
+  const previous = process.env.PLAYWRIGHT_BROWSERS_PATH;
+  process.env.PLAYWRIGHT_BROWSERS_PATH = cache;
   const launch = spyOn(chromium, "launch").mockRejectedValue(new Error("launch stopped"));
   try {
     expect(await rejection(() => launchChromium())).toBe("launch stopped");
     return launch.mock.calls.map(([options]) => options);
   } finally {
     launch.mockRestore();
-    if (previous === undefined) delete process.env["PLAYWRIGHT_BROWSERS_PATH"];
-    else process.env["PLAYWRIGHT_BROWSERS_PATH"] = previous;
+    if (previous === undefined) delete process.env.PLAYWRIGHT_BROWSERS_PATH;
+    else process.env.PLAYWRIGHT_BROWSERS_PATH = previous;
   }
 }
 

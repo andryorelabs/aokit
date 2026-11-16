@@ -1,4 +1,6 @@
 import { join } from "node:path";
+
+import { processEnvironment } from "../../env.ts";
 import {
   githubRawBaseUrl,
   gitLsRemote,
@@ -36,9 +38,6 @@ interface OpenSourceExtras {
   readonly sourceSha?: string;
 }
 
-const shadcnIndexPath = /\/registry\.json$/;
-const jsonPath = /\.json$/;
-
 /**
  * Wraps `fetch` so every JSON document read while a Registry opens is kept in `captured`, which is
  * how the raw shadcn items (and their `registryDependencies`, which the Adapted Module drops) are
@@ -54,10 +53,14 @@ function capturingItems(
     const url = typeof input === "string" ? input : input instanceof URL ? input.href : input.url;
     const response = await fetchImpl(input, init);
     const { pathname } = new URL(url);
-    if (synthesizeIndex && response.status === 404 && shadcnIndexPath.test(pathname)) {
+    if (synthesizeIndex && response.status === 404 && pathname.endsWith("/registry.json")) {
       return new Response('{"items":[]}', { status: 200 });
     }
-    if (response.status === 200 && jsonPath.test(pathname) && !shadcnIndexPath.test(pathname)) {
+    if (
+      response.status === 200 &&
+      pathname.endsWith(".json") &&
+      !pathname.endsWith("/registry.json")
+    ) {
       captured.push(await response.clone().text());
     }
     return response;
@@ -76,7 +79,7 @@ export async function openSource(
     return openGithubSource(source, options, cache, extras);
   }
   const { adapters } = options;
-  const documents = join(xdgCacheDir(adapters?.env ?? process.env), "registry-index");
+  const documents = join(xdgCacheDir(adapters?.env ?? processEnvironment()), "registry-index");
   const index = { kept: false };
   const captured: string[] = [];
   const synthesizeIndex =
@@ -164,7 +167,7 @@ async function openNonGithub(
   extras: OpenSourceExtras,
 ): Promise<Registry> {
   const { adapters } = options;
-  const documents = join(xdgCacheDir(adapters?.env ?? process.env), "registry-index");
+  const documents = join(xdgCacheDir(adapters?.env ?? processEnvironment()), "registry-index");
   const index = { kept: false };
   const registry = await openRegistry(source, {
     cliVersion: options.cliVersion,

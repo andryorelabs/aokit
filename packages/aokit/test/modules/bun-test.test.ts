@@ -1,5 +1,7 @@
 import { expect, test } from "bun:test";
+
 import { z } from "zod";
+
 import { buildSelection } from "./support/index.ts";
 
 const packageSchema = z.object({
@@ -15,7 +17,7 @@ test.each(["single", "monorepo"] as const)(
     const { vfs } = built.plan;
     expect(String(vfs.read("tests/smoke.test.ts"))).toContain('from "bun:test"');
     const manifest = packageSchema.parse(JSON.parse(String(vfs.read("package.json"))));
-    expect(manifest.scripts["test"]).toBe("bun test");
+    expect(manifest.scripts.test).toBe("bun test");
     expect(manifest.devDependencies["@types/bun"]).toBe("^1.4.4");
   },
 );

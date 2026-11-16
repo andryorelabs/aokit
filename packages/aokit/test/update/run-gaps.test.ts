@@ -1,6 +1,7 @@
 import { afterEach, describe, expect, test } from "bun:test";
 import { chmod, mkdir, readFile, rm, writeFile } from "node:fs/promises";
 import { join } from "node:path";
+
 import { buildRegistry } from "../../../../tools/registry-build/build.ts";
 import { writeRegistrySourceFixture } from "../../../../tools/registry-build/fixture.ts";
 import { runCommand } from "../../src/cli/command.ts";
@@ -190,14 +191,14 @@ describe("saved Plan", () => {
     await mkdir(bin);
     await writeFile(join(bin, "bun"), "#!/bin/sh\necho installed > install-marker\n", "utf8");
     await chmod(join(bin, "bun"), 0o755);
-    const originalPath = process.env["PATH"];
-    process.env["PATH"] = `${bin}:${originalPath ?? ""}`;
+    const originalPath = process.env.PATH;
+    process.env.PATH = `${bin}:${originalPath ?? ""}`;
     try {
       const result = await applyUpdatePlan(inputFor(dir, { yes: true, install: true }));
       expect(result.installed).toBe(true);
     } finally {
-      if (originalPath === undefined) delete process.env["PATH"];
-      else process.env["PATH"] = originalPath;
+      if (originalPath === undefined) delete process.env.PATH;
+      else process.env.PATH = originalPath;
     }
     expect((await readFile(join(dir, "install-marker"), "utf8")).trim()).toBe("installed");
   });

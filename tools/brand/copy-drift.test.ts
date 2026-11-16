@@ -15,7 +15,7 @@ function parseManifest(raw: string): PackageManifest {
   return Object.fromEntries(Object.entries(value));
 }
 
-function readText(path: string): string {
+export function readText(path: string): string {
   return readFileSync(new URL(path, ROOT), "utf8");
 }
 
@@ -49,7 +49,7 @@ function packageDescriptions(copy: string): Map<string, string> {
 }
 
 /** Returns the problems found when the README and manifests drift from the copy. */
-function findCopyDrift(files: {
+export function findCopyDrift(files: {
   readonly copy: string;
   readonly readme: string;
   readonly manifests: Readonly<Record<string, string>>;
@@ -62,7 +62,7 @@ function findCopyDrift(files: {
   const descriptions = packageDescriptions(files.copy);
   for (const [path, raw] of Object.entries(files.manifests)) {
     const manifest = parseManifest(raw);
-    const name = String(manifest["name"]);
+    const name = String(manifest.name);
     const expected = descriptions.get(name);
     if (expected === undefined) {
       problems.push(`${path}: ${name} is missing from docs/brand/copy.md`);
@@ -73,7 +73,7 @@ function findCopyDrift(files: {
   return problems;
 }
 
-const MANIFEST_PATHS = [
+export const MANIFEST_PATHS = [
   "packages/aokit/package.json",
   "packages/create-aokit/package.json",
   "packages/module/package.json",
@@ -152,11 +152,11 @@ describe("README shape", () => {
 describe("package manifests", () => {
   test.each(MANIFEST_PATHS)("%s has the six metadata fields", (path) => {
     const manifest = parseManifest(readText(path));
-    expect(manifest["description"]).toBeTruthy();
-    expect(manifest["license"]).toBe("MIT");
-    expect(manifest["author"]).toBe(AUTHOR);
-    expect(manifest["homepage"]).toBe("https://github.com/andryorelabs/aokit#readme");
-    expect(manifest["repository"]).toBeTruthy();
-    expect(manifest["bugs"]).toBeTruthy();
+    expect(manifest.description).toBeTruthy();
+    expect(manifest.license).toBe("MIT");
+    expect(manifest.author).toBe(AUTHOR);
+    expect(manifest.homepage).toBe("https://github.com/andryorelabs/aokit#readme");
+    expect(manifest.repository).toBeTruthy();
+    expect(manifest.bugs).toBeTruthy();
   });
 });

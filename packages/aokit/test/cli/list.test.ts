@@ -1,14 +1,16 @@
 import { afterAll, describe, expect, test } from "bun:test";
 import { rmSync } from "node:fs";
-import { runCli, type CliIo } from "../../src/cli/adapter.ts";
-import { groupByCapability, listModules } from "../../src/cli/commands/list.ts";
-import { openRegistry } from "../../src/registry/index.ts";
-import { exposedCommands, hiddenCommands } from "../../src/cli/commands/registry.ts";
 import { mkdir, rm, writeFile } from "node:fs/promises";
 import { join } from "node:path";
+
+import { z } from "zod";
+
 import { buildRegistry } from "../../../../tools/registry-build/build.ts";
 import { writeRegistrySourceFixture } from "../../../../tools/registry-build/fixture.ts";
-import { z } from "zod";
+import { runCli, type CliIo } from "../../src/cli/adapter.ts";
+import { groupByCapability, listModules } from "../../src/cli/commands/list.ts";
+import { exposedCommands, hiddenCommands } from "../../src/cli/commands/registry.ts";
+import { openRegistry, type Registry } from "../../src/registry/index.ts";
 import { parseJson } from "../helpers/cli-json.ts";
 import { newWorkspace } from "../mcp/helpers.ts";
 
@@ -55,7 +57,7 @@ async function runAokit(argv: string[]): Promise<{ exitCode: number; stdout: str
     stdout: (text) => {
       stdout += text;
     },
-    stderr: () => {},
+    stderr: () => undefined,
     isTTY: false,
   };
   const exitCode = await runCli({
@@ -75,7 +77,7 @@ describe("aokit list", () => {
     expect(result.exitCode).toBe(0);
     const envelope = listEnvelope.parse(parseJson(result.stdout));
     expect(envelope.ok).toBe(true);
-    expect(envelope.data.modules).toHaveLength(52);
+    expect(envelope.data.modules).toHaveLength(53);
     for (const entry of envelope.data.modules) {
       expect(entry.version).toMatch(/^\d+\.\d+\.\d+/);
     }
@@ -121,11 +123,25 @@ describe("aokit list", () => {
   });
 
   test("lists a Release without a description with an empty description", async () => {
-    const registry = await openRegistry(
+    const committed = await openRegistry(
       { kind: "local", path: join(import.meta.dir, "..", "..", "..", "..", "registry") },
       { cliVersion: "9.9.9" },
     );
-    const modules = await listModules(registry);
+    const adrDocs = committed.index.modules["adr-docs"];
+    if (adrDocs === undefined) throw new Error("the committed Registry has no adr-docs");
+    const legacyLatest: Registry = {
+      name: committed.name,
+      source: committed.source,
+      release: committed.release,
+      currentCatalog: committed.currentCatalog,
+      index: { ...committed.index, modules: { "adr-docs": { ...adrDocs, latest: "1.0.0" } } },
+      releases: () => committed.releases(),
+      catalog: (release) => committed.catalog(release),
+      versions: (name) => committed.versions(name),
+      selectableVersions: (name) => committed.selectableVersions(name),
+      version: (name, version) => committed.version(name, version),
+    };
+    const modules = await listModules(legacyLatest);
     expect(modules.find((entry) => entry.name === "adr-docs")?.description).toBe("");
     for (const entry of modules) {
       expect(entry.description).not.toContain("No description published");
@@ -143,6 +159,6 @@ describe("aokit list", () => {
       { name: "a", version: "1.0.0", description: "A", provides: [] },
     ]);
     expect(Object.keys(groups)).toEqual(["uncategorized", "x", "y"]);
-    expect(groups["x"]?.map((entry) => entry.name)).toEqual(["b"]);
+    expect(groups.x?.map((entry) => entry.name)).toEqual(["b"]);
   });
 });

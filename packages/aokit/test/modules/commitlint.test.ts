@@ -1,5 +1,7 @@
 import { expect, test } from "bun:test";
+
 import { z } from "zod";
+
 import { buildSelection } from "./support/index.ts";
 
 const packageSchema = z.object({
@@ -18,7 +20,7 @@ test.each(["single", "monorepo"] as const)(
     const manifest = packageSchema.parse(JSON.parse(String(vfs.read("package.json"))));
     expect(manifest.devDependencies["@commitlint/cli"]).toBe("^21.2.4");
     expect(manifest.devDependencies["@commitlint/config-conventional"]).toBe("^21.2.4");
-    expect(manifest.scripts["prepare"]).toBe("husky");
+    expect(manifest.scripts.prepare).toBe("husky");
   },
 );
 

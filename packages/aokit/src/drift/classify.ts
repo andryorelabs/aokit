@@ -1,5 +1,6 @@
 import { readFile, stat } from "node:fs/promises";
 import { join } from "node:path";
+
 import type { Git } from "../git/git.ts";
 import type { Lockfile } from "../lockfile/schema.ts";
 import { hashTrackedFile, volatileHash } from "./hash.ts";

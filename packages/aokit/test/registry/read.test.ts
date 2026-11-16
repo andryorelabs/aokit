@@ -2,21 +2,23 @@ import { afterEach, expect, test } from "bun:test";
 import { mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { isAbsolute, join } from "node:path";
+
+import { stableStringify } from "@aokit/module";
+import { z } from "zod";
+
 import { buildRegistry } from "../../../../tools/registry-build/build.ts";
 import {
   addMigrationToFixtureSource,
   writeRegistrySourceFixture,
 } from "../../../../tools/registry-build/fixture.ts";
-import { stableStringify } from "@aokit/module";
-import { z } from "zod";
-import { parseJsonRecord } from "../helpers/registry-json.ts";
-import { registryIndexSchema } from "../../src/registry/schema.ts";
 import {
   computeIntegrity,
   type LocalRegistry,
   readLocalRegistry,
   RegistryError,
 } from "../../src/registry/index.ts";
+import { registryIndexSchema } from "../../src/registry/schema.ts";
+import { parseJsonRecord } from "../helpers/registry-json.ts";
 
 const options = { cliVersion: "0.1.0" };
 const loadedScriptSchema = z.object({
@@ -69,7 +71,7 @@ test("reads a built Registry: name, Release, Catalog, manifests and files", asyn
   const registry: LocalRegistry = await readLocalRegistry(await builtRegistry(), options);
   expect(registry.name).toBe("official");
   expect(registry.release).toBe("2026.11.0");
-  expect(registry.currentCatalog.dependencies["oxlint"]).toBe("1.90.0");
+  expect(registry.currentCatalog.dependencies.oxlint).toBe("1.90.0");
   expect([...registry.modules.keys()]).toEqual(["knip", "oxc"]);
   const oxc = registry.modules.get("oxc");
   expect(oxc?.manifest.version).toBe("1.0.0");
@@ -95,7 +97,7 @@ test("a Module file modified after build fails integrity naming oxc, expected an
 test("a modified manifest fails integrity", async () => {
   const root = await builtRegistry();
   await editJson(join(root, "modules/knip/2.1.0/module.json"), (manifest) => {
-    manifest["requires"] = [];
+    manifest.requires = [];
   });
   const error = await captureError(() => readLocalRegistry(root, options));
   expect(error.code).toBe("REGISTRY_INTEGRITY_MISMATCH");
@@ -105,7 +107,7 @@ test("a modified manifest fails integrity", async () => {
 test("a modified Catalog fails integrity", async () => {
   const root = await builtRegistry();
   await editJson(join(root, "catalog/2026.11.0.json"), (catalog) => {
-    catalog["dependencies"] = {};
+    catalog.dependencies = {};
   });
   const error = await captureError(() => readLocalRegistry(root, options));
   expect(error.code).toBe("REGISTRY_INTEGRITY_MISMATCH");
@@ -116,8 +118,8 @@ test("an index release that differs from the Catalog release fails", async () =>
   const root = await builtRegistry();
   await editJson(join(root, "index.json"), (index) => {
     const parsed = z.looseObject({ releases: z.record(z.string(), z.unknown()) }).parse(index);
-    index["release"] = "2027.1.0";
-    index["releases"] = { "2027.1.0": parsed.releases["2026.11.0"] };
+    index.release = "2027.1.0";
+    index.releases = { "2027.1.0": parsed.releases["2026.11.0"] };
   });
   const error = await captureError(() => readLocalRegistry(root, options));
   expect(error.code).toBe("REGISTRY_RELEASE_MISMATCH");
@@ -128,7 +130,7 @@ test("an index release that differs from the Catalog release fails", async () =>
 test("a minCliVersion above the CLI version fails telling the user to update the CLI", async () => {
   const root = await builtRegistry();
   await editJson(join(root, "index.json"), (index) => {
-    index["minCliVersion"] = "0.2.0";
+    index.minCliVersion = "0.2.0";
   });
   const error = await captureError(() => readLocalRegistry(root, options));
   expect(error.code).toBe("REGISTRY_CLI_TOO_OLD");
@@ -142,7 +144,7 @@ test("a minCliVersion above the CLI version fails telling the user to update the
 test("a pre-release CLI of the minCliVersion core version reads the Registry", async () => {
   const root = await builtRegistry();
   await editJson(join(root, "index.json"), (index) => {
-    index["minCliVersion"] = "0.1.0";
+    index.minCliVersion = "0.1.0";
   });
   const registry = await readLocalRegistry(root, { cliVersion: "0.1.0-next.0" });
   expect(registry.name).toBe("official");
@@ -151,7 +153,7 @@ test("a pre-release CLI of the minCliVersion core version reads the Registry", a
 test("a pre-release CLI below the minCliVersion core version still fails", async () => {
   const root = await builtRegistry();
   await editJson(join(root, "index.json"), (index) => {
-    index["minCliVersion"] = "0.2.0";
+    index.minCliVersion = "0.2.0";
   });
   const error = await captureError(() => readLocalRegistry(root, { cliVersion: "0.1.0-next.0" }));
   expect(error.code).toBe("REGISTRY_CLI_TOO_OLD");
@@ -167,7 +169,7 @@ test("a CLI at or above minCliVersion reads the Registry", async () => {
 test("a newer index schemaVersion fails telling the user to update the CLI", async () => {
   const root = await builtRegistry();
   await editJson(join(root, "index.json"), (index) => {
-    index["schemaVersion"] = 2;
+    index.schemaVersion = 2;
   });
   const error = await captureError(() => readLocalRegistry(root, options));
   expect(error.code).toBe("REGISTRY_SCHEMA_TOO_NEW");
@@ -177,8 +179,8 @@ test("a newer index schemaVersion fails telling the user to update the CLI", asy
 test("an index with unknown fields or an escaping path is invalid", async () => {
   const root = await builtRegistry();
   await editJson(join(root, "index.json"), (index) => {
-    index["extra"] = true;
-    index["releases"] = {
+    index.extra = true;
+    index.releases = {
       "2026.11.0": { path: "../catalog.json", integrity: computeIntegrity("") },
     };
   });
@@ -191,11 +193,11 @@ test("a provides summary that disagrees with the manifest fails", async () => {
   const root = await builtRegistry();
   await editJson(join(root, "index.json"), (index) => {
     const parsed = registryIndexShape.parse(index);
-    const entry = parsed.modules["knip"]?.versions["2.1.0"];
+    const entry = parsed.modules.knip?.versions["2.1.0"];
     if (entry !== undefined) {
-      entry["provides"] = ["lint"];
+      entry.provides = ["lint"];
     }
-    index["modules"] = parsed.modules;
+    index.modules = parsed.modules;
   });
   const error = await captureError(() => readLocalRegistry(root, options));
   expect(error.code).toBe("REGISTRY_SUMMARY_MISMATCH");
@@ -268,8 +270,8 @@ test("an invalid renames.json fails naming the file", async () => {
 test("the committed first-party Registry reads cleanly", async () => {
   const registry = await readLocalRegistry(join(import.meta.dir, "../../../../registry"), options);
   expect(registry.name).toBe("official");
-  expect(registry.release).toBe("2026.12.1");
-  expect(registry.currentCatalog.release).toBe("2026.12.1");
+  expect(registry.release).toBe("2026.12.2");
+  expect(registry.currentCatalog.release).toBe("2026.12.2");
 });
 
 async function bumpedRegistry(): Promise<string> {
@@ -312,7 +314,7 @@ test("the version integrity equals the index integrity, the form the Lockfile re
     JSON.parse(await readFile(join(root, "index.json"), "utf8")),
   );
   for (const version of ["1.0.0", "1.1.0"]) {
-    const published = index.modules["oxc"]?.versions[version]?.["integrity"];
+    const published = index.modules.oxc?.versions[version]?.integrity;
     const actual: unknown = registry.version("oxc", version)?.integrity;
     expect(actual).toBe(published);
     expect(published).toMatch(/^sha256-[0-9a-f]{64}$/);
@@ -322,8 +324,8 @@ test("the version integrity equals the index integrity, the form the Lockfile re
 test("looks up the Catalog of every published Release", async () => {
   const registry = await readLocalRegistry(await bumpedRegistry(), options);
   expect(registry.releases()).toEqual(["2026.11.0", "2026.12.0"]);
-  expect(registry.catalog("2026.11.0")?.dependencies["oxlint"]).toBe("1.90.0");
-  expect(registry.catalog("2026.12.0")?.dependencies["oxlint"]).toBe("1.91.0");
+  expect(registry.catalog("2026.11.0")?.dependencies.oxlint).toBe("1.90.0");
+  expect(registry.catalog("2026.12.0")?.dependencies.oxlint).toBe("1.91.0");
   expect(registry.catalog("2030.1.0")).toBeUndefined();
 });
 
@@ -351,16 +353,16 @@ test("a Catalog mapping a Module to a version the index does not list is invalid
   const root = await builtRegistry();
   const catalogPath = join(root, "catalog/2026.11.0.json");
   await editJson(catalogPath, (value) => {
-    value["modules"] = { oxc: "9.9.9" };
+    value.modules = { oxc: "9.9.9" };
   });
   const text = await readFile(catalogPath, "utf8");
   await editJson(join(root, "index.json"), (value) => {
     const releases = z
       .record(z.string(), z.looseObject({ integrity: z.string() }))
-      .parse(value["releases"]);
+      .parse(value.releases);
     const pointer = releases["2026.11.0"];
     if (pointer === undefined) throw new Error("release missing");
-    value["releases"] = {
+    value.releases = {
       ...releases,
       "2026.11.0": { ...pointer, integrity: computeIntegrity(text) },
     };
@@ -397,8 +399,8 @@ test("a Yanked version is never latest, never selectable, but is still served an
   const index = registryIndexShape.parse(
     JSON.parse(await readFile(join(root, "index.json"), "utf8")),
   );
-  expect(index.modules["oxc"]?.versions["1.1.0"]?.["yanked"]).toBe(true);
-  expect(index.modules["oxc"]?.versions["1.0.0"]?.["yanked"]).toBeUndefined();
+  expect(index.modules.oxc?.versions["1.1.0"]?.yanked).toBe(true);
+  expect(index.modules.oxc?.versions["1.0.0"]?.yanked).toBeUndefined();
   expect(registry.modules.get("oxc")?.manifest.version).toBe("1.0.0");
   expect(registry.selectableVersions("oxc")).toEqual(["1.0.0"]);
   expect(registry.versions("oxc")).toEqual(["1.0.0", "1.1.0"]);

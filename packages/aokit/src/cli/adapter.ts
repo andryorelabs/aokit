@@ -1,10 +1,14 @@
 import { createInterface } from "node:readline/promises";
+
 import { createCli, t, type CommanderProgramLike } from "trpc-cli";
 import { z } from "zod";
+
+import { currentLockfileVersion } from "../lockfile/schema.ts";
+import { registryProtocolVersion } from "../pipeline/assemble.ts";
+import { isNonInteractive } from "../trust/gate.ts";
 import { renderBanner } from "./banner.ts";
 import { isColorEnabled } from "./color.ts";
 import { runCommand, type AnyCommand, type CommandContext } from "./command.ts";
-import { renderFailureReport, renderHuman } from "./human.ts";
 import {
   exitCodeForEnvelope,
   failureEnvelope,
@@ -14,10 +18,8 @@ import {
   type Envelope,
 } from "./envelope.ts";
 import { exitCodes, type ExitCode } from "./exit-codes.ts";
+import { renderFailureReport, renderHuman } from "./human.ts";
 import { aokitMeta } from "./meta.ts";
-import { currentLockfileVersion } from "../lockfile/schema.ts";
-import { registryProtocolVersion } from "../pipeline/assemble.ts";
-import { isNonInteractive } from "../trust/gate.ts";
 import { maybeNotifyUpdate, type UpdateFetch } from "./update-notice/index.ts";
 import { spawnDetachedRefresh } from "./update-notice/spawn.ts";
 
@@ -282,9 +284,7 @@ function usageFailure(rawMessage: string): Envelope {
   });
 }
 
-interface ProcedureTree {
-  [segment: string]: unknown;
-}
+type ProcedureTree = Record<string, unknown>;
 
 const branches = new WeakSet<object>();
 
@@ -448,7 +448,9 @@ function notifyAboutUpdate(
     now: options.now ?? Date.now,
     fetch: options.fetch ?? fetch,
     ...(options.fetch === undefined ? { refresh: spawnDetachedRefresh } : {}),
-    stderr: (text) => options.io.stderr(text),
+    stderr: (text) => {
+      options.io.stderr(text);
+    },
   });
 }
 

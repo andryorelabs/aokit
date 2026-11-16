@@ -1,35 +1,28 @@
 import { join, posix } from "node:path";
-import { apply } from "../apply/index.ts";
+
 import { conflictFile } from "../apply/conflicts.ts";
-import { openGit } from "../git/index.ts";
-import { unifiedDiff } from "../project/diff.ts";
-import { runInstall } from "../project/install.ts";
-import {
-  assertPlanFresh,
-  deletePlanFile,
-  fingerprintFiles,
-  planMissingError,
-  readPlanFile,
-  writePlanFile,
-} from "./plan-file.ts";
-import { abortLifecycle } from "../lifecycle/run.ts";
-import { planFilePath, writeUpdateMarker } from "./state.ts";
+import { apply } from "../apply/index.ts";
+import type { ConflictWrite } from "../apply/index.ts";
+import { AokitError } from "../cli/envelope.ts";
+import { lockfileMissingError } from "../cli/errors.ts";
 import { lockfileDriftOf } from "../drift/drift-of.ts";
 import { layoutTables, type Target } from "../engine/layout.ts";
 import type { Plan } from "../engine/plan.ts";
 import type { Vfs } from "../engine/vfs.ts";
-import type { ConflictWrite } from "../apply/index.ts";
-import { AokitError } from "../cli/envelope.ts";
-import { lockfileMissingError } from "../cli/errors.ts";
+import { processEnvironment } from "../env.ts";
+import { openGit } from "../git/index.ts";
+import { runLifecycle, type LifecycleResult } from "../lifecycle/index.ts";
 import { keepProjectDeps, type KeptDependency } from "../lifecycle/keep-deps.ts";
 import { applyAfterStage, loadUserTree, mergeVisibleEdits } from "../lifecycle/migration-stage.ts";
-import { runLifecycle, type LifecycleResult } from "../lifecycle/index.ts";
+import { abortLifecycle } from "../lifecycle/run.ts";
 import { readLockfile } from "../lockfile/index.ts";
 import type { Lockfile } from "../lockfile/schema.ts";
 import { composeRenames } from "../merge/index.ts";
 import { runMigrations, selectMigrations } from "../migrations/index.ts";
 import { renderFromLockfile } from "../pipeline/index.ts";
+import { unifiedDiff } from "../project/diff.ts";
 import { fromResolveError } from "../project/errors.ts";
+import { runInstall } from "../project/install.ts";
 import {
   openProjectRegistries,
   primaryRegistryName,
@@ -40,6 +33,15 @@ import {
 import { bundledRegistryPath as shippedRegistryPath } from "../registry/bundled.ts";
 import type { LocalRegistry, Registry } from "../registry/index.ts";
 import { resolve as resolveModules } from "../resolver/resolve.ts";
+import {
+  assertPlanFresh,
+  deletePlanFile,
+  fingerprintFiles,
+  planMissingError,
+  readPlanFile,
+  writePlanFile,
+} from "./plan-file.ts";
+import { planFilePath, writeUpdateMarker } from "./state.ts";
 import { resolveUpdateTarget, type UpdateTarget } from "./target.ts";
 
 const migrationContext = { now: new Date(0), random: () => 0, env: {} };
@@ -573,9 +575,8 @@ function changesPackageJson(plan: NonNullable<UpdateResult["plan"]>): boolean {
 function movedPins(before: Lockfile, after: Lockfile): PinMove[] {
   return Object.entries(after.registries).flatMap(([registry, entry]) => {
     const from = before.registries[registry]?.source;
-    return from !== undefined && from !== entry.source && entry.source.startsWith("github:")
-      ? [{ registry, from, to: entry.source }]
-      : [];
+    if (from === undefined || !entry.source.startsWith("github:")) return [];
+    return entry.source === from ? [] : [{ registry, from, to: entry.source }];
   });
 }
 
@@ -636,7 +637,8 @@ export async function applyUpdatePlan(input: UpdateInput): Promise<UpdateResult>
   }
   await deletePlanFile(input.dir, git);
   const shouldInstall = input.install && changesPackageJson(saved.plan);
-  if (shouldInstall) await (input.installer ?? ((dir) => runInstall(dir, process.env)))(input.dir);
+  if (shouldInstall)
+    await (input.installer ?? ((dir) => runInstall(dir, processEnvironment())))(input.dir);
   return {
     ...base,
     diff: undefined,

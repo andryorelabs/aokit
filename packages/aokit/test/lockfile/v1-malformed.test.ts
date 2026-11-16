@@ -1,4 +1,5 @@
 import { expect, test } from "bun:test";
+
 import { LockfileError, parseLockfile } from "../../src/lockfile/index.ts";
 
 const base = {

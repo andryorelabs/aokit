@@ -1,6 +1,8 @@
 import { readFile } from "node:fs/promises";
 import { join } from "node:path";
+
 import type { ModuleManifest } from "@aokit/module";
+
 import { AokitError } from "../cli/envelope.ts";
 import { meetsMinCliVersion, minCliVersionFix } from "../cli/min-cli-version.ts";
 import type { Git } from "../git/git.ts";

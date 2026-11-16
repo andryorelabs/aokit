@@ -3,8 +3,8 @@ import { mkdtempSync, readFileSync, rmSync } from "node:fs";
 import { readdir } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join, sep } from "node:path";
+
 import { runCommand } from "../../src/cli/command.ts";
-import { parseLockfileJson } from "../helpers/registry-json.ts";
 import { createCommand } from "../../src/cli/commands/create.ts";
 import { cliVersion } from "../../src/cli/version.ts";
 import {
@@ -13,6 +13,7 @@ import {
   createProject as createFixtureProject,
   temporaryDirectory,
 } from "../diff/support.ts";
+import { parseLockfileJson } from "../helpers/registry-json.ts";
 
 const root = mkdtempSync(join(tmpdir(), "aokit-from-"));
 const context = { version: cliVersion, env: {}, commands: [] };
@@ -84,9 +85,9 @@ test("an answer flag overrides only that answer", async () => {
   expect(envelope.ok).toBe(true);
   const original = parseLockfileJson(readFileSync(join(a, "aokit.lock.json"), "utf8"));
   const created = parseLockfileJson(readFileSync(join(b, "aokit.lock.json"), "utf8"));
-  expect(original.modules["oxc"]?.answers).toEqual({ strict: false, label: "x" });
-  expect(created.modules["oxc"]?.answers).toEqual({ strict: true, label: "x" });
-  expect(created.modules["oxc"]?.version).toBe(original.modules["oxc"]?.version);
+  expect(original.modules.oxc?.answers).toEqual({ strict: false, label: "x" });
+  expect(created.modules.oxc?.answers).toEqual({ strict: true, label: "x" });
+  expect(created.modules.oxc?.version).toBe(original.modules.oxc?.version);
 });
 
 test("a Module selection flag with --from is a usage error", async () => {
@@ -104,7 +105,7 @@ test("a Lockfile whose integrity does not match the Registry fails", async () =>
   const a = await source();
   const path = join(a, "aokit.lock.json");
   const lock = parseLockfileJson(readFileSync(path, "utf8"));
-  const oxc = lock.modules["oxc"];
+  const oxc = lock.modules.oxc;
   if (oxc === undefined) throw new Error("the source Project did not lock oxc");
   oxc.integrity = `sha256-${"0".repeat(64)}`;
   await Bun.write(path, JSON.stringify(lock, null, 2));

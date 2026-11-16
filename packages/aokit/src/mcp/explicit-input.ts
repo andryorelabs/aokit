@@ -1,4 +1,5 @@
 import { z } from "zod";
+
 import { aokitMeta } from "../cli/meta.ts";
 
 /** Fields only the terminal has a meaning for; the MCP server never exposes them. */

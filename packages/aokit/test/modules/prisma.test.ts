@@ -1,11 +1,13 @@
 import { expect, test } from "bun:test";
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
+
 import { parseManifest } from "@aokit/module";
 import { z } from "zod";
-import { type EngineContext, type EngineModule, buildPlan } from "../../src/engine/index.ts";
+
 import prisma from "../../../../registry-src/prisma/module.ts";
 import t3Env from "../../../../registry-src/t3-env/module.ts";
+import { type EngineContext, type EngineModule, buildPlan } from "../../src/engine/index.ts";
 import { buildSelection, draftCatalog } from "./support/index.ts";
 
 const context: EngineContext = { now: new Date(0), random: () => 0.5, env: {} };
@@ -58,8 +60,8 @@ test.each([
     const manifest = packageSchema.parse(JSON.parse(String(built.plan.vfs.read(manifestPath))));
     expect(manifest.dependencies["@prisma/client"]).toBe(exact ? "7.10.1" : "catalog:");
     expect(manifest.dependencies["@prisma/adapter-pg"]).toBe(exact ? "7.10.1" : "catalog:");
-    expect(manifest.dependencies["pg"]).toBe(exact ? "^8.23.1" : "catalog:");
-    expect(manifest.devDependencies["prisma"]).toBe(exact ? "7.10.1" : "catalog:");
+    expect(manifest.dependencies.pg).toBe(exact ? "^8.23.1" : "catalog:");
+    expect(manifest.devDependencies.prisma).toBe(exact ? "7.10.1" : "catalog:");
   },
 );
 

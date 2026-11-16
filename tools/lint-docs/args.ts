@@ -13,10 +13,10 @@ export const LYCHEE_ARGS: readonly string[] = [
 /** Pinned lychee release; `LYCHEE_ASSETS` holds the sha256 of each archive. */
 export const LYCHEE_VERSION = "0.24.2";
 
-export type LycheeAsset = {
+export interface LycheeAsset {
   readonly archive: string;
   readonly sha256: string;
-};
+}
 
 /** Release archives by `${process.platform}-${process.arch}`. */
 export const LYCHEE_ASSETS: Readonly<Record<string, LycheeAsset>> = {

@@ -1,14 +1,15 @@
 import { cp, mkdtemp, readdir, readFile, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join, relative } from "node:path";
+
 import { runCommand } from "../../src/cli/command.ts";
+import type { CommandContext } from "../../src/cli/command.ts";
 import { createCommand } from "../../src/cli/commands/create.ts";
 import { cliVersion } from "../../src/cli/version.ts";
-import type { CommandContext } from "../../src/cli/command.ts";
-import type { Integrity } from "../../src/registry/integrity.ts";
 import type { Lockfile } from "../../src/lockfile/schema.ts";
-import { readProjectLockfile } from "../helpers/registry-json.ts";
 import { bundledRegistryPath } from "../../src/registry/bundled.ts";
+import type { Integrity } from "../../src/registry/integrity.ts";
+import { readProjectLockfile } from "../helpers/registry-json.ts";
 import {
   editJson,
   type ServedRegistry,
@@ -33,7 +34,7 @@ export async function temporaryDirectory(prefix = "aokit-resolution-"): Promise<
 export async function cleanUp(): Promise<void> {
   await Promise.all(servers.splice(0).map((server) => server.stop()));
   for (const [name, value] of Object.entries(savedEnvironment)) {
-    if (value === undefined) delete process.env[name];
+    if (value === undefined) Reflect.deleteProperty(process.env, name);
     else process.env[name] = value;
   }
   await Promise.all(
@@ -67,7 +68,7 @@ export async function namedRegistryCopy(
   const target = join(base, subpath);
   await cp(bundledRegistryPath, target, { recursive: true });
   await editJson(join(target, "index.json"), (index) => {
-    index["name"] = name;
+    index.name = name;
   });
   return base;
 }

@@ -1,5 +1,7 @@
 import { McpServer, type StandardSchemaWithJSON } from "@modelcontextprotocol/server";
 import { StdioServerTransport } from "@modelcontextprotocol/server/stdio";
+import type { z } from "zod";
+
 import type { CommandContext } from "../cli/command.ts";
 import { exposedCommands } from "../cli/commands/registry.ts";
 import {
@@ -9,7 +11,7 @@ import {
   type Envelope,
 } from "../cli/envelope.ts";
 import { cliVersion } from "../cli/version.ts";
-import type { z } from "zod";
+import { processEnvironment } from "../env.ts";
 import { createPlanSession } from "./plan-id.ts";
 import { toToolResult } from "./result.ts";
 import { mcpTools } from "./tools/index.ts";
@@ -104,12 +106,12 @@ export async function startMcpServer(): Promise<void> {
   const server = createMcpServer({
     context: {
       version: cliVersion,
-      env: process.env,
+      env: processEnvironment(),
       commands: exposedCommands,
       interactive: false,
     },
   });
-  const closed = Promise.withResolvers<void>();
+  const closed: PromiseWithResolvers<void> = Promise.withResolvers();
   process.stdin.once("end", closed.resolve);
   process.stdin.once("close", closed.resolve);
   await server.connect(new StdioServerTransport());

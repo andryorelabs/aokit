@@ -1,9 +1,9 @@
 import type { ConflictWrite } from "../apply/index.ts";
-import { type FileContent, Vfs } from "../engine/vfs.ts";
 import { hashVfs, type Plan, type PlanChange, type Provenance } from "../engine/plan.ts";
+import { type FileContent, Vfs } from "../engine/vfs.ts";
 import type { Lockfile } from "../lockfile/schema.ts";
-import { isRegionFile } from "../patchers/markdown/regions.ts";
 import type { Merger } from "../merger/index.ts";
+import { isRegionFile } from "../patchers/markdown/regions.ts";
 import type { BuiltProject } from "../pipeline/build.ts";
 import { normalizeUserContent, sameContent, textOf } from "./content.ts";
 
@@ -343,8 +343,8 @@ async function isApplicableRename(
 ): Promise<boolean> {
   const entry = input.lockfile.files[from];
   const nextFile = input.next.plan.vfs.get(to);
-  if (from === to || entry === undefined || entry.mode !== "managed") return false;
-  if (nextFile === undefined || nextFile.ownership !== "managed" || nextFile.volatile) return false;
+  if (from === to || entry?.mode !== "managed") return false;
+  if (nextFile?.ownership !== "managed" || nextFile.volatile) return false;
   if (input.next.plan.vfs.has(from) || input.lockfile.files[to] !== undefined) return false;
   return (await input.readUser(to)) === undefined;
 }
@@ -375,7 +375,7 @@ function isApplicableSeedMove(input: MergeProjectInput, from: string, to: string
   const entry = input.lockfile.files[from];
   const nextFile = input.next.plan.vfs.get(to);
   if (from === to || entry?.mode !== "seed") return false;
-  if (nextFile === undefined || nextFile.ownership !== "seed") return false;
+  if (nextFile?.ownership !== "seed") return false;
   return !input.next.plan.vfs.has(from) && input.lockfile.files[to] === undefined;
 }
 

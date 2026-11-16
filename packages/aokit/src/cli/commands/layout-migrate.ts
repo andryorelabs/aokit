@@ -1,7 +1,9 @@
 import { resolve as resolvePath } from "node:path";
+
 import { z } from "zod";
-import { abortLifecycle } from "../../lifecycle/run.ts";
+
 import { type Confirmer, runLayoutMigrate } from "../../layout/migrate.ts";
+import { abortLifecycle } from "../../lifecycle/run.ts";
 import { toAokitError } from "../../project/errors.ts";
 import type { CommandContext } from "../command.ts";
 import { defineCommand } from "../command.ts";

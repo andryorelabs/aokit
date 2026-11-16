@@ -1,6 +1,7 @@
 import { afterAll, expect, test } from "bun:test";
 import { readFile, rm, writeFile } from "node:fs/promises";
 import { join } from "node:path";
+
 import { runCommand } from "../../src/cli/command.ts";
 import { ejectCommand } from "../../src/cli/commands/eject.ts";
 import { recopyCommand } from "../../src/cli/commands/recopy.ts";
@@ -28,7 +29,7 @@ test("a locked version missing from the Registry renders the latest and notes it
   const directory = await createProject(workspace);
   const latest = (await readLock(directory)).modules.oxc?.version;
   await lockWith(directory, (lock) => {
-    objectAt(lock, "modules", "oxc")["version"] = "0.0.1";
+    objectAt(lock, "modules", "oxc").version = "0.0.1";
   });
   await commitAll(directory);
   const envelope = await recopy(directory);

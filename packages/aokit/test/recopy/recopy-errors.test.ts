@@ -1,6 +1,7 @@
 import { afterAll, expect, test } from "bun:test";
 import { mkdir, readFile, rm, writeFile } from "node:fs/promises";
 import { join } from "node:path";
+
 import { runCommand } from "../../src/cli/command.ts";
 import { recopyCommand } from "../../src/cli/commands/recopy.ts";
 import { objectAt, parseJsonObject } from "../helpers/update-json.ts";
@@ -42,7 +43,7 @@ test("a Registry that cannot be read fails without a substitution", async () => 
   const directory = await createProject(workspace);
   const path = join(directory, "aokit.lock.json");
   const lock = parseJsonObject(await readFile(path, "utf8"));
-  objectAt(lock, "registries", "official")["source"] = join(workspace, "no-such-registry");
+  objectAt(lock, "registries", "official").source = join(workspace, "no-such-registry");
   await writeFile(path, `${JSON.stringify(lock, null, 2)}\n`);
   await commitAll(directory);
   const envelope = await recopy(directory);

@@ -1,4 +1,5 @@
 import { expect, test } from "bun:test";
+
 import { addEnv } from "../../src/patchers/env/index.ts";
 
 test("addEnv adds missing keys and never overwrites existing ones", () => {

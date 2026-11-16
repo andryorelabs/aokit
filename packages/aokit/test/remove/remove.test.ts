@@ -3,6 +3,7 @@ import { mkdtempSync } from "node:fs";
 import { readFile, readdir, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
+
 import { runCommand } from "../../src/cli/command.ts";
 import { createCommand } from "../../src/cli/commands/create.ts";
 import { doctorCommand } from "../../src/cli/commands/doctor.ts";
@@ -43,7 +44,7 @@ async function create(modules: string[], layout: Layout): Promise<string> {
 async function createWithOrphan(): Promise<string> {
   const directory = await create(["coolify", "docker", "oxc"], "single");
   const lock = await lockOf(directory);
-  const docker = lock.modules["docker"];
+  const docker = lock.modules.docker;
   if (docker === undefined) throw new Error("docker is not in the Lockfile");
   const edited = { ...lock, modules: { ...lock.modules, docker: { ...docker, selected: false } } };
   await writeFile(join(directory, "aokit.lock.json"), serializeLockfile(edited));
@@ -137,7 +138,7 @@ test("dependents without --cascade fail with DEPENDENTS_EXIST and write nothing"
 test("a Module that is not selected fails with NOT_SELECTED", async () => {
   const directory = await createWithOrphan();
   const lock = await lockOf(directory);
-  expect(lock.modules["docker"]?.selected).toBe(false);
+  expect(lock.modules.docker?.selected).toBe(false);
   const envelope = await remove(directory, "docker");
   expect(envelope.ok).toBe(false);
   if (envelope.ok) return;
@@ -222,7 +223,7 @@ test("a Conflict after removal exits 6 and keeps the conflicted Lockfile hash", 
   const directory = await create(["oxc", "knip"], "single");
   const manifestPath = join(directory, "package.json");
   const manifest = parseJsonObject(await readFile(manifestPath, "utf8"));
-  objectAt(manifest, "scripts")["knip"] = "my own knip";
+  objectAt(manifest, "scripts").knip = "my own knip";
   await writeFile(manifestPath, `${JSON.stringify(manifest, null, 2)}\n`);
   await commitAll(directory);
   const before = await lockOf(directory);

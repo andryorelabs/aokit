@@ -2,6 +2,7 @@ import { afterEach, beforeEach, expect, test } from "bun:test";
 import { chmod, mkdir, mkdtemp, readFile, readdir, rm, stat, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
+
 import { ApplyError, apply, lockfileName } from "../../src/apply/index.ts";
 import { installSignalHandlers } from "../../src/cli/shutdown.ts";
 import { Vfs } from "../../src/engine/index.ts";
@@ -251,7 +252,8 @@ test("a simulated SIGINT before the final rename exits 130 and changes nothing",
   const { directory, base } = await existingProject();
   const before = await snapshot(directory);
   const exitCodes: number[] = [];
-  const { promise: exited, resolve: markExited } = Promise.withResolvers<void>();
+  const { promise: exited, resolve: markExited }: PromiseWithResolvers<void> =
+    Promise.withResolvers();
   const uninstall = installSignalHandlers({
     exit: (code) => {
       exitCodes.push(code);
@@ -282,7 +284,8 @@ test("a simulated SIGINT while creating a new Project leaves nothing behind", as
   const next = Vfs.empty();
   next.write("a.txt", "a");
   const exitCodes: number[] = [];
-  const { promise: exited, resolve: markExited } = Promise.withResolvers<void>();
+  const { promise: exited, resolve: markExited }: PromiseWithResolvers<void> =
+    Promise.withResolvers();
   const uninstall = installSignalHandlers({
     exit: (code) => {
       exitCodes.push(code);

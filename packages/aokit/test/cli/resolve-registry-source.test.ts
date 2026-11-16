@@ -1,6 +1,7 @@
 import { expect, test } from "bun:test";
 import { join, resolve } from "node:path";
 import { pathToFileURL } from "node:url";
+
 import { AokitError } from "../../src/cli/envelope.ts";
 import type { Lockfile } from "../../src/lockfile/schema.ts";
 import { openProjectRegistry, resolveRegistrySource } from "../../src/project/registry.ts";

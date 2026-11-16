@@ -1,6 +1,7 @@
 import { afterEach, expect, test } from "bun:test";
 import { mkdir, readFile, writeFile } from "node:fs/promises";
 import { join } from "node:path";
+
 import { buildRegistry } from "../../../../tools/registry-build/build.ts";
 import { writeRegistrySourceFixture } from "../../../../tools/registry-build/fixture.ts";
 import { runCommand } from "../../src/cli/command.ts";
@@ -85,7 +86,7 @@ async function commitAll(directory: string): Promise<void> {
 test("update keeps a user dependency the target Release does not resolve", async () => {
   const directory = await updatableProject();
   await editLockfileJson(directory, (lockfile) => {
-    objectAt(lockfile, "deps")["mine"] = {
+    objectAt(lockfile, "deps").mine = {
       version: "9.9.9",
       owners: [],
       pinned: false,

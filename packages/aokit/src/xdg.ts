@@ -1,18 +1,25 @@
 import { homedir } from "node:os";
 import { posix, win32 } from "node:path";
 
+import {
+  readFirstNonEmptyVariable,
+  readNonEmptyVariable,
+  type Environment,
+  type EnvironmentVariableName,
+} from "./env.ts";
+
 /**
  * The environment variables the XDG helpers read.
  */
-type XdgEnvironment = Readonly<Record<string, string | undefined>>;
+type XdgEnvironment = Environment;
 
 /**
  * Where one aokit directory lives: the XDG variable that wins everywhere, the Windows variable
  * used next on win32, and the home-relative fallbacks for each platform family.
  */
 interface DirectoryRule {
-  xdgVariable: string;
-  windowsVariable: string;
+  xdgVariable: EnvironmentVariableName;
+  windowsVariable: EnvironmentVariableName;
   windowsFallback: readonly string[];
   posixFallback: string;
 }
@@ -33,15 +40,11 @@ const cacheRule: DirectoryRule = {
 
 function absoluteVariable(
   env: XdgEnvironment,
-  variable: string,
+  variable: EnvironmentVariableName,
   path: typeof posix,
 ): string | undefined {
-  const value = env[variable];
-  return value !== undefined && value !== "" && path.isAbsolute(value) ? value : undefined;
-}
-
-function firstNonEmpty(...values: (string | undefined)[]): string | undefined {
-  return values.find((value) => value !== undefined && value !== "");
+  const value = readNonEmptyVariable(env, variable);
+  return value !== undefined && path.isAbsolute(value) ? value : undefined;
 }
 
 function aokitDirectory(
@@ -55,10 +58,10 @@ function aokitDirectory(
   if (platform === "win32") {
     const windows = absoluteVariable(env, rule.windowsVariable, path);
     if (windows !== undefined) return path.join(windows, "aokit");
-    const profile = firstNonEmpty(env.USERPROFILE, env.HOME) ?? homedir();
+    const profile = readFirstNonEmptyVariable(env, ["USERPROFILE", "HOME"]) ?? homedir();
     return path.join(profile, ...rule.windowsFallback, "aokit");
   }
-  const home = firstNonEmpty(env.HOME) ?? homedir();
+  const home = readNonEmptyVariable(env, "HOME") ?? homedir();
   return path.join(home, rule.posixFallback, "aokit");
 }
 

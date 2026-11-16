@@ -1,8 +1,10 @@
 import { mkdir, readdir, readFile, stat, writeFile } from "node:fs/promises";
 import { dirname, join, posix } from "node:path";
+
 import { type ModuleManifest, catalogSchema, compileModule, stableStringify } from "@aokit/module";
 import { composeDraftCatalog } from "@aokit/module/catalog";
 import { format } from "oxfmt";
+
 import { layoutTables } from "../../packages/aokit/src/engine/layout.ts";
 import {
   computeIntegrity,
@@ -128,7 +130,7 @@ async function readExistingIndex(outDir: string): Promise<RegistryIndex | undefi
 
 function modulesField(raw: unknown): unknown {
   const file = catalogFileSchema.safeParse(raw);
-  return file.success ? file.data["modules"] : undefined;
+  return file.success ? file.data.modules : undefined;
 }
 
 async function readPublishedModules(

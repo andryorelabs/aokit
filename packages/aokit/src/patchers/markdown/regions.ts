@@ -188,7 +188,7 @@ function findEnd(syntax: Syntax, scanned: string, end: string, from: number): nu
   let index = scanned.indexOf(end, from);
   while (index !== -1 && syntax.anchored) {
     const lineStart = scanned.lastIndexOf("\n", index - 1) + 1;
-    const after = scanned.slice(index + end.length).match(/^[ \t]*(?:\r?\n|$)/);
+    const after = /^[ \t]*(?:\r?\n|$)/.exec(scanned.slice(index + end.length));
     if (/^[ \t]*$/.test(scanned.slice(lineStart, index)) && after !== null) break;
     index = scanned.indexOf(end, index + end.length);
   }

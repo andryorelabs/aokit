@@ -1,9 +1,14 @@
 import { readdirSync, readFileSync } from "node:fs";
 import { join } from "node:path";
+
 import { compareSettings, isRecord, type Drift } from "./compare.ts";
 
 /** The outcome of one `gh` invocation. */
-export type GhResult = { exitCode: number; stdout: string; stderr: string };
+export interface GhResult {
+  exitCode: number;
+  stdout: string;
+  stderr: string;
+}
 
 /** Runs `gh` with the given arguments. Tests inject one that answers from memory. */
 export type GhRunner = (args: readonly string[]) => GhResult;
@@ -85,7 +90,7 @@ function readDependabotAlerts(runGh: GhRunner, repository: string): boolean {
 
 function readStatus(securityAndAnalysis: unknown, feature: string): boolean | undefined {
   const entry = isRecord(securityAndAnalysis) ? securityAndAnalysis[feature] : undefined;
-  const status = isRecord(entry) ? entry["status"] : undefined;
+  const status = isRecord(entry) ? entry.status : undefined;
   if (status === "enabled") return true;
   return status === "disabled" ? false : undefined;
 }
@@ -97,17 +102,44 @@ function sortStrings(value: unknown): unknown {
 /** Topics have no order on GitHub, so both sides are sorted before they are compared. */
 function withSortedTopics(repositorySettings: unknown): unknown {
   if (!isRecord(repositorySettings)) return repositorySettings;
-  return { ...repositorySettings, topics: sortStrings(repositorySettings["topics"]) };
+  return { ...repositorySettings, topics: sortStrings(repositorySettings.topics) };
 }
 
-/** Reads the live counterpart of `.github/settings.json`, in the shape of that file. */
+function readField(response: unknown, field: string): unknown {
+  return isRecord(response) ? response[field] : undefined;
+}
+
+/**
+ * Reads the Actions settings: the default `GITHUB_TOKEN` permissions, whether workflows may
+ * approve pull requests, and which fork pull requests need approval before their workflows run.
+ */
+function readLiveActions(runGh: GhRunner, repository: string): Record<string, unknown> {
+  const workflow = getJson(runGh, `repos/${repository}/actions/permissions/workflow`);
+  const forkApproval = getJson(
+    runGh,
+    `repos/${repository}/actions/permissions/fork-pr-contributor-approval`,
+  );
+  return {
+    default_workflow_permissions: readField(workflow, "default_workflow_permissions"),
+    can_approve_pull_request_reviews: readField(workflow, "can_approve_pull_request_reviews"),
+    fork_pr_contributor_approval: readField(forkApproval, "approval_policy"),
+  };
+}
+
+/** Reads the state of CodeQL default setup, which an advanced setup workflow keeps off. */
+function readLiveCodeScanning(runGh: GhRunner, repository: string): Record<string, unknown> {
+  const defaultSetup = getJson(runGh, `repos/${repository}/code-scanning/default-setup`);
+  return { default_setup: readField(defaultSetup, "state") };
+}
+
+/** Reads the live counterpart of `.github/repo-settings.json`, in the shape of that file. */
 function readLiveSettings(runGh: GhRunner, repository: string): unknown {
   const repositoryResponse = getJson(runGh, `repos/${repository}`);
-  const securityAndAnalysis = isRecord(repositoryResponse)
-    ? repositoryResponse["security_and_analysis"]
-    : undefined;
+  const securityAndAnalysis = readField(repositoryResponse, "security_and_analysis");
   const dependabotAlerts = readDependabotAlerts(runGh, repository);
   const privateReporting = getJson(runGh, `repos/${repository}/private-vulnerability-reporting`);
+  const actions = readLiveActions(runGh, repository);
+  const codeScanning = readLiveCodeScanning(runGh, repository);
   return {
     repository: withSortedTopics(repositoryResponse),
     security: {
@@ -118,22 +150,22 @@ function readLiveSettings(runGh: GhRunner, repository: string): unknown {
       ),
       dependabot_alerts: dependabotAlerts,
       dependabot_security_updates: readStatus(securityAndAnalysis, "dependabot_security_updates"),
-      private_vulnerability_reporting: isRecord(privateReporting)
-        ? privateReporting["enabled"]
-        : undefined,
+      private_vulnerability_reporting: readField(privateReporting, "enabled"),
     },
+    actions,
+    code_scanning: codeScanning,
   };
 }
 
 function compareContexts(left: unknown, right: unknown): number {
-  const leftContext = isRecord(left) ? String(left["context"]) : "";
-  const rightContext = isRecord(right) ? String(right["context"]) : "";
+  const leftContext = isRecord(left) ? String(left.context) : "";
+  const rightContext = isRecord(right) ? String(right.context) : "";
   return leftContext.localeCompare(rightContext);
 }
 
 function normalizeParameters(parameters: unknown): unknown {
   if (!isRecord(parameters)) return {};
-  const checks = parameters["required_status_checks"];
+  const checks = parameters.required_status_checks;
   if (!Array.isArray(checks)) return parameters;
   return { ...parameters, required_status_checks: checks.toSorted(compareContexts) };
 }
@@ -144,11 +176,11 @@ function normalizeParameters(parameters: unknown): unknown {
  */
 function normalizeRuleset(ruleset: unknown): Record<string, unknown> {
   const source = isRecord(ruleset) ? ruleset : {};
-  const rules = Array.isArray(source["rules"]) ? source["rules"].filter(isRecord) : [];
+  const rules = Array.isArray(source.rules) ? source.rules.filter(isRecord) : [];
   return {
     ...source,
     rules: Object.fromEntries(
-      rules.map((rule) => [String(rule["type"]), normalizeParameters(rule["parameters"])]),
+      rules.map((rule) => [String(rule.type), normalizeParameters(rule.parameters)]),
     ),
   };
 }
@@ -156,8 +188,8 @@ function normalizeRuleset(ruleset: unknown): Record<string, unknown> {
 function compareRuleset(expectedRuleset: unknown, liveRuleset: unknown): Drift[] {
   const expected = normalizeRuleset(expectedRuleset);
   const live = normalizeRuleset(liveRuleset);
-  const expectedRules = isRecord(expected["rules"]) ? expected["rules"] : {};
-  const liveRules = isRecord(live["rules"]) ? live["rules"] : {};
+  const expectedRules = isRecord(expected.rules) ? expected.rules : {};
+  const liveRules = isRecord(live.rules) ? live.rules : {};
   const liveOnly = Object.entries(liveRules)
     .filter(([type]) => !(type in expectedRules))
     .map(([type, parameters]) => ({
@@ -178,9 +210,9 @@ function readJsonFile(path: string): unknown {
 }
 
 function readExpectedSettings(repoRoot: string): unknown {
-  const settings = readJsonFile(join(repoRoot, ".github", "settings.json"));
+  const settings = readJsonFile(join(repoRoot, ".github", "repo-settings.json"));
   if (!isRecord(settings)) return settings;
-  return { ...settings, repository: withSortedTopics(settings["repository"]) };
+  return { ...settings, repository: withSortedTopics(settings.repository) };
 }
 
 function listRulesetFiles(repoRoot: string): string[] {
@@ -207,15 +239,15 @@ function findRulesetDrift(
   }
   return files.flatMap((file) => {
     const expected = readJsonFile(join(repoRoot, ".github", "rulesets", file));
-    const name = isRecord(expected) ? expected["name"] : undefined;
-    const summary = liveList.find((ruleset) => ruleset["name"] === name);
+    const name = isRecord(expected) ? expected.name : undefined;
+    const summary = liveList.find((ruleset) => ruleset.name === name);
     const prefix = `rulesets/${file}`;
     if (summary === undefined) {
       return [
         { setting: prefix, expected: `a live ruleset named ${String(name)}`, live: undefined },
       ];
     }
-    const live = getJson(runGh, `repos/${repository}/rulesets/${String(summary["id"])}`);
+    const live = getJson(runGh, `repos/${repository}/rulesets/${String(summary.id)}`);
     return compareRuleset(expected, live).map((drift) => prefixed(prefix, drift));
   });
 }
@@ -233,15 +265,15 @@ function formatDrift(drift: Drift): string[] {
 }
 
 /** What `runCheck` needs: where the files are, which repository to read and how to reach it. */
-export type CheckOptions = {
+export interface CheckOptions {
   repoRoot: string;
   repository: string;
   runGh: GhRunner;
   print: (line: string) => void;
-};
+}
 
 /**
- * Compares `.github/settings.json` and every `.github/rulesets/*.json` with the live repository
+ * Compares `.github/repo-settings.json` and every `.github/rulesets/*.json` with the live repository
  * through `gh api` GET requests, and never writes. Returns 0 when they match. Returns 1 after
  * printing each drifted setting with its expected and live value, or after printing why the live
  * settings could not be read (gh missing, unauthenticated or a failed request).
@@ -253,7 +285,7 @@ export function runCheck({ repoRoot, repository, runGh, print }: CheckOptions): 
     const settingsDrift = compareSettings(
       readExpectedSettings(repoRoot),
       readLiveSettings(runGh, repository),
-    ).map((drift) => prefixed("settings.json", drift));
+    ).map((drift) => prefixed("repo-settings.json", drift));
     drifts = settingsDrift.concat(findRulesetDrift(runGh, repository, repoRoot, rulesetFiles));
   } catch (error) {
     if (!(error instanceof LiveSettingsError)) throw error;
@@ -262,7 +294,7 @@ export function runCheck({ repoRoot, repository, runGh, print }: CheckOptions): 
   }
   if (drifts.length === 0) {
     print(
-      `Live settings of ${repository} match .github/settings.json and .github/rulesets (${rulesetFiles.join(", ")}).`,
+      `Live settings of ${repository} match .github/repo-settings.json and .github/rulesets (${rulesetFiles.join(", ")}).`,
     );
     return 0;
   }

@@ -1,4 +1,5 @@
 import { expect, test } from "bun:test";
+
 import { defineMigration, ManifestError, parseManifest } from "@aokit/module";
 
 const baseManifest = { name: "web", version: "2.0.0", description: "Web fixture." };
@@ -74,7 +75,12 @@ test("an unknown migration key fails", () => {
 
 test("defineMigration returns the script unchanged", () => {
   const script = defineMigration(({ answers }) => ({ ...answers, router: "x" }));
-  const vfs = { read: () => undefined, write: () => {}, delete: () => {}, list: () => [] };
+  const vfs = {
+    read: () => undefined,
+    write: () => undefined,
+    delete: () => undefined,
+    list: () => [],
+  };
   const input = {
     vfs,
     answers: { appRouter: "x" },

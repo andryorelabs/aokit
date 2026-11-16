@@ -4,11 +4,12 @@ Every Markdown file under `docs/` has a row here; a test fails when one is missi
 
 ## Overview
 
-| Doc                              | Title       |
-| -------------------------------- | ----------- |
-| [development.md](development.md) | Development |
-| [stability.md](stability.md)     | Stability   |
-| [CHANGELOG.md](../CHANGELOG.md)  | Changelog   |
+| Doc                                  | Title         |
+| ------------------------------------ | ------------- |
+| [development.md](development.md)     | Development   |
+| [stability.md](stability.md)         | Stability     |
+| [configuration.md](configuration.md) | Configuration |
+| [CHANGELOG.md](../CHANGELOG.md)      | Changelog     |
 
 ## Guides
 
@@ -18,13 +19,21 @@ Every Markdown file under `docs/` has a row here; a test fails when one is missi
 | [guide/writing-modules.md](guide/writing-modules.md)       | Writing a Module   |
 | [guide/hosting-a-registry.md](guide/hosting-a-registry.md) | Hosting a Registry |
 
+## How-to guides
+
+| Doc                                                | Title         |
+| -------------------------------------------------- | ------------- |
+| [how-to/README.md](how-to/README.md)               | How-to guides |
+| [how-to/cut-a-release.md](how-to/cut-a-release.md) | Cut a release |
+
 ## Reference
 
-| Doc                                      | Title           |
-| ---------------------------------------- | --------------- |
-| [reference/cli.md](reference/cli.md)     | CLI reference   |
-| [security.md](security.md)               | Security model  |
-| [troubleshooting.md](troubleshooting.md) | Troubleshooting |
+| Doc                                                    | Title           |
+| ------------------------------------------------------ | --------------- |
+| [reference/cli.md](reference/cli.md)                   | CLI reference   |
+| [reference/dependencies.md](reference/dependencies.md) | Dependencies    |
+| [security.md](security.md)                             | Security model  |
+| [troubleshooting.md](troubleshooting.md)               | Troubleshooting |
 
 ## Architecture
 
@@ -49,6 +58,7 @@ Every Markdown file under `docs/` has a row here; a test fails when one is missi
 | Doc                                                                                                                                      | Title                                                                                                 |
 | ---------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------- |
 | [adr/README.md](adr/README.md)                                                                                                           | Architecture decision records                                                                         |
+| [adr/0000-template.md](adr/0000-template.md)                                                                                             | ADR template                                                                                          |
 | [adr/0001-capabilities-instead-of-fixed-categories.md](adr/0001-capabilities-instead-of-fixed-categories.md)                             | 0001. Capabilities instead of fixed categories                                                        |
 | [adr/0002-extension-points-and-declarative-ops.md](adr/0002-extension-points-and-declarative-ops.md)                                     | 0002. Modules integrate through versioned extension points and declarative ops (no inverse ops)       |
 | [adr/0003-remove-by-rerender-and-three-way-merge.md](adr/0003-remove-by-rerender-and-three-way-merge.md)                                 | 0003. `remove` re-renders without the module and 3-way merges                                         |
@@ -102,6 +112,7 @@ Every Markdown file under `docs/` has a row here; a test fails when one is missi
 | [standards/ci-cd.md](standards/ci-cd.md)                               | CI and CD            |
 | [standards/community-and-readme.md](standards/community-and-readme.md) | Community and README |
 | [standards/docs-and-emet.md](standards/docs-and-emet.md)               | Docs and emet        |
+| [standards/product-types.md](standards/product-types.md)               | Product types        |
 | [standards/renovate.md](standards/renovate.md)                         | Renovate             |
 | [standards/repo-settings.md](standards/repo-settings.md)               | Repo settings        |
 | [standards/testing.md](standards/testing.md)                           | Testing              |

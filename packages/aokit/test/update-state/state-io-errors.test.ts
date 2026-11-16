@@ -2,6 +2,7 @@ import { afterEach, beforeEach, describe, expect, test } from "bun:test";
 import { mkdirSync, mkdtempSync, rmSync, symlinkSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
+
 import { abortUpdate, readUpdateMarker } from "../../src/update/state.ts";
 
 /** Runs only where the filesystem reports POSIX errors and honours permission bits. */

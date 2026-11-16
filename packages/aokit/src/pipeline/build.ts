@@ -1,4 +1,5 @@
 import { type Catalog, stableStringify } from "@aokit/module";
+
 import {
   type EngineContext,
   type EngineModule,
@@ -8,11 +9,11 @@ import {
   buildPlan,
 } from "../engine/index.ts";
 import type { AnswerValue } from "../engine/interpolate.ts";
-import { effectiveAnswers } from "../project/answers.ts";
 import type { LayoutName } from "../engine/layout.ts";
 import type { Plan } from "../engine/plan.ts";
 import type { Lockfile } from "../lockfile/schema.ts";
 import { serializeLockfile } from "../lockfile/serialize.ts";
+import { effectiveAnswers } from "../project/answers.ts";
 import { computeIntegrity } from "../registry/integrity.ts";
 import { resolve } from "../resolver/resolve.ts";
 import type { ResolveError, ResolveIntent, ResolveWarning } from "../resolver/types.ts";

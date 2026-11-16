@@ -1,5 +1,7 @@
 import { expect, test } from "bun:test";
+
 import { z } from "zod";
+
 import { buildSelection } from "./support/index.ts";
 
 const packageSchema = z.object({
@@ -16,7 +18,7 @@ test.each(["single", "monorepo"] as const)(
     expect(String(vfs.read("src/mocks/server.ts"))).toContain("setupServer");
     expect(String(vfs.read("src/mocks/vitest.setup.ts"))).toContain("server.listen");
     const manifest = packageSchema.parse(JSON.parse(String(vfs.read("package.json"))));
-    expect(manifest.devDependencies["msw"]).toBeDefined();
+    expect(manifest.devDependencies.msw).toBeDefined();
   },
 );
 

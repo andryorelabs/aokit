@@ -1,6 +1,7 @@
 import { randomUUID } from "node:crypto";
 import { mkdir, readFile, rename, writeFile } from "node:fs/promises";
 import { join } from "node:path";
+
 import type { Lockfile } from "../../lockfile/schema.ts";
 import { type Registry, RegistryError } from "../../registry/index.ts";
 import type { PinnedIntegrities } from "./context.ts";

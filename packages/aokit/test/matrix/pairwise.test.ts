@@ -1,8 +1,10 @@
 import { describe, expect, test } from "bun:test";
+
 import { type ModuleManifest } from "@aokit/module";
+
 import { resolve } from "../../src/resolver/resolve.ts";
-import { pairwiseSelections } from "./pairwise.ts";
 import { fixtureManifest } from "../helpers/fixture-manifest.ts";
+import { pairwiseSelections } from "./pairwise.ts";
 
 function mod(input: { name: string; provides?: string[]; requires?: string[] }): ModuleManifest {
   return fixtureManifest(input);

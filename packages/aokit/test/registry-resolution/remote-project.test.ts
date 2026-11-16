@@ -1,6 +1,7 @@
 import { afterEach, expect, test } from "bun:test";
 import { readFile, rm, writeFile } from "node:fs/promises";
 import { join } from "node:path";
+
 import { type CommandContext, runCommand } from "../../src/cli/command.ts";
 import { addCommand } from "../../src/cli/commands/add.ts";
 import { createCommand } from "../../src/cli/commands/create.ts";
@@ -50,7 +51,7 @@ async function createRemoteProject(
 /** The kept offline copy of the document `url` served. */
 function keptCopy(context: CommandContext, url: string): string {
   return join(
-    context.env["XDG_CACHE_HOME"] ?? "",
+    context.env.XDG_CACHE_HOME ?? "",
     "aokit",
     "registry-index",
     `${new Bun.CryptoHasher("sha256").update(url).digest("hex")}.json`,
@@ -70,7 +71,7 @@ test("recopy renders the newest version of a remote Module whose locked version 
   });
   expect(added).toMatchObject({ ok: true });
   await editProjectLockfile(project, (lockfile) => {
-    const knip = lockfile.modules["knip"];
+    const knip = lockfile.modules.knip;
     if (knip === undefined) throw new Error("knip was not locked by add");
     knip.version = "0.9.0";
   });
@@ -80,10 +81,10 @@ test("recopy renders the newest version of a remote Module whose locked version 
   });
   expect(recopied).toMatchObject({
     ok: true,
-    data: { substitutions: [{ module: "knip", locked: "0.9.0", rendered: "1.1.0" }] },
+    data: { substitutions: [{ module: "knip", locked: "0.9.0", rendered: "1.1.1" }] },
   });
-  expect((await readLockfileJson(project)).modules["knip"]).toMatchObject({
-    version: "1.1.0",
+  expect((await readLockfileJson(project)).modules.knip).toMatchObject({
+    version: "1.1.1",
     registry: "acme",
   });
 });
@@ -107,7 +108,7 @@ test("a broken newer version of a locked remote Module never fails doctor or rem
     const versions: unknown = Reflect.get(knip, "versions");
     if (typeof versions !== "object" || versions === null) throw new Error("knip lacks versions");
     Reflect.set(versions, "1.2.0", {
-      ...Reflect.get(versions, "1.1.0"),
+      ...Reflect.get(versions, "1.1.1"),
       manifest: "modules/knip/1.2.0/module.json",
       files: { "files/knip.json": computeIntegrity("missing\n") },
     });
@@ -135,27 +136,27 @@ test("add resolves a remote Module's requires from the same remote Registry", as
   });
   expect(added).toMatchObject({ ok: true, data: { added: ["coolify"], pulledIn: ["docker"] } });
   const lockfile = await readLockfileJson(project);
-  expect(lockfile.modules["coolify"]?.["registry"]).toBe("acme");
-  expect(lockfile.modules["docker"]?.["registry"]).toBe("acme");
+  expect(lockfile.modules.coolify?.registry).toBe("acme");
+  expect(lockfile.modules.docker?.registry).toBe("acme");
 });
 
 test("a kept offline index never moves the Project to a Release it does not record", async () => {
   const context = await isolatedContext();
   const server = served(await namedRegistryCopy("acme"));
   const project = await createRemoteProject(context, server, "oxc");
-  const release: string = (await readLockfileJson(project)).registries["acme"]?.["release"] ?? "";
+  const release: string = (await readLockfileJson(project)).registries.acme?.release ?? "";
   await server.stop();
   const forgedRelease = "2099.1.0";
   const currentCatalog = keptCopy(context, `${server.url}/catalog/${release}.json`);
   const forgedCatalog = keptCopy(context, `${server.url}/catalog/${forgedRelease}.json`);
   const catalog = parseJsonRecord(await readFile(currentCatalog, "utf8"));
-  catalog["release"] = forgedRelease;
+  catalog.release = forgedRelease;
   const forgedText = `${JSON.stringify(catalog, null, 2)}\n`;
   await writeFile(forgedCatalog, forgedText, "utf8");
   await editJson(keptCopy(context, `${server.url}/index.json`), (index) => {
-    const releases: unknown = index["releases"];
+    const releases: unknown = index.releases;
     if (typeof releases !== "object" || releases === null) throw new Error("index lacks releases");
-    index["release"] = forgedRelease;
+    index.release = forgedRelease;
     Reflect.set(releases, forgedRelease, {
       path: `catalog/${forgedRelease}.json`,
       integrity: computeIntegrity(forgedText),

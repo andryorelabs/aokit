@@ -2,10 +2,11 @@ import { afterEach, expect, test } from "bun:test";
 import { mkdtemp, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import type { UserConfig } from "../../src/config/user-config.ts";
-import { exitCodeForErrorCode } from "../../src/cli/exit-codes.ts";
-import { toAokitError } from "../../src/project/errors.ts";
+
 import { AokitError } from "../../src/cli/envelope.ts";
+import { exitCodeForErrorCode } from "../../src/cli/exit-codes.ts";
+import type { UserConfig } from "../../src/config/user-config.ts";
+import { toAokitError } from "../../src/project/errors.ts";
 import { RegistryError } from "../../src/registry/errors.ts";
 import {
   expandNamespaceRequest,

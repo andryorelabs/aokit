@@ -1,4 +1,5 @@
 import { generateCode, parseModule } from "magicast";
+
 import { EditError } from "./errors.ts";
 
 /** The plain-object view of the first argument of `defineConfig({...})`. */
@@ -29,7 +30,7 @@ export function editDefineConfig(
   calleeName = "defineConfig",
 ): string {
   const module = parseModule(source);
-  const call: unknown = module.exports["default"];
+  const call: unknown = module.exports.default;
   if (!isProxifiedCall(call) || call.$type !== "function-call" || call.$callee !== calleeName) {
     throw new EditError(
       "edit.config-shape",

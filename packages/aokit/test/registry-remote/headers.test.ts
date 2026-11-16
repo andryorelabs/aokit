@@ -2,6 +2,7 @@ import { afterEach, expect, test } from "bun:test";
 import { mkdir, mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
+
 import { errorPayloadFrom } from "../../src/cli/envelope.ts";
 import { addTrustedRegistry, type UserConfig } from "../../src/config/user-config.ts";
 import { toAokitError } from "../../src/project/errors.ts";

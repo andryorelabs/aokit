@@ -1,6 +1,7 @@
 import { afterAll, describe, expect, test } from "bun:test";
 import { mkdir, rm, writeFile } from "node:fs/promises";
 import { join } from "node:path";
+
 import { buildRegistry } from "../../../../tools/registry-build/build.ts";
 import { writeRegistrySourceFixture } from "../../../../tools/registry-build/fixture.ts";
 import { listTool } from "../../src/mcp/tools/list.ts";
@@ -40,18 +41,18 @@ describe("list tool", () => {
     expect([...(tool?.inputSchema.required ?? [])].toSorted()).toEqual(["registry", "trust"]);
   });
 
-  test("returns the 52 Modules of the bundled Registry", async () => {
+  test("returns the 53 Modules of the bundled Registry", async () => {
     const client = await connectClient();
     const result = await callTool(client, "list", { registry: null, trust: null });
     expect(result.ok).toBe(true);
-    expect(result.data?.["modules"]).toHaveLength(52);
+    expect(result.data?.modules).toHaveLength(53);
   });
 
   test("returns the descriptions of a given Registry", async () => {
     const client = await connectClient();
     const registry = await describedRegistry();
     const result = await callTool(client, "list", { registry, trust: null });
-    expect(result.data?.["modules"]).toEqual([
+    expect(result.data?.modules).toEqual([
       {
         name: "described",
         version: "1.0.0",

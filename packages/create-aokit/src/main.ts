@@ -3,6 +3,8 @@
 import { spawn } from "node:child_process";
 import { fileURLToPath } from "node:url";
 
+import { childEnvironment } from "./env.ts";
+
 const aokitCliPath = fileURLToPath(new URL("./cli.js", import.meta.resolve("aokit/cli")));
 
 /**
@@ -13,7 +15,7 @@ const forwardedSignals = ["SIGTERM", "SIGHUP"] as const;
 
 const child = spawn("bun", [aokitCliPath, "create", ...process.argv.slice(2)], {
   stdio: "inherit",
-  env: { ...process.env, AOKIT_NO_UPDATE_NOTIFIER: "1" },
+  env: childEnvironment(),
 });
 
 let spawnFailed = false;
@@ -23,7 +25,14 @@ for (const signal of forwardedSignals) {
     child.kill(signal);
   });
 }
-process.on("SIGINT", () => {});
+/**
+ * Keeps the shim alive on SIGINT so it exits with the child's status. The child already got the
+ * signal; 130 stands only until the child closes and its own status replaces it.
+ */
+function awaitChildAfterInterrupt() {
+  process.exitCode = 130;
+}
+process.on("SIGINT", awaitChildAfterInterrupt);
 
 child.on("error", (error) => {
   spawnFailed = true;

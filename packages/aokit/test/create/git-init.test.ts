@@ -2,6 +2,7 @@ import { afterAll, describe, expect, test } from "bun:test";
 import { chmodSync, mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
+
 import { initGitRepository, type GitOutcome } from "../../src/create/git.ts";
 
 const posixShellTest = process.platform === "win32" ? test.skip : test;
@@ -32,7 +33,7 @@ function warningOf(outcome: GitOutcome): string {
 
 function cleanGitEnvironment(home: string): Record<string, string | undefined> {
   return {
-    PATH: process.env["PATH"],
+    PATH: process.env.PATH,
     HOME: home,
     GIT_CONFIG_GLOBAL: "/dev/null",
     GIT_CONFIG_NOSYSTEM: "1",
@@ -57,7 +58,7 @@ function failingGit(failingSubcommand: string): Record<string, string | undefine
     ].join("\n"),
   );
   chmodSync(script, 0o755);
-  return { PATH: `${bin}:${process.env["PATH"] ?? ""}`, HOME: workspace() };
+  return { PATH: `${bin}:${process.env.PATH ?? ""}`, HOME: workspace() };
 }
 
 describe("initGitRepository", () => {

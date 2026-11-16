@@ -1,5 +1,7 @@
 import { expect, test } from "bun:test";
+
 import { type ModuleManifestInput } from "@aokit/module";
+
 import { type EngineContext, type EngineModule, buildPlan } from "../../src/engine/index.ts";
 import { fixtureManifest } from "../helpers/fixture-manifest.ts";
 

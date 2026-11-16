@@ -2,13 +2,14 @@ import { afterEach, beforeEach, describe, expect, spyOn, test } from "bun:test";
 import { mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
+
 import { createRunOptions, run } from "../../src/cli/run.ts";
+import { runShutdownHooks } from "../../src/cli/shutdown.ts";
 import {
   refreshArgument,
   runDetachedRefresh,
   spawnDetachedRefresh,
 } from "../../src/cli/update-notice/spawn.ts";
-import { runShutdownHooks } from "../../src/cli/shutdown.ts";
 import { runInstall } from "../../src/project/install.ts";
 
 let root: string;
@@ -82,15 +83,17 @@ describe("update notice refresh process", () => {
       throw new Error("cannot spawn");
     });
     try {
-      expect(() => spawnDetachedRefresh()).not.toThrow();
+      expect(() => {
+        spawnDetachedRefresh();
+      }).not.toThrow();
     } finally {
       spawn.mockRestore();
     }
   });
 
   test("runDetachedRefresh caches the latest version from the registry", async () => {
-    const previousCache = process.env["XDG_CACHE_HOME"];
-    process.env["XDG_CACHE_HOME"] = root;
+    const previousCache = process.env.XDG_CACHE_HOME;
+    process.env.XDG_CACHE_HOME = root;
     const fetchSpy = spyOn(globalThis, "fetch").mockImplementation(
       Object.assign(
         () => Promise.resolve(new Response(JSON.stringify({ version: "9.8.7" }), { status: 200 })),
@@ -102,8 +105,8 @@ describe("update notice refresh process", () => {
       expect(readFileSync(join(root, "aokit", "update-check.json"), "utf8")).toContain("9.8.7");
     } finally {
       fetchSpy.mockRestore();
-      if (previousCache === undefined) delete process.env["XDG_CACHE_HOME"];
-      else process.env["XDG_CACHE_HOME"] = previousCache;
+      if (previousCache === undefined) delete process.env.XDG_CACHE_HOME;
+      else process.env.XDG_CACHE_HOME = previousCache;
     }
   });
 });

@@ -1,4 +1,5 @@
 import { MagicString } from "magic-string";
+
 import { EditError } from "./errors.ts";
 
 /** A text change expressed in original-source offsets. */
@@ -98,8 +99,12 @@ export function createEditBatch(options: EditBatchOptions): EditBatch {
   }
 
   return {
-    insert: (module, offset, text) => add(module, offset, offset, text),
-    replace: (module, start, end, text) => add(module, start, end, text),
+    insert: (module, offset, text) => {
+      add(module, offset, offset, text);
+    },
+    replace: (module, start, end, text) => {
+      add(module, start, end, text);
+    },
     apply() {
       const sorted = edits.toSorted(compareEdits);
       validate(sorted);

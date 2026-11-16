@@ -2,6 +2,9 @@ import { afterEach, expect, test } from "bun:test";
 import { createHash } from "node:crypto";
 import { mkdir, readFile, rm, writeFile } from "node:fs/promises";
 import { dirname, join } from "node:path";
+
+import { z } from "zod";
+
 import {
   type CachedModuleVersion,
   type ModuleVersion,
@@ -11,7 +14,6 @@ import {
   type RegistryCache,
   RegistryError,
 } from "../../src/registry/index.ts";
-import { z } from "zod";
 import { parseJsonRecord } from "../helpers/registry-json.ts";
 import {
   builtFixtureRegistry,

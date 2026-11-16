@@ -1,5 +1,7 @@
 import { describe, expect, test } from "bun:test";
+
 import { z } from "zod";
+
 import { buildSelection } from "./support/index.ts";
 
 const packageSchema = z.object({
@@ -153,6 +155,6 @@ describe("tsdown", () => {
     expect(String(plan.vfs.read(".claude/skills/tsdown-library/SKILL.md"))).toContain(
       "name: tsdown-library",
     );
-    expect(lockfile.modules["tsdown"]?.version).toBe("1.1.1");
+    expect(lockfile.modules.tsdown?.version).toBe("1.1.2");
   });
 });

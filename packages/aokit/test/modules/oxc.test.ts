@@ -1,5 +1,7 @@
 import { describe, expect, test } from "bun:test";
+
 import { parseManifest } from "@aokit/module";
+
 import oxc from "../../../../registry-src/oxc/module.ts";
 import { buildSelection } from "./support/index.ts";
 
@@ -23,17 +25,18 @@ describe("oxc", () => {
       ".oxlintrc.json",
       "AGENTS.md",
       "CLAUDE.md",
+      "oxlint-plugin.ts",
       "package.json",
     ]);
     expect(parsed(built.plan.vfs.read("package.json"))).toMatchObject({
       scripts: {
         format: "oxfmt",
-        lint: 'oxlint --type-aware --ignore-pattern "**/node_modules/**" -c ./.oxlintrc.json',
+        lint: 'oxlint --type-aware --ignore-pattern "**/node_modules/**" --ignore-pattern "**/generated/**" -c ./.oxlintrc.json',
       },
-      devDependencies: { oxfmt: "0.75.0", oxlint: "1.90.0", "oxlint-tsgolint": "^7.0.2006" },
+      devDependencies: { oxfmt: "0.75.0", oxlint: "1.92.0", "oxlint-tsgolint": "^7.0.2006" },
     });
-    expect(built.lockfile.deps["oxlint"]).toMatchObject({ pinned: true });
-    expect(built.lockfile.deps["oxfmt"]).toMatchObject({ pinned: true });
+    expect(built.lockfile.deps.oxlint).toMatchObject({ pinned: true });
+    expect(built.lockfile.deps.oxfmt).toMatchObject({ pinned: true });
     expect(built.lockfile.deps["oxlint-tsgolint"]).not.toMatchObject({ pinned: true });
   });
 
@@ -45,10 +48,23 @@ describe("oxc", () => {
       "CLAUDE.md",
       "package.json",
       "packages/config/.oxlintrc.json",
+      "packages/config/oxlint-plugin.ts",
     ]);
     expect(parsed(built.plan.vfs.read("package.json"))).toMatchObject({
       scripts: {
-        lint: 'oxlint --type-aware --ignore-pattern "**/node_modules/**" -c packages/config/.oxlintrc.json',
+        lint: 'oxlint --type-aware --ignore-pattern "**/node_modules/**" --ignore-pattern "**/generated/**" -c packages/config/.oxlintrc.json',
+      },
+    });
+  });
+
+  test("the Oxfmt config sorts imports in the standard group order", async () => {
+    const built = await build("single");
+    expect(parsed(built.plan.vfs.read(".oxfmtrc.json"))).toMatchObject({
+      sortImports: {
+        groups: ["builtin", "external", "internal", ["parent", "sibling", "index"], "unknown"],
+        internalPattern: ["@/"],
+        ignoreCase: true,
+        newlinesBetween: true,
       },
     });
   });

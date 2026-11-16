@@ -1,4 +1,5 @@
 import { expect, test } from "bun:test";
+
 import { buildSelection, expectBuilt } from "./deploy/support.ts";
 
 function packageJson(text: string | Uint8Array | undefined): Record<string, unknown> {
@@ -19,8 +20,8 @@ test("hono alone on single writes the server base and its dependencies", async (
   ]);
 
   const manifest = packageJson(plan.vfs.read("package.json"));
-  expect(manifest["dependencies"]).toEqual({ hono: "^4.13.16" });
-  expect(manifest["devDependencies"]).toEqual({ "@types/bun": "^1.4.4" });
+  expect(manifest.dependencies).toEqual({ hono: "^4.13.16" });
+  expect(manifest.devDependencies).toEqual({ "@types/bun": "^1.4.4" });
 });
 
 test("hono alone on monorepo writes the server package", async () => {
@@ -35,8 +36,8 @@ test("hono alone on monorepo writes the server package", async () => {
   ]);
 
   const manifest = packageJson(plan.vfs.read("apps/server/package.json"));
-  expect(manifest["dependencies"]).toEqual({ hono: "catalog:" });
-  expect(manifest["devDependencies"]).toEqual({ "@types/bun": "catalog:" });
+  expect(manifest.dependencies).toEqual({ hono: "catalog:" });
+  expect(manifest.devDependencies).toEqual({ "@types/bun": "catalog:" });
 });
 
 test.each([
@@ -44,18 +45,18 @@ test.each([
   ["monorepo", "bun run apps/server/src/app.ts"],
 ] as const)("hono defines a root start script (%s)", async (layout, expected) => {
   const { plan } = expectBuilt(await buildSelection(["hono"], { layout }));
-  expect(packageJson(plan.vfs.read("package.json"))["scripts"]).toMatchObject({ start: expected });
+  expect(packageJson(plan.vfs.read("package.json")).scripts).toMatchObject({ start: expected });
 });
 
 test("hono monorepo is a real workspace", async () => {
   const { plan } = expectBuilt(await buildSelection(["hono"], { layout: "monorepo" }));
-  expect(packageJson(plan.vfs.read("package.json"))["workspaces"]).toEqual(["apps/server"]);
+  expect(packageJson(plan.vfs.read("package.json")).workspaces).toEqual(["apps/server"]);
   expect(packageJson(plan.vfs.read("apps/server/package.json"))).toMatchObject({
     name: "server",
     private: true,
   });
   const single = expectBuilt(await buildSelection(["hono"]));
-  expect(packageJson(single.plan.vfs.read("package.json"))["workspaces"]).toBeUndefined();
+  expect(packageJson(single.plan.vfs.read("package.json")).workspaces).toBeUndefined();
 });
 
 test("hono keeps middleware and routes as top-level declarations", async () => {
@@ -93,5 +94,5 @@ test("hono exports the AppType for typed clients", async () => {
 test("hono appends its agents Region at version 1.2.1", async () => {
   const { plan, lockfile } = expectBuilt(await buildSelection(["hono"]));
   expect(String(plan.vfs.read("AGENTS.md"))).toContain("aokit:begin hono:agents");
-  expect(lockfile.modules["hono"]?.version).toBe("1.2.1");
+  expect(lockfile.modules.hono?.version).toBe("1.2.1");
 });

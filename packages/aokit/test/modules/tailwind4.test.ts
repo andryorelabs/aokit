@@ -1,13 +1,15 @@
 import { describe, expect, test } from "bun:test";
-import { z } from "zod";
 import { join } from "node:path";
+
 import { type MigrationFn, parseManifest } from "@aokit/module";
+import { z } from "zod";
+
+import tailwind4Source from "../../../../registry-src/tailwind4/module.ts";
 import { Vfs } from "../../src/engine/index.ts";
 import { mergeProject } from "../../src/merge/index.ts";
 import { createMerger } from "../../src/merger/index.ts";
-import { builtOf, driftOf, lockfileOf, vfsOf } from "../merge/harness.ts";
 import { jsonAt } from "../helpers/cli-json.ts";
-import tailwind4Source from "../../../../registry-src/tailwind4/module.ts";
+import { builtOf, driftOf, lockfileOf, vfsOf } from "../merge/harness.ts";
 import { buildSelection } from "./support/index.ts";
 
 const packageSchema = z.object({
@@ -66,7 +68,9 @@ async function runMigration(vfs: Vfs): Promise<void> {
         const content = vfs.read(path);
         return typeof content === "string" ? content : undefined;
       },
-      write: (path, content) => vfs.write(path, content),
+      write: (path, content) => {
+        vfs.write(path, content);
+      },
       delete: (path) => vfs.delete(path),
       list: (prefix = "") => vfs.paths().filter((path) => path.startsWith(prefix)),
     },

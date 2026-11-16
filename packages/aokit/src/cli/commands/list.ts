@@ -1,5 +1,6 @@
 import { legacyManifestDescription } from "@aokit/module";
 import { z } from "zod";
+
 import { loadCreateRegistries } from "../../project/registry/create.ts";
 import type { Registry } from "../../registry/index.ts";
 import { defineCommand } from "../command.ts";

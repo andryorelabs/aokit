@@ -1,5 +1,7 @@
 import { expect, test } from "bun:test";
+
 import { z } from "zod";
+
 import { buildSelection } from "./support/index.ts";
 
 const packageSchema = z.object({
@@ -13,8 +15,8 @@ test.each(["single", "monorepo"] as const)(
     const built = await buildSelection(["husky"], layout);
     if (!built.ok) throw new Error(built.error.message);
     const manifest = packageSchema.parse(JSON.parse(String(built.plan.vfs.read("package.json"))));
-    expect(manifest.scripts["prepare"]).toBe("husky");
-    expect(manifest.devDependencies["husky"]).toBe("^9.1.7");
+    expect(manifest.scripts.prepare).toBe("husky");
+    expect(manifest.devDependencies.husky).toBe("^9.1.7");
     expect(built.plan.vfs.paths().some((path) => path.startsWith(".husky/"))).toBe(false);
   },
 );

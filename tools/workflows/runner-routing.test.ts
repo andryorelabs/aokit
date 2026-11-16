@@ -19,13 +19,22 @@ const routedExpression =
 const routedMatrixExpression =
   "${{ matrix.os == 'ubuntu-latest' && (github.event.pull_request.head.repo.fork && 'ubuntu-latest' || vars.BLACKSMITH_RUNNER || 'ubuntu-latest') || matrix.os }}";
 
-/** Jobs routed through `vars.BLACKSMITH_RUNNER`, as `<file>:<job>`; every other job uses a literal label. */
-export const routedJobs: readonly string[] = [
-  "ci.yml:check",
-  "ci.yml:test",
-  "ci.yml:commitlint",
-  "determinism.yml:compare",
-];
+/**
+ * Jobs routed through `vars.BLACKSMITH_RUNNER`, keyed `<file>:<job>`, each with the reason it is
+ * routed; every other job uses a literal label.
+ */
+export const routedJobs: Readonly<Record<string, string>> = {
+  "ci.yml:check":
+    "required pull request check on Linux: a faster runner shortens every merge, and forks fall back to ubuntu-latest",
+  "ci.yml:test":
+    "required pull request check: only its Linux leg is routed; the macOS and Windows legs exist to catch OS differences",
+  "ci.yml:commitlint":
+    "required pull request check on Linux that lints the pull request's commit messages",
+  "determinism.yml:compare":
+    "Linux-only diff of the digests the matrix legs upload; it builds nothing, so the runner cannot change a digest",
+};
+
+const routedJobIds: readonly string[] = Object.keys(routedJobs);
 
 /**
  * The routed jobs of the `github-ci` Module: every job on the pull request path. `codeql.yml` and
@@ -147,7 +156,7 @@ function findJobProblem(id: string, job: WorkflowJob, routed: boolean): string |
 export function findRunnerRoutingProblems(
   file: string,
   text: string,
-  routed: readonly string[] = routedJobs,
+  routed: readonly string[] = routedJobIds,
 ): string[] {
   const problems: string[] = [];
   const parsedWorkflow: unknown = Bun.YAML.parse(text);
@@ -220,7 +229,13 @@ describe("CI runner routing", () => {
 
   test("every routed job exists in a workflow file", () => {
     const files = new Set(readdirSync(workflowsDirectory));
-    expect(routedJobs.filter((id) => !files.has(id.split(":")[0] ?? ""))).toEqual([]);
+    expect(routedJobIds.filter((id) => !files.has(id.split(":")[0] ?? ""))).toEqual([]);
+  });
+
+  test("every routed job carries its own reason", () => {
+    const reasons = Object.values(routedJobs).map((reason) => reason.trim());
+    expect(routedJobIds.filter((id) => (routedJobs[id] ?? "").trim().length < 20)).toEqual([]);
+    expect(new Set(reasons).size).toBe(reasons.length);
   });
 
   test("a routed job on a literal ubuntu-latest fails and names file and job", () => {
@@ -361,14 +376,17 @@ describe("CI runner routing", () => {
     expect(field(commitlint, "if")).toBe(
       "github.event_name == 'pull_request' && !(github.base_ref == 'main' && github.head_ref == 'develop')",
     );
-    const checkoutInputs = field(jobSteps(jobs, "commitlint")[0], "with");
+    const checkout = jobSteps(jobs, "commitlint").find((step: unknown) =>
+      String(field(step, "uses")).startsWith("actions/checkout@"),
+    );
+    const checkoutInputs = field(checkout, "with");
     expect(field(checkoutInputs, "fetch-depth")).toBe(0);
     expect(field(checkoutInputs, "filter")).toBe("blob:none");
     expect(stepRuns(jobs, "commitlint")).toContain(
       "bun install --frozen-lockfile --ignore-scripts",
     );
     expect(stepRuns(jobs, "commitlint")).toContain(
-      'bunx commitlint --from "$BASE_SHA" --to "$HEAD_SHA" --verbose',
+      'bun run lint:commits --from "$BASE_SHA" --to "$HEAD_SHA"',
     );
     const gate = field(jobs, "ci-passed");
     expect(field(gate, "if")).toBe("always()");
@@ -410,7 +428,9 @@ describe("CI runner routing", () => {
 
   test("ci-passed reads each needed job result through its own env variable", () => {
     const text = readFileSync(join(workflowsDirectory, "ci.yml"), "utf8");
-    const steps = jobSteps(field(Bun.YAML.parse(text), "jobs"), "ci-passed");
+    const steps = jobSteps(field(Bun.YAML.parse(text), "jobs"), "ci-passed").filter(
+      (step: unknown) => field(step, "run") !== undefined,
+    );
     expect(steps.map((step) => field(step, "env"))).toEqual([
       {
         CHECK_RESULT: "${{ needs.check.result }}",

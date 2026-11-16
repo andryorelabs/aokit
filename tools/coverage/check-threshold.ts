@@ -1,16 +1,25 @@
 import { existsSync, readFileSync } from "node:fs";
 import { resolve } from "node:path";
+
 import { type CoverageException, coverageExceptions } from "./coverage-exceptions";
+import {
+  type CoverageFloors,
+  type Floor,
+  loadCoverageFloors,
+  workspaceOf,
+} from "./coverage-floors";
+
+const committedFloors = loadCoverageFloors();
 
 /**
- * Minimum "All files" line coverage, as a fraction. Raise it when coverage rises, never lower it.
+ * Minimum "All files" line coverage, as a fraction, read from `coverage-floors.json`. Raise it when coverage rises, never lower it.
  */
-export const LINE_THRESHOLD = 0.997;
+export const LINE_THRESHOLD = committedFloors.all.lines;
 
 /**
- * Minimum "All files" function coverage, as a fraction. Raise it when coverage rises, never lower it.
+ * Minimum "All files" function coverage, as a fraction, read from `coverage-floors.json`. Raise it when coverage rises, never lower it.
  */
-export const FUNCTION_THRESHOLD = 0.999;
+export const FUNCTION_THRESHOLD = committedFloors.all.functions;
 
 /**
  * Coverage of one source file, as reported by an lcov record.
@@ -144,9 +153,43 @@ function findFileFailures(
   return failures;
 }
 
+function findWorkspaceFailures(
+  files: readonly FileCoverage[],
+  workspaceFloors: Readonly<Record<string, Floor>>,
+): string[] {
+  const failures: string[] = [];
+  const grouped = new Map<string, FileCoverage[]>();
+  for (const file of files) {
+    const workspace = workspaceOf(file.path);
+    grouped.set(workspace, [...(grouped.get(workspace) ?? []), file]);
+  }
+  for (const [workspace, workspaceFiles] of grouped) {
+    const floor = workspaceFloors[workspace];
+    if (floor === undefined) {
+      failures.push(
+        `Workspace ${workspace} has no entry in coverage-floors.json; add its floor under "workspaces".`,
+      );
+      continue;
+    }
+    const summary = summarize(workspaceFiles);
+    if (summary.lines < floor.lines) {
+      failures.push(
+        `Workspace ${workspace} line coverage ${percent(summary.lines)} is below its ${percent(floor.lines)} floor.`,
+      );
+    }
+    if (summary.functions < floor.functions) {
+      failures.push(
+        `Workspace ${workspace} function coverage ${percent(summary.functions)} is below its ${percent(floor.functions)} floor.`,
+      );
+    }
+  }
+  return failures;
+}
+
 /**
  * Lists one message per failed check: an "All files" metric under its threshold, a file under the per-file floor
  * without an exception, and an exception that is stale, missing from the report, unexplained or under its own floor.
+ * With `workspaceFloors`, each workspace in the report needs an entry and must meet it.
  * Empty when the gate passes. Per-file checks run on the files and exceptions passed in.
  */
 export function findThresholdFailures(
@@ -157,6 +200,7 @@ export function findThresholdFailures(
   },
   files: readonly FileCoverage[] = [],
   exceptions: readonly CoverageException[] = [],
+  workspaceFloors?: Readonly<Record<string, Floor>>,
 ): string[] {
   const failures: string[] = [];
   if (summary.files === 0) {
@@ -174,6 +218,8 @@ export function findThresholdFailures(
     );
   }
   failures.push(...findFileFailures(files, exceptions));
+  if (workspaceFloors !== undefined)
+    failures.push(...findWorkspaceFailures(files, workspaceFloors));
   return failures;
 }
 
@@ -183,16 +229,12 @@ export function findThresholdFailures(
 export function checkCoverageReport(
   repoRoot: string,
   exceptions: readonly CoverageException[] = coverageExceptions,
+  floors: CoverageFloors = committedFloors,
 ): string[] {
   const reportPath = resolve(repoRoot, "coverage/lcov.info");
   if (!existsSync(reportPath)) {
     return [`No coverage report at ${reportPath}; run bun test with coverage enabled first.`];
   }
   const files = parseLcov(readFileSync(reportPath, "utf8"));
-  return findThresholdFailures(
-    summarize(files),
-    { lines: LINE_THRESHOLD, functions: FUNCTION_THRESHOLD },
-    files,
-    exceptions,
-  );
+  return findThresholdFailures(summarize(files), floors.all, files, exceptions, floors.workspaces);
 }

@@ -2,7 +2,9 @@ import { expect, test } from "bun:test";
 import { mkdtemp, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
+
 import { type ModuleManifestInput } from "@aokit/module";
+
 import {
   EngineError,
   type EngineContext,
@@ -28,7 +30,7 @@ function moduleOf(
   };
 }
 
-const handler: OpHandler = () => {};
+const handler: OpHandler = () => undefined;
 
 const writer: OpHandler = ({ vfs, module }) => {
   vfs.write("marker.txt", module);

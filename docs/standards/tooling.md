@@ -26,7 +26,9 @@ ESLint stays as a companion, not as the main linter. It runs with the full proje
 
 A repository without `.astro` files may instead use a type-program shim for such a rule and drop the companion. The companion reads the same `ignorePatterns` as Oxlint where possible, and its rule list shrinks as Oxlint gains support. The companion's `lint` runs in the same hook and CI step as Oxlint.
 
-## The aokit repo's own lint config
+## The aokit repo's own lint config (aokit only)
+
+This section describes aokit's own repository and is not a rule for other repos; their lint config follows the baseline in E10.
 
 The aokit repo configures Oxlint in `oxlint.config.ts` (`defineConfig`) and Knip in `knip.jsonc`. Generated Projects keep `.oxlintrc.json` and `knip.json` from the `oxc` and `knip` Modules. The two are independent ([ADR 0022](../adr/0022-repo-lint-config-is-typescript.md)).
 
@@ -38,7 +40,7 @@ The aokit repo configures Oxlint in `oxlint.config.ts` (`defineConfig`) and Knip
 - **Local rules** live in `tools/oxlint/local-plugin.ts` with a test per rule, and load as the `local` jsPlugin.
 - **Knip:** `knip.jsonc` carries a reason on every entry, ignore and `ignoreDependencies` line.
 - **TypeScript:** `tsconfig.base.json` sets `erasableSyntaxOnly`, so enums, namespaces and parameter properties are rejected.
-- **Blame:** `.git-blame-ignore-revs` lists the lint-debt squash commits; enable it with `git config blame.ignoreRevsFile .git-blame-ignore-revs`.
+- **Blame:** `.git-blame-ignore-revs` lists the lint-debt squash commits and the import-sort reformat; enable it with `git config blame.ignoreRevsFile .git-blame-ignore-revs`.
 
 ## Scripts and configuration rules
 
@@ -47,6 +49,84 @@ The aokit repo configures Oxlint in `oxlint.config.ts` (`defineConfig`) and Knip
 - **E6** (must) Oxc is pinned exactly and equal across repos, every lint disable carries a reason, and TSDoc-only comments are enforced by lint. Reason: one Oxc version reports the same violations everywhere.
 - **E7** (should) The default gitmoji per type is feat ✨, fix 🐛, docs 📝, refactor ♻️, perf ⚡️, test ✅, build 📦, ci 👷, chore 🔧, deps ⬆️, release 🔖 and revert ⏪. Reason: the same type reads the same in every history.
 - **E8** (must) Oxfmt keeps its defaults for every style option, the only allowed keys are `ignorePatterns`, `sortImports`, `sortTailwindcss`, `sortPackageJson` and `astro`, and the import group order should match across repos. Reason: formatting is never a per-repo debate.
+
+## Rules from standard v2
+
+Each rule is marked **must**, **should** or **may**, names the project types it applies to, gives one sentence, then the reason. The type words are in the [legend](README.md#levels-and-project-types).
+
+- **E10** (V16, must, TS) One shared Oxlint baseline is encoded in aokit's `oxc` Module and copied by every repo into its `oxlint.config.ts`, with a per-repo drift test; violations are fixed, never disabled. The rules are in [the baseline](#oxlint-baseline-e10). Reason: one rule set catches the same bugs everywhere (five bare `.rejects` that could never fail were found this way).
+- **E11** (V17, must, while Oxlint and ESLint coexist) A `lint:parity` differential gate runs with an accepted-differences fixture. Reason: the gate in [Differential parity gate](#differential-parity-gate) stays executable.
+- **E12** (V18, should, TS) One lint-policy module is consumed by both linters, and the lint config itself has a test. Reason: the two linters cannot disagree.
+- **E13** (V19, must, all) The format scope includes `.mts`, `.cts` and `.jsonc`, and one `sortImports` group order is used, set in aokit (below). Reason: no file type or import order is a per-repo debate.
+- **E14** (V20, should, TS) The tsconfig `include` covers root `*.ts` and `*.mts` config files. Reason: config files are type-checked like source.
+- **E15** (V21, must, all) One toolchain version table lives in aokit (below), every pin is Renovate-managed, and each repo has a drift check against the table. Reason: one version of each tool reports the same results everywhere.
+- **E16** (V22, must, all) Hooks are written in TypeScript with tests: pre-push refuses `main` and `develop` and checks the branch name, and the hook files are tested. Reason: a hook that is not tested stops working unseen.
+- **E17** (V23, must, all) `lint:commits` checks the whole pull request range, not `--last`. Reason: a bad older commit on a branch must fail.
+- **E18** (V24, should, all) Script names are `lint:fix`, `test:coverage`, `cache:clear` and, for bilingual repos, `i18n:status`; `ci:audit` is optional. Reason: the same command does the same thing in every repo.
+
+### Oxlint baseline (E10)
+
+Peers copy this list into their `oxlint.config.ts` as error-level rules, and a drift test compares the copy to aokit's exported list. The type-aware rules need `options.typeAware`.
+
+- the equivalents of the typescript-eslint `strictTypeChecked` and `stylisticTypeChecked` presets, every rule Oxlint implements from either one;
+- `typescript/switch-exhaustiveness-check`;
+- `typescript/no-explicit-any`;
+- `typescript/return-await`, option `"in-try-catch"`;
+- `typescript/consistent-type-imports`;
+- `typescript/no-unnecessary-condition`;
+- the JSDoc content rules, from the `jsdoc` plugin: `jsdoc/check-tag-names`, `jsdoc/empty-tags`, `jsdoc/implements-on-classes`, `jsdoc/no-defaults`, `jsdoc/require-param-name`, `jsdoc/require-property-name` and `jsdoc/require-returns-description`;
+- the eslint-comments hygiene set: `unicorn/no-abusive-eslint-disable`, `options.reportUnusedDisableDirectives` set to `"error"`, and `local/require-description` (a reason on every disable);
+- `local/no-unawaited-async-matcher` (an `expect(...).rejects` or `.resolves` is awaited or returned);
+- `jest/no-identical-title`;
+- the focused-test ban: `jest/no-focused-tests` plus a rule that rejects `.only` on `test`, `it` and `describe` imported from `bun:test`, which the jest rules do not see.
+
+### sortImports (E13)
+
+```json
+{
+  "groups": ["builtin", "external", "internal", ["parent", "sibling", "index"], "unknown"],
+  "internalPattern": ["@/"],
+  "ignoreCase": true,
+  "newlinesBetween": true
+}
+```
+
+Astro repos add `customGroups` and this group order:
+
+```json
+{
+  "customGroups": [
+    { "groupName": "astro", "elementNamePattern": ["astro", "astro/**", "astro:*"] }
+  ],
+  "groups": [
+    "builtin",
+    { "newlinesBetween": false },
+    "astro",
+    { "newlinesBetween": false },
+    "external",
+    "internal",
+    ["parent", "sibling", "index"],
+    "unknown"
+  ]
+}
+```
+
+### Toolchain versions (E15)
+
+| Tool                        | Version                                             |
+| --------------------------- | --------------------------------------------------- |
+| `oxlint`                    | 1.92.0                                              |
+| `@oxlint/plugins`           | 1.92.0                                              |
+| `oxfmt`                     | 0.75.0                                              |
+| `oxlint-tsgolint`           | 7.0.2005                                            |
+| `typescript7`               | `npm:typescript@7.1.0-beta`                         |
+| `typescript`                | `npm:@typescript/typescript6@6.0.2`                 |
+| Bun (`packageManager`)      | `bun@1.4.4`                                         |
+| `@types/bun`                | 1.4.4                                               |
+| `.node-version`             | 26                                                  |
+| actionlint                  | 1.7.12                                              |
+| zizmor                      | 1.32.0                                              |
+| `lycheeverse/lychee-action` | `e7477775783ea5526144ba13e8db5eec57747ce8` (v2.9.0) |
 
 ## Git hooks and commit messages
 

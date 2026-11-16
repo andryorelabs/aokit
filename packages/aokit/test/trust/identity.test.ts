@@ -1,4 +1,5 @@
 import { expect, test } from "bun:test";
+
 import { sourceStringIdentity } from "../../src/trust/identity.ts";
 
 test("URL identity ignores case and the default port but keeps scheme and path", () => {

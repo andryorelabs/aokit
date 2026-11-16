@@ -1,4 +1,5 @@
 import { afterAll, beforeAll, describe, expect, test } from "bun:test";
+
 import { runCommand } from "../../src/cli/command.ts";
 import { diffCommand } from "../../src/cli/commands/diff.ts";
 import { ejectCommand } from "../../src/cli/commands/eject.ts";

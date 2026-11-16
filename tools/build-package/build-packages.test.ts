@@ -2,6 +2,7 @@ import { afterAll, expect, test } from "bun:test";
 import { cp, mkdir, mkdtemp, readFile, rm, stat, symlink, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
+
 import { buildPackages } from "./build.ts";
 
 const posixTest = process.platform === "win32" ? test.skip : test;
@@ -28,6 +29,10 @@ async function stageRepository(): Promise<string> {
   await cp(join(realRoot, "packages", "module", "src"), join(root, "packages", "module", "src"), {
     recursive: true,
   });
+  await cp(
+    join(realRoot, "packages", "module", "llms.txt"),
+    join(root, "packages", "module", "llms.txt"),
+  );
   await cp(
     join(realRoot, "packages", "module", "package.json"),
     join(root, "packages", "module", "package.json"),

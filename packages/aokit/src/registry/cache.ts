@@ -1,6 +1,8 @@
 import { randomUUID } from "node:crypto";
 import { mkdir, readdir, readFile, rename, rm, writeFile } from "node:fs/promises";
 import { dirname, join, relative, sep } from "node:path";
+
+import { processEnvironment } from "../env.ts";
 import { xdgCacheDir } from "../xdg.ts";
 import type { CachedModuleVersion, RegistryCache } from "./client.ts";
 import { RegistryError } from "./errors.ts";
@@ -84,7 +86,7 @@ async function readEntryFiles(filesRoot: string): Promise<Map<string, string>> {
  * renamed into place, replacing the old one. Nothing is evicted; the client verifies every hit.
  */
 export function createRegistryCache(options: RegistryCacheOptions = {}): RegistryCache {
-  const root = options.dir ?? join(xdgCacheDir(process.env), "registry");
+  const root = options.dir ?? join(xdgCacheDir(processEnvironment()), "registry");
   return {
     async get(integrity: Integrity): Promise<CachedModuleVersion | undefined> {
       assertIntegrityKey(integrity, root);

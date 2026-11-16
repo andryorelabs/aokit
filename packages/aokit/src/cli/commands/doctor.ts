@@ -1,5 +1,7 @@
 import { join, relative, resolve as resolvePath } from "node:path";
+
 import { z } from "zod";
+
 import { findLeftoverStash, removeLeftoverStash } from "../../apply/stash.ts";
 import {
   checkProject,
@@ -12,12 +14,12 @@ import type { Git } from "../../git/git.ts";
 import { openGit } from "../../git/index.ts";
 import { LockfileError, readLockfile } from "../../lockfile/index.ts";
 import type { Lockfile } from "../../lockfile/schema.ts";
+import { bundledRegistryPath } from "../../registry/bundled.ts";
 import { readUpdateMarker } from "../../update/state.ts";
 import { defineCommand } from "../command.ts";
 import { AokitError } from "../envelope.ts";
 import { lockfileMissingError } from "../errors.ts";
 import { aokitMeta } from "../meta.ts";
-import { bundledRegistryPath } from "../../registry/bundled.ts";
 
 const lockfileName = "aokit.lock.json";
 

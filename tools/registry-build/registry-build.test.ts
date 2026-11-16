@@ -2,7 +2,9 @@ import { afterEach, expect, test } from "bun:test";
 import { cp, mkdir, mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
+
 import { catalogSchema } from "@aokit/module";
+
 import { computeIntegrity } from "../../packages/aokit/src/registry/index.ts";
 import { registryIndexSchema } from "../../packages/aokit/src/registry/schema.ts";
 import { buildRegistry, listFiles } from "./build.ts";
@@ -324,7 +326,7 @@ test("the 2026.11.0 Catalog lists every curated Module dependency with oxc pinne
     ].toSorted(),
   );
   expect(catalog.pinGroups).toEqual({ oxc: ["oxlint", "oxfmt"] });
-  for (const member of catalog.pinGroups["oxc"] ?? []) {
+  for (const member of catalog.pinGroups.oxc ?? []) {
     expect(catalog.dependencies[member]).toMatch(/^\d+\.\d+\.\d+$/);
   }
 });

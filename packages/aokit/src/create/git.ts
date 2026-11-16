@@ -1,5 +1,6 @@
 import { appendFile, mkdir } from "node:fs/promises";
 import { join } from "node:path";
+
 import { registerShutdownHook } from "../cli/shutdown.ts";
 
 type Environment = Readonly<Record<string, string | undefined>>;
@@ -77,7 +78,7 @@ function failure(step: string, run: GitRun | undefined): GitOutcome {
 }
 
 function succeeded(run: GitRun | undefined): run is GitRun {
-  return run !== undefined && run.exitCode === 0;
+  return run?.exitCode === 0;
 }
 
 async function identityConfigured(directory: string, env: Environment): Promise<boolean> {

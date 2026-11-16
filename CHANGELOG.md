@@ -1,6 +1,6 @@
 # Changelog
 
-All notable changes to the `aokit` CLI, `create-aokit` and `@aokit/module` are recorded here. The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). For what a version number promises, see [stability](docs/stability.md).
+All notable changes to the `aokit` CLI, `create-aokit` and `@aokit/module` are recorded here. The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html). For what a version number promises, see [stability](docs/stability.md).
 
 The notes of each [GitHub Release](https://github.com/andryorelabs/aokit/releases) are the section of its tag in this file; a release fails when that section is missing or empty. Registry Releases use the dated `YYYY.MM.PATCH` scheme and are separate from the CLI versions below.
 
@@ -9,6 +9,7 @@ The notes of each [GitHub Release](https://github.com/andryorelabs/aokit/release
 ### Changed
 
 - Release notes come from this file instead of being generated from commit messages.
+- `MigrationFn` in `@aokit/module` now returns `Record<string, unknown> | undefined` instead of `| void`; a migration declared with an explicit `: void` return type must return `undefined`.
 
 ## [0.2.0] - 2026-11-11
 

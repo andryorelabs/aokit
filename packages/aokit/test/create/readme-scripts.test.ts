@@ -1,7 +1,8 @@
 import { expect, test } from "bun:test";
+
+import { withProjectReadme } from "../../src/create/readme.ts";
 import { Vfs } from "../../src/engine/index.ts";
 import { hashVfs, type Plan } from "../../src/engine/plan.ts";
-import { withProjectReadme } from "../../src/create/readme.ts";
 
 function readmeFor(packageJson: string): string {
   const vfs = Vfs.empty();

@@ -1,6 +1,7 @@
 import { afterEach, describe, expect, test } from "bun:test";
 import { cp, readFile, writeFile } from "node:fs/promises";
 import { join } from "node:path";
+
 import { buildRegistry } from "../../../../tools/registry-build/build.ts";
 import { writeRegistrySourceFixture } from "../../../../tools/registry-build/fixture.ts";
 import { runCommand } from "../../src/cli/command.ts";
@@ -27,7 +28,7 @@ describe("aokit check with several Registries and versions", () => {
     const project = await createProject(registry);
     await editLockfileJson(project, (lockfile) => {
       const registries = objectAt(lockfile, "registries");
-      registries["another"] = { ...official(lockfile) };
+      registries.another = { ...official(lockfile) };
     });
     const envelope = await runCommand(checkCommand, commandContext, { directory: project });
     expect(envelope).toMatchObject({ ok: true, data: { modules: [] } });

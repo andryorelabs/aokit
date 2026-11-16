@@ -1,4 +1,5 @@
 import { expect, test } from "bun:test";
+
 import { resolutionOrder } from "../../src/project/registry.ts";
 import type { Registry, RegistrySource } from "../../src/registry/index.ts";
 

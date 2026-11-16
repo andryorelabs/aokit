@@ -1,4 +1,5 @@
 import { describe, expect, test } from "bun:test";
+
 import { mergeProject } from "../../src/merge/index.ts";
 import { createMerger } from "../../src/merger/index.ts";
 import { builtOf, driftOf, lockfileOf, vfsOf } from "./harness.ts";

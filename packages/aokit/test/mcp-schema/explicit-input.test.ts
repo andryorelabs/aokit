@@ -1,5 +1,7 @@
 import { describe, expect, test } from "bun:test";
+
 import { z } from "zod";
+
 import { addCommand } from "../../src/cli/commands/add.ts";
 import { createCommand } from "../../src/cli/commands/create.ts";
 import { removeCommand } from "../../src/cli/commands/remove.ts";

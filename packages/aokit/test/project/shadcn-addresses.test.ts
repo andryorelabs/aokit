@@ -2,6 +2,7 @@ import { afterAll, beforeAll, describe, expect, test } from "bun:test";
 import { cp, mkdtemp, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join, resolve } from "node:path";
+
 import { AokitError } from "../../src/cli/envelope.ts";
 import type { LoadProjectRegistriesOptions } from "../../src/project/registry.ts";
 import { loadCreateRegistries } from "../../src/project/registry/create.ts";
@@ -164,7 +165,7 @@ describe("item URLs of another host", () => {
     );
     expect(addressed.names).toEqual(["@official/plain"]);
     expect(addressed.set.registries.has("official")).toBe(true);
-    expect(addressed.set.entries["official"]).toBeDefined();
+    expect(addressed.set.entries.official).toBeDefined();
   });
 
   test("a host declaring the name of an opened Registry from elsewhere clashes", async () => {

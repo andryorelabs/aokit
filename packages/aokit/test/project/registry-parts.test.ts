@@ -2,6 +2,7 @@ import { afterAll, beforeAll, describe, expect, test } from "bun:test";
 import { mkdtemp, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join, resolve } from "node:path";
+
 import { AokitError } from "../../src/cli/envelope.ts";
 import { currentLockfileVersion, type Lockfile } from "../../src/lockfile/schema.ts";
 import type {
@@ -131,13 +132,13 @@ describe("project registries", () => {
 describe("open source, snapshot and create", () => {
   test("an online Registry needs no Catalog check against the Lockfile", async () => {
     const registry = await openBuilt();
-    expect(() =>
+    expect(() => {
       assertCatalogDepsAuthenticated(
         registry,
         { deps: {} },
         { deps: { zod: { source: "catalog", version: "9.9.9", owners: [], pinned: false } } },
-      ),
-    ).not.toThrow();
+      );
+    }).not.toThrow();
   });
 
   test("a snapshot answers only the versions its scope read", async () => {

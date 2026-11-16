@@ -1,4 +1,5 @@
 import { expect, test } from "bun:test";
+
 import { hashTrackedFile } from "../../src/drift/hash.ts";
 
 test("a failure that is not a malformed Region is not read as modified bytes", () => {

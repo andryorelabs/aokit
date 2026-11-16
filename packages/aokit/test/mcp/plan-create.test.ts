@@ -1,6 +1,7 @@
 import { afterAll, describe, expect, test } from "bun:test";
 import { mkdirSync, readFileSync, rmSync, symlinkSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
+
 import {
   callTool,
   conflictingRegistry,
@@ -49,11 +50,11 @@ describe("plan", () => {
     const result = await callTool(client, "plan", createInput(directory));
     expect(result.ok).toBe(true);
     expect(result.isError).toBe(false);
-    expect(result.data?.["planId"]).toEqual(expect.stringMatching(/^plan_[0-9a-f]{64}$/));
-    expect(result.data?.["reproduce"]).toEqual(expect.any(String));
-    expect(result.data?.["applied"]).toBe(false);
+    expect(result.data?.planId).toEqual(expect.stringMatching(/^plan_[0-9a-f]{64}$/));
+    expect(result.data?.reproduce).toEqual(expect.any(String));
+    expect(result.data?.applied).toBe(false);
     expect(planChangeCount(result.data)).toBeGreaterThan(0);
-    expect(result.data?.["nextSteps"]).toEqual(expect.any(Array));
+    expect(result.data?.nextSteps).toEqual(expect.any(Array));
     expect(entriesOf(workspace)).not.toContain("planned");
   });
 
@@ -86,13 +87,13 @@ describe("create", () => {
     const planned = await callTool(client, "plan", createInput(directory));
     const created = await callTool(client, "create", {
       ...createInput(directory),
-      planId: planned.data?.["planId"],
+      planId: planned.data?.planId,
     });
     expect(created.error).toBeNull();
     expect(created.ok).toBe(true);
-    expect(created.data?.["applied"]).toBe(true);
-    expect(created.data?.["installed"]).toBe(false);
-    expect(created.data?.["nextSteps"]).toContain("bun install");
+    expect(created.data?.applied).toBe(true);
+    expect(created.data?.installed).toBe(false);
+    expect(created.data?.nextSteps).toContain("bun install");
     expect(entriesOf(directory)).toContain("aokit.lock.json");
     expect(entriesOf(directory)).not.toContain("node_modules");
   });
@@ -115,7 +116,7 @@ describe("create", () => {
     const planned = await callTool(client, "plan", createInput(directory));
     const result = await callTool(client, "create", {
       ...createInput(directory, "oxc,vite-react,knip"),
-      planId: planned.data?.["planId"],
+      planId: planned.data?.planId,
     });
     expect(result.error?.code).toBe("PLAN_REQUIRED");
     expect(entriesOf(workspace)).not.toContain("changed");
@@ -126,7 +127,7 @@ describe("create", () => {
     const planned = await callTool(await connectClient(), "plan", createInput(directory));
     const result = await callTool(await connectClient(), "create", {
       ...createInput(directory),
-      planId: planned.data?.["planId"],
+      planId: planned.data?.planId,
     });
     expect(result.error?.code).toBe("PLAN_REQUIRED");
     expect(entriesOf(workspace)).not.toContain("restarted");
@@ -140,7 +141,7 @@ describe("create", () => {
     writeFileSync(join(directory, "notes.txt"), "mine\n");
     const result = await callTool(client, "create", {
       ...createInput(directory),
-      planId: planned.data?.["planId"],
+      planId: planned.data?.planId,
     });
     expect(result.ok).toBe(false);
     expect(result.error?.code).toBe("PLAN_REQUIRED");
@@ -151,7 +152,7 @@ describe("create", () => {
     const client = await connectClient();
     const directory = join(workspace, "twice");
     const planned = await callTool(client, "plan", createInput(directory));
-    const args = { ...createInput(directory), planId: planned.data?.["planId"] };
+    const args = { ...createInput(directory), planId: planned.data?.planId };
     expect((await callTool(client, "create", args)).ok).toBe(true);
     const lockfile = readFileSync(join(directory, "aokit.lock.json"), "utf8");
     const second = await callTool(client, "create", args);
@@ -166,16 +167,16 @@ describe("create", () => {
     const second = join(workspace, "second");
     const firstPlan = await callTool(client, "plan", createInput(first));
     const secondPlan = await callTool(client, "plan", createInput(second));
-    expect(firstPlan.data?.["planId"]).not.toBe(secondPlan.data?.["planId"]);
+    expect(firstPlan.data?.planId).not.toBe(secondPlan.data?.planId);
     const crossed = await callTool(client, "create", {
       ...createInput(first),
-      planId: secondPlan.data?.["planId"],
+      planId: secondPlan.data?.planId,
     });
     expect(crossed.error?.code).toBe("PLAN_REQUIRED");
     expect(entriesOf(workspace)).not.toContain("first");
     const created = await callTool(client, "create", {
       ...createInput(second),
-      planId: secondPlan.data?.["planId"],
+      planId: secondPlan.data?.planId,
     });
     expect(created.ok).toBe(true);
   });
@@ -185,10 +186,10 @@ describe("create", () => {
     const target = join(workspace, "dotted");
     const dotted = join(workspace, "elsewhere", "..", "dotted");
     const planned = await callTool(client, "plan", createInput(dotted));
-    expect(planned.data?.["directory"]).toBe(target);
+    expect(planned.data?.directory).toBe(target);
     const created = await callTool(client, "create", {
       ...createInput(target),
-      planId: planned.data?.["planId"],
+      planId: planned.data?.planId,
     });
     expect(created.ok).toBe(true);
     expect(entriesOf(target)).toContain("aokit.lock.json");
@@ -205,12 +206,12 @@ describe("create", () => {
     symlinkSync(one, link);
     const directory = join(link, "app");
     const planned = await callTool(client, "plan", createInput(directory));
-    expect(planned.data?.["directory"]).toBe(join(one, "app"));
+    expect(planned.data?.directory).toBe(join(one, "app"));
     rmSync(link);
     symlinkSync(two, link);
     const result = await callTool(client, "create", {
       ...createInput(directory),
-      planId: planned.data?.["planId"],
+      planId: planned.data?.planId,
     });
     expect(result.error?.code).toBe("PLAN_REQUIRED");
     expect(entriesOf(one)).toEqual([]);
@@ -223,7 +224,7 @@ describe("call queue", () => {
     const client = await connectClient();
     const directory = join(workspace, "queued");
     const planned = await callTool(client, "plan", createInput(directory));
-    const planId = String(planned.data?.["planId"]);
+    const planId = String(planned.data?.planId);
     const createArguments = { ...createInput(directory), planId };
     const [first, second] = await Promise.all([
       callTool(client, "create", createArguments),
@@ -260,7 +261,7 @@ describe("planId and the Release", () => {
     const onSecond = await planOn(second);
     expect(onFirst.error).toBeNull();
     expect(onSecond.error).toBeNull();
-    expect(onFirst.data?.["release"]).not.toBe(onSecond.data?.["release"]);
-    expect(onFirst.data?.["planId"]).not.toBe(onSecond.data?.["planId"]);
+    expect(onFirst.data?.release).not.toBe(onSecond.data?.release);
+    expect(onFirst.data?.planId).not.toBe(onSecond.data?.planId);
   });
 });

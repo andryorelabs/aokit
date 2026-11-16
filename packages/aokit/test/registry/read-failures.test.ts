@@ -2,19 +2,23 @@ import { afterEach, describe, expect, test } from "bun:test";
 import { mkdir, mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
+
 import { z } from "zod";
+
 import { buildRegistry } from "../../../../tools/registry-build/build.ts";
 import {
   addMigrationToFixtureSource,
   writeRegistrySourceFixture,
 } from "../../../../tools/registry-build/fixture.ts";
-import { parseJsonRecord } from "../helpers/registry-json.ts";
+import { currentReleasePointer, parseIndex } from "../../src/registry/client/index-file.ts";
 import {
   computeIntegrity,
   computeModuleIntegrity,
   readLocalRegistry,
   RegistryError,
 } from "../../src/registry/index.ts";
+import { localTransport } from "../../src/registry/remote.ts";
+import { parseJsonRecord } from "../helpers/registry-json.ts";
 
 const options = { cliVersion: "0.1.0" };
 const temporaryDirectories: string[] = [];
@@ -46,13 +50,13 @@ afterEach(async () => {
 });
 
 async function migrationRegistry(
-  prepareSource: (source: string) => Promise<void> = async () => {},
+  prepareSource?: (source: string) => Promise<void>,
 ): Promise<string> {
   const source = await writeRegistrySourceFixture();
   const out = await mkdtemp(join(tmpdir(), "aokit-registry-failures-"));
   temporaryDirectories.push(source, out);
   await addMigrationToFixtureSource(source);
-  await prepareSource(source);
+  await prepareSource?.(source);
   await buildRegistry(source, out);
   return out;
 }
@@ -90,7 +94,7 @@ interface ModuleRewrite {
 
 async function rewriteOxc(root: string, rewrite: ModuleRewrite): Promise<void> {
   const index = await readIndex(root);
-  const entry = index.modules["oxc"]?.versions["2.0.0"];
+  const entry = index.modules.oxc?.versions["2.0.0"];
   if (entry === undefined) throw new Error("oxc@2.0.0 missing from the fixture");
   const manifestPath = join(root, entry.manifest);
   const manifestText = rewrite.manifestText ?? (await readFile(manifestPath, "utf8"));
@@ -162,6 +166,19 @@ describe("index", () => {
     expect(error.code).toBe("REGISTRY_INDEX_INVALID");
     expect(error.message).toContain("is invalid");
   });
+
+  test("an index whose current release has no Catalog pointer fails as REGISTRY_INDEX_INVALID", async () => {
+    const root = await migrationRegistry();
+    const transport = localTransport(root);
+    const index = parseIndex(transport, await transport.read("index.json"));
+    const error = await captureError(() =>
+      Promise.resolve().then(() => currentReleasePointer({ ...index, releases: {} })),
+    );
+    if (!(error instanceof RegistryError)) throw new Error("expected a RegistryError");
+    expect(error.code).toBe("REGISTRY_INDEX_INVALID");
+    expect(error.message).toContain("which its index does not list");
+    expect(error.fix).toContain("registry:build");
+  });
 });
 
 describe("Catalog", () => {
@@ -232,7 +249,7 @@ describe("Module manifest", () => {
   test("a manifest the schema rejects tells the author to fix the Module source", async () => {
     const root = await migrationRegistry();
     await editOxcManifest(root, (manifest) => {
-      manifest["unknownField"] = true;
+      manifest.unknownField = true;
     });
     const error = await captureRegistryError(root);
     expect(error.code).toBe("REGISTRY_MANIFEST_INVALID");
@@ -245,7 +262,7 @@ describe("Module manifest", () => {
     await editOxcManifest(
       root,
       (manifest) => {
-        manifest["schemaVersion"] = 99;
+        manifest.schemaVersion = 99;
       },
       { schemaVersion: 99 },
     );
@@ -257,7 +274,7 @@ describe("Module manifest", () => {
   test("a manifest whose name differs from the index key fails as REGISTRY_SUMMARY_MISMATCH", async () => {
     const root = await migrationRegistry();
     await editOxcManifest(root, (manifest) => {
-      manifest["name"] = "other";
+      manifest.name = "other";
     });
     const error = await captureRegistryError(root);
     expect(error.code).toBe("REGISTRY_SUMMARY_MISMATCH");
@@ -267,7 +284,7 @@ describe("Module manifest", () => {
   test("a manifest whose version differs from the index key fails as REGISTRY_SUMMARY_MISMATCH", async () => {
     const root = await migrationRegistry();
     await editOxcManifest(root, (manifest) => {
-      manifest["version"] = "2.0.1";
+      manifest.version = "2.0.1";
     });
     const error = await captureRegistryError(root);
     expect(error.code).toBe("REGISTRY_SUMMARY_MISMATCH");
@@ -285,7 +302,7 @@ describe("Module manifest", () => {
   test("a manifest file the index does not record fails naming that file", async () => {
     const root = await migrationRegistry();
     await editOxcManifest(root, (manifest) => {
-      manifest["files"] = [{ from: "files/unrecorded.txt", to: "unrecorded.txt", target: "root" }];
+      manifest.files = [{ from: "files/unrecorded.txt", to: "unrecorded.txt", target: "root" }];
     });
     const error = await captureRegistryError(root);
     expect(error.code).toBe("REGISTRY_FILE_MISSING");
@@ -296,7 +313,7 @@ describe("Module manifest", () => {
   test("a manifest migration script the index does not record fails naming that script", async () => {
     const root = await migrationRegistry();
     await editOxcManifest(root, (manifest) => {
-      manifest["migrations"] = [
+      manifest.migrations = [
         { from: ">=1 <2", to: "2.0.0", stage: "before", script: "migrations/unrecorded.js" },
       ];
     });

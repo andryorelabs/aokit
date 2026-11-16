@@ -1,7 +1,9 @@
 import { describe, expect, test } from "bun:test";
 import { existsSync, readdirSync, readFileSync } from "node:fs";
 import { join } from "node:path";
+
 import { z } from "zod";
+
 import { cliVersion } from "../../src/cli/version.ts";
 import { Vfs } from "../../src/engine/index.ts";
 import { readLocalRegistry } from "../../src/registry/index.ts";
@@ -82,7 +84,9 @@ describe("Release 2026.11.1", () => {
         const content = vfs.read(path);
         return typeof content === "string" ? content : undefined;
       },
-      write: (path: string, content: string) => vfs.write(path, content),
+      write: (path: string, content: string) => {
+        vfs.write(path, content);
+      },
       delete: (path: string) => vfs.delete(path),
       list: (prefix = "") => vfs.paths().filter((path) => path.startsWith(prefix)),
     };
@@ -107,15 +111,15 @@ describe("Release 2026.12.0", () => {
     const previous = readJson(join(sourceRoot, "catalog", "2026.11.2.json"));
     const next = readJson(join(sourceRoot, "catalog", "2026.12.0.json"));
     expect(next.release).toBe("2026.12.0");
-    expect(next["pinGroups"]).toMatchObject(
-      z.record(z.string(), z.array(z.string())).parse(previous["pinGroups"]),
+    expect(next.pinGroups).toMatchObject(
+      z.record(z.string(), z.array(z.string())).parse(previous.pinGroups),
     );
-    const previousDependencies = z.record(z.string(), z.string()).parse(previous["dependencies"]);
-    const nextDependencies = z.record(z.string(), z.string()).parse(next["dependencies"]);
+    const previousDependencies = z.record(z.string(), z.string()).parse(previous.dependencies);
+    const nextDependencies = z.record(z.string(), z.string()).parse(next.dependencies);
     expect(nextDependencies).toMatchObject(previousDependencies);
     const names = Object.keys(nextDependencies);
     expect(names).toEqual(names.toSorted());
-    expect(z.record(z.string(), z.string()).parse(next["modules"])["tailwind4"]).toBe("2.0.0");
+    expect(z.record(z.string(), z.string()).parse(next.modules).tailwind4).toBe("2.0.0");
   });
 
   test("tailwind4 2.0.0 ships and 1.x stays published", async () => {
@@ -126,10 +130,10 @@ describe("Release 2026.12.0", () => {
 
   test("a remaining Catalog fragment never redefines a dependency of the 2026.12.0 Catalog", () => {
     const releasedCatalog = readJson(join(sourceRoot, "catalog", "2026.12.0.json"));
-    const released = z.record(z.string(), z.string()).parse(releasedCatalog["dependencies"]);
+    const released = z.record(z.string(), z.string()).parse(releasedCatalog.dependencies);
     const releasedPinGroups = z
       .record(z.string(), z.array(z.string()))
-      .parse(releasedCatalog["pinGroups"]);
+      .parse(releasedCatalog.pinGroups);
     const fragmentSchema = z.object({
       dependencies: z.record(z.string(), z.string()),
       pinGroups: z.record(z.string(), z.array(z.string())).optional(),
@@ -162,24 +166,23 @@ describe("Release 2026.12.1", () => {
     "vitest-react",
   ];
 
-  test("the index keeps every earlier Release and adds 2026.12.1 as latest", async () => {
+  test("the index keeps every earlier Release and adds 2026.12.1", async () => {
     const registry = await openRegistry();
     for (const release of ["2026.11.0", "2026.11.1", "2026.11.2", "2026.12.0", "2026.12.1"]) {
       expect(registry.releases()).toContain(release);
     }
-    expect(registry.release).toBe("2026.12.1");
   });
 
   test("the Catalog extends 2026.12.0, keeps its pin groups and maps every Module", () => {
     const previous = readJson(join(sourceRoot, "catalog", "2026.12.0.json"));
     const next = readJson(join(sourceRoot, "catalog", "2026.12.1.json"));
     expect(next.release).toBe("2026.12.1");
-    expect(next["pinGroups"]).toEqual(previous["pinGroups"]);
-    const previousDependencies = z.record(z.string(), z.string()).parse(previous["dependencies"]);
-    const nextDependencies = z.record(z.string(), z.string()).parse(next["dependencies"]);
+    expect(next.pinGroups).toEqual(previous.pinGroups);
+    const previousDependencies = z.record(z.string(), z.string()).parse(previous.dependencies);
+    const nextDependencies = z.record(z.string(), z.string()).parse(next.dependencies);
     expect(nextDependencies).toMatchObject(previousDependencies);
     expect(Object.keys(nextDependencies)).toEqual(Object.keys(nextDependencies).toSorted());
-    const modules = z.record(z.string(), z.string()).parse(next["modules"]);
+    const modules = z.record(z.string(), z.string()).parse(next.modules);
     for (const name of newModules) expect(modules[name]).toBe("1.0.0");
   });
 
@@ -208,7 +211,7 @@ describe("Release 2026.12.1", () => {
     const index = readJson(join(repositoryRoot, "registry", "index.json"));
     const indexModules = z
       .record(z.string(), z.object({ versions: z.record(z.string(), z.unknown()) }))
-      .parse(index["modules"]);
+      .parse(index.modules);
     const leftovers = readdirSync(sourceRoot, { withFileTypes: true })
       .filter(
         (entry) => entry.isDirectory() && existsSync(join(sourceRoot, entry.name, "catalog.json")),
@@ -220,5 +223,81 @@ describe("Release 2026.12.1", () => {
       })
       .map((entry) => entry.name);
     expect(leftovers).toEqual([]);
+  });
+});
+
+/**
+ * The version every `registry-src/<name>/module.ts` declares, keyed by Module name.
+ */
+function moduleSourceVersions(): Record<string, string> {
+  return Object.fromEntries(
+    readdirSync(sourceRoot, { withFileTypes: true })
+      .filter((entry) => entry.isDirectory() && entry.name !== "catalog")
+      .map((entry) => {
+        const source = readFileSync(join(sourceRoot, entry.name, "module.ts"), "utf8");
+        return [entry.name, /version: "([^"]+)"/.exec(source)?.[1] ?? ""] as const;
+      }),
+  );
+}
+
+describe("Release 2026.12.2", () => {
+  /**
+   * The one released dependency 2026.12.2 changes, the exception to the superset check: oxlint
+   * moves to the toolchain version the shipped baseline `oxlintrc.json` is validated against.
+   */
+  const raisedDependencies = { oxlint: "1.92.0" };
+
+  test("the index keeps every earlier Release and adds 2026.12.2 as latest", async () => {
+    const registry = await openRegistry();
+    for (const release of [
+      "2026.11.0",
+      "2026.11.1",
+      "2026.11.2",
+      "2026.12.0",
+      "2026.12.1",
+      "2026.12.2",
+    ]) {
+      expect(registry.releases()).toContain(release);
+    }
+    expect(registry.release).toBe("2026.12.2");
+  });
+
+  test("the Catalog extends 2026.12.1 apart from the raised oxlint and keeps its pin groups", () => {
+    const previous = readJson(join(sourceRoot, "catalog", "2026.12.1.json"));
+    const next = readJson(join(sourceRoot, "catalog", "2026.12.2.json"));
+    expect(next.release).toBe("2026.12.2");
+    expect(next.pinGroups).toEqual(previous.pinGroups);
+    const previousDependencies = z.record(z.string(), z.string()).parse(previous.dependencies);
+    const nextDependencies = z.record(z.string(), z.string()).parse(next.dependencies);
+    expect(previousDependencies.oxlint).toBe("1.90.0");
+    expect(nextDependencies).toMatchObject({ ...previousDependencies, ...raisedDependencies });
+    expect(Object.keys(nextDependencies)).toEqual(Object.keys(nextDependencies).toSorted());
+  });
+
+  test("the Catalog maps every Module to its source version", () => {
+    const next = readJson(join(sourceRoot, "catalog", "2026.12.2.json"));
+    expect(z.record(z.string(), z.string()).parse(next.modules)).toEqual(moduleSourceVersions());
+  });
+
+  test("every Module source version ships and every earlier mapped version stays published", async () => {
+    const registry = await openRegistry();
+    const previous = readJson(join(sourceRoot, "catalog", "2026.12.1.json"));
+    const previousModules = z.record(z.string(), z.string()).parse(previous.modules);
+    for (const [name, version] of Object.entries(moduleSourceVersions())) {
+      expect(registry.version(name, version)).toBeDefined();
+    }
+    for (const [name, version] of Object.entries(previousModules)) {
+      expect(registry.version(name, version)).toBeDefined();
+    }
+    expect(registry.version("release-skills", "1.0.0")).toBeDefined();
+  });
+
+  test("no Catalog fragment remains", () => {
+    const fragments = readdirSync(sourceRoot, { withFileTypes: true })
+      .filter(
+        (entry) => entry.isDirectory() && existsSync(join(sourceRoot, entry.name, "catalog.json")),
+      )
+      .map((entry) => entry.name);
+    expect(fragments).toEqual([]);
   });
 });

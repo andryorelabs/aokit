@@ -2,6 +2,7 @@ import { beforeAll, describe, expect, test } from "bun:test";
 import { mkdir, mkdtemp, readFile, symlink, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
+
 import { packedPathsOf } from "./lint.ts";
 import { buildModuleSdk, publishManifestOf, rewriteRelativeTsSpecifiers } from "./module-sdk.ts";
 
@@ -58,7 +59,7 @@ test("publishManifestOf promotes publishConfig.exports relative to the staged di
   expect(manifest).toEqual({
     name: "@aokit/module",
     version: "1.2.3",
-    files: ["*.js", "*.d.ts"],
+    files: ["*.js", "*.d.ts", "llms.txt"],
     exports: { ".": { types: "./index.d.ts", default: "./index.js" } },
     publishConfig: { access: "public" },
   });
@@ -101,7 +102,8 @@ describe.skipIf(process.platform === "win32")("the staged @aokit/module package"
     const packed = await packedPathsOf(stagedDirectory);
     expect(packed).toContain("index.js");
     expect(packed).toContain("index.d.ts");
-    const documents = new Set(["package.json", "README.md", "LICENSE"]);
+    expect(packed).toContain("llms.txt");
+    const documents = new Set(["package.json", "README.md", "LICENSE", "llms.txt"]);
     const code = packed.filter((path) => !documents.has(path));
     for (const path of code) {
       expect(path.endsWith(".js") || path.endsWith(".d.ts")).toBe(true);

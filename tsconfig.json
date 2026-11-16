@@ -17,6 +17,7 @@
     "registry-src/*/migrations/*.ts",
     "registry-src/*.d.ts",
     "registry-src/*/ambient.d.ts",
-    "*.ts"
+    "*.ts",
+    "*.mts"
   ]
 }

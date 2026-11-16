@@ -2,15 +2,17 @@ import { mkdirSync, mkdtempSync } from "node:fs";
 import { mkdir, readFile, readdir, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
+
 import { z } from "zod";
+
+import { buildRegistry } from "../../../../tools/registry-build/build.ts";
+import { writeRegistrySourceFixture } from "../../../../tools/registry-build/fixture.ts";
 import { runCommand } from "../../src/cli/command.ts";
 import { addCommand } from "../../src/cli/commands/add.ts";
 import { createCommand } from "../../src/cli/commands/create.ts";
 import { doctorCommand } from "../../src/cli/commands/doctor.ts";
 import { removeCommand } from "../../src/cli/commands/remove.ts";
 import { updateCommand } from "../../src/cli/commands/update.ts";
-import { buildRegistry } from "../../../../tools/registry-build/build.ts";
-import { writeRegistrySourceFixture } from "../../../../tools/registry-build/fixture.ts";
 import { cliVersion } from "../../src/cli/version.ts";
 
 export const context = { version: cliVersion, env: {}, commands: [] };

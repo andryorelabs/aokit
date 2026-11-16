@@ -1,6 +1,8 @@
 import { join, relative } from "node:path";
+
 import { AokitError } from "../../cli/envelope.ts";
 import type { UserConfig } from "../../config/user-config.ts";
+import { processEnvironment } from "../../env.ts";
 import type { Lockfile } from "../../lockfile/schema.ts";
 import { createRegistryCache } from "../../registry/cache.ts";
 import type { GitLsRemote } from "../../registry/github.ts";
@@ -143,7 +145,9 @@ export function requiredRegistry<Entry>(
 export function cacheFor(adapters: RegistryAdapters | undefined): RegistryCache {
   return (
     adapters?.cache ??
-    createRegistryCache({ dir: join(xdgCacheDir(adapters?.env ?? process.env), "registry") })
+    createRegistryCache({
+      dir: join(xdgCacheDir(adapters?.env ?? processEnvironment()), "registry"),
+    })
   );
 }
 

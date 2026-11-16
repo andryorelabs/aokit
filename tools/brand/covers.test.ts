@@ -42,13 +42,17 @@ describe("covers and social previews", () => {
       expect(readPngSize(bytes)).toEqual({ width: cover.width, height: cover.height });
       expect(bytes.length).toBeLessThanOrEqual(ONE_MEGABYTE);
       expect(spec.maxBytes).toBe(ONE_MEGABYTE);
-      expect(() => assertSpec(spec, bytes)).not.toThrow();
+      expect(() => {
+        assertSpec(spec, bytes);
+      }).not.toThrow();
     },
   );
 
   test("assertSpec rejects a cover with the wrong size", () => {
     const wrong = readBrand("og/social-preview.png");
-    expect(() => assertSpec(specFor("og/cover.png"), wrong)).toThrow(/og\/cover\.png: expected/);
+    expect(() => {
+      assertSpec(specFor("og/cover.png"), wrong);
+    }).toThrow(/og\/cover\.png: expected/);
   });
 
   test.each(COVER_SPECS.map((cover) => [cover.name] as const))(

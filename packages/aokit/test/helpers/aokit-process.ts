@@ -19,7 +19,7 @@ export interface SpawnAokitResult {
  * when set, otherwise the current Bun runtime running the source entry.
  */
 export function aokitCommand(): string[] {
-  const binaryPath = process.env["AOKIT_BIN"];
+  const binaryPath = process.env.AOKIT_BIN;
   if (binaryPath !== undefined && binaryPath !== "") return [binaryPath];
   return [process.execPath, cliEntry];
 }

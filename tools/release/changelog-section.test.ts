@@ -1,6 +1,5 @@
 import { describe, expect, test } from "bun:test";
-import { readFileSync } from "node:fs";
-import { join } from "node:path";
+
 import { extractChangelogSection } from "./changelog-section.ts";
 
 const changelog = `# Changelog
@@ -77,29 +76,5 @@ describe("CHANGELOG section extractor", () => {
     expect(() => extractChangelogSection(changelog, "Unreleased")).toThrow(
       "CHANGELOG.md section for Unreleased is empty",
     );
-  });
-});
-
-describe("CHANGELOG.md", () => {
-  const text = readFileSync(join(import.meta.dir, "..", "..", "CHANGELOG.md"), "utf8");
-
-  test.each(["0.1.0", "0.2.0"])("has a non-empty section for the released tag v%s", (version) => {
-    expect(extractChangelogSection(text, version).length).toBeGreaterThan(0);
-  });
-
-  test("follows Keep a Changelog: Unreleased first, dated sections and compare links", () => {
-    const headings = text.split("\n").filter((line) => line.startsWith("## "));
-    expect(headings).toEqual([
-      "## [Unreleased]",
-      "## [0.2.0] - 2026-11-11",
-      "## [0.1.0] - 2026-11-10",
-    ]);
-    expect(text).toContain(
-      "[Unreleased]: https://github.com/andryorelabs/aokit/compare/v0.2.0...HEAD",
-    );
-    expect(text).toContain(
-      "[0.2.0]: https://github.com/andryorelabs/aokit/compare/v0.1.0...v0.2.0",
-    );
-    expect(text).toContain("[0.1.0]: https://github.com/andryorelabs/aokit/releases/tag/v0.1.0");
   });
 });

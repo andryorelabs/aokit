@@ -1,6 +1,8 @@
 import { expect, test } from "bun:test";
+
 import { parseManifest } from "@aokit/module";
 import { z } from "zod";
+
 import betterAuth from "../../../../registry-src/better-auth/module.ts";
 import { buildSelection } from "./support/index.ts";
 

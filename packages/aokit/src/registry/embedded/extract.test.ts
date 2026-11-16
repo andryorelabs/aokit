@@ -2,6 +2,7 @@ import { afterEach, describe, expect, test } from "bun:test";
 import { mkdtemp, readdir, readFile, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
+
 import { type EmbeddedRegistry, extractRegistryTo, renameWithRetry } from "./extract.ts";
 
 const directories: string[] = [];

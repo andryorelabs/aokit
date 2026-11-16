@@ -1,5 +1,6 @@
-import { z } from "zod";
 import type { Catalog } from "@aokit/module";
+import { z } from "zod";
+
 import type { Integrity } from "./integrity.ts";
 
 /**

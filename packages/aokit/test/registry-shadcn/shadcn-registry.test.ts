@@ -2,6 +2,7 @@ import { afterEach, expect, test } from "bun:test";
 import { mkdtemp, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
+
 import { errorCodeExitCodes } from "../../src/cli/exit-codes.ts";
 import type { UserConfig } from "../../src/config/user-config.ts";
 import { openProjectRegistries } from "../../src/project/registry.ts";

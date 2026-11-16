@@ -1,6 +1,8 @@
 import { describe, expect, test } from "bun:test";
-import { z } from "zod";
+
 import { parseManifest } from "@aokit/module";
+import { z } from "zod";
+
 import wxtSource from "../../../../registry-src/wxt/module.ts";
 import { buildSelection } from "./support/index.ts";
 
@@ -87,8 +89,8 @@ describe("wxt", () => {
       expect(plan.vfs.has(`${webDirectory}tsconfig.json`)).toBe(true);
       expect(plan.vfs.has(`${extensionDirectory}tsconfig.json`)).toBe(true);
       const scripts = manifestAt(plan.vfs, "package.json").scripts ?? {};
-      expect(scripts["dev"]).toContain("next dev");
-      expect(scripts["build"]).toContain("next build");
+      expect(scripts.dev).toContain("next dev");
+      expect(scripts.build).toContain("next build");
       expect(scripts["ext:build"]).toContain("wxt build");
       const ignore = String(plan.vfs.read(".gitignore"));
       expect(ignore).toContain("# aokit:begin wxt:wxt");
@@ -99,7 +101,7 @@ describe("wxt", () => {
   test("appends the agents Region", async () => {
     const { plan, lockfile } = await build("single");
     expect(String(plan.vfs.read("AGENTS.md"))).toContain("aokit:begin wxt:agents");
-    expect(lockfile.modules["wxt"]?.version).toBe("1.1.0");
+    expect(lockfile.modules.wxt?.version).toBe("1.1.0");
   });
 
   test("coexists with a vite-react web base", async () => {

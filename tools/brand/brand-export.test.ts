@@ -1,10 +1,9 @@
 import { describe, expect, test } from "bun:test";
-import { mkdtemp, readFile, cp, rm } from "node:fs/promises";
 import { readFileSync } from "node:fs";
+import { mkdtemp, readFile, cp, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 
-import { exportMarks } from "./brand-export.ts";
 import {
   assertSpec,
   encodeIco,
@@ -14,6 +13,7 @@ import {
   rasterSpecs,
   type RasterSpec,
 } from "./brand-export-spec.ts";
+import { exportMarks } from "./brand-export.ts";
 
 const BRAND_DIR = new URL("../../docs/brand/", import.meta.url);
 const TRUECOLOUR_ALPHA = 6;
@@ -38,7 +38,9 @@ describe("committed rasters", () => {
   test.each(rasterSpecs.map((spec) => [spec.path, spec] as const))(
     "%s meets its spec",
     (_path, spec) => {
-      expect(() => assertSpec(spec, readBrand(spec.path))).not.toThrow();
+      expect(() => {
+        assertSpec(spec, readBrand(spec.path));
+      }).not.toThrow();
     },
   );
 
@@ -64,22 +66,32 @@ describe("assertSpec", () => {
 
   test("throws naming the file when dimensions differ", () => {
     const wrongSize = readBrand("logo/png/mark-32.png");
-    expect(() => assertSpec(spec, wrongSize)).toThrow(/mark-16\.png: expected 16x16, got 32x32/);
+    expect(() => {
+      assertSpec(spec, wrongSize);
+    }).toThrow(/mark-16\.png: expected 16x16, got 32x32/);
   });
 
   test("throws when the byte budget is exceeded", () => {
     const bytes = readBrand(spec.path);
-    expect(() => assertSpec({ ...spec, maxBytes: bytes.length - 1 }, bytes)).toThrow(/budget/);
+    expect(() => {
+      assertSpec({ ...spec, maxBytes: bytes.length - 1 }, bytes);
+    }).toThrow(/budget/);
   });
 
   test("throws when bytes are not a PNG or ICO", () => {
-    expect(() => assertSpec(spec, new Uint8Array(40))).toThrow(/not a PNG/);
-    expect(() => assertSpec(icoSpec, new Uint8Array(40))).toThrow(/not an ICO/);
+    expect(() => {
+      assertSpec(spec, new Uint8Array(40));
+    }).toThrow(/not a PNG/);
+    expect(() => {
+      assertSpec(icoSpec, new Uint8Array(40));
+    }).toThrow(/not an ICO/);
   });
 
   test("throws when the ICO largest entry is wrong", () => {
     const small = encodeIco([{ size: 16, png: readBrand("logo/png/mark-16.png") }]);
-    expect(() => assertSpec(icoSpec, small)).toThrow(/expected 48x48, got 16x16/);
+    expect(() => {
+      assertSpec(icoSpec, small);
+    }).toThrow(/expected 48x48, got 16x16/);
   });
 });
 

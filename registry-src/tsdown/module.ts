@@ -2,7 +2,7 @@ import { defineModule } from "@aokit/module";
 
 export default defineModule({
   name: "tsdown",
-  version: "1.1.1",
+  version: "1.1.2",
   description: "TypeScript library bundling with tsdown.",
   provides: [{ capability: "library", cardinality: { max: 1 } }],
   files: [

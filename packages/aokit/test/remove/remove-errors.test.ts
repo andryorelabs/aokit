@@ -3,6 +3,7 @@ import { mkdtempSync } from "node:fs";
 import { mkdir, readFile, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
+
 import { runCommand } from "../../src/cli/command.ts";
 import { createCommand } from "../../src/cli/commands/create.ts";
 import { removeCommand } from "../../src/cli/commands/remove.ts";
@@ -75,7 +76,7 @@ test("a Module that is not in the Lockfile is NOT_IN_LOCKFILE", async () => {
 test("a locked version the Registry no longer holds is MODULE_VERSION_UNAVAILABLE", async () => {
   const directory = await createProject();
   await editLockfile(directory, (lockfile) => {
-    objectAt(lockfile, "modules", "knip")["version"] = "999.0.0";
+    objectAt(lockfile, "modules", "knip").version = "999.0.0";
   });
   const envelope = await remove(directory, "knip");
   expect(envelope).toMatchObject({ ok: false, error: { code: "MODULE_VERSION_UNAVAILABLE" } });

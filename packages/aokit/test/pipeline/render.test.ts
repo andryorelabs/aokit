@@ -2,10 +2,11 @@ import { afterAll, expect, test } from "bun:test";
 import { mkdtempSync, readFileSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join, relative } from "node:path";
+
 import { AokitError } from "../../src/cli/envelope.ts";
 import { cliVersion } from "../../src/cli/version.ts";
-import { hashTrackedFile } from "../../src/drift/hash.ts";
 import { runCreate } from "../../src/create/index.ts";
+import { hashTrackedFile } from "../../src/drift/hash.ts";
 import { parseLockfile } from "../../src/lockfile/index.ts";
 import type { Lockfile } from "../../src/lockfile/schema.ts";
 import { renderFromLockfile } from "../../src/pipeline/index.ts";
@@ -121,7 +122,7 @@ test("a newer minCliVersion fails with MIN_CLI_VERSION before any Registry is re
 
 test("an absent locked Module version fails naming Module, version and the recopy fix", async () => {
   const { directory, lockfile } = await createProject("single");
-  const oxc = lockfile.modules["oxc"];
+  const oxc = lockfile.modules.oxc;
   if (oxc === undefined) throw new Error("oxc missing");
   const stale: Lockfile = {
     ...lockfile,
@@ -136,7 +137,7 @@ test("an absent locked Module version fails naming Module, version and the recop
 
 test("versionOverride renders another published version of a Module", async () => {
   const { directory, lockfile } = await createProject("single");
-  const oxc = lockfile.modules["oxc"];
+  const oxc = lockfile.modules.oxc;
   if (oxc === undefined) throw new Error("oxc missing");
   const stale: Lockfile = {
     ...lockfile,
@@ -146,5 +147,5 @@ test("versionOverride renders another published version of a Module", async () =
     ...options(directory),
     versionOverride: { oxc: oxc.version },
   });
-  expect(rendered.lockfile.modules["oxc"]?.version).toBe(oxc.version);
+  expect(rendered.lockfile.modules.oxc?.version).toBe(oxc.version);
 });

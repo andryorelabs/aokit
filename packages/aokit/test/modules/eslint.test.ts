@@ -1,6 +1,8 @@
 import { expect, test } from "bun:test";
-import { z } from "zod";
+
 import { parseManifest } from "@aokit/module";
+import { z } from "zod";
+
 import eslint from "../../../../registry-src/eslint/module.ts";
 import { buildSelection } from "./support/index.ts";
 
@@ -21,13 +23,14 @@ test.each([
     if (!built.ok) throw new Error(built.error.message);
     const manifest = packageSchema.parse(JSON.parse(String(built.plan.vfs.read("package.json"))));
     expect(manifest.scripts["lint:eslint"]).toBe("eslint .");
-    expect(manifest.scripts["lint"]).toContain("oxlint");
-    expect(manifest.devDependencies["eslint"]).toBe("^10.14.0");
+    expect(manifest.scripts.lint).toContain("oxlint");
+    expect(manifest.devDependencies.eslint).toBe("^10.14.0");
     expect(manifest.devDependencies["typescript-eslint"]).toBe("^8.72.1");
     expect(manifest.devDependencies["eslint-plugin-astro"]).toBe("^3.2.1");
     expect(built.plan.vfs.has("eslint.config.mjs")).toBe(true);
     const config = lintConfigSchema.parse(JSON.parse(String(built.plan.vfs.read(oxlintrc))));
     expect(config.ignorePatterns).toContain(".astro/**");
+    expect(config.ignorePatterns).toContain("**/eslint.config.mjs");
     expect(config.ignorePatterns).toContain("dist/**");
   },
 );
@@ -58,7 +61,7 @@ test.each(["single", "monorepo"] as const)(
     });
     const config = String(built.plan.vfs.read("eslint.config.mjs"));
     expect(config).toContain("unicorn.configs.recommended");
-    expect(config).toContain('jsdoc.configs["flat/recommended-typescript"]');
+    expect(config).toContain('jsdocConfigs["flat/recommended-typescript"]');
     expect(config).toContain("eslintComments.recommended");
     expect(config).toContain("aokit:begin eslint:configs");
   },

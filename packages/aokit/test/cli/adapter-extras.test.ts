@@ -1,6 +1,8 @@
 import { expect, spyOn, test } from "bun:test";
 import { PassThrough } from "node:stream";
+
 import { z } from "zod";
+
 import { runCli, type CliIo } from "../../src/cli/adapter.ts";
 import { defineCommand } from "../../src/cli/command.ts";
 import { parseJson } from "../helpers/cli-json.ts";

@@ -1,9 +1,11 @@
 import { posix } from "node:path";
+
 import type { Catalog, ModuleManifest } from "@aokit/module";
+
 import { createEditSession } from "../edit/session.ts";
 import { codeOpHandlers } from "../ops/code/index.ts";
-import { applyDeps, applyEnv, dataOpHandlers, wireWorkspaces } from "../ops/data/index.ts";
 import { envSchemaOps } from "../ops/data/env.ts";
+import { applyDeps, applyEnv, dataOpHandlers, wireWorkspaces } from "../ops/data/index.ts";
 import { coreOwner, writeAgentFiles } from "./agent-files.ts";
 import { EngineError } from "./errors.ts";
 import {
@@ -324,7 +326,9 @@ export async function buildPlan(options: BuildPlanOptions): Promise<BuiltPlan> {
     joinTargetPath(directoryOf(target), relativePath);
 
   writeAgentFiles(
-    vfsView(work, (path) => log.add(path, coreOwner, { kind: "op", op: "agent-files" })),
+    vfsView(work, (path) => {
+      log.add(path, coreOwner, { kind: "op", op: "agent-files" });
+    }),
     layout,
   );
 
@@ -333,8 +337,12 @@ export async function buildPlan(options: BuildPlanOptions): Promise<BuiltPlan> {
   const sharedEdits = createEditSession({
     moduleOrder,
     read: (path) => textOf(work, path),
-    write: (path, content) => work.write(path, content),
-    onEdit: (path, module) => log.add(path, module, { kind: "op", op: currentOp }),
+    write: (path, content) => {
+      work.write(path, content);
+    },
+    onEdit: (path, module) => {
+      log.add(path, module, { kind: "op", op: currentOp });
+    },
   });
 
   for (const { pass, module } of modulePasses(modules)) {
@@ -410,8 +418,12 @@ export async function buildPlan(options: BuildPlanOptions): Promise<BuiltPlan> {
         ? createEditSession({
             moduleOrder: [manifest.name],
             read: (path) => textOf(scratch, path),
-            write: (path, content) => scratch.write(path, content),
-            onEdit: (path, editor) => log.addOverridden(path, editor, { kind: "op", op: op.op }),
+            write: (path, content) => {
+              scratch.write(path, content);
+            },
+            onEdit: (path, editor) => {
+              log.addOverridden(path, editor, { kind: "op", op: op.op });
+            },
           })
         : sharedEdits;
       const flushBeforeAccess = (path: string): void => {
@@ -470,7 +482,9 @@ export async function buildPlan(options: BuildPlanOptions): Promise<BuiltPlan> {
 
   const deps: Record<string, { entry: Omit<PlanDependency, "owners">; owners: Set<string> }> = {};
   const dataVfs = (module: string, op: string): OpVfs =>
-    vfsView(work, (path) => log.add(path, module, { kind: "op", op }));
+    vfsView(work, (path) => {
+      log.add(path, module, { kind: "op", op });
+    });
   for (const { manifest } of modules) {
     const recorded = applyDeps({
       vfs: dataVfs(manifest.name, "deps"),

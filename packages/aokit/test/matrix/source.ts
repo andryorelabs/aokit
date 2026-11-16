@@ -1,6 +1,8 @@
 import { existsSync, readdirSync } from "node:fs";
 import { join } from "node:path";
+
 import { type ModuleManifest, parseManifest } from "@aokit/module";
+
 import { type CuratedSelection, readCuratedSelections } from "../../../../tools/real-build/plan.ts";
 
 const sourceRoot = join(import.meta.dir, "..", "..", "..", "..", "registry-src");

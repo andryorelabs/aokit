@@ -1,4 +1,5 @@
 import { expect, test } from "bun:test";
+
 import { asDiagnosticData, isDiagnosticData, stringifySorted } from "../../src/cli/envelope.ts";
 import { fromResolveError } from "../../src/project/errors.ts";
 
