@@ -1,5 +1,6 @@
-import { cookies } from "next/headers";
 import { getRequestConfig } from "next-intl/server";
+import { cookies } from "next/headers";
+
 import { catalogs } from "./messages";
 import { defaultLocale, localeCookie, toLocale } from "./routing";
 

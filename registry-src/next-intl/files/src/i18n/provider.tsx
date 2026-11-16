@@ -1,7 +1,8 @@
 "use client";
 
-import type { PropsWithChildren } from "react";
 import { NextIntlClientProvider } from "next-intl";
+import type { PropsWithChildren } from "react";
+
 import { catalogs } from "./messages";
 import { defaultLocale } from "./routing";
 
