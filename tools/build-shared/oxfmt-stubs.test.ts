@@ -42,8 +42,18 @@ test("the plugin bundles an optional oxfmt import and the stub names the package
   }
 });
 
-test("a stub module source embeds the stubbed package name in its error message", () => {
-  expect(stubModuleSource("@astrojs/compiler-rs")).toContain(
-    "@astrojs/compiler-rs is not bundled with aokit",
-  );
+test("a stub module throws an error naming the stubbed package", async () => {
+  const directory = await mkdtemp(join(tmpdir(), "aokit-stub-source-"));
+  try {
+    const file = join(directory, "stub.mjs");
+    await writeFile(file, stubModuleSource("@astrojs/compiler-rs"));
+    const stub: unknown = await import(file);
+    const parse: unknown = Reflect.get(Object(stub), "parse");
+    if (typeof parse !== "function") throw new Error("the stub module does not export parse");
+    expect(() => {
+      Reflect.apply(parse, undefined, []);
+    }).toThrow("@astrojs/compiler-rs is not bundled with aokit");
+  } finally {
+    await rm(directory, { recursive: true, force: true });
+  }
 });

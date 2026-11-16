@@ -1,7 +1,18 @@
+function stripHtmlTags(text: string): string {
+  let current = text;
+  let previous: string;
+  do {
+    previous = current;
+    current = current.replace(
+      /(`[^`]*`)|<[^>]+>/g,
+      (_match, code: string | undefined) => code ?? "",
+    );
+  } while (current !== previous);
+  return current;
+}
+
 export function githubSlug(heading: string): string {
-  return heading
-    .replace(/!?\[([^\]]*)\]\([^)]*\)/g, "$1")
-    .replace(/(`[^`]*`)|<[^>]+>/g, (_match, code: string | undefined) => code ?? "")
+  return stripHtmlTags(heading.replace(/!?\[([^\]]*)\]\([^)]*\)/g, "$1"))
     .trim()
     .toLowerCase()
     .replace(/[^\p{L}\p{N}\p{M} _-]/gu, "")
