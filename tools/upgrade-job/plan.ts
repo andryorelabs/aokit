@@ -168,8 +168,11 @@ export function planEdits(
 
 /** Content of the edited file for `edit`, given the current `content` ("" for a new file). */
 export function applyEdit(edit: Edit, content: string): string {
-  if (edit.kind === "managed-json")
-    return content.replace(/\{/, () => `{\n  "${edit.marker}": true,`);
+  if (edit.kind === "managed-json") {
+    const openBrace = content.indexOf("{");
+    if (openBrace === -1) return content;
+    return `${content.slice(0, openBrace + 1)}\n  "${edit.marker}": true,${content.slice(openBrace + 1)}`;
+  }
   if (edit.kind === "user-import") {
     return `import { ${edit.marker} } from "${edit.importFrom ?? "./routes"}";\n\nexport { ${edit.marker} };\n`;
   }
