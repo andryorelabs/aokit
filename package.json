@@ -52,7 +52,7 @@
     "typescript7": "npm:typescript@7.1.0-beta"
   },
   "overrides": {
-    "@emnapi/core": "2.0.0-beta.2",
+    "@emnapi/core": "2.0.0-beta.3",
     "@emnapi/runtime": "2.0.0-beta.2"
   },
   "packageManager": "bun@1.4.4"
