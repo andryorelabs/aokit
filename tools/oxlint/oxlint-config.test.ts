@@ -1,5 +1,7 @@
 import { describe, expect, test } from "bun:test";
 import { existsSync } from "node:fs";
+import { copyFile, mkdtemp, rm } from "node:fs/promises";
+import { tmpdir } from "node:os";
 import { join } from "node:path";
 
 import type { OxlintConfig } from "oxlint";
@@ -177,5 +179,121 @@ describe("shared Oxlint baseline (E10)", () => {
       ],
     });
     expect(shipped).toHaveProperty("rules", baselineRuleSettings);
+  });
+});
+
+const oxcModulePluginPath = join(
+  repositoryRoot,
+  "registry-src",
+  "oxc",
+  "files",
+  "oxlint-plugin.ts",
+);
+const installedOxlintPath = join(repositoryRoot, "node_modules", "oxlint");
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === "object" && value !== null && !Array.isArray(value);
+}
+
+/**
+ * Reads a JSON object file, failing the test when it is not an object.
+ */
+async function readJsonObject(path: string): Promise<Record<string, unknown>> {
+  const parsed: unknown = await Bun.file(path).json();
+  if (!isRecord(parsed)) throw new Error(`${path} is not a JSON object`);
+  return parsed;
+}
+
+/**
+ * The string at `keys` inside a JSON object, or `undefined` when the path is missing.
+ */
+function stringAt(value: unknown, keys: readonly string[]): string | undefined {
+  let current = value;
+  for (const key of keys) {
+    if (!isRecord(current)) return undefined;
+    current = current[key];
+  }
+  return typeof current === "string" ? current : undefined;
+}
+
+/**
+ * The oxlint range the latest Release Catalog pins for generated Projects.
+ */
+async function latestCatalogOxlintPin(): Promise<string | undefined> {
+  const index = await readJsonObject(join(repositoryRoot, "registry", "index.json"));
+  const release = stringAt(index, ["release"]);
+  if (release === undefined) throw new Error("registry/index.json names no release");
+  const catalog = await readJsonObject(
+    join(repositoryRoot, "registry-src", "catalog", `${release}.json`),
+  );
+  return stringAt(catalog, ["dependencies", "oxlint"]);
+}
+
+/**
+ * Runs the installed oxlint, the one the baseline is validated against, on a one-line source file
+ * with `lintConfig` as its configuration next to the oxc Module's jsPlugin. Type-aware linting is
+ * turned off: oxlint checks every rule name while it parses the configuration, before linting.
+ */
+async function lintWithConfig(lintConfig: unknown): Promise<{ exitCode: number; output: string }> {
+  const scratchDirectory = await mkdtemp(join(tmpdir(), "aokit-oxlint-baseline-"));
+  try {
+    await Bun.write(join(scratchDirectory, ".oxlintrc.json"), JSON.stringify(lintConfig));
+    await copyFile(oxcModulePluginPath, join(scratchDirectory, "oxlint-plugin.ts"));
+    await Bun.write(join(scratchDirectory, "empty.ts"), "export const answer = 42;\n");
+    const lintProcess = Bun.spawn(
+      [
+        process.execPath,
+        join(installedOxlintPath, "bin", "oxlint"),
+        "--config",
+        ".oxlintrc.json",
+        "empty.ts",
+      ],
+      { cwd: scratchDirectory, stdout: "pipe", stderr: "pipe" },
+    );
+    const [standardOutput, standardError, exitCode] = await Promise.all([
+      new Response(lintProcess.stdout).text(),
+      new Response(lintProcess.stderr).text(),
+      lintProcess.exited,
+    ]);
+    return { exitCode, output: standardOutput + standardError };
+  } finally {
+    await rm(scratchDirectory, { recursive: true, force: true });
+  }
+}
+
+/**
+ * The shipped baseline with type-aware linting off, so no `oxlint-tsgolint` binary is needed.
+ */
+async function shippedBaselineWithoutTypeAware(): Promise<Record<string, unknown>> {
+  const shipped = await readJsonObject(oxcModuleConfigPath);
+  const options = isRecord(shipped.options) ? shipped.options : {};
+  return { ...shipped, options: { ...options, typeAware: false } };
+}
+
+describe("Catalog oxlint pin (F-002)", () => {
+  test("the latest Catalog pins the oxlint the baseline is validated against", async () => {
+    const installed = await readJsonObject(join(installedOxlintPath, "package.json"));
+    const installedVersion = stringAt(installed, ["version"]);
+    expect(installedVersion).toBeDefined();
+    const rootManifest = await readJsonObject(join(repositoryRoot, "package.json"));
+    expect(stringAt(rootManifest, ["devDependencies", "oxlint"])).toBe(installedVersion);
+    expect(await latestCatalogOxlintPin()).toBe(installedVersion);
+  });
+
+  test("the pinned oxlint knows every rule the shipped baseline names", async () => {
+    const result = await lintWithConfig(await shippedBaselineWithoutTypeAware());
+    expect(result.output).not.toContain("not found in plugin");
+    expect(result.exitCode, result.output).toBe(0);
+  });
+
+  test("a baseline rule the pinned oxlint lacks fails the check", async () => {
+    const baseline = await shippedBaselineWithoutTypeAware();
+    const rules = isRecord(baseline.rules) ? baseline.rules : {};
+    const result = await lintWithConfig({
+      ...baseline,
+      rules: { ...rules, "typescript/no-rule-from-a-newer-oxlint": "error" },
+    });
+    expect(result.exitCode).not.toBe(0);
+    expect(result.output).toContain("not found in plugin");
   });
 });

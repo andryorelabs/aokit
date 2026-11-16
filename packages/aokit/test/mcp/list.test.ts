@@ -41,11 +41,11 @@ describe("list tool", () => {
     expect([...(tool?.inputSchema.required ?? [])].toSorted()).toEqual(["registry", "trust"]);
   });
 
-  test("returns the 52 Modules of the bundled Registry", async () => {
+  test("returns the 53 Modules of the bundled Registry", async () => {
     const client = await connectClient();
     const result = await callTool(client, "list", { registry: null, trust: null });
     expect(result.ok).toBe(true);
-    expect(result.data?.modules).toHaveLength(52);
+    expect(result.data?.modules).toHaveLength(53);
   });
 
   test("returns the descriptions of a given Registry", async () => {

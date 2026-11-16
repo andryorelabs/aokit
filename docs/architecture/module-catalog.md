@@ -146,6 +146,10 @@ Release `2026.12.1` added or bumped these Modules after Release `2026.12.0`, cut
 | `vitest`             | bumped to 1.1.0 | `@vitest/coverage-v8`                                                                             |
 | `tsdown`             | bumped to 1.1.0 | `size-limit`, `@size-limit/file`                                                                  |
 
+## Added in Release 2026.12.2
+
+Release `2026.12.2` publishes `release-skills` 1.0.0 and the Pending version of every other Module (import-sorted sources, the shared Oxlint baseline in `oxc` 1.3.0, `workflow_dispatch` in `github-ci` 1.1.0). Its Catalog, `registry-src/catalog/2026.12.2.json`, is `2026.12.1` with one change: `oxlint` moves from `1.90.0` to `1.92.0`, the version in the [toolchain table](../standards/tooling.md#toolchain-versions-e15) that the shipped `.oxlintrc.json` baseline is validated against. A test fails when the Catalog pin and that version differ. All Catalog fragments were empty and are deleted.
+
 ## Consistency checks
 
 Every row above should satisfy, and a reviewer can check mechanically:

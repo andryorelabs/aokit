@@ -33,7 +33,7 @@ describe("oxc", () => {
         format: "oxfmt",
         lint: 'oxlint --type-aware --ignore-pattern "**/node_modules/**" --ignore-pattern "**/generated/**" -c ./.oxlintrc.json',
       },
-      devDependencies: { oxfmt: "0.75.0", oxlint: "1.90.0", "oxlint-tsgolint": "^7.0.2006" },
+      devDependencies: { oxfmt: "0.75.0", oxlint: "1.92.0", "oxlint-tsgolint": "^7.0.2006" },
     });
     expect(built.lockfile.deps.oxlint).toMatchObject({ pinned: true });
     expect(built.lockfile.deps.oxfmt).toMatchObject({ pinned: true });
