@@ -1,0 +1,11 @@
+---
+import { Counter } from "../components/Counter";
+import Layout from "../layouts/Layout.astro";
+---
+
+<Layout title="Welcome">
+  <main>
+    <h1>Welcome</h1>
+    <Counter client:load />
+  </main>
+</Layout>

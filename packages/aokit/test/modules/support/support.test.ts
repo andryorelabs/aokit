@@ -9,8 +9,12 @@ import { buildSelection, draftCatalog } from "./index.ts";
 const sourceRoot = join(import.meta.dir, "..", "..", "..", "..", "..", "registry-src");
 
 test("the draft Catalog keeps every dependency of the latest Release Catalog", () => {
+  const raw: unknown = JSON.parse(
+    readFileSync(join(sourceRoot, "catalog", "2026.12.2.json"), "utf8"),
+  );
+  if (typeof raw !== "object" || raw === null) throw new Error("the Catalog is not an object");
   const latest = catalogSchema.parse(
-    JSON.parse(readFileSync(join(sourceRoot, "catalog", "2026.11.2.json"), "utf8")),
+    Object.fromEntries(Object.entries(raw).filter(([key]) => key !== "modules")),
   );
   expect(draftCatalog().dependencies).toMatchObject(latest.dependencies);
   expect(draftCatalog().pinGroups).toMatchObject(latest.pinGroups);

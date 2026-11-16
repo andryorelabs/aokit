@@ -166,12 +166,11 @@ describe("Release 2026.12.1", () => {
     "vitest-react",
   ];
 
-  test("the index keeps every earlier Release and adds 2026.12.1 as latest", async () => {
+  test("the index keeps every earlier Release and adds 2026.12.1", async () => {
     const registry = await openRegistry();
     for (const release of ["2026.11.0", "2026.11.1", "2026.11.2", "2026.12.0", "2026.12.1"]) {
       expect(registry.releases()).toContain(release);
     }
-    expect(registry.release).toBe("2026.12.1");
   });
 
   test("the Catalog extends 2026.12.0, keeps its pin groups and maps every Module", () => {
@@ -224,5 +223,81 @@ describe("Release 2026.12.1", () => {
       })
       .map((entry) => entry.name);
     expect(leftovers).toEqual([]);
+  });
+});
+
+/**
+ * The version every `registry-src/<name>/module.ts` declares, keyed by Module name.
+ */
+function moduleSourceVersions(): Record<string, string> {
+  return Object.fromEntries(
+    readdirSync(sourceRoot, { withFileTypes: true })
+      .filter((entry) => entry.isDirectory() && entry.name !== "catalog")
+      .map((entry) => {
+        const source = readFileSync(join(sourceRoot, entry.name, "module.ts"), "utf8");
+        return [entry.name, /version: "([^"]+)"/.exec(source)?.[1] ?? ""] as const;
+      }),
+  );
+}
+
+describe("Release 2026.12.2", () => {
+  /**
+   * The one released dependency 2026.12.2 changes, the exception to the superset check: oxlint
+   * moves to the toolchain version the shipped baseline `oxlintrc.json` is validated against.
+   */
+  const raisedDependencies = { oxlint: "1.92.0" };
+
+  test("the index keeps every earlier Release and adds 2026.12.2 as latest", async () => {
+    const registry = await openRegistry();
+    for (const release of [
+      "2026.11.0",
+      "2026.11.1",
+      "2026.11.2",
+      "2026.12.0",
+      "2026.12.1",
+      "2026.12.2",
+    ]) {
+      expect(registry.releases()).toContain(release);
+    }
+    expect(registry.release).toBe("2026.12.2");
+  });
+
+  test("the Catalog extends 2026.12.1 apart from the raised oxlint and keeps its pin groups", () => {
+    const previous = readJson(join(sourceRoot, "catalog", "2026.12.1.json"));
+    const next = readJson(join(sourceRoot, "catalog", "2026.12.2.json"));
+    expect(next.release).toBe("2026.12.2");
+    expect(next.pinGroups).toEqual(previous.pinGroups);
+    const previousDependencies = z.record(z.string(), z.string()).parse(previous.dependencies);
+    const nextDependencies = z.record(z.string(), z.string()).parse(next.dependencies);
+    expect(previousDependencies.oxlint).toBe("1.90.0");
+    expect(nextDependencies).toMatchObject({ ...previousDependencies, ...raisedDependencies });
+    expect(Object.keys(nextDependencies)).toEqual(Object.keys(nextDependencies).toSorted());
+  });
+
+  test("the Catalog maps every Module to its source version", () => {
+    const next = readJson(join(sourceRoot, "catalog", "2026.12.2.json"));
+    expect(z.record(z.string(), z.string()).parse(next.modules)).toEqual(moduleSourceVersions());
+  });
+
+  test("every Module source version ships and every earlier mapped version stays published", async () => {
+    const registry = await openRegistry();
+    const previous = readJson(join(sourceRoot, "catalog", "2026.12.1.json"));
+    const previousModules = z.record(z.string(), z.string()).parse(previous.modules);
+    for (const [name, version] of Object.entries(moduleSourceVersions())) {
+      expect(registry.version(name, version)).toBeDefined();
+    }
+    for (const [name, version] of Object.entries(previousModules)) {
+      expect(registry.version(name, version)).toBeDefined();
+    }
+    expect(registry.version("release-skills", "1.0.0")).toBeDefined();
+  });
+
+  test("no Catalog fragment remains", () => {
+    const fragments = readdirSync(sourceRoot, { withFileTypes: true })
+      .filter(
+        (entry) => entry.isDirectory() && existsSync(join(sourceRoot, entry.name, "catalog.json")),
+      )
+      .map((entry) => entry.name);
+    expect(fragments).toEqual([]);
   });
 });

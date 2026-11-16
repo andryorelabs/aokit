@@ -1,0 +1,9 @@
+{
+  "ignorePatterns": ["**/node_modules/**", "coverage/**", "dist/**"],
+  "sortImports": {
+    "groups": ["builtin", "external", "internal", ["parent", "sibling", "index"], "unknown"],
+    "internalPattern": ["@/"],
+    "ignoreCase": true,
+    "newlinesBetween": true
+  }
+}

@@ -81,10 +81,10 @@ test("recopy renders the newest version of a remote Module whose locked version 
   });
   expect(recopied).toMatchObject({
     ok: true,
-    data: { substitutions: [{ module: "knip", locked: "0.9.0", rendered: "1.1.0" }] },
+    data: { substitutions: [{ module: "knip", locked: "0.9.0", rendered: "1.1.1" }] },
   });
   expect((await readLockfileJson(project)).modules.knip).toMatchObject({
-    version: "1.1.0",
+    version: "1.1.1",
     registry: "acme",
   });
 });
@@ -108,7 +108,7 @@ test("a broken newer version of a locked remote Module never fails doctor or rem
     const versions: unknown = Reflect.get(knip, "versions");
     if (typeof versions !== "object" || versions === null) throw new Error("knip lacks versions");
     Reflect.set(versions, "1.2.0", {
-      ...Reflect.get(versions, "1.1.0"),
+      ...Reflect.get(versions, "1.1.1"),
       manifest: "modules/knip/1.2.0/module.json",
       files: { "files/knip.json": computeIntegrity("missing\n") },
     });

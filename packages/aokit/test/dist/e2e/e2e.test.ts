@@ -263,8 +263,8 @@ describeWithTarballs("create-aokit from the packed tarballs", () => {
       JSON.parse(await readFile(join(cwd, "app", "aokit.lock.json"), "utf8")),
     );
     const repository = await readReleaseOf(join(repositoryRoot, "registry", "index.json"));
-    expect(repository).toBe("2026.12.1");
-    expect(lockfile.registries.official?.release).toBe("2026.12.1");
+    expect(repository).toBe("2026.12.2");
+    expect(lockfile.registries.official?.release).toBe("2026.12.2");
   });
 
   test("S11: a Project that create-aokit creates and installs builds with bun run build", async () => {

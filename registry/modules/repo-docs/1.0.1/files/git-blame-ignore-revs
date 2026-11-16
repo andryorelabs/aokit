@@ -1,0 +1,2 @@
+# Commits that only reformat code, one full SHA per line.
+# Enable locally with: git config blame.ignoreRevsFile .git-blame-ignore-revs

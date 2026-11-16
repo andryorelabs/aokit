@@ -1,0 +1,38 @@
+{
+  "$schema": "https://aokit.andryore.dev/schema/module/v1.json",
+  "conflicts": [],
+  "description": "The cut-release Claude skill: how to cut and verify a release.",
+  "env": [],
+  "extensionPoints": [],
+  "files": [
+    {
+      "from": "files/cut-release.md",
+      "ownership": "managed",
+      "target": "root",
+      "to": ".claude/skills/cut-release/SKILL.md"
+    }
+  ],
+  "migrations": [],
+  "name": "release-skills",
+  "ops": [
+    {
+      "content": "\n## release-skills\n\nThe release procedure is a project skill.\n\nSkills:\n\n- `.claude/skills/cut-release/SKILL.md`: how to cut and verify a release.\n",
+      "file": "AGENTS.md",
+      "op": "appendRegion",
+      "region": "agents",
+      "target": "root"
+    }
+  ],
+  "override": [],
+  "provides": [
+    {
+      "capability": "docs:release",
+      "cardinality": {
+        "max": 1
+      }
+    }
+  ],
+  "requires": [],
+  "schemaVersion": 1,
+  "version": "1.0.0"
+}
