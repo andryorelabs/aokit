@@ -5,6 +5,17 @@ type JsonObject = Record<string, unknown>;
 
 const renovateConfigPath = join(import.meta.dir, "..", "..", "renovate.json5");
 const oxcMembers = ["oxlint", "oxfmt", "oxlint-tsgolint", "@oxlint/plugins", "oxc-parser"];
+const presetIgnorePaths = [
+  "**/node_modules/**",
+  "**/bower_components/**",
+  "**/vendor/**",
+  "**/examples/**",
+  "**/samples/**",
+  "**/__tests__/**",
+  "**/test/**",
+  "**/tests/**",
+  "**/__fixtures__/**",
+];
 
 /**
  * Narrows an unknown value to a plain object.
@@ -124,6 +135,44 @@ describe("renovate.json5", () => {
       return isStringArray(names) && names.includes("typescript");
     });
     expect(rule?.allowedVersions).toBe("<7");
+  });
+
+  test("S1: excludes nightly -dev. versions from the typescript7 group", async () => {
+    const group = groupRuleOf(await loadRenovateConfig(), "typescript7");
+    expect(group.allowedVersions).toBe("!/-dev\\./");
+  });
+
+  test("S2: keeps devDependencies on ranges, ordered before the pin groups", async () => {
+    const rules = packageRulesOf(await loadRenovateConfig());
+    const bumpIndex = rules.findIndex(
+      (rule) =>
+        isStringArray(rule.matchDepTypes) &&
+        rule.matchDepTypes.includes("devDependencies") &&
+        rule.rangeStrategy === "bump",
+    );
+    expect(bumpIndex).toBeGreaterThanOrEqual(0);
+    for (const groupName of ["oxc", "typescript7"]) {
+      const groupIndex = rules.findIndex((rule) => rule.groupName === groupName);
+      expect(groupIndex).toBeGreaterThan(bumpIndex);
+    }
+  });
+
+  test("S3: ignores the Registry paths and keeps the preset defaults", async () => {
+    const config = await loadRenovateConfig();
+    const ignorePaths = config.ignorePaths;
+    if (!isStringArray(ignorePaths)) {
+      throw new Error("ignorePaths must be an array of strings");
+    }
+    expect(ignorePaths).toContain("registry/**");
+    expect(ignorePaths).toContain("registry-src/**");
+    for (const preset of presetIgnorePaths) {
+      expect(ignorePaths).toContain(preset);
+    }
+  });
+
+  test("S4: groups @emnapi/core and @emnapi/runtime together", async () => {
+    const group = groupRuleOf(await loadRenovateConfig(), "emnapi");
+    expect(group.matchPackageNames).toEqual(["@emnapi/core", "@emnapi/runtime"]);
   });
 
   test("enables OSV vulnerability alerts", async () => {
