@@ -24,7 +24,30 @@
       ],
     },
   ],
+  ignorePaths: [
+    "**/node_modules/**",
+    "**/bower_components/**",
+    "**/vendor/**",
+    "**/examples/**",
+    "**/samples/**",
+    "**/__tests__/**",
+    "**/test/**",
+    "**/tests/**",
+    "**/__fixtures__/**",
+    "registry/**",
+    "registry-src/**",
+  ],
   packageRules: [
+    {
+      description: "devDependencies keep ranges; the pin groups below override this",
+      matchDepTypes: ["devDependencies"],
+      rangeStrategy: "bump",
+    },
+    {
+      description: "emnapi packages move together in one pull request",
+      groupName: "emnapi",
+      matchPackageNames: ["@emnapi/core", "@emnapi/runtime"],
+    },
     {
       description: "Automerge patch and minor devDependency updates",
       matchDepTypes: ["devDependencies"],
@@ -51,6 +74,7 @@
       description: "Toolchain pin group: typescript7, exact pin, never automerged",
       groupName: "typescript7",
       matchDepNames: ["typescript7"],
+      allowedVersions: "!/-dev\\./",
       rangeStrategy: "pin",
       automerge: false,
     },

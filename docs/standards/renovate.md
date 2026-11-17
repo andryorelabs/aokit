@@ -34,7 +34,21 @@ Toolchain pin groups are pinned exactly (`rangeStrategy: "pin"`), each in its ow
 | `oxc`         | `oxlint`, `oxfmt`, the Oxlint type-aware backend, related oxc packages |
 | `typescript7` | the `typescript7` alias (`typescript@7.1.0-beta`)                      |
 
+The `typescript7` rule sets `allowedVersions: "!/-dev\\./"`, so nightly `-dev.` builds are never proposed; only beta, rc and stable releases are.
+
 The real `typescript` 6.x dependency follows the normal range policy unless the Project's Catalog pins it.
+
+## devDependency ranges
+
+`devDependencies` keep ranges through a package rule with `rangeStrategy: "bump"`. It is ordered before the `oxc` and `typescript7` pin-group rules, because later rules win in Renovate, so only those two groups pin exactly.
+
+## Ignored Registry paths
+
+Renovate never edits files under `registry/**` or `registry-src/**`: the Module Dockerfiles and templates there are part of the immutable Registry. `ignorePaths` replaces the preset list, so it repeats the `config:best-practices` defaults (`**/node_modules/**`, `**/vendor/**`, `**/test/**` and the rest) and adds the two Registry paths.
+
+## emnapi group
+
+`@emnapi/core` and `@emnapi/runtime` are two halves of one release. The `emnapi` group moves them in a single pull request.
 
 ## No automerge for the toolchain
 
