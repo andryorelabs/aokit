@@ -6,12 +6,13 @@ The policy is implemented in [`renovate.json5`](../../renovate.json5) and checke
 
 ## Defaults
 
-| Setting             | Value                                                | Reason                                                                                                    |
-| ------------------- | ---------------------------------------------------- | --------------------------------------------------------------------------------------------------------- |
-| `rangeStrategy`     | `bump`                                               | Ranges in `package.json` move with the lockfile, so the declared range always reflects what is installed. |
-| `minimumReleaseAge` | `3 days` by default; `7 days` for automerged updates | Gives the registry time to yank bad or compromised releases before they land.                             |
-| Lockfile            | Bun lockfile committed                               | Reproducible installs; Renovate updates both.                                                             |
-| Schedule            | Monday                                               | One predictable batch of updates per week.                                                                |
+| Setting              | Value                                                | Reason                                                                                                     |
+| -------------------- | ---------------------------------------------------- | ---------------------------------------------------------------------------------------------------------- |
+| `rangeStrategy`      | `bump`                                               | Ranges in `package.json` move with the lockfile, so the declared range always reflects what is installed.  |
+| `minimumReleaseAge`  | `3 days` by default; `7 days` for automerged updates | Gives the registry time to yank bad or compromised releases before they land.                              |
+| Lockfile             | Bun lockfile committed                               | Reproducible installs; Renovate updates both.                                                              |
+| Schedule             | Monday                                               | One predictable batch of updates per week.                                                                 |
+| Dependency dashboard | `dependencyDashboard: { enabled: true, title }`      | The object form is the one Renovate's own config migration writes; the title stays "Dependency dashboard". |
 
 All active reference repositories already use `bump` with a release age and automerge; none pins every dependency.
 
