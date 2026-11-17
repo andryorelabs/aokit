@@ -200,7 +200,10 @@ describe("renovate.json5", () => {
 
   test("enables the dependency dashboard", async () => {
     const config = await loadRenovateConfig();
-    expect(config.dependencyDashboard).toBe(true);
+    expect(config.dependencyDashboard).toEqual({
+      enabled: true,
+      title: "Dependency dashboard",
+    });
   });
 
   test("labels updates and each label exists in labels.yml", async () => {
