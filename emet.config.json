@@ -10,7 +10,7 @@
     "branchPrefix": "ao"
   },
   "worktree": {
-    "bootstrap": ["bun install --frozen-lockfile"]
+    "bootstrap": ["bun install --frozen-lockfile --silent"]
   },
   "concurrency": {
     "waveSize": 4,
@@ -35,7 +35,8 @@
     "maxChars": 8000,
     "autoChain": true,
     "launcher": "auto",
-    "permissionMode": "bypassPermissions"
+    "permissionMode": "bypassPermissions",
+    "afterSpec": "release"
   },
   "pr": {
     "autoMerge": true,
@@ -71,5 +72,9 @@
   },
   "commands": {
     "selfCheck": ["bun run check", "bun run test"]
+  },
+  "language": {
+    "conversation": "es",
+    "artifacts": "en"
   }
 }
