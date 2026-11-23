@@ -68,7 +68,12 @@
     }
   },
   "review": {
-    "highRiskPaths": []
+    "highRiskPaths": [
+      "distribution",
+      "bump.config",
+      "docker",
+      ".github/rulesets/"
+    ]
   },
   "commands": {
     "selfCheck": ["bun run check", "bun run test"]
@@ -79,5 +84,8 @@
   },
   "landing": {
     "specMergeMethod": "squash"
+  },
+  "specs": {
+    "enabled": true
   }
 }
