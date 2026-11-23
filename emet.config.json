@@ -68,12 +68,7 @@
     }
   },
   "review": {
-    "highRiskPaths": [
-      "distribution",
-      "bump.config",
-      "docker",
-      ".github/rulesets/"
-    ]
+    "highRiskPaths": ["distribution", "bump.config", "docker", ".github/rulesets/"]
   },
   "commands": {
     "selfCheck": ["bun run check", "bun run test"]
