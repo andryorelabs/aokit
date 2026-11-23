@@ -68,7 +68,7 @@
     }
   },
   "review": {
-    "highRiskPaths": []
+    "highRiskPaths": ["distribution", "bump.config", "docker", ".github/rulesets/"]
   },
   "commands": {
     "selfCheck": ["bun run check", "bun run test"]
@@ -76,5 +76,11 @@
   "language": {
     "conversation": "es",
     "artifacts": "en"
+  },
+  "landing": {
+    "specMergeMethod": "squash"
+  },
+  "specs": {
+    "enabled": true
   }
 }
