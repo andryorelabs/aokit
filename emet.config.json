@@ -76,5 +76,8 @@
   "language": {
     "conversation": "es",
     "artifacts": "en"
+  },
+  "landing": {
+    "specMergeMethod": "squash"
   }
 }
