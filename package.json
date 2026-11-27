@@ -37,7 +37,7 @@
     "@commitlint/config-conventional": "^21.2.4",
     "@commitlint/types": "^21.2.3",
     "@oxlint/plugins": "1.92.0",
-    "@types/bun": "^1.4.4",
+    "@types/bun": "^1.4.5",
     "bumpp": "^12.3.0",
     "husky": "^9.1.7",
     "knip": "^6.44.1",
@@ -55,5 +55,5 @@
     "@emnapi/core": "2.0.0-beta.3",
     "@emnapi/runtime": "2.0.0-beta.3"
   },
-  "packageManager": "bun@1.4.4"
+  "packageManager": "bun@1.4.5"
 }
